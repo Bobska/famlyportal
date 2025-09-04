@@ -150,23 +150,24 @@ class TimeEntry(FamilyUserScopedModel):
         if self.date and self.date > timezone.now().date():
             raise ValidationError("Time entry date cannot be in the future.")
         
-        # Check for overlapping entries
-        if self.pk:
-            overlapping = TimeEntry.objects.filter(
-                user=self.user,
-                date=self.date
-            ).exclude(pk=self.pk)
-        else:
-            overlapping = TimeEntry.objects.filter(
-                user=self.user,
-                date=self.date
-            )
-        
-        for entry in overlapping:
-            if self._times_overlap(entry):
-                raise ValidationError(
-                    f"Time entry overlaps with existing entry: {entry}"
+        # Check for overlapping entries only if user is set
+        if hasattr(self, 'user') and self.user:
+            if self.pk:
+                overlapping = TimeEntry.objects.filter(
+                    user=self.user,
+                    date=self.date
+                ).exclude(pk=self.pk)
+            else:
+                overlapping = TimeEntry.objects.filter(
+                    user=self.user,
+                    date=self.date
                 )
+            
+            for entry in overlapping:
+                if self._times_overlap(entry):
+                    raise ValidationError(
+                        f"Time entry overlaps with existing entry: {entry}"
+                    )
     
     def _times_overlap(self, other_entry):
         """Check if this entry overlaps with another entry"""

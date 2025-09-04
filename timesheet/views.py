@@ -171,6 +171,7 @@ def create_entry(request):
         if form.is_valid():
             entry = form.save(commit=False)
             entry.user = request.user
+            entry.family = family
             entry.save()
             messages.success(request, 'Time entry created successfully!')
             return redirect('timesheet:dashboard')

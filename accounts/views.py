@@ -9,7 +9,8 @@ from django.db import transaction
 from .models import User, Family, FamilyMember
 from .forms import (
     CustomUserCreationForm, CustomAuthenticationForm, 
-    UserProfileForm, FamilyInviteForm, FamilyMemberRoleForm
+    UserProfileForm, FamilyInviteForm, FamilyMemberRoleForm,
+    AddFamilyMemberForm
 )
 from .decorators import (
     family_required, family_admin_required, get_user_family_context,
@@ -296,3 +297,40 @@ def family_invite_code(request, family_pk):
         'invite_code': family.invite_code,
         'family_name': family.name
     })
+
+
+@login_required
+@family_admin_required
+def add_family_member(request, family_pk):
+    """Add a new family member (admin/parent only)"""
+    family = get_object_or_404(Family, pk=family_pk)
+    family_member = get_object_or_404(FamilyMember, user=request.user, family=family)
+    
+    # Check if user has permission to add members (admin or parent)
+    if family_member.role not in ['admin', 'parent']:
+        messages.error(request, "You don't have permission to add family members.")
+        return redirect('accounts:family_members', family_pk=family.pk)
+    
+    if request.method == 'POST':
+        form = AddFamilyMemberForm(request.POST, family=family)
+        if form.is_valid():
+            try:
+                new_member = form.save()
+                messages.success(
+                    request, 
+                    f"{new_member.user.get_full_name() or new_member.user.username} has been added to the family."
+                )
+                return redirect('accounts:family_members', family_pk=family.pk)
+            except Exception as e:
+                messages.error(request, f"Error adding family member: {str(e)}")
+    else:
+        form = AddFamilyMemberForm(family=family)
+    
+    context = get_user_family_context(request.user)
+    context.update({
+        'form': form,
+        'family': family,
+        'page_title': f'Add Member to {family.name}',
+    })
+    
+    return render(request, 'accounts/add_family_member.html', context)

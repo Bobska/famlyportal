@@ -100,7 +100,7 @@
                     </a>
                     {% endif %}
                     
-                    {% if user.is_family_admin %}
+                    {% if primary_family_member.role == 'admin' or primary_family_member.role == 'parent' %}
                     <a href="{% url 'accounts:family_members' primary_family.pk %}" class="btn btn-outline-info btn-sm">
                         <i class="bi bi-people"></i> Manage Family
                     </a>

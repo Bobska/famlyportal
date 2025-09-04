@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load family_tags %}
 
 {% block title %}{{ family.name }} Members - FamlyPortal{% endblock %}
 
@@ -8,9 +9,17 @@
         <i class="bi bi-people"></i>
         {{ family.name }} Members
     </h1>
-    <a href="{% url 'accounts:family' %}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Back to Family Management
-    </a>
+    <div class="d-flex gap-2">
+        {% family_context as current_family_context %}
+        {% if current_family_context.member.role == 'admin' or current_family_context.member.role == 'parent' %}
+            <a href="{% url 'accounts:add_family_member' family.pk %}" class="btn btn-success">
+                <i class="bi bi-person-plus"></i> Add Member
+            </a>
+        {% endif %}
+        <a href="{% url 'accounts:family' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Family Management
+        </a>
+    </div>
 </div>
 
 <div class="row">
@@ -40,16 +49,20 @@
                             {{ member.get_role_display }}
                         </span>
                         {% if member.user != user %}
-                        <div class="btn-group">
-                            <a href="{% url 'accounts:update_member_role' family.pk member.pk %}" 
-                               class="btn btn-sm btn-outline-primary" title="Change Role">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a href="{% url 'accounts:remove_member' family.pk member.pk %}" 
-                               class="btn btn-sm btn-outline-danger" title="Remove Member">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                        </div>
+                            {% if current_family_context.member.role == 'admin' or current_family_context.member.role == 'parent' %}
+                            <div class="btn-group">
+                                <a href="{% url 'accounts:update_member_role' family.pk member.pk %}" 
+                                   class="btn btn-sm btn-outline-primary" title="Change Role">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if current_family_context.member.role == 'admin' %}
+                                <a href="{% url 'accounts:remove_member' family.pk member.pk %}" 
+                                   class="btn btn-sm btn-outline-danger" title="Remove Member">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         {% else %}
                         <span class="badge bg-light text-dark">You</span>
                         {% endif %}

@@ -17,6 +17,7 @@ urlpatterns = [
     path('join-family/', views.join_family, name='join_family'),
     path('family/', views.family_management, name='family'),
     path('family/<int:family_pk>/members/', views.family_members, name='family_members'),
+    path('family/<int:family_pk>/members/add/', views.add_family_member, name='add_family_member'),
     path('family/<int:family_pk>/members/<int:member_pk>/role/', views.update_member_role, name='update_member_role'),
     path('family/<int:family_pk>/members/<int:member_pk>/remove/', views.remove_family_member, name='remove_member'),
     

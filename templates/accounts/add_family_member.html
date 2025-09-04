@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load family_tags %}
+{% load widget_tweaks %}
+
+{% block title %}Add Family Member - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<style>
+.add-member-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 15px;
+}
+
+.member-form-card {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 15px;
+}
+
+.role-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="add-member-header p-4 mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="bi bi-person-plus"></i>
+                    Add Family Member
+                </h1>
+                <p class="mb-0 opacity-75">Create a new account for {{ family.name }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'accounts:family_members' family.pk %}" class="btn btn-light">
+                    <i class="bi bi-arrow-left"></i> Back to Members
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card member-form-card">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge text-success me-2"></i>
+                        New Member Information
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-muted mb-3">
+                                <i class="bi bi-person me-2"></i>Personal Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-person me-1"></i>First Name
+                                    </label>
+                                    {{ form.first_name|add_class:"form-control" }}
+                                    {% if form.first_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.first_name.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-person me-1"></i>Last Name
+                                    </label>
+                                    {{ form.last_name|add_class:"form-control" }}
+                                    {% if form.last_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.last_name.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Information -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-muted mb-3">
+                                <i class="bi bi-key me-2"></i>Account Information
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-at me-1"></i>Username
+                                </label>
+                                {{ form.username|add_class:"form-control" }}
+                                <div class="form-text">{{ form.username.help_text }}</div>
+                                {% if form.username.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.username.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-envelope me-1"></i>Email Address
+                                </label>
+                                {{ form.email|add_class:"form-control" }}
+                                <div class="form-text">{{ form.email.help_text }}</div>
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.email.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.password1.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-lock me-1"></i>Password
+                                    </label>
+                                    {{ form.password1|add_class:"form-control" }}
+                                    <div class="form-text">{{ form.password1.help_text }}</div>
+                                    {% if form.password1.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.password1.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.password2.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-lock-fill me-1"></i>Confirm Password
+                                    </label>
+                                    {{ form.password2|add_class:"form-control" }}
+                                    <div class="form-text">{{ form.password2.help_text }}</div>
+                                    {% if form.password2.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.password2.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Family Role -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-muted mb-3">
+                                <i class="bi bi-people me-2"></i>Family Role
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.role.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="bi bi-person-badge me-1"></i>Role in Family
+                                    </label>
+                                    {{ form.role|add_class:"form-select" }}
+                                    {% if form.role.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.role.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="role-info">
+                                        <h6 class="mb-2">
+                                            <i class="bi bi-info-circle text-info me-1"></i>
+                                            Role Permissions
+                                        </h6>
+                                        <small class="text-muted">
+                                            <strong>Parent:</strong> Full access to all apps<br>
+                                            <strong>Child:</strong> Limited access (timesheet, employment)<br>
+                                            <strong>Other:</strong> Basic access (timesheet only)
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-3 justify-content-end">
+                            <a href="{% url 'accounts:family_members' family.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-person-plus me-1"></i>Add Family Member
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Focus first input
+    const firstInput = document.querySelector('input[name="first_name"]');
+    if (firstInput) {
+        firstInput.focus();
+    }
+    
+    // Add form validation feedback
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const requiredFields = form.querySelectorAll('input[required], select[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -231,3 +231,100 @@ class FamilyMemberRoleForm(forms.ModelForm):
                 Submit('submit', 'Update Role', css_class='btn btn-primary')
             )
         )
+
+
+class AddFamilyMemberForm(forms.ModelForm):
+    """Form for admins/parents to add new family members"""
+    email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+    username = forms.CharField(
+        max_length=150, 
+        required=True,
+        help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+    )
+    password1 = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput,
+        help_text="Your password must contain at least 8 characters."
+    )
+    password2 = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput,
+        help_text="Enter the same password as before, for verification."
+    )
+    
+    class Meta:
+        model = FamilyMember
+        fields = ['role']
+        
+    def __init__(self, *args, **kwargs):
+        self.family = kwargs.pop('family', None)
+        super().__init__(*args, **kwargs)
+        
+        # Limit role choices based on who is creating the user
+        self.fields['role'].choices = [
+            ('child', 'Child'),
+            ('other', 'Other'),
+            ('parent', 'Parent'),
+        ]
+        
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(
+                Column('first_name', css_class='form-group col-md-6 mb-0'),
+                Column('last_name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            'username',
+            'email',
+            Row(
+                Column('password1', css_class='form-group col-md-6 mb-0'),
+                Column('password2', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            'role',
+            FormActions(
+                Submit('submit', 'Add Family Member', css_class='btn btn-success'),
+                HTML('<a href="{% url "accounts:family_members" %}" class="btn btn-secondary">Cancel</a>')
+            )
+        )
+    
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exists():
+            raise ValidationError("A user with this username already exists.")
+        return username
+    
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("A user with this email already exists.")
+        return email
+    
+    def clean_password2(self):
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("The two password fields didn't match.")
+        return password2
+    
+    def save(self, commit=True):
+        # Create the user first
+        user = User.objects.create_user(
+            username=self.cleaned_data['username'],
+            email=self.cleaned_data['email'],
+            first_name=self.cleaned_data['first_name'],
+            last_name=self.cleaned_data['last_name'],
+            password=self.cleaned_data['password1']
+        )
+        
+        # Create the family member
+        family_member = super().save(commit=False)
+        family_member.user = user
+        family_member.family = self.family
+        
+        if commit:
+            family_member.save()
+            
+        return family_member

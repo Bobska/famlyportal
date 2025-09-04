@@ -1,53 +1,322 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load family_tags %}
 
-{% block title %}Profile - FamlyPortal{% endblock %}
+{% block title %}Profile Settings - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border: 4px solid white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-stats {
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.family-info-card {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border: none;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">
-                    <i class="bi bi-person"></i>
-                    My Profile
-                </h4>
+    <!-- Profile Form -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="profile-header p-4">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="profile-avatar rounded-circle">
+                        {% else %}
+                            <div class="profile-avatar rounded-circle bg-white d-flex align-items-center justify-content-center">
+                                <i class="bi bi-person-fill text-primary" style="font-size: 4rem;"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        <h2 class="mb-1">{{ user|user_display_name }}</h2>
+                        <p class="mb-2 opacity-75">{{ user.email }}</p>
+                        {% if primary_family %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-people me-1"></i>
+                                {{ primary_family.name }} - {{ primary_family_member.get_role_display }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                {% crispy form %}
+            
+            <div class="card-body p-4">
+                <h5 class="mb-4">
+                    <i class="bi bi-person-gear text-primary me-2"></i>
+                    Update Your Information
+                </h5>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-person me-1"></i>First Name
+                            </label>
+                            {{ form.first_name|add_class:"form-control" }}
+                            {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.first_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-person me-1"></i>Last Name
+                            </label>
+                            {{ form.last_name|add_class:"form-control" }}
+                            {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.last_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-envelope me-1"></i>Email Address
+                        </label>
+                        {{ form.email|add_class:"form-control" }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.email.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if form.profile_picture %}
+                    <div class="mb-3">
+                        <label for="{{ form.profile_picture.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-image me-1"></i>Profile Picture
+                        </label>
+                        {{ form.profile_picture|add_class:"form-control" }}
+                        {% if form.profile_picture.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.profile_picture.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Upload a new profile picture (optional)</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if form.age %}
+                    <div class="mb-3">
+                        <label for="{{ form.age.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-calendar me-1"></i>Age
+                        </label>
+                        {{ form.age|add_class:"form-control" }}
+                        {% if form.age.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.age.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Update Profile
+                        </button>
+                        <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Back to Dashboard
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
+    <!-- Profile Information Sidebar -->
+    <div class="col-lg-4">
+        <!-- Account Stats -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
                 <h6 class="mb-0">
-                    <i class="bi bi-info-circle"></i>
-                    Account Information
+                    <i class="bi bi-graph-up text-primary me-2"></i>
+                    Account Overview
                 </h6>
             </div>
             <div class="card-body">
-                <p><strong>Username:</strong> {{ user.username }}</p>
-                <p><strong>Member Since:</strong> {{ user.date_joined|date:"M d, Y" }}</p>
-                <p><strong>Last Login:</strong> {{ user.last_login|date:"M d, Y H:i" }}</p>
+                <div class="profile-stats p-3">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <h5 class="mb-1 text-primary">{{ user.date_joined|timesince }}</h5>
+                            <small class="text-muted">Member Since</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="mb-1 text-success">{{ user.last_login|date:"M d" }}</h5>
+                            <small class="text-muted">Last Login</small>
+                        </div>
+                    </div>
+                </div>
                 
-                {% if primary_family %}
                 <hr>
-                <h6><i class="bi bi-people"></i> Family</h6>
-                <p><strong>Primary Family:</strong> {{ primary_family.name }}</p>
-                <p><strong>Role:</strong> 
-                    <span class="badge bg-{{ primary_family_member.role|yesno:'primary,secondary,success,info' }}">
-                        {{ primary_family_member.get_role_display }}
-                    </span>
-                </p>
-                {% endif %}
+                
+                <div class="small">
+                    <p class="mb-2">
+                        <i class="bi bi-person-badge text-muted me-2"></i>
+                        <strong>Username:</strong> {{ user.username }}
+                    </p>
+                    <p class="mb-2">
+                        <i class="bi bi-calendar-event text-muted me-2"></i>
+                        <strong>Joined:</strong> {{ user.date_joined|date:"M d, Y" }}
+                    </p>
+                    {% if user.last_login %}
+                    <p class="mb-0">
+                        <i class="bi bi-clock text-muted me-2"></i>
+                        <strong>Last Active:</strong> {{ user.last_login|date:"M d, Y H:i" }}
+                    </p>
+                    {% endif %}
+                </div>
             </div>
         </div>
         
-        {% if user.profile_picture %}
-        <div class="card mt-3">
-            <div class="card-header">
+        {% if primary_family %}
+        <!-- Family Information -->
+        <div class="card family-info-card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="mb-0">
+                    <i class="bi bi-people-fill text-primary me-2"></i>
+                    Family Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <h5 class="text-primary">{{ primary_family.name }}</h5>
+                    <span class="badge {{ primary_family_member.role|family_role_badge }} px-3 py-2">
+                        {{ primary_family_member.get_role_display }}
+                    </span>
+                </div>
+                
+                <hr>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <h6 class="mb-1">{% get_family_member_count as member_count %}{{ member_count }}</h6>
+                        <small class="text-muted">Family Member{{ member_count|pluralize }}</small>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="mb-1">{{ primary_family_member.joined_at|date:"M Y" }}</h6>
+                        <small class="text-muted">Joined Family</small>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'accounts:family_members' primary_family.pk %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-people me-1"></i>
+                        View Members
+                    </a>
+                    {% if user.is_family_admin %}
+                    <a href="{% url 'accounts:family' %}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-gear me-1"></i>
+                        Manage Family
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <small class="text-muted d-block">Family Invite Code</small>
+                    <code class="bg-white p-2 rounded d-inline-block">{{ primary_family.invite_code }}</code>
+                    <button class="btn btn-sm btn-outline-secondary ms-1" 
+                            data-copy="{{ primary_family.invite_code }}" 
+                            title="Copy invite code">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- No Family Card -->
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle text-warning fs-1 mb-3"></i>
+                <h6>No Family Assigned</h6>
+                <p class="text-muted small mb-3">
+                    Join or create a family to access FamlyPortal apps.
+                </p>
+                <a href="{% url 'accounts:join_family' %}" class="btn btn-warning btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Join a Family
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Profile picture preview
+    const profilePictureInput = document.querySelector('input[name="profile_picture"]');
+    if (profilePictureInput) {
+        profilePictureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const currentAvatar = document.querySelector('.profile-avatar');
+                    if (currentAvatar.tagName === 'IMG') {
+                        currentAvatar.src = e.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Add smooth animations
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}
                 <h6 class="mb-0">
                     <i class="bi bi-image"></i>
                     Current Profile Picture

@@ -1,33 +1,288 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load family_tags %}
 
-{% block title %}Register - FamlyPortal{% endblock %}
+{% block title %}Create Account - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-page {
+    min-height: 80vh;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    padding: 2rem 0;
+}
+
+.registration-card {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.registration-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    text-align: center;
+    padding: 2rem 1.5rem 1.5rem;
+}
+
+.registration-icon {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.feature-list {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow">
-            <div class="card-header bg-success text-white text-center">
-                <h4 class="mb-0">
-                    <i class="bi bi-person-plus"></i>
-                    Join FamlyPortal
-                </h4>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Create your account and either start a new family or join an existing one.</p>
-                
-                {% crispy form %}
-                
-                <hr>
-                
-                <div class="text-center">
-                    <p class="mb-0">Already have an account?</p>
-                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-box-arrow-in-right"></i> Login
-                    </a>
+<div class="auth-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8">
+                <div class="card registration-card border-radius-lg">
+                    <div class="registration-header">
+                        <i class="bi bi-person-plus registration-icon"></i>
+                        <h3 class="mb-0 fw-bold">Join FamlyPortal</h3>
+                        <p class="text-muted mb-0">Create your account and start organizing your family life</p>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <form method="post" novalidate>
+                                    {% csrf_token %}
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.first_name.id_for_label }}" class="form-label fw-semibold">
+                                                <i class="bi bi-person me-1"></i>First Name
+                                            </label>
+                                            {{ form.first_name|add_class:"form-control" }}
+                                            {% if form.first_name.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.first_name.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.last_name.id_for_label }}" class="form-label fw-semibold">
+                                                <i class="bi bi-person me-1"></i>Last Name
+                                            </label>
+                                            {{ form.last_name|add_class:"form-control" }}
+                                            {% if form.last_name.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.last_name.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold">
+                                            <i class="bi bi-at me-1"></i>Username
+                                        </label>
+                                        {{ form.username|add_class:"form-control" }}
+                                        {% if form.username.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.username.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Choose a unique username for your account</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                                            <i class="bi bi-envelope me-1"></i>Email Address
+                                        </label>
+                                        {{ form.email|add_class:"form-control" }}
+                                        {% if form.email.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.email.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.password1.id_for_label }}" class="form-label fw-semibold">
+                                                <i class="bi bi-lock me-1"></i>Password
+                                            </label>
+                                            {{ form.password1|add_class:"form-control" }}
+                                            {% if form.password1.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.password1.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ form.password2.id_for_label }}" class="form-label fw-semibold">
+                                                <i class="bi bi-lock-fill me-1"></i>Confirm Password
+                                            </label>
+                                            {{ form.password2|add_class:"form-control" }}
+                                            {% if form.password2.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.password2.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if form.non_field_errors %}
+                                        <div class="alert alert-danger">
+                                            {% for error in form.non_field_errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="d-grid mb-3">
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="bi bi-person-plus me-2"></i>
+                                            Create Account
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <div class="feature-list">
+                                    <h6 class="fw-bold mb-3">
+                                        <i class="bi bi-star text-warning me-2"></i>
+                                        What you'll get:
+                                    </h6>
+                                    
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle text-success me-2"></i>
+                                            <strong>Time Tracking</strong><br>
+                                            <small class="text-muted">Track work hours across multiple jobs</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle text-success me-2"></i>
+                                            <strong>Budget Management</strong><br>
+                                            <small class="text-muted">Manage family finances and expenses</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle text-success me-2"></i>
+                                            <strong>Payment Reminders</strong><br>
+                                            <small class="text-muted">Never miss a bill or subscription</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle text-success me-2"></i>
+                                            <strong>Family Organization</strong><br>
+                                            <small class="text-muted">Keep everyone connected and informed</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle text-success me-2"></i>
+                                            <strong>CV Builder</strong><br>
+                                            <small class="text-muted">Professional resume generation</small>
+                                        </li>
+                                    </ul>
+                                    
+                                    <div class="text-center mt-3">
+                                        <small class="text-muted">
+                                            <i class="bi bi-shield-check text-success me-1"></i>
+                                            Secure & Family-Private
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-light text-center py-3">
+                        <p class="mb-0 text-muted">
+                            Already have an account?
+                            <a href="{% url 'accounts:login' %}" class="text-decoration-none fw-semibold">
+                                Sign in here
+                            </a>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add animation to registration form
+    const registrationCard = document.querySelector('.registration-card');
+    registrationCard.style.opacity = '0';
+    registrationCard.style.transform = 'translateY(30px)';
+    
+    setTimeout(() => {
+        registrationCard.style.transition = 'all 0.6s ease';
+        registrationCard.style.opacity = '1';
+        registrationCard.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Focus first input
+    const firstInput = document.querySelector('input[name="first_name"]');
+    if (firstInput) {
+        firstInput.focus();
+    }
+    
+    // Add password strength indicator
+    const passwordInput = document.querySelector('input[name="password1"]');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            // Simple password strength check
+            const password = this.value;
+            const strength = calculatePasswordStrength(password);
+            showPasswordStrength(strength);
+        });
+    }
+});
+
+function calculatePasswordStrength(password) {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+}
+
+function showPasswordStrength(strength) {
+    // Remove existing strength indicator
+    const existing = document.querySelector('.password-strength');
+    if (existing) existing.remove();
+    
+    if (strength === 0) return;
+    
+    const passwordInput = document.querySelector('input[name="password1"]');
+    const strengthIndicator = document.createElement('div');
+    strengthIndicator.className = 'password-strength mt-1';
+    
+    const colors = ['danger', 'danger', 'warning', 'info', 'success'];
+    const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    
+    strengthIndicator.innerHTML = `
+        <div class="progress" style="height: 4px;">
+            <div class="progress-bar bg-${colors[strength-1]}" style="width: ${strength * 20}%"></div>
+        </div>
+        <small class="text-${colors[strength-1]}">${labels[strength-1]} Password</small>
+    `;
+    
+    passwordInput.parentNode.appendChild(strengthIndicator);
+}
+</script>
+{% endblock %}
     </div>
 </div>
 

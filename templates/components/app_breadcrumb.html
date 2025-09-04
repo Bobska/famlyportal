@@ -1,0 +1,68 @@
+{% load app_status %}
+
+<!-- App Breadcrumb Component -->
+{% if breadcrumbs %}
+<nav aria-label="breadcrumb" class="app-breadcrumb">
+    <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li class="breadcrumb-item {% if breadcrumb.active %}active{% endif %}" 
+            {% if breadcrumb.active %}aria-current="page"{% endif %}>
+            {% if not breadcrumb.active %}
+                <a href="{{ breadcrumb.url }}" class="breadcrumb-link">
+                    {% if breadcrumb.icon %}
+                        <i class="{{ breadcrumb.icon }} me-1"></i>
+                    {% endif %}
+                    {{ breadcrumb.name }}
+                </a>
+            {% else %}
+                {% if breadcrumb.icon %}
+                    <i class="{{ breadcrumb.icon }} me-1"></i>
+                {% endif %}
+                {{ breadcrumb.name }}
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+
+<style>
+.app-breadcrumb {
+    background: rgba(248, 249, 250, 0.8);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.app-breadcrumb .breadcrumb {
+    margin-bottom: 0;
+    background: none;
+    padding: 0;
+}
+
+.app-breadcrumb .breadcrumb-item {
+    font-size: 0.9rem;
+}
+
+.app-breadcrumb .breadcrumb-link {
+    color: #6c757d;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.app-breadcrumb .breadcrumb-link:hover {
+    color: #495057;
+    text-decoration: underline;
+}
+
+.app-breadcrumb .breadcrumb-item.active {
+    color: #495057;
+    font-weight: 500;
+}
+
+/* App-specific color styling */
+{% if app_config %}
+.app-breadcrumb .breadcrumb-link:hover {
+    color: {{ app_config.color }};
+}
+{% endif %}
+</style>
+{% endif %}

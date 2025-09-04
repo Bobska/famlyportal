@@ -27,6 +27,9 @@ urlpatterns = [
     # Authentication and accounts
     path('accounts/', include('accounts.urls')),
     
+    # Core functionality (coming soon pages, etc.)
+    path('', include('core.urls')),
+    
     # Main app routes
     path('', RedirectView.as_view(url='/accounts/dashboard/', permanent=False), name='home'),
     path('timesheet/', include('timesheet.urls')),

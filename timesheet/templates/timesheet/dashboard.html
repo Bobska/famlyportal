@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load app_nav %}
 
 {% block title %}Timesheet Dashboard{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'timesheet' %}
+{% endblock %}
 
 {% block extra_css %}
 <style>

@@ -217,7 +217,9 @@
                                     {% elif goal.days_remaining == 0 %}
                                         Due today
                                     {% else %}
-                                        {{ goal.days_remaining|add:"0"|abs }} days overdue
+                                        {% with negative_days=goal.days_remaining %}
+                                            {{ negative_days|stringformat:"s"|slice:"1:" }} days overdue
+                                        {% endwith %}
                                     {% endif %}
                                 </div>
                                 <div class="small text-muted">

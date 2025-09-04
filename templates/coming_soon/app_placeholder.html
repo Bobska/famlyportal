@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load app_status %}
+{% load static %}
+
+{% block title %}{{ app_config.name }} - Coming Soon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .coming-soon-container {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 0;
+    }
+    
+    .coming-soon-card {
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .app-icon-large {
+        font-size: 4rem;
+        color: var(--app-color, #6c757d);
+        margin-bottom: 1.5rem;
+        opacity: 0.8;
+    }
+    
+    .app-title {
+        color: var(--app-color, #495057);
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    .coming-soon-badge {
+        background: linear-gradient(135deg, #ffd700, #ffed4e);
+        color: #333;
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        display: inline-block;
+        margin-bottom: 2rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .feature-list {
+        text-align: left;
+        max-width: 400px;
+        margin: 2rem auto;
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .feature-item:last-child {
+        border-bottom: none;
+    }
+    
+    .feature-icon {
+        color: var(--app-color, #28a745);
+        margin-right: 0.75rem;
+        font-size: 1.1rem;
+    }
+    
+    .eta-info {
+        background: rgba(0,0,0,0.03);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .notification-form {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .back-button {
+        position: fixed;
+        top: 100px;
+        left: 20px;
+        z-index: 1000;
+        background: rgba(255,255,255,0.9);
+        border: 1px solid #dee2e6;
+        border-radius: 50px;
+        padding: 0.75rem 1.25rem;
+        color: #6c757d;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(10px);
+    }
+    
+    .back-button:hover {
+        background: white;
+        color: #495057;
+        transform: translateX(-3px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .progress-indicator {
+        background: #e9ecef;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, var(--app-color, #007bff), color-mix(in srgb, var(--app-color, #007bff) 80%, #fff 20%));
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="coming-soon-container" style="--app-color: {{ app_config.color }};">
+    <!-- Back Button -->
+    <a href="{% url 'accounts:dashboard' %}" class="back-button">
+        <i class="bi-arrow-left me-2"></i>Back to Dashboard
+    </a>
+    
+    <div class="container">
+        <div class="coming-soon-card">
+            <!-- App Icon -->
+            <div class="app-icon-large">
+                <i class="{{ app_config.icon }}"></i>
+            </div>
+            
+            <!-- App Title -->
+            <h1 class="app-title">{{ app_config.name }}</h1>
+            
+            <!-- Coming Soon Badge -->
+            <div class="coming-soon-badge">
+                <i class="bi-clock me-2"></i>Coming Soon
+            </div>
+            
+            <!-- App Description -->
+            <p class="lead text-muted mb-4">{{ app_config.description }}</p>
+            
+            <!-- ETA Information -->
+            {% if eta %}
+            <div class="eta-info">
+                <h5 class="mb-2">
+                    <i class="bi-calendar-event me-2" style="color: var(--app-color);"></i>
+                    Expected Release
+                </h5>
+                <p class="mb-0 fw-medium">{{ eta }}</p>
+                
+                <!-- Progress Indicator (example - could be dynamic) -->
+                <div class="progress-indicator">
+                    <div class="progress-bar" style="width: 35%;"></div>
+                </div>
+                <small class="text-muted">Development in progress</small>
+            </div>
+            {% endif %}
+            
+            <!-- Planned Features -->
+            {% if features %}
+            <div class="feature-list">
+                <h5 class="text-center mb-3">
+                    <i class="bi-star me-2" style="color: var(--app-color);"></i>
+                    Planned Features
+                </h5>
+                {% for feature in features %}
+                <div class="feature-item">
+                    <i class="bi-check-circle feature-icon"></i>
+                    <span>{{ feature }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Notification Signup -->
+            <div class="notification-form">
+                <h5 class="mb-3">
+                    <i class="bi-bell me-2" style="color: var(--app-color);"></i>
+                    Get Notified
+                </h5>
+                <p class="text-muted small mb-3">
+                    Be the first to know when {{ app_config.name }} becomes available!
+                </p>
+                
+                <form method="post" action="#" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="app_name" value="{{ app_name }}">
+                    <input type="email" 
+                           class="form-control" 
+                           placeholder="Your email address" 
+                           name="email" 
+                           value="{{ user.email }}" 
+                           required>
+                    <button type="submit" 
+                            class="btn btn-primary" 
+                            style="background-color: var(--app-color); border-color: var(--app-color);">
+                        <i class="bi-bell me-1"></i>Notify Me
+                    </button>
+                </form>
+                
+                <small class="text-muted d-block mt-2">
+                    <i class="bi-shield-check me-1"></i>
+                    We'll only email you when this app launches. No spam.
+                </small>
+            </div>
+            
+            <!-- Additional Actions -->
+            <div class="mt-4">
+                <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-secondary me-2">
+                    <i class="bi-house me-1"></i>Back to Dashboard
+                </a>
+                <a href="#" class="btn btn-outline-primary" onclick="shareApp()">
+                    <i class="bi-share me-1"></i>Share Interest
+                </a>
+            </div>
+        </div>
+        
+        <!-- Additional Information -->
+        <div class="row mt-5">
+            <div class="col-md-4 text-center">
+                <div class="p-3">
+                    <i class="bi-lightning" style="font-size: 2rem; color: var(--app-color);"></i>
+                    <h6 class="mt-2">Fast Development</h6>
+                    <small class="text-muted">We're working hard to bring you this feature as soon as possible.</small>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="p-3">
+                    <i class="bi-shield-check" style="font-size: 2rem; color: var(--app-color);"></i>
+                    <h6 class="mt-2">Family Secure</h6>
+                    <small class="text-muted">Built with the same family-first security as all FamlyPortal apps.</small>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="p-3">
+                    <i class="bi-phone" style="font-size: 2rem; color: var(--app-color);"></i>
+                    <h6 class="mt-2">Mobile Ready</h6>
+                    <small class="text-muted">Designed to work perfectly on all your devices.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function shareApp() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ app_config.name }} - Coming Soon to FamlyPortal',
+            text: 'I\'m excited about {{ app_config.name }} coming to FamlyPortal!',
+            url: window.location.href
+        });
+    } else {
+        // Fallback - copy to clipboard
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            alert('Link copied to clipboard!');
+        });
+    }
+}
+
+// Add some interactive effects
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate feature items on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+    
+    document.querySelectorAll('.feature-item').forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = `opacity 0.5s ease ${index * 0.1}s, transform 0.5s ease ${index * 0.1}s`;
+        observer.observe(item);
+    });
+});
+</script>
+{% endblock %}

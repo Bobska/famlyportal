@@ -1,0 +1,304 @@
+{% load app_status %}
+{% load static %}
+
+<!-- App-Specific Secondary Navigation -->
+{% if app_config and nav_items %}
+<nav class="app-navigation" data-app="{{ app_name }}" style="--app-color: {{ app_config.color }};">
+    <div class="container-fluid">
+        <div class="app-nav-wrapper">
+            <!-- App Identity -->
+            <div class="app-nav-identity">
+                <i class="{{ app_config.icon }} app-nav-icon"></i>
+                <span class="app-nav-title">{{ app_config.name }}</span>
+            </div>
+            
+            <!-- Navigation Items -->
+            <ul class="app-nav-items">
+                {% for item in nav_items %}
+                <li class="app-nav-item">
+                    {% if item.disabled %}
+                        <span class="app-nav-link disabled" title="Coming Soon">
+                            <i class="{{ item.icon }} app-nav-item-icon"></i>
+                            <span class="app-nav-item-text">{{ item.name }}</span>
+                            <small class="coming-soon-badge">Soon</small>
+                        </span>
+                    {% else %}
+                        <a href="{{ item.url }}" 
+                           class="app-nav-link {% if item.active %}active{% endif %}"
+                           {% if item.active %}aria-current="page"{% endif %}>
+                            <i class="{{ item.icon }} app-nav-item-icon"></i>
+                            <span class="app-nav-item-text">{{ item.name }}</span>
+                        </a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <!-- Mobile Toggle -->
+            <button class="app-nav-toggle d-md-none" 
+                    type="button" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#appNavCollapse"
+                    aria-controls="appNavCollapse" 
+                    aria-expanded="false" 
+                    aria-label="Toggle app navigation">
+                <i class="bi-list"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile Collapsible Navigation -->
+        <div class="collapse d-md-none" id="appNavCollapse">
+            <ul class="app-nav-mobile">
+                {% for item in nav_items %}
+                <li class="app-nav-mobile-item">
+                    {% if item.disabled %}
+                        <span class="app-nav-mobile-link disabled">
+                            <i class="{{ item.icon }}"></i>
+                            {{ item.name }}
+                            <span class="badge bg-secondary ms-auto">Soon</span>
+                        </span>
+                    {% else %}
+                        <a href="{{ item.url }}" 
+                           class="app-nav-mobile-link {% if item.active %}active{% endif %}">
+                            <i class="{{ item.icon }}"></i>
+                            {{ item.name }}
+                            {% if item.active %}
+                                <i class="bi-check-circle ms-auto text-success"></i>
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<style>
+/* App Navigation Styles */
+.app-navigation {
+    background: linear-gradient(135deg, 
+        var(--app-color, #007bff) 0%, 
+        color-mix(in srgb, var(--app-color, #007bff) 80%, #000 20%) 100%);
+    border-bottom: 3px solid var(--app-color, #007bff);
+    color: white;
+    padding: 0.75rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.app-nav-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.app-nav-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-right: 2rem;
+    flex-shrink: 0;
+}
+
+.app-nav-icon {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.app-nav-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.app-nav-items {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.app-nav-item {
+    position: relative;
+}
+
+.app-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.app-nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.app-nav-link.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.app-nav-link.disabled {
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+    position: relative;
+}
+
+.app-nav-item-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.app-nav-item-text {
+    font-size: 0.9rem;
+}
+
+.coming-soon-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+.app-nav-toggle {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 1.2rem;
+}
+
+.app-nav-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Mobile Navigation */
+.app-nav-mobile {
+    list-style: none;
+    margin: 1rem 0 0 0;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.app-nav-mobile-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-nav-mobile-item:last-child {
+    border-bottom: none;
+}
+
+.app-nav-mobile-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.app-nav-mobile-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.app-nav-mobile-link.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-weight: 500;
+}
+
+.app-nav-mobile-link.disabled {
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .app-nav-items {
+        display: none;
+    }
+    
+    .app-nav-identity {
+        margin-right: 1rem;
+    }
+    
+    .app-nav-title {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .app-navigation {
+        padding: 0.5rem 0;
+    }
+    
+    .app-nav-icon {
+        font-size: 1.25rem;
+    }
+    
+    .app-nav-title {
+        font-size: 0.9rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .app-navigation {
+        border-bottom-color: color-mix(in srgb, var(--app-color, #007bff) 70%, #fff 30%);
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .app-nav-link {
+        transition: none;
+    }
+    
+    .app-nav-link:hover {
+        transform: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .app-navigation {
+        border-bottom-width: 4px;
+    }
+    
+    .app-nav-link {
+        border: 1px solid transparent;
+    }
+    
+    .app-nav-link:focus {
+        border-color: white;
+        outline: 2px solid white;
+        outline-offset: 2px;
+    }
+}
+</style>
+{% endif %}

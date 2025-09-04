@@ -12,6 +12,8 @@
     
     {% load static %}
     {% load family_tags %}
+    {% load app_status %}
+    {% load app_nav %}
     <link href="{% static 'css/main.css' %}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
@@ -42,46 +44,42 @@
                             <i class="bi bi-grid-3x3-gap"></i> Apps
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark">
-                            {% has_app_permission 'timesheet' as can_timesheet %}
-                            {% if can_timesheet %}
-                            <li><a class="dropdown-item" href="{% url 'timesheet:dashboard' %}">
-                                <i class="{% app_icon 'timesheet' %}"></i> Time Tracking
-                            </a></li>
-                            {% endif %}
+                            {% active_apps as available_apps %}
+                            {% inactive_apps as unavailable_apps %}
                             
-                            {% has_app_permission 'daycare_invoices' as can_daycare %}
-                            {% if can_daycare %}
-                            <li><a class="dropdown-item" href="{% url 'daycare_invoices:dashboard' %}">
-                                <i class="{% app_icon 'daycare_invoices' %}"></i> Daycare Invoices
-                            </a></li>
-                            {% endif %}
+                            <!-- Active Apps -->
+                            {% for app_name, config in available_apps.items %}
+                                {% has_app_permission app_name as can_access %}
+                                {% if can_access %}
+                                <li>
+                                    <a class="dropdown-item" href="{% nav_url_safe app_name|add:':dashboard' %}">
+                                        <i class="{{ config.icon }} me-2"></i>{{ config.name }}
+                                        {% app_status_badge app_name show_text=False %}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
                             
-                            {% has_app_permission 'employment_history' as can_employment %}
-                            {% if can_employment %}
-                            <li><a class="dropdown-item" href="{% url 'employment_history:dashboard' %}">
-                                <i class="{% app_icon 'employment_history' %}"></i> Employment History
-                            </a></li>
-                            {% endif %}
+                            {% if unavailable_apps %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header text-muted">
+                                <small>Coming Soon</small>
+                            </li>
                             
-                            {% has_app_permission 'upcoming_payments' as can_payments %}
-                            {% if can_payments %}
-                            <li><a class="dropdown-item" href="{% url 'upcoming_payments:dashboard' %}">
-                                <i class="{% app_icon 'upcoming_payments' %}"></i> Payment Reminders
-                            </a></li>
-                            {% endif %}
-                            
-                            {% has_app_permission 'credit_cards' as can_credit %}
-                            {% if can_credit %}
-                            <li><a class="dropdown-item" href="{% url 'credit_cards:dashboard' %}">
-                                <i class="{% app_icon 'credit_cards' %}"></i> Credit Cards
-                            </a></li>
-                            {% endif %}
-                            
-                            {% has_app_permission 'household_budget' as can_budget %}
-                            {% if can_budget %}
-                            <li><a class="dropdown-item" href="{% url 'household_budget:dashboard' %}">
-                                <i class="{% app_icon 'household_budget' %}"></i> Family Budget
-                            </a></li>
+                            <!-- Inactive Apps -->
+                            {% for app_name, config in unavailable_apps.items %}
+                                {% has_app_permission app_name as can_access %}
+                                {% if can_access %}
+                                <li>
+                                    <span class="dropdown-item text-muted" style="cursor: not-allowed;" 
+                                          data-bs-toggle="tooltip" 
+                                          title="{% app_status_message app_name %} {% app_eta app_name %}">
+                                        <i class="{{ config.icon }} me-2"></i>{{ config.name }}
+                                        {% app_status_badge app_name show_text=False %}
+                                    </span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
                             {% endif %}
                         </ul>
                     </li>
@@ -164,6 +162,9 @@
             {% endif %}
         </div>
     </nav>
+
+    <!-- App-Specific Secondary Navigation -->
+    {% block extra_nav %}{% endblock %}
 
     <!-- Messages -->
     {% if messages %}

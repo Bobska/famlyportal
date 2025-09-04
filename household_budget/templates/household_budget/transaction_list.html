@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load app_nav %}
 
 {% block title %}Transactions{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'household_budget' %}
+{% endblock %}
 
 {% block extra_css %}
 <style>

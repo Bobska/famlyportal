@@ -1,0 +1,39 @@
+<!-- App Status Badge Component -->
+<span class="app-status-badge {{ class }}" data-app="{{ app_name }}" data-status="{{ status }}">
+    {% if show_text %}
+        <span class="badge {{ badge_class }}">
+            {% if status == 'active' or status == 'complete' %}
+                <i class="bi-check-circle me-1"></i>
+            {% elif status == 'coming_soon' %}
+                <i class="bi-clock me-1"></i>
+            {% elif status == 'development' %}
+                <i class="bi-tools me-1"></i>
+            {% elif status == 'beta' %}
+                <i class="bi-star me-1"></i>
+            {% elif status == 'maintenance' %}
+                <i class="bi-wrench me-1"></i>
+            {% elif status == 'disabled' %}
+                <i class="bi-x-circle me-1"></i>
+            {% else %}
+                <i class="bi-question-circle me-1"></i>
+            {% endif %}
+            {{ message }}
+        </span>
+    {% else %}
+        {% if status == 'active' or status == 'complete' %}
+            <i class="bi-check-circle {{ class }}" title="{{ message }}"></i>
+        {% elif status == 'coming_soon' %}
+            <i class="bi-clock {{ class }}" title="{{ message }}"></i>
+        {% elif status == 'development' %}
+            <i class="bi-tools {{ class }}" title="{{ message }}"></i>
+        {% elif status == 'beta' %}
+            <i class="bi-star {{ class }}" title="{{ message }}"></i>
+        {% elif status == 'maintenance' %}
+            <i class="bi-wrench {{ class }}" title="{{ message }}"></i>
+        {% elif status == 'disabled' %}
+            <i class="bi-x-circle {{ class }}" title="{{ message }}"></i>
+        {% else %}
+            <i class="bi-question-circle {{ class }}" title="{{ message }}"></i>
+        {% endif %}
+    {% endif %}
+</span>

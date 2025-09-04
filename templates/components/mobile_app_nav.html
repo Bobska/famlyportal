@@ -1,0 +1,256 @@
+{% load app_status %}
+
+<!-- Mobile App Navigation Component -->
+{% if app_config and nav_items %}
+<div class="mobile-app-nav d-md-none" data-app="{{ app_name }}">
+    <!-- Bottom Navigation Bar -->
+    <nav class="mobile-nav-bar">
+        {% for item in nav_items %}
+            {% if forloop.counter <= 5 %}
+            <a href="{{ item.url }}" 
+               class="mobile-nav-item {% if item.active %}active{% endif %} {% if item.disabled %}disabled{% endif %}"
+               {% if item.disabled %}onclick="return false;"{% endif %}>
+                <i class="{{ item.icon }} mobile-nav-icon"></i>
+                <span class="mobile-nav-text">{{ item.name }}</span>
+                {% if item.disabled %}
+                    <span class="mobile-nav-soon">Soon</span>
+                {% endif %}
+            </a>
+            {% endif %}
+        {% endfor %}
+        
+        <!-- More menu if more than 5 items -->
+        {% if nav_items|length > 5 %}
+        <button class="mobile-nav-item mobile-nav-more" 
+                type="button" 
+                data-bs-toggle="offcanvas" 
+                data-bs-target="#mobileAppNavOffcanvas"
+                aria-controls="mobileAppNavOffcanvas">
+            <i class="bi-three-dots mobile-nav-icon"></i>
+            <span class="mobile-nav-text">More</span>
+        </button>
+        {% endif %}
+    </nav>
+    
+    <!-- Offcanvas for additional navigation items -->
+    {% if nav_items|length > 5 %}
+    <div class="offcanvas offcanvas-bottom" 
+         tabindex="-1" 
+         id="mobileAppNavOffcanvas"
+         aria-labelledby="mobileAppNavOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="mobileAppNavOffcanvasLabel">
+                <i class="{{ app_config.icon }} me-2"></i>
+                {{ app_config.name }}
+            </h5>
+            <button type="button" 
+                    class="btn-close" 
+                    data-bs-dismiss="offcanvas" 
+                    aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mobile-nav-grid">
+                {% for item in nav_items %}
+                <a href="{{ item.url }}" 
+                   class="mobile-nav-grid-item {% if item.active %}active{% endif %} {% if item.disabled %}disabled{% endif %}"
+                   {% if item.disabled %}onclick="return false;"{% endif %}>
+                    <div class="mobile-nav-grid-icon">
+                        <i class="{{ item.icon }}"></i>
+                        {% if item.disabled %}
+                            <span class="mobile-nav-grid-badge">Soon</span>
+                        {% endif %}
+                    </div>
+                    <span class="mobile-nav-grid-text">{{ item.name }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Mobile App Navigation Styles */
+.mobile-app-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    background: white;
+    border-top: 1px solid #dee2e6;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+.mobile-nav-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.5rem 0;
+    background: white;
+}
+
+.mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #6c757d;
+    padding: 0.5rem 0.25rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    min-width: 60px;
+    border: none;
+    background: none;
+}
+
+.mobile-nav-item:hover {
+    color: #495057;
+    background: rgba(0,0,0,0.05);
+}
+
+.mobile-nav-item.active {
+    color: var(--bs-primary);
+    font-weight: 500;
+}
+
+.mobile-nav-item.disabled {
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.mobile-nav-icon {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.mobile-nav-text {
+    font-size: 0.7rem;
+    text-align: center;
+    line-height: 1;
+}
+
+.mobile-nav-soon {
+    position: absolute;
+    top: -2px;
+    right: 0;
+    background: #6c757d;
+    color: white;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+/* Offcanvas Navigation Grid */
+.mobile-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.mobile-nav-grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #495057;
+    padding: 1rem 0.5rem;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    background: #f8f9fa;
+    position: relative;
+}
+
+.mobile-nav-grid-item:hover {
+    background: #e9ecef;
+    color: #212529;
+    transform: translateY(-2px);
+}
+
+.mobile-nav-grid-item.active {
+    background: var(--bs-primary);
+    color: white;
+}
+
+.mobile-nav-grid-item.disabled {
+    background: #f8f9fa;
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.mobile-nav-grid-item.disabled:hover {
+    transform: none;
+}
+
+.mobile-nav-grid-icon {
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.mobile-nav-grid-icon i {
+    font-size: 1.5rem;
+}
+
+.mobile-nav-grid-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #6c757d;
+    color: white;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+.mobile-nav-grid-text {
+    font-size: 0.8rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Add bottom padding to main content to account for fixed navigation */
+body.has-mobile-nav {
+    padding-bottom: 80px;
+}
+
+/* Hide on larger screens */
+@media (min-width: 768px) {
+    .mobile-app-nav {
+        display: none !important;
+    }
+    
+    body.has-mobile-nav {
+        padding-bottom: 0;
+    }
+}
+
+/* Improve touch targets */
+@media (max-width: 576px) {
+    .mobile-nav-item {
+        min-width: 50px;
+        padding: 0.75rem 0.25rem;
+    }
+    
+    .mobile-nav-icon {
+        font-size: 1.1rem;
+    }
+    
+    .mobile-nav-text {
+        font-size: 0.65rem;
+    }
+}
+</style>
+
+<script>
+// Add class to body when mobile nav is present
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.querySelector('.mobile-app-nav')) {
+        document.body.classList.add('has-mobile-nav');
+    }
+});
+</script>
+{% endif %}

@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load app_nav %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+{% app_navigation 'household_budget' %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-chart-bar"></i> Financial Reports</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary" id="monthlyReport">Monthly</button>
+                    <button type="button" class="btn btn-outline-primary" id="quarterlyReport">Quarterly</button>
+                    <button type="button" class="btn btn-outline-primary" id="yearlyReport">Yearly</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card summary-card income">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted">Total Income</h6>
+                            <h4 class="text-success">${{ total_income|floatformat:2 }}</h4>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card expenses">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted">Total Expenses</h6>
+                            <h4 class="text-danger">${{ total_expenses|floatformat:2 }}</h4>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card savings">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted">Net Savings</h6>
+                            <h4 class="{% if net_savings >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ${{ net_savings|floatformat:2 }}
+                            </h4>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card budget">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted">Budget Variance</h6>
+                            <h4 class="{% if budget_variance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ budget_variance|floatformat:1 }}%
+                            </h4>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Spending by Category</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Income vs Expenses Trend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Reports -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top Spending Categories</h5>
+                </div>
+                <div class="card-body">
+                    {% if category_spending %}
+                        {% for category in category_spending %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="mb-1">{{ category.name }}</h6>
+                                <small class="text-muted">{{ category.transaction_count }} transactions</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">${{ category.total_amount|floatformat:2 }}</span>
+                                <div class="progress mt-1" style="width: 100px; height: 8px;">
+                                    <div class="progress-bar" style="width: {{ category.percentage }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No spending data available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Large Transactions</h5>
+                </div>
+                <div class="card-body">
+                    {% if large_transactions %}
+                        {% for transaction in large_transactions %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="mb-1">{{ transaction.description }}</h6>
+                                <small class="text-muted">{{ transaction.date|date:"M j, Y" }} • {{ transaction.category.name }}</small>
+                            </div>
+                            <span class="{% if transaction.transaction_type == 'expense' %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                {% if transaction.transaction_type == 'expense' %}-{% else %}+{% endif %}${{ transaction.amount|floatformat:2 }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No large transactions found for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Export Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-success" onclick="exportData('csv')">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="exportData('pdf')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .summary-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .summary-card .icon {
+        background: rgba(0, 123, 255, 0.1);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #007bff;
+        font-size: 1.2rem;
+    }
+    
+    .card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .progress {
+        border-radius: 10px;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        border-radius: 10px;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+
+    @media print {
+        .btn-group, .card-header .btn {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Category Spending Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                data: {{ category_data|safe }},
+                backgroundColor: [
+                    '#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1',
+                    '#fd7e14', '#20c997', '#e83e8c', '#6c757d', '#343a40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Trend Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels|safe }},
+            datasets: [{
+                label: 'Income',
+                data: {{ income_data|safe }},
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Expenses',
+                data: {{ expense_data|safe }},
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Report period buttons
+    document.getElementById('monthlyReport').addEventListener('click', function() {
+        window.location.href = '?period=monthly';
+    });
+    
+    document.getElementById('quarterlyReport').addEventListener('click', function() {
+        window.location.href = '?period=quarterly';
+    });
+    
+    document.getElementById('yearlyReport').addEventListener('click', function() {
+        window.location.href = '?period=yearly';
+    });
+    
+    // Export functionality (placeholder - implement when export URLs are available)
+    function exportData(format) {
+        alert('Export to ' + format.toUpperCase() + ' functionality will be implemented soon.');
+        // TODO: Implement actual export functionality
+        // window.location.href = '/household-budget/export/' + format + '/';
+    }
+</script>
+{% endblock %}

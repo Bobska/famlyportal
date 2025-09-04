@@ -139,6 +139,61 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Family Creation/Joining Section -->
+                                    <div class="mb-4">
+                                        <div class="card border-primary border-opacity-25">
+                                            <div class="card-header bg-primary bg-opacity-10">
+                                                <h6 class="mb-0 fw-semibold">
+                                                    <i class="bi bi-people-fill text-primary me-2"></i>
+                                                    Family Setup
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-check mb-3">
+                                                    {{ form.create_family }}
+                                                    <label class="form-check-label fw-semibold" for="{{ form.create_family.id_for_label }}">
+                                                        <i class="bi bi-plus-circle me-1"></i>
+                                                        {{ form.create_family.label }}
+                                                    </label>
+                                                    <div class="form-text">{{ form.create_family.help_text }}</div>
+                                                    {% if form.create_family.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ form.create_family.errors.0 }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <!-- Family Name Field (shown when creating family) -->
+                                                <div id="family-name-field" class="mb-3">
+                                                    <label for="{{ form.family_name.id_for_label }}" class="form-label fw-semibold">
+                                                        <i class="bi bi-house-heart me-1"></i>{{ form.family_name.label }}
+                                                    </label>
+                                                    {{ form.family_name|add_class:"form-control" }}
+                                                    <div class="form-text">{{ form.family_name.help_text }}</div>
+                                                    {% if form.family_name.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ form.family_name.errors.0 }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <!-- Invite Code Field (shown when joining family) -->
+                                                <div id="invite-code-field" class="mb-3" style="display: none;">
+                                                    <label for="{{ form.invite_code.id_for_label }}" class="form-label fw-semibold">
+                                                        <i class="bi bi-key me-1"></i>{{ form.invite_code.label }}
+                                                    </label>
+                                                    {{ form.invite_code|add_class:"form-control" }}
+                                                    <div class="form-text">{{ form.invite_code.help_text }}</div>
+                                                    {% if form.invite_code.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ form.invite_code.errors.0 }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                     {% if form.non_field_errors %}
                                         <div class="alert alert-danger">
                                             {% for error in form.non_field_errors %}
@@ -246,6 +301,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const strength = calculatePasswordStrength(password);
             showPasswordStrength(strength);
         });
+    }
+    
+    // Family creation/joining toggle
+    const createFamilyCheckbox = document.querySelector('input[name="create_family"]');
+    const familyNameField = document.getElementById('family-name-field');
+    const inviteCodeField = document.getElementById('invite-code-field');
+    
+    function toggleFamilyFields() {
+        if (createFamilyCheckbox && familyNameField && inviteCodeField) {
+            if (createFamilyCheckbox.checked) {
+                // Creating a new family
+                familyNameField.style.display = 'block';
+                inviteCodeField.style.display = 'none';
+                const familyNameInput = familyNameField.querySelector('input');
+                const inviteCodeInput = inviteCodeField.querySelector('input');
+                if (familyNameInput) familyNameInput.required = true;
+                if (inviteCodeInput) inviteCodeInput.required = false;
+            } else {
+                // Joining an existing family
+                familyNameField.style.display = 'none';
+                inviteCodeField.style.display = 'block';
+                const familyNameInput = familyNameField.querySelector('input');
+                const inviteCodeInput = inviteCodeField.querySelector('input');
+                if (familyNameInput) familyNameInput.required = false;
+                if (inviteCodeInput) inviteCodeInput.required = true;
+            }
+        }
+    }
+    
+    if (createFamilyCheckbox) {
+        createFamilyCheckbox.addEventListener('change', toggleFamilyFields);
+        toggleFamilyFields(); // Initial call to set correct state
     }
 });
 

@@ -1,0 +1,513 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Timesheet Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-left: 4px solid #007bff;
+        background: #f8f9fa;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+    .timer-display {
+        font-family: 'Courier New', monospace;
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #28a745;
+        text-align: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+    .quick-entry-form {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .project-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    .project-card:hover {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .entry-row {
+        border-bottom: 1px solid #f1f1f1;
+        padding: 0.75rem 0;
+    }
+    .entry-row:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Timesheet Dashboard</h2>
+                <div>
+                    <a href="{% url 'timesheet:create_entry' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-plus"></i> Add Entry
+                    </a>
+                    <a href="{% url 'timesheet:entries' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> View All
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ weekly_hours|floatformat:1 }}h</div>
+                <div class="text-muted">This Week</div>
+                <small class="text-muted">{{ week_start|date:"M j" }} - {{ week_end|date:"M j" }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">${{ weekly_earnings|floatformat:2 }}</div>
+                <div class="text-muted">Weekly Earnings</div>
+                <small class="text-muted">Based on billable hours</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ monthly_hours|floatformat:1 }}h</div>
+                <div class="text-muted">This Month</div>
+                <small class="text-muted">{{ today|date:"F Y" }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">${{ monthly_earnings|floatformat:2 }}</div>
+                <div class="text-muted">Monthly Earnings</div>
+                <small class="text-muted">Total for {{ today|date:"F" }}</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Quick Actions -->
+        <div class="col-lg-4">
+            <!-- Timer Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-stopwatch"></i> Timer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="timer-section">
+                        <div id="timer-display" class="timer-display d-none">
+                            <div id="timer-time">00:00:00</div>
+                            <div class="mt-2">
+                                <small id="timer-project" class="text-muted"></small>
+                            </div>
+                        </div>
+                        
+                        <form id="timer-form" method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="{{ timer_form.project.id_for_label }}" class="form-label">Project</label>
+                                {{ timer_form.project }}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ timer_form.description.id_for_label }}" class="form-label">Description (Optional)</label>
+                                {{ timer_form.description }}
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="button" id="start-timer" class="btn btn-success">
+                                    <i class="fas fa-play"></i> Start Timer
+                                </button>
+                                <button type="button" id="stop-timer" class="btn btn-danger d-none">
+                                    <i class="fas fa-stop"></i> Stop Timer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Entry -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock"></i> Quick Entry
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="quick-entry-form" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ quick_form.project.id_for_label }}" class="form-label">Project</label>
+                            {{ quick_form.project }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ quick_form.hours_worked.id_for_label }}" class="form-label">Hours Worked</label>
+                            {{ quick_form.hours_worked }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ quick_form.date.id_for_label }}" class="form-label">Date</label>
+                            {{ quick_form.date }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ quick_form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ quick_form.description }}
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Entry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Active Projects -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-project-diagram"></i> Active Projects
+                    </h5>
+                    <a href="{% url 'timesheet:projects' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if active_projects %}
+                        {% for project in active_projects %}
+                        <div class="project-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ project.name }}</h6>
+                                    {% if project.client_name %}
+                                        <small class="text-muted">{{ project.client_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    {% if project.hourly_rate %}
+                                        <small class="text-success">${{ project.hourly_rate }}/hr</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">
+                            No active projects. <a href="{% url 'timesheet:create_project' %}">Create one</a> to get started.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Recent Entries -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> This Week's Entries
+                    </h5>
+                    <a href="{% url 'timesheet:entries' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if user_entries %}
+                        {% for entry in user_entries %}
+                        <div class="entry-row">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <strong>{{ entry.date|date:"M j" }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ entry.date|date:"l" }}</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="fw-bold">{{ entry.project.name }}</span>
+                                    {% if entry.project.client_name %}
+                                        <br><small class="text-muted">{{ entry.project.client_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="badge bg-primary">{{ entry.total_hours }}h</span>
+                                </div>
+                                <div class="col-md-2">
+                                    {% if entry.earnings > 0 %}
+                                        <span class="text-success">${{ entry.earnings|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">No rate</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2">
+                                    <small class="text-muted">
+                                        {{ entry.start_time|time:"g:i A" }} - {{ entry.end_time|time:"g:i A" }}
+                                    </small>
+                                </div>
+                                <div class="col-md-1">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'timesheet:edit_entry' entry.pk %}">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a></li>
+                                            <li><a class="dropdown-item text-danger" href="{% url 'timesheet:delete_entry' entry.pk %}">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if entry.description %}
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <small class="text-muted">{{ entry.description }}</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No time entries this week</h5>
+                            <p class="text-muted">Start tracking your time by adding a new entry or using the timer.</p>
+                            <a href="{% url 'timesheet:create_entry' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add First Entry
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Entries -->
+            {% if recent_entries %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Recent Entries
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for entry in recent_entries %}
+                    <div class="entry-row">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ entry.project.name }}</strong>
+                                <small class="text-muted">- {{ entry.date }}</small>
+                                <br>
+                                <span class="badge bg-primary">{{ entry.total_hours }}h</span>
+                                {% if entry.earnings > 0 %}
+                                    <span class="text-success ms-2">${{ entry.earnings|floatformat:2 }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <a href="{% url 'timesheet:edit_entry' entry.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Timer functionality
+    let timerInterval;
+    let timerActive = false;
+    let startTime;
+
+    // Check for active timer on page load
+    checkTimerStatus();
+
+    // Quick entry form submission
+    document.getElementById('quick-entry-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            project: formData.get('project'),
+            hours_worked: formData.get('hours_worked'),
+            date: formData.get('date'),
+            description: formData.get('description')
+        };
+
+        fetch('{% url "timesheet:quick_entry_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                this.reset();
+                location.reload(); // Refresh to show new entry
+            } else {
+                alert('Error: ' + (data.error || 'Something went wrong'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Network error occurred');
+        });
+    });
+
+    // Timer start button
+    document.getElementById('start-timer').addEventListener('click', function() {
+        const projectSelect = document.querySelector('#timer-form select[name="project"]');
+        const descriptionInput = document.querySelector('#timer-form textarea[name="description"]');
+        
+        if (!projectSelect.value) {
+            alert('Please select a project first');
+            return;
+        }
+
+        const data = {
+            project_id: projectSelect.value,
+            description: descriptionInput.value
+        };
+
+        fetch('{% url "timesheet:start_timer_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                startTimer(data.start_time, projectSelect.options[projectSelect.selectedIndex].text);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Network error occurred');
+        });
+    });
+
+    // Timer stop button
+    document.getElementById('stop-timer').addEventListener('click', function() {
+        fetch('{% url "timesheet:stop_timer_api" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                stopTimer();
+                alert(data.message);
+                location.reload(); // Refresh to show new entry
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Network error occurred');
+        });
+    });
+
+    function checkTimerStatus() {
+        fetch('{% url "timesheet:timer_status_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.active) {
+                const projectSelect = document.querySelector('#timer-form select[name="project"]');
+                const projectText = projectSelect.options[Array.from(projectSelect.options).findIndex(option => option.value == data.project_id)].text;
+                startTimer(data.start_time, projectText, data.elapsed_seconds);
+            }
+        })
+        .catch(error => console.error('Error checking timer status:', error));
+    }
+
+    function startTimer(startTimeIso, projectName, existingElapsed = 0) {
+        timerActive = true;
+        startTime = new Date(startTimeIso);
+        
+        // Show timer display and hide form
+        document.getElementById('timer-display').classList.remove('d-none');
+        document.getElementById('timer-form').classList.add('d-none');
+        document.getElementById('start-timer').classList.add('d-none');
+        document.getElementById('stop-timer').classList.remove('d-none');
+        
+        // Set project name
+        document.getElementById('timer-project').textContent = projectName;
+        
+        // Start interval
+        timerInterval = setInterval(updateTimer, 1000);
+        
+        // If resuming timer, account for existing elapsed time
+        if (existingElapsed > 0) {
+            startTime = new Date(Date.now() - existingElapsed * 1000);
+        }
+        
+        updateTimer();
+    }
+
+    function stopTimer() {
+        timerActive = false;
+        clearInterval(timerInterval);
+        
+        // Hide timer display and show form
+        document.getElementById('timer-display').classList.add('d-none');
+        document.getElementById('timer-form').classList.remove('d-none');
+        document.getElementById('start-timer').classList.remove('d-none');
+        document.getElementById('stop-timer').classList.add('d-none');
+        
+        // Reset form
+        document.getElementById('timer-form').reset();
+    }
+
+    function updateTimer() {
+        if (!timerActive) return;
+        
+        const now = new Date();
+        const elapsed = Math.floor((now - startTime) / 1000);
+        
+        const hours = Math.floor(elapsed / 3600);
+        const minutes = Math.floor((elapsed % 3600) / 60);
+        const seconds = elapsed % 60;
+        
+        const timeString = 
+            String(hours).padStart(2, '0') + ':' +
+            String(minutes).padStart(2, '0') + ':' +
+            String(seconds).padStart(2, '0');
+        
+        document.getElementById('timer-time').textContent = timeString;
+    }
+});
+</script>
+{% endblock %}

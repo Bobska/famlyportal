@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> {{ title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-warning"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                    
+                    <p>Are you sure you want to delete this time entry?</p>
+                    
+                    <!-- Entry Details -->
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Project:</strong><br>
+                                    {{ entry.project.name }}
+                                    {% if entry.project.client_name %}
+                                        <br><small class="text-muted">{{ entry.project.client_name }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Date:</strong><br>
+                                    {{ entry.date|date:"l, F j, Y" }}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Time:</strong><br>
+                                    {{ entry.start_time|time:"g:i A" }} - {{ entry.end_time|time:"g:i A" }}
+                                    {% if entry.break_duration > 0 %}
+                                        <br><small class="text-muted">{{ entry.break_duration }} minute break</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Total Hours:</strong><br>
+                                    <span class="badge bg-primary">{{ entry.total_hours }} hours</span>
+                                    {% if entry.earnings > 0 %}
+                                        <br><span class="text-success">${{ entry.earnings|floatformat:2 }} earned</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if entry.description %}
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <strong>Description:</strong><br>
+                                    {{ entry.description }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <form method="post" class="d-flex justify-content-between">
+                        {% csrf_token %}
+                        <a href="{% url 'timesheet:entries' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete Entry
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

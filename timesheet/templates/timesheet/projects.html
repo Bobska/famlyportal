@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Projects{% endblock %}
+
+{% block extra_css %}
+<style>
+    .project-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    .project-card:hover {
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+    .project-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1.5rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .project-body {
+        padding: 1.5rem;
+    }
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        border-right: 1px solid #dee2e6;
+    }
+    .stat-item:last-child {
+        border-right: none;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .status-active {
+        color: #28a745;
+    }
+    .status-inactive {
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Projects</h2>
+                <a href="{% url 'timesheet:create_project' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Project
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects List -->
+    <div class="row">
+        {% if projects %}
+            {% for project in projects %}
+            <div class="col-lg-6 col-xl-4">
+                <div class="project-card">
+                    <div class="project-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1">
+                                    {{ project.name }}
+                                    {% if project.is_active %}
+                                        <i class="fas fa-circle text-success ms-2" title="Active"></i>
+                                    {% else %}
+                                        <i class="fas fa-circle text-muted ms-2" title="Inactive"></i>
+                                    {% endif %}
+                                </h5>
+                                {% if project.client_name %}
+                                    <p class="text-muted mb-0">{{ project.client_name }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'timesheet:edit_project' project.pk %}">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'timesheet:entries' %}?project={{ project.pk }}">
+                                            <i class="fas fa-list"></i> View Entries
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        {% if project.hourly_rate %}
+                            <div class="mt-2">
+                                <span class="badge bg-success">${{ project.hourly_rate }}/hour</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if project.description %}
+                    <div class="project-body">
+                        <p class="text-muted mb-0">{{ project.description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Project Statistics -->
+                    <div class="d-flex">
+                        <div class="stat-item flex-fill">
+                            <div class="stat-value">{{ project.stats.total_entries }}</div>
+                            <div class="stat-label">Entries</div>
+                        </div>
+                        <div class="stat-item flex-fill">
+                            <div class="stat-value">{{ project.stats.total_hours|floatformat:1 }}</div>
+                            <div class="stat-label">Hours</div>
+                        </div>
+                        <div class="stat-item flex-fill">
+                            <div class="stat-value">${{ project.stats.total_earnings|floatformat:0 }}</div>
+                            <div class="stat-label">Earnings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-project-diagram fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted">No projects yet</h4>
+                    <p class="text-muted">Create your first project to start tracking time.</p>
+                    <a href="{% url 'timesheet:create_project' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Project
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if projects %}
+    <!-- Summary Statistics -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> Project Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-value">{{ projects|length }}</div>
+                            <div class="stat-label">Total Projects</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-value">
+                                {% with active_count=0 %}
+                                    {% for project in projects %}
+                                        {% if project.is_active %}
+                                            {% with active_count=active_count|add:1 %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ active_count }}
+                                {% endwith %}
+                            </div>
+                            <div class="stat-label">Active Projects</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-value">
+                                {% with total_hours=0 %}
+                                    {% for project in projects %}
+                                        {% with total_hours=total_hours|add:project.stats.total_hours %}{% endwith %}
+                                    {% endfor %}
+                                    {{ total_hours|floatformat:1 }}
+                                {% endwith %}
+                            </div>
+                            <div class="stat-label">Total Hours</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-value">
+                                {% with total_earnings=0 %}
+                                    {% for project in projects %}
+                                        {% with total_earnings=total_earnings|add:project.stats.total_earnings %}{% endwith %}
+                                    {% endfor %}
+                                    ${{ total_earnings|floatformat:0 }}
+                                {% endwith %}
+                            </div>
+                            <div class="stat-label">Total Earnings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

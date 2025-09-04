@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.project.id_for_label }}" class="form-label">Project *</label>
+                                    {{ form.project }}
+                                    {% if form.project.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.project.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.date.id_for_label }}" class="form-label">Date *</label>
+                                    {{ form.date }}
+                                    {% if form.date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.date.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.start_time.id_for_label }}" class="form-label">Start Time *</label>
+                                    {{ form.start_time }}
+                                    {% if form.start_time.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.start_time.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.end_time.id_for_label }}" class="form-label">End Time *</label>
+                                    {{ form.end_time }}
+                                    {% if form.end_time.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.end_time.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.break_duration.id_for_label }}" class="form-label">Break (minutes)</label>
+                                    {{ form.break_duration }}
+                                    {% if form.break_duration.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.break_duration.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Break time in minutes</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Describe what you worked on</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_billable }}
+                                <label class="form-check-label" for="{{ form.is_billable.id_for_label }}">
+                                    This time is billable
+                                </label>
+                            </div>
+                            {% if form.is_billable.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.is_billable.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Calculated Hours Display -->
+                        <div class="mb-3">
+                            <div class="alert alert-info" id="hours-calculation" style="display: none;">
+                                <strong>Total Hours: </strong><span id="calculated-hours">0.00</span> hours
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'timesheet:dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ submit_text }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startTimeInput = document.getElementById('{{ form.start_time.id_for_label }}');
+    const endTimeInput = document.getElementById('{{ form.end_time.id_for_label }}');
+    const breakInput = document.getElementById('{{ form.break_duration.id_for_label }}');
+    const hoursCalculation = document.getElementById('hours-calculation');
+    const calculatedHours = document.getElementById('calculated-hours');
+    
+    function calculateHours() {
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        const breakMinutes = parseInt(breakInput.value) || 0;
+        
+        if (startTime && endTime) {
+            // Parse times
+            const start = new Date('2000-01-01 ' + startTime);
+            const end = new Date('2000-01-01 ' + endTime);
+            
+            // Handle overnight shifts
+            if (end < start) {
+                end.setDate(end.getDate() + 1);
+            }
+            
+            // Calculate difference in minutes
+            const diffMs = end - start;
+            const diffMinutes = diffMs / (1000 * 60);
+            
+            // Subtract break time
+            const workMinutes = diffMinutes - breakMinutes;
+            
+            if (workMinutes > 0) {
+                const hours = (workMinutes / 60).toFixed(2);
+                calculatedHours.textContent = hours;
+                hoursCalculation.style.display = 'block';
+            } else {
+                hoursCalculation.style.display = 'none';
+            }
+        } else {
+            hoursCalculation.style.display = 'none';
+        }
+    }
+    
+    // Calculate on input change
+    startTimeInput.addEventListener('change', calculateHours);
+    endTimeInput.addEventListener('change', calculateHours);
+    breakInput.addEventListener('input', calculateHours);
+    
+    // Calculate on page load if values exist
+    calculateHours();
+});
+</script>
+{% endblock %}

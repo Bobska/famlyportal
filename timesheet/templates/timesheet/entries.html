@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Time Entries{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-form {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .entry-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    .entry-card:hover {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .entry-header {
+        background: #ffffff;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem;
+    }
+    .entry-body {
+        padding: 1rem;
+    }
+    .status-badge {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Time Entries</h2>
+                <div>
+                    <a href="{% url 'timesheet:create_entry' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Entry
+                    </a>
+                    <a href="{% url 'timesheet:export_csv' %}" class="btn btn-outline-success">
+                        <i class="fas fa-download"></i> Export CSV
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-form">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="project" class="form-label">Project</label>
+                <select name="project" id="project" class="form-select">
+                    <option value="">All Projects</option>
+                    {% for project in projects %}
+                        <option value="{{ project.pk }}" {% if project.pk|stringformat:"s" == current_project %}selected{% endif %}>
+                            {{ project.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">From Date</label>
+                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ current_date_from|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">To Date</label>
+                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ current_date_to|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Entries List -->
+    <div class="row">
+        <div class="col-12">
+            {% if page_obj %}
+                {% for entry in page_obj %}
+                <div class="entry-card">
+                    <div class="entry-header">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <div class="fw-bold">{{ entry.date|date:"M j, Y" }}</div>
+                                <small class="text-muted">{{ entry.date|date:"l" }}</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fw-bold">{{ entry.project.name }}</div>
+                                {% if entry.project.client_name %}
+                                    <small class="text-muted">{{ entry.project.client_name }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2">
+                                <div class="fw-bold">{{ entry.total_hours }} hours</div>
+                                <small class="text-muted">
+                                    {{ entry.start_time|time:"g:i A" }} - {{ entry.end_time|time:"g:i A" }}
+                                </small>
+                            </div>
+                            <div class="col-md-2">
+                                {% if entry.earnings > 0 %}
+                                    <div class="fw-bold text-success">${{ entry.earnings|floatformat:2 }}</div>
+                                    <small class="text-muted">${{ entry.project.hourly_rate }}/hr</small>
+                                {% else %}
+                                    <div class="text-muted">No rate set</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2">
+                                {% if entry.is_billable %}
+                                    <span class="badge bg-success status-badge">Billable</span>
+                                {% else %}
+                                    <span class="badge bg-secondary status-badge">Non-billable</span>
+                                {% endif %}
+                                {% if entry.break_duration > 0 %}
+                                    <br><small class="text-muted">{{ entry.break_duration }}min break</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-1">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'timesheet:edit_entry' entry.pk %}">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'timesheet:delete_entry' entry.pk %}">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if entry.description %}
+                    <div class="entry-body">
+                        <div class="text-muted">
+                            <i class="fas fa-comment"></i> {{ entry.description }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_project %}&project={{ current_project }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from|date:'Y-m-d' }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to|date:'Y-m-d' }}{% endif %}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if current_project %}&project={{ current_project }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from|date:'Y-m-d' }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to|date:'Y-m-d' }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_project %}&project={{ current_project }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from|date:'Y-m-d' }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to|date:'Y-m-d' }}{% endif %}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-clock fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted">No time entries found</h4>
+                    <p class="text-muted">
+                        {% if current_project or current_date_from or current_date_to %}
+                            Try adjusting your filter criteria or <a href="{% url 'timesheet:entries' %}">clear all filters</a>.
+                        {% else %}
+                            Start tracking your time by creating your first entry.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'timesheet:create_entry' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Time Entry
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit form when date inputs change
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    const projectSelect = document.getElementById('project');
+    
+    dateInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // Small delay to allow multiple date changes
+            setTimeout(() => {
+                document.querySelector('.filter-form form').submit();
+            }, 300);
+        });
+    });
+    
+    projectSelect.addEventListener('change', function() {
+        document.querySelector('.filter-form form').submit();
+    });
+});
+</script>
+{% endblock %}

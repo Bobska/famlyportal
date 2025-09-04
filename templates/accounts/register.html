@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-person-plus"></i>
+                    Join FamlyPortal
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Create your account and either start a new family or join an existing one.</p>
+                
+                {% crispy form %}
+                
+                <hr>
+                
+                <div class="text-center">
+                    <p class="mb-0">Already have an account?</p>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const createFamilyCheckbox = document.getElementById('id_create_family');
+    const familyNameField = document.getElementById('id_family_name').closest('.form-group');
+    const inviteCodeField = document.getElementById('id_invite_code').closest('.form-group');
+    
+    function toggleFields() {
+        if (createFamilyCheckbox.checked) {
+            familyNameField.style.display = 'block';
+            inviteCodeField.style.display = 'none';
+            document.getElementById('id_family_name').required = true;
+            document.getElementById('id_invite_code').required = false;
+        } else {
+            familyNameField.style.display = 'none';
+            inviteCodeField.style.display = 'block';
+            document.getElementById('id_family_name').required = false;
+            document.getElementById('id_invite_code').required = true;
+        }
+    }
+    
+    createFamilyCheckbox.addEventListener('change', toggleFields);
+    toggleFields(); // Initial call
+});
+</script>
+{% endblock %}

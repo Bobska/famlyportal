@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Family Management - FamlyPortal{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">
+    <i class="bi bi-gear"></i>
+    Family Management
+</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        {% for family in admin_families %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-people"></i>
+                    {{ family.name }} Family
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <p><strong>Members:</strong> {{ family.member_count }}</p>
+                        <p><strong>Created:</strong> {{ family.created_at|date:"M d, Y" }}</p>
+                        <p><strong>Invite Code:</strong> 
+                            <code class="bg-light p-1 rounded">{{ family.invite_code }}</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyInviteCode('{{ family.invite_code }}')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </p>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:family_members' family.pk %}" class="btn btn-primary">
+                                <i class="bi bi-people"></i> Manage Members
+                            </a>
+                            <button class="btn btn-outline-info" onclick="shareInviteCode('{{ family.invite_code }}', '{{ family.name }}')">
+                                <i class="bi bi-share"></i> Share Invite Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle"></i> No families to manage</h5>
+            <p>You are not an admin of any families. You can only manage families where you have admin privileges.</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Admin Guide
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>As a Family Admin, you can:</h6>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check text-success"></i> View all family members</li>
+                    <li><i class="bi bi-check text-success"></i> Change member roles</li>
+                    <li><i class="bi bi-check text-success"></i> Remove members</li>
+                    <li><i class="bi bi-check text-success"></i> Share invite codes</li>
+                </ul>
+                
+                <hr>
+                
+                <h6>Role Descriptions:</h6>
+                <ul class="list-unstyled small">
+                    <li><span class="badge bg-primary">Admin</span> - Full family management</li>
+                    <li><span class="badge bg-secondary">Parent</span> - Access to all apps</li>
+                    <li><span class="badge bg-success">Child</span> - Limited app access</li>
+                    <li><span class="badge bg-info">Other</span> - Basic access</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyInviteCode(code) {
+    navigator.clipboard.writeText(code).then(function() {
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check"></i>';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-secondary');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+}
+
+function shareInviteCode(code, familyName) {
+    if (navigator.share) {
+        navigator.share({
+            title: `Join ${familyName} on FamlyPortal`,
+            text: `You've been invited to join ${familyName} on FamlyPortal! Use invite code: ${code}`,
+            url: window.location.origin + '/accounts/register/'
+        });
+    } else {
+        // Fallback to copying to clipboard
+        const shareText = `Join ${familyName} on FamlyPortal! Use invite code: ${code}\nRegister at: ${window.location.origin}/accounts/register/`;
+        navigator.clipboard.writeText(shareText).then(function() {
+            alert('Invite information copied to clipboard!');
+        });
+    }
+}
+</script>
+{% endblock %}

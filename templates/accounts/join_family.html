@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Join Family - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle"></i>
+                    Join a Family
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Enter the invite code provided by a family member to join their family.</p>
+                
+                {% crispy form %}
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Need an invite code?</h6>
+                    <p class="mb-0">Ask a family member to share their family's invite code with you. 
+                    Family members can find the invite code on their dashboard or in family settings.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

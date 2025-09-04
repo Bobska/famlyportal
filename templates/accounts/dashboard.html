@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1 class="mb-4">
+            <i class="bi bi-speedometer2"></i>
+            Welcome, {{ user.get_full_name|default:user.username }}!
+        </h1>
+        
+        {% if primary_family %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-people"></i>
+                    {{ primary_family.name }} Family
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <p><strong>Your Role:</strong> 
+                            <span class="badge bg-{{ primary_family_member.role|yesno:'primary,secondary,success,info' }}">
+                                {{ primary_family_member.get_role_display }}
+                            </span>
+                        </p>
+                        <p><strong>Family Members:</strong> {{ primary_family.member_count }}</p>
+                        <p><strong>Joined:</strong> {{ primary_family_member.joined_at|date:"M d, Y" }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p><strong>Invite Code:</strong> 
+                            <code class="bg-light p-1 rounded">{{ primary_family.invite_code }}</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyInviteCode('{{ primary_family.invite_code }}')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </p>
+                        {% if user.is_family_admin %}
+                        <a href="{% url 'accounts:family_members' primary_family.pk %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-gear"></i> Manage Members
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick App Access -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    Quick App Access
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a href="{% url 'timesheet:dashboard' %}" class="btn btn-outline-primary w-100 p-3">
+                            <i class="bi bi-clock fs-4 d-block mb-2"></i>
+                            Timesheet
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'daycare_invoices:dashboard' %}" class="btn btn-outline-success w-100 p-3">
+                            <i class="bi bi-receipt fs-4 d-block mb-2"></i>
+                            Daycare Invoices
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'employment_history:dashboard' %}" class="btn btn-outline-info w-100 p-3">
+                            <i class="bi bi-briefcase fs-4 d-block mb-2"></i>
+                            Employment History
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'upcoming_payments:dashboard' %}" class="btn btn-outline-warning w-100 p-3">
+                            <i class="bi bi-calendar-check fs-4 d-block mb-2"></i>
+                            Upcoming Payments
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'credit_cards:dashboard' %}" class="btn btn-outline-danger w-100 p-3">
+                            <i class="bi bi-credit-card fs-4 d-block mb-2"></i>
+                            Credit Cards
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'household_budget:dashboard' %}" class="btn btn-outline-secondary w-100 p-3">
+                            <i class="bi bi-piggy-bank fs-4 d-block mb-2"></i>
+                            Household Budget
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- No Family State -->
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle"></i> You're not part of any family yet!</h5>
+            <p>To use FamlyPortal apps, you need to either create a new family or join an existing one.</p>
+            <a href="{% url 'accounts:join_family' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Join a Family
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-person-circle"></i>
+                    Your Profile
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="rounded-circle mb-3" width="80" height="80">
+                {% else %}
+                    <i class="bi bi-person-circle fs-1 text-muted mb-3 d-block"></i>
+                {% endif %}
+                <h6>{{ user.get_full_name|default:user.username }}</h6>
+                <p class="text-muted small mb-2">{{ user.email }}</p>
+                {% if user.age %}
+                <p class="text-muted small mb-2">Age: {{ user.age }}</p>
+                {% endif %}
+                <a href="{% url 'accounts:profile' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Edit Profile
+                </a>
+            </div>
+        </div>
+        
+        {% if family_count > 1 %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-people"></i>
+                    Your Families ({{ family_count }})
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for family in user_families %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>{{ family.name }}</span>
+                    <small class="text-muted">{{ family.member_count }} members</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyInviteCode(code) {
+    navigator.clipboard.writeText(code).then(function() {
+        // You could add a toast notification here
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check"></i>';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-secondary');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Remove {{ member.user.get_full_name|default:member.user.username }} - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Remove Family Member
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if member.user.profile_picture %}
+                        <img src="{{ member.user.profile_picture.url }}" alt="Profile" class="rounded-circle mb-2" width="60" height="60">
+                    {% else %}
+                        <i class="bi bi-person-circle fs-1 text-muted mb-2 d-block"></i>
+                    {% endif %}
+                    <h5>{{ member.user.get_full_name|default:member.user.username }}</h5>
+                    <p class="text-muted">{{ member.user.email }}</p>
+                    <span class="badge bg-{{ member.role|yesno:'primary,secondary,success,info' }}">
+                        {{ member.get_role_display }}
+                    </span>
+                </div>
+                
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle"></i> Warning!</h6>
+                    <p class="mb-0">
+                        Are you sure you want to remove <strong>{{ member.user.get_full_name|default:member.user.username }}</strong> 
+                        from the <strong>{{ family.name }}</strong> family?
+                    </p>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-info-circle"></i> This action will:</h6>
+                    <ul class="mb-0">
+                        <li>Remove access to all family apps and data</li>
+                        <li>Remove the member from family communications</li>
+                        <li>Require a new invite to rejoin the family</li>
+                        {% if member.user == user %}
+                        <li><strong>Remove your own access to this family</strong></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <form method="post" class="d-flex justify-content-between">
+                    {% csrf_token %}
+                    <a href="{% url 'accounts:family_members' family.pk %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> 
+                        {% if member.user == user %}
+                            Leave Family
+                        {% else %}
+                            Remove Member
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

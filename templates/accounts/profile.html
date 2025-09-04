@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Profile - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-person"></i>
+                    My Profile
+                </h4>
+            </div>
+            <div class="card-body">
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Account Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Member Since:</strong> {{ user.date_joined|date:"M d, Y" }}</p>
+                <p><strong>Last Login:</strong> {{ user.last_login|date:"M d, Y H:i" }}</p>
+                
+                {% if primary_family %}
+                <hr>
+                <h6><i class="bi bi-people"></i> Family</h6>
+                <p><strong>Primary Family:</strong> {{ primary_family.name }}</p>
+                <p><strong>Role:</strong> 
+                    <span class="badge bg-{{ primary_family_member.role|yesno:'primary,secondary,success,info' }}">
+                        {{ primary_family_member.get_role_display }}
+                    </span>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if user.profile_picture %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-image"></i>
+                    Current Profile Picture
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="img-fluid rounded" style="max-width: 200px;">
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

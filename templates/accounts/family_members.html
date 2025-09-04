@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ family.name }} Members - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="bi bi-people"></i>
+        {{ family.name }} Members
+    </h1>
+    <a href="{% url 'accounts:family' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Family Management
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Family Members ({{ members|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% for member in members %}
+                <div class="d-flex justify-content-between align-items-center py-3 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="d-flex align-items-center">
+                        {% if member.user.profile_picture %}
+                            <img src="{{ member.user.profile_picture.url }}" alt="Profile" class="rounded-circle me-3" width="40" height="40">
+                        {% else %}
+                            <i class="bi bi-person-circle fs-3 text-muted me-3"></i>
+                        {% endif %}
+                        <div>
+                            <h6 class="mb-0">{{ member.user.get_full_name|default:member.user.username }}</h6>
+                            <small class="text-muted">{{ member.user.email }}</small>
+                            <br>
+                            <small class="text-muted">Joined {{ member.joined_at|date:"M d, Y" }}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-{{ member.role|yesno:'primary,secondary,success,info' }} me-2">
+                            {{ member.get_role_display }}
+                        </span>
+                        {% if member.user != user %}
+                        <div class="btn-group">
+                            <a href="{% url 'accounts:update_member_role' family.pk member.pk %}" 
+                               class="btn btn-sm btn-outline-primary" title="Change Role">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'accounts:remove_member' family.pk member.pk %}" 
+                               class="btn btn-sm btn-outline-danger" title="Remove Member">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                        {% else %}
+                        <span class="badge bg-light text-dark">You</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <i class="bi bi-people fs-1 text-muted"></i>
+                    <p class="text-muted">No family members found.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-share"></i>
+                    Invite New Members
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">Share this invite code with people you want to add to your family:</p>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" value="{{ family.invite_code }}" readonly id="inviteCodeInput">
+                    <button class="btn btn-outline-secondary" onclick="copyInviteCode()">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <button class="btn btn-primary btn-sm w-100" onclick="shareInviteCode()">
+                    <i class="bi bi-share"></i> Share Invite
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Family Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-0">{{ family.member_count }}</h4>
+                            <small class="text-muted">Total Members</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-0">{{ family.admin_members.count }}</h4>
+                        <small class="text-muted">Admins</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="small">
+                    <p><strong>Created:</strong> {{ family.created_at|date:"M d, Y" }}</p>
+                    <p><strong>Created by:</strong> {{ family.created_by.get_full_name|default:family.created_by.username }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyInviteCode() {
+    const input = document.getElementById('inviteCodeInput');
+    input.select();
+    document.execCommand('copy');
+    
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check"></i>';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-outline-secondary');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+    }, 2000);
+}
+
+function shareInviteCode() {
+    const code = '{{ family.invite_code }}';
+    const familyName = '{{ family.name }}';
+    
+    if (navigator.share) {
+        navigator.share({
+            title: `Join ${familyName} on FamlyPortal`,
+            text: `You've been invited to join ${familyName} on FamlyPortal! Use invite code: ${code}`,
+            url: window.location.origin + '/accounts/register/'
+        });
+    } else {
+        const shareText = `Join ${familyName} on FamlyPortal! Use invite code: ${code}\nRegister at: ${window.location.origin}/accounts/register/`;
+        navigator.clipboard.writeText(shareText).then(function() {
+            alert('Invite information copied to clipboard!');
+        });
+    }
+}
+</script>
+{% endblock %}

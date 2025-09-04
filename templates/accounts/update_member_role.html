@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Update {{ member.user.get_full_name|default:member.user.username }} Role - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-pencil"></i>
+                    Update Member Role
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if member.user.profile_picture %}
+                        <img src="{{ member.user.profile_picture.url }}" alt="Profile" class="rounded-circle mb-2" width="60" height="60">
+                    {% else %}
+                        <i class="bi bi-person-circle fs-1 text-muted mb-2 d-block"></i>
+                    {% endif %}
+                    <h5>{{ member.user.get_full_name|default:member.user.username }}</h5>
+                    <p class="text-muted">{{ member.user.email }}</p>
+                    <p class="small text-muted">Member of {{ family.name }} since {{ member.joined_at|date:"M d, Y" }}</p>
+                </div>
+                
+                {% crispy form %}
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Role Descriptions:</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Admin:</strong> Full family management, can add/remove members</li>
+                        <li><strong>Parent:</strong> Access to all family apps and features</li>
+                        <li><strong>Child:</strong> Limited access to select apps</li>
+                        <li><strong>Other:</strong> Basic access to essential features</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'accounts:family_members' family.pk %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

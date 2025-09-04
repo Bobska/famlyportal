@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FamlyPortal{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    {% load static %}
+    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'accounts:dashboard' %}">
+                <i class="bi bi-house-heart"></i> FamlyPortal
+            </a>
+            
+            {% if user.is_authenticated %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    {% if user.primary_family %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-grid-3x3-gap"></i> Apps
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'timesheet:dashboard' %}">
+                                <i class="bi bi-clock"></i> Timesheet
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'daycare_invoices:dashboard' %}">
+                                <i class="bi bi-receipt"></i> Daycare Invoices
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'employment_history:dashboard' %}">
+                                <i class="bi bi-briefcase"></i> Employment History
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'upcoming_payments:dashboard' %}">
+                                <i class="bi bi-calendar-check"></i> Upcoming Payments
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'credit_cards:dashboard' %}">
+                                <i class="bi bi-credit-card"></i> Credit Cards
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'household_budget:dashboard' %}">
+                                <i class="bi bi-piggy-bank"></i> Household Budget
+                            </a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle me-1" width="24" height="24">
+                            {% else %}
+                                <i class="bi bi-person-circle"></i>
+                            {% endif %}
+                            {{ user.get_full_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                <i class="bi bi-person"></i> Profile
+                            </a></li>
+                            {% if user.primary_family %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">
+                                <i class="bi bi-people"></i> {{ user.primary_family.name }}
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
+                                <i class="bi bi-plus-circle"></i> Join Another Family
+                            </a></li>
+                            {% if user.is_family_admin %}
+                            <li><a class="dropdown-item" href="{% url 'accounts:family' %}">
+                                <i class="bi bi-gear"></i> Manage Family
+                            </a></li>
+                            {% endif %}
+                            {% else %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
+                                <i class="bi bi-plus-circle"></i> Join a Family
+                            </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {% if message.tags == 'error' %}
+                <i class="bi bi-exclamation-triangle"></i>
+            {% elif message.tags == 'warning' %}
+                <i class="bi bi-exclamation-circle"></i>
+            {% elif message.tags == 'success' %}
+                <i class="bi bi-check-circle"></i>
+            {% else %}
+                <i class="bi bi-info-circle"></i>
+            {% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-4">
+        <div class="container text-center text-muted">
+            <p>&copy; 2025 FamlyPortal. Built with Django and Bootstrap.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

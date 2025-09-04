@@ -4,11 +4,11 @@ from .models import Project, TimeEntry
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ['name', 'family', 'client', 'hourly_rate', 'status', 'start_date', 'end_date', 'is_active']
-    list_filter = ['status', 'is_active', 'family', 'start_date']
-    search_fields = ['name', 'client', 'description']
-    date_hierarchy = 'start_date'
-    ordering = ['family', '-start_date', 'name']
+    list_display = ['name', 'family', 'created_by', 'hourly_rate', 'is_active', 'created_at']
+    list_filter = ['is_active', 'family', 'created_at']
+    search_fields = ['name', 'description']
+    date_hierarchy = 'created_at'
+    ordering = ['family', '-created_at', 'name']
     raw_id_fields = ['family']
 
 

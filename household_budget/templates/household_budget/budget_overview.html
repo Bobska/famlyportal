@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Budget Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+    .budget-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+    .budget-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    .category-item {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    .category-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    .category-color {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 12px;
+    }
+    .progress-custom {
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-bar-custom {
+        height: 100%;
+        transition: width 0.6s ease;
+    }
+    .variance-positive {
+        color: #28a745;
+        font-weight: 600;
+    }
+    .variance-negative {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    .section-title {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .stat-box {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+    }
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Budget Overview</h1>
+            <p class="text-muted">{{ current_budget.name }}</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'household_budget:budget_update' current_budget.pk %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-pencil me-1"></i>Edit Budget
+            </a>
+            <a href="{% url 'household_budget:dashboard' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Budget Summary -->
+    <div class="budget-summary">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-value">${{ total_income_budgeted|floatformat:2 }}</div>
+                <div class="stat-label">Budgeted Income</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-value">${{ total_income_actual|floatformat:2 }}</div>
+                <div class="stat-label">Actual Income</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-value">${{ total_expenses_budgeted|floatformat:2 }}</div>
+                <div class="stat-label">Budgeted Expenses</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-value">${{ total_expenses_actual|floatformat:2 }}</div>
+                <div class="stat-label">Actual Expenses</div>
+            </div>
+        </div>
+        
+        <hr class="my-4" style="border-color: rgba(255,255,255,0.3);">
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-value {% if net_budgeted >= 0 %}text-success{% else %}text-warning{% endif %}">
+                    ${{ net_budgeted|floatformat:2 }}
+                </div>
+                <div class="stat-label">Budgeted Net</div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-value {% if net_actual >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ net_actual|floatformat:2 }}
+                </div>
+                <div class="stat-label">Actual Net</div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-value {% if net_variance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if net_variance >= 0 %}+{% endif %}${{ net_variance|floatformat:2 }}
+                </div>
+                <div class="stat-label">Net Variance</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Income Categories -->
+        <div class="col-lg-6">
+            <div class="budget-card">
+                <h4 class="section-title">
+                    <i class="bi bi-arrow-up-circle text-success me-2"></i>
+                    Income Categories
+                </h4>
+                
+                {% if income_items %}
+                    {% for item in income_items %}
+                    <div class="category-item">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="category-color" style="background-color: {{ item.category.color }}"></span>
+                                <div>
+                                    <div class="fw-medium">{{ item.category.name }}</div>
+                                    {% if item.category.description %}
+                                        <small class="text-muted">{{ item.category.description }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ item.actual_amount|floatformat:2 }} / ${{ item.budgeted_amount|floatformat:2 }}</div>
+                                <div class="small {% if item.variance >= 0 %}variance-positive{% else %}variance-negative{% endif %}">
+                                    {% if item.variance >= 0 %}+{% endif %}${{ item.variance|floatformat:2 }}
+                                    {% if item.variance_percentage %}
+                                        ({{ item.variance_percentage|floatformat:1 }}%)
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-custom">
+                            <div class="progress-bar-custom bg-success" 
+                                 style="width: {% if item.budgeted_amount > 0 %}{{ item.actual_amount|div:item.budgeted_amount|mul:100|floatformat:1 }}{% else %}0{% endif %}%">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">
+                                {% if item.budgeted_amount > 0 %}
+                                    {{ item.actual_amount|div:item.budgeted_amount|mul:100|floatformat:1 }}% of budget
+                                {% else %}
+                                    No budget set
+                                {% endif %}
+                            </small>
+                            {% if item.notes %}
+                                <small class="text-muted">{{ item.notes|truncatechars:30 }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Income Summary -->
+                    <div class="row mt-3">
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value text-success">${{ total_income_budgeted|floatformat:2 }}</div>
+                                <div class="stat-label">Budgeted</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value text-primary">${{ total_income_actual|floatformat:2 }}</div>
+                                <div class="stat-label">Actual</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value {% if income_variance >= 0 %}variance-positive{% else %}variance-negative{% endif %}">
+                                    {% if income_variance >= 0 %}+{% endif %}${{ income_variance|floatformat:2 }}
+                                </div>
+                                <div class="stat-label">Variance</div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-plus-circle text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">No Income Categories</h5>
+                        <p class="text-muted">Add income categories to track your earnings</p>
+                        <a href="{% url 'household_budget:category_create' %}" class="btn btn-primary">
+                            Add Income Category
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Expense Categories -->
+        <div class="col-lg-6">
+            <div class="budget-card">
+                <h4 class="section-title">
+                    <i class="bi bi-arrow-down-circle text-danger me-2"></i>
+                    Expense Categories
+                </h4>
+                
+                {% if expense_items %}
+                    {% for item in expense_items %}
+                    <div class="category-item">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="category-color" style="background-color: {{ item.category.color }}"></span>
+                                <div>
+                                    <div class="fw-medium">
+                                        {{ item.category.name }}
+                                        {% if item.category.is_essential %}
+                                            <span class="badge bg-warning text-dark ms-1">Essential</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if item.category.description %}
+                                        <small class="text-muted">{{ item.category.description }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ item.actual_amount|floatformat:2 }} / ${{ item.budgeted_amount|floatformat:2 }}</div>
+                                <div class="small {% if item.is_over_budget %}variance-negative{% else %}variance-positive{% endif %}">
+                                    {% if item.variance >= 0 %}+{% endif %}${{ item.variance|floatformat:2 }}
+                                    {% if item.variance_percentage %}
+                                        ({{ item.variance_percentage|floatformat:1 }}%)
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-custom">
+                            <div class="progress-bar-custom {% if item.is_over_budget %}bg-danger{% else %}bg-primary{% endif %}" 
+                                 style="width: {% if item.budgeted_amount > 0 %}{% widthratio item.actual_amount item.budgeted_amount 100 %}{% else %}0{% endif %}%">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">
+                                {% if item.budgeted_amount > 0 %}
+                                    {% widthratio item.actual_amount item.budgeted_amount 100 %}% of budget
+                                {% else %}
+                                    No budget set
+                                {% endif %}
+                                {% if item.is_over_budget %}
+                                    <span class="text-danger"> - Over Budget!</span>
+                                {% endif %}
+                            </small>
+                            {% if item.notes %}
+                                <small class="text-muted">{{ item.notes|truncatechars:30 }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Expense Summary -->
+                    <div class="row mt-3">
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value text-danger">${{ total_expenses_budgeted|floatformat:2 }}</div>
+                                <div class="stat-label">Budgeted</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value text-primary">${{ total_expenses_actual|floatformat:2 }}</div>
+                                <div class="stat-label">Actual</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value {% if expense_variance >= 0 %}variance-positive{% else %}variance-negative{% endif %}">
+                                    {% if expense_variance >= 0 %}+{% endif %}${{ expense_variance|floatformat:2 }}
+                                </div>
+                                <div class="stat-label">Variance</div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-plus-circle text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">No Expense Categories</h5>
+                        <p class="text-muted">Add expense categories to track your spending</p>
+                        <a href="{% url 'household_budget:category_create' %}" class="btn btn-primary">
+                            Add Expense Category
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{% url 'household_budget:transaction_create' %}" class="btn btn-primary me-2">
+                <i class="bi bi-plus-circle me-1"></i>Add Transaction
+            </a>
+            <a href="{% url 'household_budget:category_management' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-tags me-1"></i>Manage Categories
+            </a>
+            <a href="{% url 'household_budget:reports' %}" class="btn btn-outline-info">
+                <i class="bi bi-graph-up me-1"></i>View Reports
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add hover effects and animations
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress bars on load
+        const progressBars = document.querySelectorAll('.progress-bar-custom');
+        progressBars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 200);
+        });
+
+        // Add tooltips to variance indicators
+        const variances = document.querySelectorAll('.variance-positive, .variance-negative');
+        variances.forEach(variance => {
+            variance.setAttribute('title', 
+                variance.classList.contains('variance-positive') ? 
+                'Under budget - good job!' : 
+                'Over budget - consider adjusting spending'
+            );
+        });
+    });
+</script>
+{% endblock %}

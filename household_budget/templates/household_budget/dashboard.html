@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Budget Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .budget-alert {
+        border-left: 4px solid;
+    }
+    .budget-alert.danger {
+        border-left-color: #dc3545;
+        background-color: #f8d7da;
+    }
+    .budget-alert.warning {
+        border-left-color: #ffc107;
+        background-color: #fff3cd;
+    }
+    .category-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .savings-goal-progress {
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .savings-goal-progress .progress-bar {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+    .quick-stats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    .transaction-row:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">Budget Dashboard</h1>
+            <p class="text-muted">{{ current_month }} Overview</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-value">${{ month_income|floatformat:2 }}</div>
+                <div class="stat-label">Monthly Income</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-value">${{ month_expenses|floatformat:2 }}</div>
+                <div class="stat-label">Monthly Expenses</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-value {% if month_net >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ month_net|floatformat:2 }}
+                </div>
+                <div class="stat-label">Net Income</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-value">
+                    {% if current_budget %}{{ current_budget.name }}{% else %}No Budget{% endif %}
+                </div>
+                <div class="stat-label">Active Budget</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Alerts -->
+    {% if budget_alerts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5>Budget Alerts</h5>
+            {% for alert in budget_alerts %}
+            <div class="alert budget-alert {{ alert.type }} alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {{ alert.message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Budget Progress -->
+            {% if current_budget and budget_progress %}
+            <div class="stat-card">
+                <h5 class="mb-3">Budget Progress</h5>
+                {% for category_id, progress in budget_progress.items %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span>
+                            <span class="category-color" style="background-color: {{ progress.category.color }}"></span>
+                            {{ progress.category.name }}
+                        </span>
+                        <span class="small text-muted">
+                            ${{ progress.actual|floatformat:2 }} / ${{ progress.budgeted|floatformat:2 }}
+                        </span>
+                    </div>
+                    <div class="progress mb-1">
+                        <div class="progress-bar {% if progress.over_budget %}bg-danger{% else %}bg-primary{% endif %}" 
+                             style="width: {{ progress.progress }}%"></div>
+                    </div>
+                    <div class="small text-muted">
+                        {{ progress.progress|floatformat:1 }}% used
+                        {% if progress.variance > 0 %}
+                            <span class="text-success ms-2">+${{ progress.variance|floatformat:2 }}</span>
+                        {% elif progress.variance < 0 %}
+                            <span class="text-danger ms-2">${{ progress.variance|floatformat:2 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="text-center mt-3">
+                    <a href="{% url 'household_budget:budget_overview' %}" class="btn btn-outline-primary btn-sm">
+                        View Full Budget
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Transactions -->
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Recent Transactions</h5>
+                    <a href="{% url 'household_budget:transaction_list' %}" class="btn btn-outline-primary btn-sm">
+                        View All
+                    </a>
+                </div>
+                
+                {% if recent_transactions %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr class="transaction-row">
+                                <td>{{ transaction.transaction_date|date:"M j" }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td>
+                                    {% if transaction.category %}
+                                        <span class="category-color" style="background-color: {{ transaction.category.color }}"></span>
+                                        {{ transaction.category.name }}
+                                    {% else %}
+                                        <span class="text-muted">Uncategorized</span>
+                                    {% endif %}
+                                </td>
+                                <td class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if transaction.transaction_type == 'income' %}success{% else %}danger{% endif %}">
+                                        {{ transaction.transaction_type|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">No recent transactions found.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Quick Transaction Form -->
+            <div class="stat-card">
+                <h5 class="mb-3">Quick Transaction</h5>
+                <form method="post" id="quick-transaction-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ quick_form.description }}
+                    </div>
+                    <div class="mb-3">
+                        {{ quick_form.amount }}
+                    </div>
+                    <div class="mb-3">
+                        {{ quick_form.category }}
+                    </div>
+                    <div class="mb-3">
+                        {{ quick_form.transaction_type }}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Add Transaction</button>
+                </form>
+                <div class="text-center mt-2">
+                    <a href="{% url 'household_budget:transaction_create' %}" class="btn btn-link btn-sm">
+                        Full Transaction Form
+                    </a>
+                </div>
+            </div>
+
+            <!-- Savings Goals -->
+            {% if savings_goals %}
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Savings Goals</h5>
+                    <a href="{% url 'household_budget:savings_goals' %}" class="btn btn-outline-primary btn-sm">
+                        Manage
+                    </a>
+                </div>
+                
+                {% for goal in savings_goals %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-medium">{{ goal.name }}</span>
+                        <span class="small text-muted">
+                            ${{ goal.current_amount|floatformat:2 }} / ${{ goal.target_amount|floatformat:2 }}
+                        </span>
+                    </div>
+                    <div class="savings-goal-progress">
+                        <div class="progress-bar bg-success" style="width: {{ goal.progress_percentage }}%"></div>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        {{ goal.progress_percentage|floatformat:1 }}% complete
+                        {% if goal.target_date %}
+                            <span class="ms-2">Target: {{ goal.target_date|date:"M Y" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Spending by Category Chart -->
+            {% if category_spending %}
+            <div class="stat-card">
+                <h5 class="mb-3">Spending Breakdown</h5>
+                <canvas id="spendingChart" width="300" height="300"></canvas>
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="stat-card">
+                <h5 class="mb-3">Quick Actions</h5>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'household_budget:transaction_create' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Add Transaction
+                    </a>
+                    <a href="{% url 'household_budget:category_create' %}" class="btn btn-outline-success">
+                        <i class="bi bi-tag me-2"></i>New Category
+                    </a>
+                    <a href="{% url 'household_budget:savings_goal_create' %}" class="btn btn-outline-info">
+                        <i class="bi bi-piggy-bank me-2"></i>New Goal
+                    </a>
+                    <a href="{% url 'household_budget:reports' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-graph-up me-2"></i>View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js for spending breakdown -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Spending by category chart
+    {% if category_spending %}
+    const ctx = document.getElementById('spendingChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    {% for item in category_spending %}
+                        "{{ item.category__name|default:'Uncategorized' }}"{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [
+                        {% for item in category_spending %}
+                            {{ item.total|floatformat:2 }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        {% for item in category_spending %}
+                            "{{ item.category__color|default:'#6c757d' }}"{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return context.label + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // Quick transaction form enhancement
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('quick-transaction-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding...';
+            });
+        }
+    });
+</script>
+{% endblock %}

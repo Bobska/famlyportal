@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Transactions{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .transaction-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .summary-stats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .category-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .transaction-row {
+        border-bottom: 1px solid #f8f9fa;
+        padding: 12px 0;
+        transition: background-color 0.2s ease;
+    }
+    .transaction-row:hover {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        margin: 0 -15px;
+        padding: 12px 15px;
+    }
+    .transaction-row:last-child {
+        border-bottom: none;
+    }
+    .amount-income {
+        color: #28a745;
+        font-weight: 600;
+    }
+    .amount-expense {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    .amount-transfer {
+        color: #6c757d;
+        font-weight: 600;
+    }
+    .reconciled-badge {
+        font-size: 0.75rem;
+    }
+    .filter-toggle {
+        border: none;
+        background: none;
+        color: #6c757d;
+        text-decoration: none;
+    }
+    .filter-toggle:hover {
+        color: #495057;
+    }
+    .export-btn {
+        background: #28a745;
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    .export-btn:hover {
+        background: #218838;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Transactions</h1>
+            <p class="text-muted">Track and manage your financial transactions</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'household_budget:transaction_create' %}" class="btn btn-primary me-2">
+                <i class="bi bi-plus-circle me-1"></i>Add Transaction
+            </a>
+            <a href="{% if request.GET %}{{ request.get_full_path }}&export=csv{% else %}?export=csv{% endif %}" 
+               class="export-btn">
+                <i class="bi bi-download me-1"></i>Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-stats">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="h4 mb-1">${{ total_income|floatformat:2 }}</div>
+                <div class="small">Total Income</div>
+            </div>
+            <div class="col-md-3">
+                <div class="h4 mb-1">${{ total_expenses|floatformat:2 }}</div>
+                <div class="small">Total Expenses</div>
+            </div>
+            <div class="col-md-3">
+                <div class="h4 mb-1 {% if net_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ net_total|floatformat:2 }}
+                </div>
+                <div class="small">Net Total</div>
+            </div>
+            <div class="col-md-3">
+                <div class="h4 mb-1">{{ total_count }}</div>
+                <div class="small">Total Transactions</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h5>
+            <button class="filter-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#filterForm">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+        
+        <div class="collapse {% if request.GET %}show{% endif %}" id="filterForm">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Start Date</label>
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End Date</label>
+                    {{ filter_form.end_date }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Category</label>
+                    {{ filter_form.category }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Type</label>
+                    {{ filter_form.transaction_type }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Min Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        {{ filter_form.min_amount }}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Max Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        {{ filter_form.max_amount }}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    {{ filter_form.search }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sort By</label>
+                    {{ filter_form.sort }}
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search me-1"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'household_budget:transaction_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions List -->
+    <div class="transaction-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul me-2"></i>
+                Transactions
+                {% if page_obj.paginator.count %}
+                    <span class="text-muted">({{ page_obj.paginator.count }} total)</span>
+                {% endif %}
+            </h5>
+        </div>
+
+        {% if page_obj %}
+            {% for transaction in page_obj %}
+            <div class="transaction-row">
+                <div class="row align-items-center">
+                    <div class="col-md-2">
+                        <div class="fw-medium">{{ transaction.transaction_date|date:"M j, Y" }}</div>
+                        <small class="text-muted">{{ transaction.transaction_date|date:"l" }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="fw-medium">{{ transaction.description }}</div>
+                        {% if transaction.payee %}
+                            <small class="text-muted">{{ transaction.payee }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        {% if transaction.category %}
+                            <span class="category-color" style="background-color: {{ transaction.category.color }}"></span>
+                            <span class="small">{{ transaction.category.name }}</span>
+                        {% else %}
+                            <span class="text-muted small">Uncategorized</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        <span class="amount-{{ transaction.transaction_type }}">
+                            {% if transaction.transaction_type == 'income' %}+{% elif transaction.transaction_type == 'expense' %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                        </span>
+                        <br>
+                        <span class="badge bg-{% if transaction.transaction_type == 'income' %}success{% elif transaction.transaction_type == 'expense' %}danger{% else %}secondary{% endif %} small">
+                            {{ transaction.transaction_type|title }}
+                        </span>
+                    </div>
+                    <div class="col-md-2">
+                        {% if transaction.account %}
+                            <div class="small">{{ transaction.account }}</div>
+                        {% endif %}
+                        {% if transaction.is_reconciled %}
+                            <span class="badge bg-success reconciled-badge">
+                                <i class="bi bi-check-circle me-1"></i>Reconciled
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning reconciled-badge">
+                                <i class="bi bi-clock me-1"></i>Pending
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'household_budget:transaction_update' transaction.pk %}">
+                                        <i class="bi bi-pencil me-2"></i>Edit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{% url 'household_budget:transaction_delete' transaction.pk %}">
+                                        <i class="bi bi-trash me-2"></i>Delete
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="toggleReconciled({{ transaction.pk }})">
+                                        <i class="bi bi-check-square me-2"></i>
+                                        {% if transaction.is_reconciled %}Mark Unreconciled{% else %}Mark Reconciled{% endif %}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% if transaction.notes %}
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                <i class="bi bi-chat-left-text me-1"></i>
+                                {{ transaction.notes }}
+                            </small>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Transaction pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <div class="text-center text-muted small">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} 
+                    ({{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} transactions)
+                </div>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-receipt text-muted" style="font-size: 4rem;"></i>
+                <h4 class="text-muted mt-3">No Transactions Found</h4>
+                <p class="text-muted">
+                    {% if request.GET %}
+                        No transactions match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                        You haven't added any transactions yet. Get started by adding your first transaction.
+                    {% endif %}
+                </p>
+                <a href="{% url 'household_budget:transaction_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Your First Transaction
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle reconciled status (this would need to be implemented as an AJAX endpoint)
+    function toggleReconciled(transactionId) {
+        // This is a placeholder - would need actual AJAX implementation
+        console.log('Toggle reconciled status for transaction:', transactionId);
+        alert('This feature would toggle the reconciled status via AJAX');
+    }
+
+    // Auto-submit form on certain filter changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const autoSubmitFields = ['sort'];
+        
+        autoSubmitFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                field.addEventListener('change', function() {
+                    // Auto-submit the form when sort changes
+                    if (fieldName === 'sort') {
+                        this.form.submit();
+                    }
+                });
+            }
+        });
+
+        // Enhance date filters with shortcuts
+        const startDate = document.querySelector('[name="start_date"]');
+        const endDate = document.querySelector('[name="end_date"]');
+        
+        if (startDate && endDate) {
+            // Add quick date range buttons
+            const dateShortcuts = document.createElement('div');
+            dateShortcuts.className = 'mt-2';
+            dateShortcuts.innerHTML = `
+                <small class="text-muted">Quick ranges:</small>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="setDateRange('thisMonth')">This Month</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-1" onclick="setDateRange('lastMonth')">Last Month</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-1" onclick="setDateRange('thisYear')">This Year</button>
+            `;
+            endDate.parentNode.appendChild(dateShortcuts);
+        }
+    });
+
+    // Date range shortcuts
+    function setDateRange(range) {
+        const today = new Date();
+        const startField = document.querySelector('[name="start_date"]');
+        const endField = document.querySelector('[name="end_date"]');
+        
+        let startDate, endDate;
+        
+        switch(range) {
+            case 'thisMonth':
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = today;
+                break;
+            case 'lastMonth':
+                startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'thisYear':
+                startDate = new Date(today.getFullYear(), 0, 1);
+                endDate = today;
+                break;
+        }
+        
+        if (startField && endField && startDate && endDate) {
+            startField.value = startDate.toISOString().split('T')[0];
+            endField.value = endDate.toISOString().split('T')[0];
+        }
+    }
+</script>
+{% endblock %}

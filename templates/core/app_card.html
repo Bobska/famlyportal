@@ -1,14 +1,33 @@
 {% load family_tags %}
+{% load app_status %}
+
 <div class="col-lg-4 col-md-6 mb-4">
-    <div class="card h-100 {{ has_permission|yesno:'border-primary,' }}{{ has_permission|yesno:',app-disabled' }}">
+    {% app_status app_name as status %}
+    {% app_config app_name as config %}
+    
+    <div class="card h-100 {{ has_permission|yesno:'border-primary,' }}{{ has_permission|yesno:',app-disabled' }} {% if status == 'coming_soon' %}coming-soon-card{% endif %}">
         <div class="card-body text-center">
-            <div class="mb-3">
+            <div class="mb-3 position-relative">
                 <i class="{{ icon }} fs-1 {{ has_permission|yesno:'text-primary,text-muted' }}"></i>
+                {% if status == 'coming_soon' %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                        Soon
+                    </span>
+                {% endif %}
             </div>
             <h5 class="card-title">{{ app_title }}</h5>
             <p class="card-text text-muted">{{ app_description|truncate_smart:80 }}</p>
             
-            {% if has_permission %}
+            {% if status == 'coming_soon' %}
+                <button class="btn btn-outline-warning" disabled>
+                    <i class="bi bi-clock"></i> Coming Soon
+                </button>
+                {% if config.eta %}
+                    <div class="mt-2">
+                        <small class="text-muted">Expected: {{ config.eta }}</small>
+                    </div>
+                {% endif %}
+            {% elif has_permission %}
                 <a href="{% url dashboard_url %}" class="btn btn-primary">
                     <i class="bi bi-arrow-right"></i> Open {{ app_title }}
                 </a>
@@ -19,11 +38,18 @@
             {% endif %}
         </div>
         
-        {% if has_permission %}
+        {% if has_permission and status != 'coming_soon' %}
         <div class="card-footer bg-light">
             <small class="text-muted">
                 <i class="bi bi-check-circle text-success"></i> 
                 Available to your role
+            </small>
+        </div>
+        {% elif status == 'coming_soon' %}
+        <div class="card-footer bg-warning bg-opacity-10">
+            <small class="text-warning">
+                <i class="bi bi-tools"></i> 
+                Currently in development
             </small>
         </div>
         {% endif %}

@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load app_nav %}
 
-{% block title %}Timesheet Reports{% endblock %}
+{% block title %}Reports{% endblock %}
+
+{% app_navigation 'timesheet' %}
 
 {% block extra_css %}
 <style>

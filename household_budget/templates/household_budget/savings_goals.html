@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load app_nav %}
 
 {% block title %}Savings Goals{% endblock %}
 
@@ -120,6 +121,8 @@
 {% endblock %}
 
 {% block content %}
+{% app_navigation 'household_budget' %}
+
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="row mb-4">

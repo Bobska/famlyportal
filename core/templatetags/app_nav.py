@@ -17,6 +17,46 @@ from core.utils.app_status import (
 register = template.Library()
 
 
+def get_safe_url(url_pattern):
+    """
+    Safely resolve URL pattern, returning # if not found
+    """
+    try:
+        return reverse(url_pattern)
+    except NoReverseMatch:
+        return '#'
+
+
+def is_nav_item_active(request, nav_url_pattern, current_url_name):
+    """
+    Determine if a navigation item should be marked as active
+    """
+    if not request or not current_url_name:
+        return False
+    
+    # Direct URL name match
+    if nav_url_pattern == current_url_name:
+        return True
+    
+    # Check if current URL matches the pattern
+    try:
+        nav_url = reverse(nav_url_pattern)
+        current_url = request.path
+        
+        # Exact URL match
+        if nav_url == current_url:
+            return True
+        
+        # Parent URL match (for sub-pages)
+        if current_url.startswith(nav_url) and nav_url != '/':
+            return True
+            
+    except NoReverseMatch:
+        pass
+    
+    return False
+
+
 @register.inclusion_tag('components/app_nav.html', takes_context=True)
 def app_navigation(context, app_name):
     """
@@ -62,16 +102,12 @@ def app_navigation(context, app_name):
         }
         
         # Try to resolve URL
-        try:
-            nav_item['url'] = reverse(item['url'])
-        except NoReverseMatch:
-            # URL doesn't exist yet, keep as placeholder
-            nav_item['url'] = '#'
+        nav_item['url'] = get_safe_url(item['url'])
+        if nav_item['url'] == '#':
             nav_item['disabled'] = True
         
         # Check if this is the active navigation item
-        if current_url_name and item['url'] == current_url_name:
-            nav_item['active'] = True
+        nav_item['active'] = is_nav_item_active(request, item['url'], current_url_name)
         
         nav_items.append(nav_item)
     

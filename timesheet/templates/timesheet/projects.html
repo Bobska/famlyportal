@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load app_nav %}
 
 {% block title %}Projects{% endblock %}
 
@@ -52,6 +53,8 @@
 {% endblock %}
 
 {% block content %}
+{% app_navigation 'timesheet' %}
+
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">

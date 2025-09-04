@@ -17,6 +17,26 @@
     background: #f8f9fa;
     border-radius: 10px;
 }
+.coming-soon-card {
+    position: relative;
+    opacity: 0.85;
+}
+.coming-soon-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255, 193, 7, 0.1) 50%, transparent 60%);
+    border-radius: inherit;
+    pointer-events: none;
+}
+.coming-soon-card:hover {
+    opacity: 0.95;
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
 </style>
 {% endblock %}
 

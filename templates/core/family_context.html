@@ -1,0 +1,23 @@
+{% load family_tags %}
+
+<div class="family-context-info">
+    {% if family %}
+        <div class="d-flex align-items-center">
+            <i class="bi bi-people-fill text-primary me-2"></i>
+            <div>
+                <h6 class="mb-0">{{ family.name }}</h6>
+                <small class="text-muted">
+                    {% if member %}
+                        <span class="badge {{ member.role|family_role_badge }}">{{ role_display }}</span>
+                        • {{ member_count }} member{{ member_count|pluralize }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    {% else %}
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+            <small class="text-muted">No family assigned</small>
+        </div>
+    {% endif %}
+</div>

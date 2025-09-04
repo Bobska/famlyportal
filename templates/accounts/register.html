@@ -284,31 +284,3 @@ function showPasswordStrength(strength) {
 }
 </script>
 {% endblock %}
-    </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const createFamilyCheckbox = document.getElementById('id_create_family');
-    const familyNameField = document.getElementById('id_family_name').closest('.form-group');
-    const inviteCodeField = document.getElementById('id_invite_code').closest('.form-group');
-    
-    function toggleFields() {
-        if (createFamilyCheckbox.checked) {
-            familyNameField.style.display = 'block';
-            inviteCodeField.style.display = 'none';
-            document.getElementById('id_family_name').required = true;
-            document.getElementById('id_invite_code').required = false;
-        } else {
-            familyNameField.style.display = 'none';
-            inviteCodeField.style.display = 'block';
-            document.getElementById('id_family_name').required = false;
-            document.getElementById('id_invite_code').required = true;
-        }
-    }
-    
-    createFamilyCheckbox.addEventListener('change', toggleFields);
-    toggleFields(); // Initial call
-});
-</script>
-{% endblock %}

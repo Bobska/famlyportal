@@ -10,8 +10,7 @@
         {{ family.name }} Members
     </h1>
     <div class="d-flex gap-2">
-        {% family_context as current_family_context %}
-        {% if current_family_context.member.role == 'admin' or current_family_context.member.role == 'parent' %}
+    {% if primary_family_member.role == 'admin' or primary_family_member.role == 'parent' %}
             <a href="{% url 'accounts:add_family_member' family.pk %}" class="btn btn-success">
                 <i class="bi bi-person-plus"></i> Add Member
             </a>

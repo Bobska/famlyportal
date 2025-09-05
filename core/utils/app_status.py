@@ -43,14 +43,13 @@ APP_STATUS_CONFIG = {
         ]
     },
     'daycare_invoices': {
-        'active': False,
-        'status': 'coming_soon',
+        'active': True,
+        'status': 'complete',
         'name': 'Daycare Invoices',
         'description': 'Track daycare expenses and invoices',
         'icon': 'bi-building',
         'color': '#fd7e14',
         'order': 3,
-        'eta': 'Q4 2025',
         'features': [
             'Invoice management',
             'Provider tracking',
@@ -123,14 +122,13 @@ APP_STATUS_CONFIG = {
         ]
     },
     'subscription_tracker': {
-        'active': False,
-        'status': 'coming_soon',
+        'active': True,
+        'status': 'complete',
         'name': 'Subscription Tracker',
         'description': 'Track and manage subscriptions',
         'icon': 'bi-arrow-repeat',
         'color': '#e83e8c',
         'order': 8,
-        'eta': 'Q3 2026',
         'features': [
             'Subscription tracking',
             'Renewal alerts',

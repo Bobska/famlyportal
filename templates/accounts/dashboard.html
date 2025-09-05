@@ -77,7 +77,7 @@
                     </div>
                     <div class="col-md-3 text-center">
                         <i class="bi bi-grid-3x3-gap fs-2 text-success"></i>
-                        <h6 class="mt-2">7</h6>
+                        <h6 class="mt-2">8</h6>
                         <small class="text-muted">Available Apps</small>
                     </div>
                     <div class="col-md-3 text-center">
@@ -110,6 +110,20 @@
                     {% if can_timesheet %}
                     <a href="{% url 'timesheet:dashboard' %}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-plus-circle"></i> Log Time Entry
+                    </a>
+                    {% endif %}
+                    
+                    {% has_app_permission 'daycare_invoices' as can_daycare %}
+                    {% if can_daycare %}
+                    <a href="{% url 'daycare_invoices:invoice_create' %}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-file-earmark-plus"></i> New Invoice
+                    </a>
+                    {% endif %}
+                    
+                    {% has_app_permission 'subscription_tracker' as can_subscriptions %}
+                    {% if can_subscriptions %}
+                    <a href="{% url 'subscription_tracker:subscription_create' %}" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-plus-square"></i> Add Subscription
                     </a>
                     {% endif %}
                     
@@ -161,6 +175,8 @@
             {% app_card 'timesheet' 'Time Tracking' 'Track work hours, manage projects, and calculate earnings across multiple jobs and positions.' 'timesheet:dashboard' %}
             
             {% app_card 'daycare_invoices' 'Daycare Invoices' 'Manage daycare billing, track payments, and organize childcare expenses for your family.' 'daycare_invoices:dashboard' %}
+            
+            {% app_card 'subscription_tracker' 'Subscription Tracker' 'Track and manage all your family subscriptions, monitor costs, and never miss renewal dates.' 'subscription_tracker:dashboard' %}
             
             {% app_card 'employment_history' 'Employment History' 'Track career progression, manage job details, and build your professional timeline.' 'employment_history:dashboard' %}
             

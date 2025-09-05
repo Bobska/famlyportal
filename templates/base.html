@@ -26,122 +26,76 @@
                 <i class="bi bi-house-heart"></i> FamlyPortal
             </a>
             
+            {% if user.is_authenticated and user.primary_family %}
+            <!-- Family Name Display -->
+            <div class="navbar-text text-white d-none d-md-block mx-3">
+                <i class="bi bi-people-fill me-1"></i>
+                <strong>{{ user.primary_family.name }}</strong>
+            </div>
+            {% endif %}
+            
             {% if user.is_authenticated %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounts:dashboard' %}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                    {% if user.primary_family %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-grid-3x3-gap"></i> Apps
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-dark">
-                            {% active_apps as available_apps %}
-                            {% inactive_apps as unavailable_apps %}
-                            
-                            <!-- Active Apps -->
-                            {% for app_name, config in available_apps.items %}
-                                {% has_app_permission app_name as can_access %}
-                                {% if can_access %}
-                                <li>
-                                    <a class="dropdown-item" href="{% nav_url_safe app_name|add:':dashboard' %}">
-                                        <i class="{{ config.icon }} me-2"></i>{{ config.name }}
-                                        {% app_status_badge app_name show_text=False %}
-                                    </a>
-                                </li>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if unavailable_apps %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li class="dropdown-header text-muted">
-                                <small>Coming Soon</small>
-                            </li>
-                            
-                            <!-- Inactive Apps -->
-                            {% for app_name, config in unavailable_apps.items %}
-                                {% has_app_permission app_name as can_access %}
-                                {% if can_access %}
-                                <li>
-                                    <span class="dropdown-item text-muted" style="cursor: not-allowed;" 
-                                          data-bs-toggle="tooltip" 
-                                          title="{% app_status_message app_name %} {% app_eta app_name %}">
-                                        <i class="{{ config.icon }} me-2"></i>{{ config.name }}
-                                        {% app_status_badge app_name show_text=False %}
-                                    </span>
-                                </li>
-                                {% endif %}
-                            {% endfor %}
-                            {% endif %}
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <!-- Family Context in Navbar -->
-                    {% if user.primary_family %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-people me-1"></i>
-                            <span class="d-none d-md-inline">{{ user.primary_family.name }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
-                            <li class="dropdown-header">
-                                <i class="bi bi-people-fill"></i> {{ user.primary_family.name }}
-                                <br><small>{% get_family_member_count as member_count %}{{ member_count }} member{{ member_count|pluralize }}</small>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounts:family_members' user.primary_family.pk %}">
-                                <i class="bi bi-people"></i> View Members
-                            </a></li>
-                            {% if user.is_family_admin %}
-                            <li><a class="dropdown-item" href="{% url 'accounts:family' %}">
-                                <i class="bi bi-gear"></i> Manage Family
-                            </a></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
-                                <i class="bi bi-plus-circle"></i> Join Another Family
-                            </a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                    
-                    <!-- User Menu -->
+                <ul class="navbar-nav ms-auto">
+                    <!-- User Profile Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                             {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle me-2" width="28" height="28">
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle me-2" width="32" height="32">
                             {% else %}
-                                <i class="bi bi-person-circle me-1"></i>
+                                <i class="bi bi-person-circle me-1 fs-5"></i>
                             {% endif %}
-                            <span class="d-none d-md-inline">{{ user|user_display_name }}</span>
+                            <span>{{ user|user_display_name }}</span>
+                            {% if user.primary_family_member %}
+                                <small class="ms-1 opacity-75">({{ user.primary_family_member.get_role_display }})</small>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
                             <li class="dropdown-header">
                                 <i class="bi bi-person"></i> {{ user|user_display_name }}
                                 <br><small class="text-muted">{{ user.email }}</small>
+                                {% if user.primary_family_member %}
+                                    <br><small class="text-warning">{{ user.primary_family_member.get_role_display }}</small>
+                                {% endif %}
                             </li>
                             <li><hr class="dropdown-divider"></li>
+                            
+                            <!-- Profile Settings -->
                             <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
                                 <i class="bi bi-person-gear"></i> Profile Settings
                             </a></li>
+                            
+                            {% if user.primary_family %}
                             <li><hr class="dropdown-divider"></li>
+                            
+                            <!-- Family Management -->
+                            <li><a class="dropdown-item" href="{% url 'accounts:family_members' user.primary_family.pk %}">
+                                <i class="bi bi-people"></i> Family Members
+                            </a></li>
+                            
+                            {% if user.is_family_admin %}
+                            <li><a class="dropdown-item" href="{% url 'accounts:family' %}">
+                                <i class="bi bi-gear"></i> Family Settings
+                            </a></li>
+                            {% endif %}
+                            
+                            <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
+                                <i class="bi bi-plus-circle"></i> Join Another Family
+                            </a></li>
+                            {% endif %}
+                            
                             {% if not user.primary_family %}
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
                                 <i class="bi bi-plus-circle"></i> Join a Family
                             </a></li>
-                            <li><hr class="dropdown-divider"></li>
                             {% endif %}
+                            
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
                                 <i class="bi bi-box-arrow-right"></i> Sign Out
                             </a></li>

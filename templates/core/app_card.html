@@ -1,57 +1,71 @@
 {% load family_tags %}
 {% load app_status %}
 
-<div class="col-lg-4 col-md-6 mb-4">
+<div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-4">
     {% app_status app_name as status %}
     {% app_config app_name as config %}
     
-    <div class="card h-100 {{ has_permission|yesno:'border-primary,' }}{{ has_permission|yesno:',app-disabled' }} {% if status == 'coming_soon' %}coming-soon-card{% endif %}">
-        <div class="card-body text-center">
-            <div class="mb-3 position-relative">
-                <i class="{{ icon }} fs-1 {{ has_permission|yesno:'text-primary,text-muted' }}"></i>
-                {% if status == 'coming_soon' %}
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
-                        Soon
-                    </span>
-                {% endif %}
-            </div>
-            <h5 class="card-title">{{ app_title }}</h5>
-            <p class="card-text text-muted">{{ app_description|truncate_smart:80 }}</p>
-            
-            {% if status == 'coming_soon' %}
-                <button class="btn btn-outline-warning" disabled>
-                    <i class="bi bi-clock"></i> Coming Soon
-                </button>
-                {% if config.eta %}
-                    <div class="mt-2">
-                        <small class="text-muted">Expected: {{ config.eta }}</small>
+    {% if status == 'coming_soon' %}
+        <!-- Coming Soon Card - Not Clickable -->
+        <div class="app-card app-card-coming-soon h-100">
+            <div class="app-card-body text-center">
+                <div class="app-icon-container mb-3">
+                    <i class="{{ icon }} app-icon text-warning"></i>
+                    <div class="coming-soon-badge">
+                        <i class="bi bi-clock"></i> Soon
                     </div>
-                {% endif %}
-            {% elif has_permission %}
-                <a href="{% url dashboard_url %}" class="btn btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open {{ app_title }}
-                </a>
-            {% else %}
-                <span class="text-muted">
-                    <i class="bi bi-lock"></i> Access Restricted
-                </span>
-            {% endif %}
+                </div>
+                <h4 class="app-title text-dark">{{ app_title }}</h4>
+                <p class="app-description text-muted">{{ app_description|truncate_smart:85 }}</p>
+                <div class="app-status-indicator">
+                    <small class="text-warning fw-semibold">
+                        <i class="bi bi-tools"></i> In Development
+                        {% if config.eta %}
+                            <br>Expected: {{ config.eta }}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
         </div>
-        
-        {% if has_permission and status != 'coming_soon' %}
-        <div class="card-footer bg-light">
-            <small class="text-muted">
-                <i class="bi bi-check-circle text-success"></i> 
-                Available to your role
-            </small>
+    {% elif has_permission %}
+        <!-- Clickable App Card -->
+        <a href="{% url dashboard_url %}" class="app-card-link text-decoration-none">
+            <div class="app-card app-card-active h-100">
+                <div class="app-card-body text-center">
+                    <div class="app-icon-container mb-3">
+                        <i class="{{ icon }} app-icon text-primary"></i>
+                        <div class="app-access-indicator">
+                            <i class="bi bi-arrow-right-circle"></i>
+                        </div>
+                    </div>
+                    <h4 class="app-title text-dark">{{ app_title }}</h4>
+                    <p class="app-description text-muted">{{ app_description|truncate_smart:85 }}</p>
+                    <div class="app-status-indicator">
+                        <small class="text-success fw-semibold">
+                            <i class="bi bi-check-circle"></i> Ready to Use
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    {% else %}
+        <!-- Restricted Access Card - Not Clickable -->
+        <div class="app-card app-card-restricted h-100">
+            <div class="app-card-body text-center">
+                <div class="app-icon-container mb-3">
+                    <i class="{{ icon }} app-icon text-muted"></i>
+                    <div class="restricted-badge">
+                        <i class="bi bi-lock"></i>
+                    </div>
+                </div>
+                <h4 class="app-title text-muted">{{ app_title }}</h4>
+                <p class="app-description text-muted">{{ app_description|truncate_smart:85 }}</p>
+                <div class="app-status-indicator">
+                    <small class="text-muted">
+                        <i class="bi bi-shield-x"></i> Access Restricted
+                    </small>
+                </div>
+            </div>
         </div>
-        {% elif status == 'coming_soon' %}
-        <div class="card-footer bg-warning bg-opacity-10">
-            <small class="text-warning">
-                <i class="bi bi-tools"></i> 
-                Currently in development
-            </small>
-        </div>
-        {% endif %}
-    </div>
+    {% endif %}
 </div>

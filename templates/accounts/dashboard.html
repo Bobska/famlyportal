@@ -5,207 +5,409 @@
 
 {% block extra_css %}
 <style>
-.app-disabled {
-    opacity: 0.6;
-}
-.family-welcome {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-}
-.quick-stats {
-    background: #f8f9fa;
-    border-radius: 10px;
-}
-.coming-soon-card {
+/* Tablet App-Like Dashboard Styling */
+
+/* App Card Styling - Main Focus */
+.app-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 2px solid transparent;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
-    opacity: 0.85;
+    overflow: hidden;
+    min-height: 280px;
 }
-.coming-soon-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 40%, rgba(255, 193, 7, 0.1) 50%, transparent 60%);
-    border-radius: inherit;
-    pointer-events: none;
+
+/* Active/Clickable Cards - High Impact Design */
+.app-card-active {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border-color: #e3f2fd;
 }
-.coming-soon-card:hover {
-    opacity: 0.95;
-    transform: translateY(-2px);
+
+.app-card-active:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(0, 123, 255, 0.15);
+    border-color: #007bff;
+}
+
+.app-card-active:active {
+    transform: translateY(-4px) scale(1.01);
+}
+
+/* Coming Soon Cards */
+.app-card-coming-soon {
+    background: linear-gradient(145deg, #fff8e1 0%, #ffecb3 100%);
+    border-color: #ffc107;
+    opacity: 0.9;
+}
+
+.app-card-coming-soon:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.2);
+}
+
+/* Restricted Cards */
+.app-card-restricted {
+    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+    border-color: #dee2e6;
+    opacity: 0.7;
+}
+
+/* Card Body */
+.app-card-body {
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+/* App Icons - Large and Prominent */
+.app-icon-container {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.app-icon {
+    font-size: 4rem;
+    display: block;
     transition: all 0.3s ease;
 }
+
+.app-card-active:hover .app-icon {
+    transform: scale(1.1);
+    filter: drop-shadow(0 4px 8px rgba(0, 123, 255, 0.3));
+}
+
+/* App Titles */
+.app-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    transition: color 0.3s ease;
+}
+
+.app-card-active:hover .app-title {
+    color: #007bff !important;
+}
+
+/* App Descriptions */
+.app-description {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+/* Status Indicators */
+.app-access-indicator {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 1.5rem;
+    color: #28a745;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.app-card-active:hover .app-access-indicator {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.coming-soon-badge, .restricted-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ffc107;
+    color: #212529;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.restricted-badge {
+    background: #6c757d;
+    color: white;
+}
+
+.app-status-indicator {
+    margin-top: auto;
+}
+
+/* Remove link styling */
+.app-card-link:hover {
+    text-decoration: none;
+}
+
+/* Welcome Section - Minimal */
+.welcome-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    padding: 2rem;
+}
+
+.welcome-hero h1 {
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+/* Quick Stats - Compact */
+.stats-row {
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f3f4;
+    text-align: center;
+    padding: 1.5rem 1rem;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Apps Grid - Main Focus Area */
+.apps-section {
+    margin-top: 1rem;
+}
+
+.apps-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.apps-header h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.5rem;
+}
+
+.apps-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+/* No Family State */
+.no-family-hero {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.no-family-icon {
+    font-size: 5rem;
+    color: #007bff;
+    margin-bottom: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .app-card-body {
+        padding: 1.5rem 1rem;
+        min-height: 240px;
+    }
+    
+    .app-icon {
+        font-size: 3rem;
+    }
+    
+    .app-title {
+        font-size: 1.1rem;
+    }
+    
+    .welcome-hero {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .welcome-hero h1 {
+        font-size: 1.5rem;
+    }
+    
+    .stat-card {
+        padding: 1rem 0.5rem;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .app-card {
+        min-height: 220px;
+    }
+    
+    .app-card-body {
+        padding: 1rem;
+    }
+    
+    .app-icon {
+        font-size: 2.5rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-card {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.app-card:nth-child(1) { animation-delay: 0.1s; }
+.app-card:nth-child(2) { animation-delay: 0.2s; }
+.app-card:nth-child(3) { animation-delay: 0.3s; }
+.app-card:nth-child(4) { animation-delay: 0.4s; }
+.app-card:nth-child(5) { animation-delay: 0.5s; }
+.app-card:nth-child(6) { animation-delay: 0.6s; }
+.app-card:nth-child(7) { animation-delay: 0.7s; }
+.app-card:nth-child(8) { animation-delay: 0.8s; }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Welcome Header -->
-<div class="family-welcome p-4 mb-4">
+{% if primary_family %}
+<!-- Minimal Welcome Hero -->
+<div class="welcome-hero">
     <div class="row align-items-center">
         <div class="col-md-8">
-            <h1 class="mb-2">
-                <i class="bi bi-house-heart"></i>
-                Welcome to FamlyPortal, {{ user|user_display_name }}!
+            <h1>
+                {% now "H" as current_hour %}
+                {% if current_hour|add:"0" < 12 %}
+                    <i class="bi bi-sun me-2"></i>Good morning, {{ user.first_name|default:user.username }}
+                {% elif current_hour|add:"0" < 18 %}
+                    <i class="bi bi-sun me-2"></i>Good afternoon, {{ user.first_name|default:user.username }}
+                {% else %}
+                    <i class="bi bi-moon-stars me-2"></i>Good evening, {{ user.first_name|default:user.username }}
+                {% endif %}
             </h1>
-            <p class="mb-0 opacity-75">Your family management hub</p>
+            <p class="welcome-subtitle mb-0">
+                Welcome to your {{ primary_family.name }} family portal
+            </p>
         </div>
         <div class="col-md-4 text-md-end">
-            {% family_context %}
+            <div class="text-white-50">
+                <i class="bi bi-calendar3 me-1"></i>
+                {% now "l, F j, Y" %}
+            </div>
         </div>
     </div>
 </div>
 
-{% if primary_family %}
-<!-- Family Overview -->
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0">
-                    <i class="bi bi-speedometer2 text-primary"></i>
-                    Family Dashboard
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row quick-stats p-3">
-                    <div class="col-md-3 text-center">
-                        <i class="bi bi-people-fill fs-2 text-primary"></i>
-                        <h6 class="mt-2">{% get_family_member_count as member_count %}{{ member_count }}</h6>
-                        <small class="text-muted">Family Member{{ member_count|pluralize }}</small>
-                    </div>
-                    <div class="col-md-3 text-center">
-                        <i class="bi bi-grid-3x3-gap fs-2 text-success"></i>
-                        <h6 class="mt-2">8</h6>
-                        <small class="text-muted">Available Apps</small>
-                    </div>
-                    <div class="col-md-3 text-center">
-                        <i class="bi bi-shield-check fs-2 text-info"></i>
-                        <h6 class="mt-2">{{ primary_family_member.get_role_display }}</h6>
-                        <small class="text-muted">Your Role</small>
-                    </div>
-                    <div class="col-md-3 text-center">
-                        <i class="bi bi-calendar3 fs-2 text-warning"></i>
-                        <h6 class="mt-2">{{ primary_family_member.joined_at|date:"M Y" }}</h6>
-                        <small class="text-muted">Member Since</small>
-                    </div>
-                </div>
-            </div>
+<!-- Compact Stats Row -->
+<div class="row stats-row">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{% get_family_member_count as member_count %}{{ member_count }}</div>
+            <div class="stat-label">Family Member{{ member_count|pluralize }}</div>
         </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">8</div>
+            <div class="stat-label">Available Apps</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ primary_family_member.get_role_display }}</div>
+            <div class="stat-label">Your Role</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ primary_family_member.joined_at|date:"M Y" }}</div>
+            <div class="stat-label">Member Since</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Apps Grid - Primary Focus -->
+<div class="apps-section">
+    <div class="apps-header">
+        <h2>
+            <i class="bi bi-grid-3x3-gap text-primary me-2"></i>
+            Your Family Apps
+        </h2>
+        <p class="apps-subtitle">Tap any app to get started</p>
     </div>
     
-    <!-- Quick Actions Sidebar -->
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0">
-                <h6 class="mb-0">
-                    <i class="bi bi-lightning text-warning"></i>
-                    Quick Actions
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    {% has_app_permission 'timesheet' as can_timesheet %}
-                    {% if can_timesheet %}
-                    <a href="{% url 'timesheet:dashboard' %}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-plus-circle"></i> Log Time Entry
-                    </a>
-                    {% endif %}
-                    
-                    {% has_app_permission 'daycare_invoices' as can_daycare %}
-                    {% if can_daycare %}
-                    <a href="{% url 'daycare_invoices:invoice_create' %}" class="btn btn-outline-info btn-sm">
-                        <i class="bi bi-file-earmark-plus"></i> New Invoice
-                    </a>
-                    {% endif %}
-                    
-                    {% has_app_permission 'subscription_tracker' as can_subscriptions %}
-                    {% if can_subscriptions %}
-                    <a href="{% url 'subscription_tracker:subscription_create' %}" class="btn btn-outline-warning btn-sm">
-                        <i class="bi bi-plus-square"></i> Add Subscription
-                    </a>
-                    {% endif %}
-                    
-                    {% has_app_permission 'upcoming_payments' as can_payments %}
-                    {% if can_payments %}
-                    <a href="{% url 'upcoming_payments:dashboard' %}" class="btn btn-outline-success btn-sm">
-                        <i class="bi bi-calendar-plus"></i> Add Payment
-                    </a>
-                    {% endif %}
-                    
-                    {% if primary_family_member.role == 'admin' or primary_family_member.role == 'parent' %}
-                    <a href="{% url 'accounts:family_members' primary_family.pk %}" class="btn btn-outline-info btn-sm">
-                        <i class="bi bi-people"></i> Manage Family
-                    </a>
-                    {% endif %}
-                    
-                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-person"></i> Update Profile
-                    </a>
-                </div>
-                
-                <!-- Invite Code -->
-                <hr>
-                <div class="text-center">
-                    <small class="text-muted d-block">Family Invite Code</small>
-                    <code class="bg-light p-2 rounded d-inline-block">{{ primary_family.invite_code }}</code>
-                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyInviteCode('{{ primary_family.invite_code }}')" title="Copy invite code">
-                        <i class="bi bi-clipboard"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Apps Overview -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-transparent border-0">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="bi bi-grid-3x3-gap text-primary"></i>
-                Family Apps
-            </h5>
-            <small class="text-muted">Click to access available apps</small>
-        </div>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            {% app_card 'timesheet' 'Time Tracking' 'Track work hours, manage projects, and calculate earnings across multiple jobs and positions.' 'timesheet:dashboard' %}
-            
-            {% app_card 'daycare_invoices' 'Daycare Invoices' 'Manage daycare billing, track payments, and organize childcare expenses for your family.' 'daycare_invoices:dashboard' %}
-            
-            {% app_card 'subscription_tracker' 'Subscription Tracker' 'Track and manage all your family subscriptions, monitor costs, and never miss renewal dates.' 'subscription_tracker:dashboard' %}
-            
-            {% app_card 'employment_history' 'Employment History' 'Track career progression, manage job details, and build your professional timeline.' 'employment_history:dashboard' %}
-            
-            {% app_card 'upcoming_payments' 'Payment Reminders' 'Never miss a payment with smart reminders for bills, subscriptions, and recurring expenses.' 'upcoming_payments:dashboard' %}
-            
-            {% app_card 'credit_cards' 'Credit Cards' 'Monitor credit card usage, track spending, and manage payment schedules safely.' 'credit_cards:dashboard' %}
-            
-            {% app_card 'household_budget' 'Family Budget' 'Plan and track family expenses, set savings goals, and manage household finances.' 'household_budget:dashboard' %}
-        </div>
+    <div class="row">
+        {% app_card 'timesheet' 'Time Tracking' 'Track work hours, manage projects, and calculate earnings across multiple jobs and positions.' 'timesheet:dashboard' %}
+        
+        {% app_card 'daycare_invoices' 'Daycare Invoices' 'Manage daycare billing, track payments, and organize childcare expenses for your family.' 'daycare_invoices:dashboard' %}
+        
+        {% app_card 'subscription_tracker' 'Subscription Tracker' 'Track and manage all your family subscriptions, monitor costs, and never miss renewal dates.' 'subscription_tracker:dashboard' %}
+        
+        {% app_card 'employment_history' 'Employment History' 'Track career progression, manage job details, and build your professional timeline.' 'employment_history:dashboard' %}
+        
+        {% app_card 'upcoming_payments' 'Payment Reminders' 'Never miss a payment with smart reminders for bills, subscriptions, and recurring expenses.' 'upcoming_payments:dashboard' %}
+        
+        {% app_card 'credit_cards' 'Credit Cards' 'Monitor credit card usage, track spending, and manage payment schedules safely.' 'credit_cards:dashboard' %}
+        
+        {% app_card 'household_budget' 'Family Budget' 'Plan and track family expenses, set savings goals, and manage household finances.' 'household_budget:dashboard' %}
+        
+        {% app_card 'autocraftcv' 'AutoCraft CV' 'Generate professional CVs and cover letters using AI and your employment history.' 'autocraftcv:dashboard' %}
     </div>
 </div>
 
 {% else %}
 <!-- No Family State -->
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm text-center">
-            <div class="card-body p-5">
-                <i class="bi bi-people fs-1 text-muted mb-4"></i>
-                <h3 class="mb-3">Welcome to FamlyPortal!</h3>
-                <p class="text-muted mb-4">
-                    To start using our family management apps, you need to either create a new family or join an existing one.
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="no-family-hero">
+                <div class="no-family-icon">
+                    <i class="bi bi-house-heart"></i>
+                </div>
+                <h1 class="mb-3">Welcome to FamlyPortal!</h1>
+                <p class="text-muted mb-4 lead">
+                    Get started by joining an existing family or complete your profile to begin using our family management tools.
                 </p>
-                <div class="d-flex gap-3 justify-content-center">
-                    <a href="{% url 'accounts:join_family' %}" class="btn btn-primary btn-lg">
-                        <i class="bi bi-plus-circle"></i> Join a Family
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="{% url 'accounts:join_family' %}" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-people me-2"></i>Join a Family
                     </a>
-                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-lg">
-                        <i class="bi bi-person"></i> Complete Profile
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="bi bi-person-gear me-2"></i>Complete Profile
                     </a>
                 </div>
             </div>
@@ -217,37 +419,65 @@
 
 {% block extra_js %}
 <script>
-function copyInviteCode(code) {
-    navigator.clipboard.writeText(code).then(function() {
-        const btn = event.target.closest('button');
-        const originalHTML = btn.innerHTML;
-        const originalClasses = btn.className;
-        
-        btn.innerHTML = '<i class="bi bi-check"></i>';
-        btn.className = 'btn btn-sm btn-success ms-1';
-        
-        setTimeout(() => {
-            btn.innerHTML = originalHTML;
-            btn.className = originalClasses;
-        }, 2000);
-    }).catch(function(err) {
-        console.error('Could not copy text: ', err);
-    });
-}
-
-// Add some interactive animations
+// Enhanced app card interactions
 document.addEventListener('DOMContentLoaded', function() {
-    // Animate cards on load
-    const cards = document.querySelectorAll('.card');
-    cards.forEach((card, index) => {
+    // Add click sound effect (optional)
+    const appCards = document.querySelectorAll('.app-card-active');
+    
+    appCards.forEach(card => {
+        // Add haptic feedback for mobile devices
+        card.addEventListener('touchstart', function() {
+            if (navigator.vibrate) {
+                navigator.vibrate(10); // Subtle vibration feedback
+            }
+        });
+        
+        // Add ripple effect on click
+        card.addEventListener('click', function(e) {
+            const ripple = document.createElement('div');
+            ripple.style.position = 'absolute';
+            ripple.style.borderRadius = '50%';
+            ripple.style.background = 'rgba(0, 123, 255, 0.3)';
+            ripple.style.transform = 'scale(0)';
+            ripple.style.animation = 'ripple 0.6s linear';
+            ripple.style.left = (e.clientX - card.offsetLeft) + 'px';
+            ripple.style.top = (e.clientY - card.offsetTop) + 'px';
+            ripple.style.width = ripple.style.height = '20px';
+            ripple.style.pointerEvents = 'none';
+            
+            card.style.position = 'relative';
+            card.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+    
+    // Staggered animation for cards on page load
+    const allCards = document.querySelectorAll('.app-card');
+    allCards.forEach((card, index) => {
         card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
+        card.style.transform = 'translateY(50px)';
+        
         setTimeout(() => {
-            card.style.transition = 'all 0.3s ease';
+            card.style.transition = 'all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
             card.style.opacity = '1';
             card.style.transform = 'translateY(0)';
-        }, index * 100);
+        }, index * 100 + 200);
     });
 });
+
+// CSS for ripple animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

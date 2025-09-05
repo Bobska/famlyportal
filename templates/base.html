@@ -20,18 +20,18 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top" style="z-index: 1030;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark compact-nav" style="z-index: 1030;">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'accounts:dashboard' %}">
-                <i class="bi bi-house-heart"></i> FamlyPortal
+            <a class="navbar-brand" href="{% url 'accounts:dashboard' %}">
+                <i class="bi bi-house-heart me-1"></i> FamlyPortal
             </a>
             
             {% if user.is_authenticated and user.primary_family %}
             <!-- Family Name Display -->
-            <div class="navbar-text text-white d-none d-md-block mx-3">
+            <span class="navbar-text family-name text-white d-none d-md-inline">
                 <i class="bi bi-people-fill me-1"></i>
-                <strong>{{ user.primary_family.name }}</strong>
-            </div>
+                {{ user.primary_family.name }}
+            </span>
             {% endif %}
             
             {% if user.is_authenticated %}
@@ -43,13 +43,13 @@
                 <ul class="navbar-nav ms-auto">
                     <!-- User Profile Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle compact-dropdown" href="#" role="button" data-bs-toggle="dropdown">
                             {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle me-2" width="32" height="32">
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle me-1" width="24" height="24">
                             {% else %}
-                                <i class="bi bi-person-circle me-1 fs-5"></i>
+                                <i class="bi bi-person-circle me-1"></i>
                             {% endif %}
-                            <span>{{ user|user_display_name }}</span>
+                            {{ user|user_display_name }}
                             {% if user.primary_family_member %}
                                 <small class="ms-1 opacity-75">({{ user.primary_family_member.get_role_display }})</small>
                             {% endif %}

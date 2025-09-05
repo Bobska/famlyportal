@@ -1,0 +1,570 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+{% load app_nav %}
+
+{% block title %}Financial Reports - Daycare Invoices{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'daycare_invoices' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.reports-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #007bff 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.report-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid #17a2b8;
+    margin-bottom: 1rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-change {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.positive { color: #28a745; }
+.negative { color: #dc3545; }
+.neutral { color: #6c757d; }
+
+.success { border-left-color: #28a745; }
+.warning { border-left-color: #ffc107; }
+.danger { border-left-color: #dc3545; }
+
+.chart-container {
+    height: 300px;
+    width: 100%;
+    background: #f8f9fa;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.table-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-striped > tbody > tr:nth-child(odd) > td {
+    background-color: #f8f9fa;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.export-btn {
+    background: #28a745;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+    background: #218838;
+    color: white;
+    text-decoration: none;
+}
+
+.period-selector {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.period-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #495057;
+    transition: all 0.2s ease;
+}
+
+.period-btn:hover, .period-btn.active {
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-color: #007bff;
+}
+
+.provider-row {
+    border-left: 3px solid #007bff;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: white;
+    border-radius: 0 6px 6px 0;
+    transition: all 0.2s ease;
+}
+
+.provider-row:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateX(2px);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Period selector functionality
+    const periodBtns = document.querySelectorAll('.period-btn');
+    periodBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            periodBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update URL with selected period
+            const period = this.dataset.period;
+            const url = new URL(window.location.href);
+            url.searchParams.set('period', period);
+            window.location.href = url.toString();
+        });
+    });
+    
+    // Set active period button
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPeriod = urlParams.get('period') || 'current_month';
+    const activeBtn = document.querySelector(`.period-btn[data-period="${currentPeriod}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Export functionality
+    const exportBtn = document.querySelector('#export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            // Add export parameters to current URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('export', 'csv');
+            window.location.href = url.toString();
+        });
+    }
+    
+    // Print functionality
+    const printBtn = document.querySelector('#print-btn');
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Reports Header -->
+    <div class="reports-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-1">Financial Reports</h1>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-chart-line me-2"></i>Comprehensive daycare invoice and payment analytics
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-light" id="print-btn">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                    <button type="button" class="btn btn-success" id="export-btn">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Selector -->
+    <div class="filter-section">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h6 class="mb-2">Report Period:</h6>
+                <div class="period-selector">
+                    <a href="#" class="period-btn" data-period="current_month">This Month</a>
+                    <a href="#" class="period-btn" data-period="last_month">Last Month</a>
+                    <a href="#" class="period-btn" data-period="current_quarter">This Quarter</a>
+                    <a href="#" class="period-btn" data-period="current_year">This Year</a>
+                    <a href="#" class="period-btn" data-period="all_time">All Time</a>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <h6 class="mb-2">Report Date:</h6>
+                <span class="text-muted">{{ report_date|date:"F j, Y" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card success">
+                <div class="stat-value">${{ total_invoiced|floatformat:2 }}</div>
+                <div class="stat-label">Total Invoiced</div>
+                {% if total_invoiced_change %}
+                <div class="stat-change {% if total_invoiced_change > 0 %}positive{% elif total_invoiced_change < 0 %}negative{% else %}neutral{% endif %}">
+                    {% if total_invoiced_change > 0 %}+{% endif %}{{ total_invoiced_change|floatformat:1 }}% from last period
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card success">
+                <div class="stat-value">${{ total_paid|floatformat:2 }}</div>
+                <div class="stat-label">Total Paid</div>
+                {% if total_paid_change %}
+                <div class="stat-change {% if total_paid_change > 0 %}positive{% elif total_paid_change < 0 %}negative{% else %}neutral{% endif %}">
+                    {% if total_paid_change > 0 %}+{% endif %}{{ total_paid_change|floatformat:1 }}% from last period
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card {% if total_outstanding > 0 %}warning{% else %}success{% endif %}">
+                <div class="stat-value">${{ total_outstanding|floatformat:2 }}</div>
+                <div class="stat-label">Outstanding</div>
+                {% if outstanding_change %}
+                <div class="stat-change {% if outstanding_change > 0 %}negative{% elif outstanding_change < 0 %}positive{% else %}neutral{% endif %}">
+                    {% if outstanding_change > 0 %}+{% endif %}{{ outstanding_change|floatformat:1 }}% from last period
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-value">{{ payment_rate|floatformat:1 }}%</div>
+                <div class="stat-label">Payment Rate</div>
+                {% if payment_rate_change %}
+                <div class="stat-change {% if payment_rate_change > 0 %}positive{% elif payment_rate_change < 0 %}negative{% else %}neutral{% endif %}">
+                    {% if payment_rate_change > 0 %}+{% endif %}{{ payment_rate_change|floatformat:1 }}% from last period
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Metrics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-value">{{ invoice_count }}</div>
+                <div class="stat-label">Invoices Issued</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-value">{{ payment_count }}</div>
+                <div class="stat-label">Payments Received</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-value">${{ avg_invoice_amount|floatformat:2 }}</div>
+                <div class="stat-label">Avg Invoice</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-value">{{ avg_payment_days|floatformat:0 }}</div>
+                <div class="stat-label">Avg Payment Days</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Charts Section -->
+        <div class="col-lg-8">
+            <!-- Monthly Trends Chart -->
+            <div class="card report-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Monthly Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <div class="text-center">
+                            <i class="fas fa-chart-line fa-3x mb-3"></i>
+                            <div>Chart functionality would be implemented with Chart.js</div>
+                            <div class="small text-muted">Monthly invoice and payment trends over time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Breakdown -->
+            <div class="card report-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-building me-2"></i>Provider Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    {% if provider_stats %}
+                        {% for stat in provider_stats %}
+                        <div class="provider-row">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <div class="fw-bold">{{ stat.provider.name }}</div>
+                                    <small class="text-muted">{{ stat.invoice_count }} invoices</small>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <div class="fw-bold">${{ stat.total_invoiced|floatformat:2 }}</div>
+                                    <small class="text-muted">Invoiced</small>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <div class="fw-bold text-success">${{ stat.total_paid|floatformat:2 }}</div>
+                                    <small class="text-muted">Paid</small>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <div class="fw-bold {% if stat.outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+                                        ${{ stat.outstanding|floatformat:2 }}
+                                    </div>
+                                    <small class="text-muted">Outstanding</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-building fa-2x mb-3"></i>
+                            <p>No provider data available for the selected period.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Reports -->
+        <div class="col-lg-4">
+            <!-- Payment Methods -->
+            <div class="card report-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Methods</h6>
+                </div>
+                <div class="card-body">
+                    {% if payment_method_stats %}
+                        {% for method in payment_method_stats %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <div class="fw-bold">{{ method.display_name }}</div>
+                                <small class="text-muted">{{ method.count }} payments</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ method.total|floatformat:2 }}</div>
+                                <small class="text-muted">{{ method.percentage|floatformat:1 }}%</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No payment data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Invoice Status Breakdown -->
+            <div class="card report-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Invoice Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if invoice_status_stats %}
+                        {% for status in invoice_status_stats %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <div class="fw-bold">{{ status.display_name }}</div>
+                                <small class="text-muted">{{ status.count }} invoices</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ status.total|floatformat:2 }}</div>
+                                <small class="text-muted">{{ status.percentage|floatformat:1 }}%</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No invoice data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Outstanding Invoices -->
+            {% if overdue_invoices %}
+            <div class="card report-card">
+                <div class="card-header">
+                    <h6 class="mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Overdue Invoices</h6>
+                </div>
+                <div class="card-body">
+                    {% for invoice in overdue_invoices %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                        <div>
+                            <div class="fw-bold">{{ invoice.provider.name }}</div>
+                            <small class="text-muted">Invoice #{{ invoice.pk }}</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-danger">${{ invoice.outstanding_amount|floatformat:2 }}</div>
+                            <small class="text-muted">{{ invoice.days_overdue }} days overdue</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="mt-3">
+                        <a href="{% url 'daycare_invoices:invoice_list' %}?status=overdue" class="btn btn-outline-danger btn-sm w-100">
+                            View All Overdue
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'daycare_invoices:invoice_list' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-file-invoice me-1"></i>View All Invoices
+                        </a>
+                        <a href="{% url 'daycare_invoices:payment_list' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-credit-card me-1"></i>View All Payments
+                        </a>
+                        <a href="{% url 'daycare_invoices:provider_list' %}" class="btn btn-info btn-sm">
+                            <i class="fas fa-building me-1"></i>View Providers
+                        </a>
+                        <a href="{% url 'daycare_invoices:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Tables -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card table-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Recent Transactions</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Provider</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_transactions %}
+                                    {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"M j, Y" }}</td>
+                                        <td>
+                                            {% if transaction.type == 'invoice' %}
+                                                <span class="badge bg-primary">Invoice</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Payment</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ transaction.provider.name }}</td>
+                                        <td>{{ transaction.description|truncatechars:50 }}</td>
+                                        <td class="text-end">
+                                            {% if transaction.type == 'invoice' %}
+                                                ${{ transaction.amount|floatformat:2 }}
+                                            {% else %}
+                                                <span class="text-success">+${{ transaction.amount|floatformat:2 }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ transaction.status|title }}</td>
+                                        <td class="text-end">
+                                            {% if transaction.type == 'invoice' %}
+                                                <a href="{% url 'daycare_invoices:invoice_detail' transaction.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                                            {% else %}
+                                                <a href="{% url 'daycare_invoices:payment_detail' transaction.pk %}" class="btn btn-sm btn-outline-success">View</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            No transactions found for the selected period.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'daycare_invoices:dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary" id="print-btn">
+                        <i class="fas fa-print me-1"></i>Print Report
+                    </button>
+                    <button type="button" class="btn btn-success" id="export-btn">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

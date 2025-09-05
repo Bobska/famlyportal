@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+{% load app_nav %}
+
+{% block title %}{% if invoice %}Edit Invoice{% else %}New Invoice{% endif %}{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'daycare_invoices' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.form-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.form-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-section h6 {
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.help-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.required-field label::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.amount-preview {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #007bff;
+    padding: 0.75rem;
+    background: #e3f2fd;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.btn-group-custom {
+    gap: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-calculate due date based on provider's default terms
+    const invoiceDateField = document.querySelector('#id_invoice_date');
+    const dueDateField = document.querySelector('#id_due_date');
+    const amountField = document.querySelector('#id_amount');
+    const amountPreview = document.querySelector('#amount-preview');
+    
+    // Update amount preview
+    function updateAmountPreview() {
+        const amount = amountField.value || '0.00';
+        if (amountPreview) {
+            amountPreview.textContent = '$' + parseFloat(amount).toFixed(2);
+        }
+    }
+    
+    // Calculate due date (30 days from invoice date by default)
+    function calculateDueDate() {
+        if (invoiceDateField.value && !dueDateField.value) {
+            const invoiceDate = new Date(invoiceDateField.value);
+            const dueDate = new Date(invoiceDate);
+            dueDate.setDate(dueDate.getDate() + 30); // Default 30 days
+            
+            const year = dueDate.getFullYear();
+            const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+            const day = String(dueDate.getDate()).padStart(2, '0');
+            
+            dueDateField.value = `${year}-${month}-${day}`;
+        }
+    }
+    
+    if (invoiceDateField) {
+        invoiceDateField.addEventListener('change', calculateDueDate);
+    }
+    
+    if (amountField) {
+        amountField.addEventListener('input', updateAmountPreview);
+        updateAmountPreview(); // Initial update
+    }
+    
+    // Form validation
+    const form = document.querySelector('#invoice-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const amount = parseFloat(amountField.value || 0);
+            if (amount <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid amount greater than 0.');
+                amountField.focus();
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Form Header -->
+    <div class="form-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-1">
+                    {% if invoice %}
+                        Edit Invoice #{{ invoice.pk }}
+                    {% else %}
+                        Create New Invoice
+                    {% endif %}
+                </h1>
+                <p class="mb-0 opacity-75">
+                    {% if invoice %}
+                        Update invoice details and billing information
+                    {% else %}
+                        Create a new daycare invoice for billing
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% if invoice %}{% url 'daycare_invoices:invoice_detail' invoice.pk %}{% else %}{% url 'daycare_invoices:invoice_list' %}{% endif %}" 
+                   class="btn btn-light">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card form-card">
+                <div class="card-body p-4">
+                    <form method="post" id="invoice-form" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Provider & Child Information -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-building me-2"></i>Provider & Child Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.provider.id_for_label }}" class="form-label">Provider</label>
+                                        {{ form.provider|add_class:"form-select" }}
+                                        {% if form.provider.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.provider.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Select the daycare provider for this invoice</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.child.id_for_label }}" class="form-label">Child</label>
+                                        {{ form.child|add_class:"form-select" }}
+                                        {% if form.child.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.child.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Select the child this invoice is for</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invoice Details -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-file-invoice me-2"></i>Invoice Details</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.invoice_date.id_for_label }}" class="form-label">Invoice Date</label>
+                                        {{ form.invoice_date|add_class:"form-control" }}
+                                        {% if form.invoice_date.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.invoice_date.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Date when the invoice was issued</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                                        {{ form.due_date|add_class:"form-control" }}
+                                        {% if form.due_date.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.due_date.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Payment due date (auto-calculated if left blank)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                        {{ form.description|add_class:"form-control" }}
+                                        {% if form.description.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Brief description of services (e.g., "Weekly daycare - Jan 1-7, 2025")</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ form.period_start.id_for_label }}" class="form-label">Period Start</label>
+                                        {{ form.period_start|add_class:"form-control" }}
+                                        {% if form.period_start.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.period_start.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Service period start date</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ form.period_end.id_for_label }}" class="form-label">Period End</label>
+                                        {{ form.period_end|add_class:"form-control" }}
+                                        {% if form.period_end.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.period_end.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Service period end date</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.amount.id_for_label }}" class="form-label">Amount</label>
+                                        {{ form.amount|add_class:"form-control" }}
+                                        {% if form.amount.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Total invoice amount in dollars</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Amount Preview</label>
+                                        <div class="amount-preview" id="amount-preview">$0.00</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Status -->
+                        {% if invoice %}
+                        <div class="form-section">
+                            <h6><i class="fas fa-credit-card me-2"></i>Payment Status</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                        {{ form.status|add_class:"form-select" }}
+                                        {% if form.status.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Current payment status</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Additional Notes -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-sticky-note me-2"></i>Additional Information</h6>
+                            <div class="mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {{ form.notes|add_class:"form-control" }}
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Optional internal notes or special instructions</div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div class="btn-group-custom d-flex">
+                                <a href="{% if invoice %}{% url 'daycare_invoices:invoice_detail' invoice.pk %}{% else %}{% url 'daycare_invoices:invoice_list' %}{% endif %}" 
+                                   class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
+                            </div>
+                            <div class="btn-group-custom d-flex">
+                                <button type="submit" name="action" value="save" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% if invoice %}Update Invoice{% else %}Create Invoice{% endif %}
+                                </button>
+                                {% if not invoice %}
+                                <button type="submit" name="action" value="save_and_add" class="btn btn-success">
+                                    <i class="fas fa-plus me-1"></i>Save & Add Another
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Invoice Help</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Quick Tips:</strong>
+                        <ul class="small mt-2 mb-0">
+                            <li>Invoice date is typically when services were completed</li>
+                            <li>Due date auto-calculates to 30 days from invoice date</li>
+                            <li>Use clear descriptions for easy identification</li>
+                            <li>Include service period for recurring charges</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Payment Status:</strong>
+                        <ul class="small mt-2 mb-0">
+                            <li><span class="badge bg-warning">Pending</span> - Awaiting payment</li>
+                            <li><span class="badge bg-primary">Partial</span> - Partially paid</li>
+                            <li><span class="badge bg-success">Paid</span> - Fully paid</li>
+                            <li><span class="badge bg-danger">Overdue</span> - Past due date</li>
+                        </ul>
+                    </div>
+
+                    {% if not invoice %}
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-lightbulb me-1"></i>
+                            After creating the invoice, you can immediately record payments or send it to the provider.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

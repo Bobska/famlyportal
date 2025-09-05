@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+{% load app_nav %}
+
+{% block title %}Invoice #{{ invoice.pk }} - {{ invoice.provider.name }}{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'daycare_invoices' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.invoice-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.invoice-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.status-badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 600;
+}
+
+.status-paid { background-color: #d4edda; color: #155724; }
+.status-pending { background-color: #fff3cd; color: #856404; }
+.status-overdue { background-color: #f8d7da; color: #721c24; }
+.status-partial { background-color: #cce5ff; color: #004085; }
+
+.info-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-section h6 {
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.amount-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #007bff;
+    text-align: center;
+    padding: 1.5rem;
+    background: #e3f2fd;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.payment-item {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: white;
+}
+
+.timeline-item {
+    border-left: 3px solid #007bff;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #007bff;
+}
+
+.timeline-item.success::before { background: #28a745; }
+.timeline-item.warning::before { background: #ffc107; }
+.timeline-item.danger::before { background: #dc3545; }
+
+.quick-actions {
+    position: sticky;
+    top: 20px;
+}
+
+.btn-group-custom {
+    gap: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark as paid AJAX functionality
+    const markPaidBtn = document.querySelector('#mark-paid-btn');
+    if (markPaidBtn) {
+        markPaidBtn.addEventListener('click', function() {
+            if (confirm('Mark this invoice as paid? This will create a payment record.')) {
+                fetch(`{% url 'daycare_invoices:mark_as_paid_ajax' invoice.pk %}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to mark as paid'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            }
+        });
+    }
+    
+    // Print functionality
+    const printBtn = document.querySelector('#print-btn');
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% csrf_token %}
+    <!-- Invoice Header -->
+    <div class="invoice-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-1">Invoice #{{ invoice.pk }}</h1>
+                <p class="mb-1 opacity-75">
+                    <i class="fas fa-building me-2"></i>{{ invoice.provider.name }}
+                    {% if invoice.child %}
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-child me-2"></i>{{ invoice.child.first_name }} {{ invoice.child.last_name }}
+                    {% endif %}
+                </p>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-calendar me-2"></i>{{ invoice.invoice_date }} - Due: {{ invoice.due_date }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="status-badge status-{{ invoice.status|lower }}">
+                    {{ invoice.get_status_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Invoice Details -->
+        <div class="col-lg-8">
+            <!-- Amount Display -->
+            <div class="amount-display">
+                ${{ invoice.amount|floatformat:2 }}
+                {% if invoice.status == 'partial' and paid_amount %}
+                    <div style="font-size: 1rem; margin-top: 0.5rem;">
+                        <span class="text-success">${{ paid_amount|floatformat:2 }} paid</span>
+                        <span class="text-muted">of ${{ invoice.amount|floatformat:2 }}</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Invoice Information -->
+            <div class="card invoice-card mb-4">
+                <div class="card-body">
+                    <div class="info-section">
+                        <h6><i class="fas fa-file-invoice me-2"></i>Invoice Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong>Invoice Date:</strong><br>
+                                    {{ invoice.invoice_date }}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Due Date:</strong><br>
+                                    {{ invoice.due_date }}
+                                    {% if invoice.days_until_due < 0 %}
+                                        <span class="badge bg-danger ms-2">{{ invoice.days_until_due|floatformat:0|cut:"-" }} days overdue</span>
+                                    {% elif invoice.days_until_due <= 7 %}
+                                        <span class="badge bg-warning ms-2">Due in {{ invoice.days_until_due|floatformat:0 }} days</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Amount:</strong><br>
+                                    ${{ invoice.amount|floatformat:2 }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong>Status:</strong><br>
+                                    <span class="status-badge status-{{ invoice.status|lower }}">
+                                        {{ invoice.get_status_display }}
+                                    </span>
+                                </div>
+                                {% if invoice.period_start or invoice.period_end %}
+                                <div class="mb-2">
+                                    <strong>Service Period:</strong><br>
+                                    {% if invoice.period_start %}{{ invoice.period_start }}{% endif %}
+                                    {% if invoice.period_start and invoice.period_end %} - {% endif %}
+                                    {% if invoice.period_end %}{{ invoice.period_end }}{% endif %}
+                                </div>
+                                {% endif %}
+                                <div class="mb-2">
+                                    <strong>Created:</strong><br>
+                                    {{ invoice.created_at|date:"M j, Y g:i A" }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if invoice.description %}
+                        <div class="mt-3">
+                            <strong>Description:</strong><br>
+                            {{ invoice.description|linebreaksbr }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if invoice.notes %}
+                        <div class="mt-3">
+                            <strong>Notes:</strong><br>
+                            <small class="text-muted">{{ invoice.notes|linebreaksbr }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Information -->
+            <div class="card invoice-card mb-4">
+                <div class="card-body">
+                    <div class="info-section">
+                        <h6><i class="fas fa-building me-2"></i>Provider Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong>{{ invoice.provider.name }}</strong>
+                                </div>
+                                <div class="mb-2">
+                                    <i class="fas fa-map-marker-alt me-2"></i>{{ invoice.provider.address }}
+                                </div>
+                                {% if invoice.provider.phone %}
+                                <div class="mb-2">
+                                    <i class="fas fa-phone me-2"></i>
+                                    <a href="tel:{{ invoice.provider.phone }}">{{ invoice.provider.phone }}</a>
+                                </div>
+                                {% endif %}
+                                {% if invoice.provider.email %}
+                                <div class="mb-2">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    <a href="mailto:{{ invoice.provider.email }}">{{ invoice.provider.email }}</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                {% if invoice.provider.contact_person %}
+                                <div class="mb-2">
+                                    <strong>Contact Person:</strong><br>
+                                    {{ invoice.provider.contact_person }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            {% if payments %}
+            <div class="card invoice-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment History</h5>
+                </div>
+                <div class="card-body">
+                    {% for payment in payments %}
+                    <div class="payment-item">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong>Payment #{{ payment.pk }}</strong>
+                                <span class="badge bg-success ms-2">{{ payment.get_payment_method_display }}</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success">${{ payment.amount|floatformat:2 }}</div>
+                                <small class="text-muted">{{ payment.payment_date }}</small>
+                            </div>
+                        </div>
+                        {% if payment.notes %}
+                        <div class="small text-muted">
+                            {{ payment.notes|linebreaksbr }}
+                        </div>
+                        {% endif %}
+                        <div class="mt-2">
+                            <a href="{% url 'daycare_invoices:payment_detail' payment.pk %}" class="btn btn-sm btn-outline-primary">
+                                View Payment
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card quick-actions mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if invoice.status != 'paid' %}
+                        <a href="{% url 'daycare_invoices:payment_create_for_invoice' invoice.pk %}" class="btn btn-success">
+                            <i class="fas fa-dollar-sign me-1"></i>Record Payment
+                        </a>
+                        {% if invoice.status != 'overdue' %}
+                        <button type="button" class="btn btn-info" id="mark-paid-btn">
+                            <i class="fas fa-check me-1"></i>Mark as Paid
+                        </button>
+                        {% endif %}
+                        {% endif %}
+                        
+                        <a href="{% url 'daycare_invoices:invoice_update' invoice.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i>Edit Invoice
+                        </a>
+                        
+                        <button type="button" class="btn btn-secondary" id="print-btn">
+                            <i class="fas fa-print me-1"></i>Print Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Invoice Timeline</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline-item">
+                        <div class="fw-bold">Invoice Created</div>
+                        <small class="text-muted">{{ invoice.created_at|date:"M j, Y g:i A" }}</small>
+                    </div>
+                    
+                    {% for payment in payments %}
+                    <div class="timeline-item success">
+                        <div class="fw-bold">Payment Received</div>
+                        <div class="small">${{ payment.amount|floatformat:2 }} via {{ payment.get_payment_method_display }}</div>
+                        <small class="text-muted">{{ payment.payment_date|date:"M j, Y" }}</small>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if invoice.status == 'overdue' %}
+                    <div class="timeline-item danger">
+                        <div class="fw-bold">Invoice Overdue</div>
+                        <div class="small">Payment was due {{ invoice.due_date }}</div>
+                        <small class="text-muted">{{ invoice.days_until_due|floatformat:0|cut:"-" }} days overdue</small>
+                    </div>
+                    {% elif invoice.status == 'pending' and invoice.days_until_due <= 7 %}
+                    <div class="timeline-item warning">
+                        <div class="fw-bold">Due Soon</div>
+                        <div class="small">Payment due in {{ invoice.days_until_due|floatformat:0 }} days</div>
+                        <small class="text-muted">Due {{ invoice.due_date }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Related Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-link me-2"></i>Related</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'daycare_invoices:provider_detail' invoice.provider.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-building me-1"></i>View Provider
+                        </a>
+                        
+                        {% if invoice.child %}
+                        <a href="#" class="btn btn-outline-info btn-sm" disabled>
+                            <i class="fas fa-child me-1"></i>View Child Profile
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'daycare_invoices:invoice_create' %}?provider={{ invoice.provider.pk }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-plus me-1"></i>New Invoice for Provider
+                        </a>
+                        
+                        <a href="{% url 'daycare_invoices:invoice_list' %}?provider={{ invoice.provider.pk }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-list me-1"></i>All Provider Invoices
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'daycare_invoices:invoice_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Invoices
+                </a>
+                <a href="{% url 'daycare_invoices:dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

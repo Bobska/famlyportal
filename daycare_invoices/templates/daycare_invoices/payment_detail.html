@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+{% load app_nav %}
+
+{% block title %}Payment #{{ payment.pk }} - {{ payment.invoice.provider.name }}{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'daycare_invoices' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.payment-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.payment-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.payment-amount {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #28a745;
+    text-align: center;
+    padding: 1.5rem;
+    background: #d4edda;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.info-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-section h6 {
+    color: #495057;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.method-badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 600;
+}
+
+.method-cash { background-color: #d4edda; color: #155724; }
+.method-check { background-color: #cce5ff; color: #004085; }
+.method-card { background-color: #e2e3e5; color: #383d41; }
+.method-transfer { background-color: #fff3cd; color: #856404; }
+.method-other { background-color: #f8d7da; color: #721c24; }
+
+.invoice-link {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1rem;
+    background: white;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.2s ease;
+}
+
+.invoice-link:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+    color: inherit;
+    text-decoration: none;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-paid { background-color: #d4edda; color: #155724; }
+.status-pending { background-color: #fff3cd; color: #856404; }
+.status-overdue { background-color: #f8d7da; color: #721c24; }
+.status-partial { background-color: #cce5ff; color: #004085; }
+
+.quick-actions {
+    position: sticky;
+    top: 20px;
+}
+
+.timeline-item {
+    border-left: 3px solid #28a745;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #28a745;
+}
+
+.timeline-item.invoice::before { background: #007bff; }
+.timeline-item.payment::before { background: #28a745; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Print functionality
+    const printBtn = document.querySelector('#print-btn');
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+    
+    // Share functionality (if Web Share API is supported)
+    const shareBtn = document.querySelector('#share-btn');
+    if (shareBtn && navigator.share) {
+        shareBtn.style.display = 'block';
+        shareBtn.addEventListener('click', function() {
+            navigator.share({
+                title: 'Payment #{{ payment.pk }}',
+                text: 'Payment of ${{ payment.amount|floatformat:2 }} for {{ payment.invoice.provider.name }}',
+                url: window.location.href
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Payment Header -->
+    <div class="payment-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-1">Payment #{{ payment.pk }}</h1>
+                <p class="mb-1 opacity-75">
+                    <i class="fas fa-building me-2"></i>{{ payment.invoice.provider.name }}
+                    {% if payment.invoice.child %}
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-child me-2"></i>{{ payment.invoice.child.first_name }} {{ payment.invoice.child.last_name }}
+                    {% endif %}
+                </p>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-calendar me-2"></i>{{ payment.payment_date }} - {{ payment.get_payment_method_display }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="method-badge method-{{ payment.payment_method }}">
+                    {{ payment.get_payment_method_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Payment Details -->
+        <div class="col-lg-8">
+            <!-- Amount Display -->
+            <div class="payment-amount">
+                ${{ payment.amount|floatformat:2 }}
+            </div>
+
+            <!-- Payment Information -->
+            <div class="card payment-card mb-4">
+                <div class="card-body">
+                    <div class="info-section">
+                        <h6><i class="fas fa-credit-card me-2"></i>Payment Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong>Payment Date:</strong><br>
+                                    {{ payment.payment_date }}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Amount:</strong><br>
+                                    ${{ payment.amount|floatformat:2 }}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Payment Method:</strong><br>
+                                    <span class="method-badge method-{{ payment.payment_method }}">
+                                        {{ payment.get_payment_method_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong>Recorded:</strong><br>
+                                    {{ payment.created_at|date:"M j, Y g:i A" }}
+                                </div>
+                                {% if payment.updated_at != payment.created_at %}
+                                <div class="mb-2">
+                                    <strong>Last Updated:</strong><br>
+                                    {{ payment.updated_at|date:"M j, Y g:i A" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if payment.notes %}
+                        <div class="mt-3">
+                            <strong>Notes:</strong><br>
+                            {{ payment.notes|linebreaksbr }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related Invoice -->
+            <div class="card payment-card mb-4">
+                <div class="card-body">
+                    <div class="info-section">
+                        <h6><i class="fas fa-file-invoice me-2"></i>Related Invoice</h6>
+                        <a href="{% url 'daycare_invoices:invoice_detail' payment.invoice.pk %}" class="invoice-link">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="fw-bold mb-1">Invoice #{{ payment.invoice.pk }}</div>
+                                    <div class="text-muted mb-2">
+                                        {{ payment.invoice.provider.name }}
+                                        {% if payment.invoice.child %}
+                                            • {{ payment.invoice.child.first_name }} {{ payment.invoice.child.last_name }}
+                                        {% endif %}
+                                    </div>
+                                    {% if payment.invoice.description %}
+                                    <div class="small text-muted">
+                                        {{ payment.invoice.description|truncatechars:80 }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="mt-2">
+                                        <span class="status-badge status-{{ payment.invoice.status|lower }}">
+                                            {{ payment.invoice.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="fw-bold mb-1">${{ payment.invoice.amount|floatformat:2 }}</div>
+                                    <div class="text-muted mb-1">Due: {{ payment.invoice.due_date }}</div>
+                                    {% if payment.invoice.total_paid %}
+                                    <div class="small text-success">
+                                        ${{ payment.invoice.total_paid|floatformat:2 }} paid
+                                    </div>
+                                    {% endif %}
+                                    {% if payment.invoice.outstanding_amount > 0 %}
+                                    <div class="small text-danger">
+                                        ${{ payment.invoice.outstanding_amount|floatformat:2 }} outstanding
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Information -->
+            <div class="card payment-card">
+                <div class="card-body">
+                    <div class="info-section">
+                        <h6><i class="fas fa-building me-2"></i>Provider Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <strong>{{ payment.invoice.provider.name }}</strong>
+                                </div>
+                                <div class="mb-2">
+                                    <i class="fas fa-map-marker-alt me-2"></i>{{ payment.invoice.provider.address }}
+                                </div>
+                                {% if payment.invoice.provider.phone %}
+                                <div class="mb-2">
+                                    <i class="fas fa-phone me-2"></i>
+                                    <a href="tel:{{ payment.invoice.provider.phone }}">{{ payment.invoice.provider.phone }}</a>
+                                </div>
+                                {% endif %}
+                                {% if payment.invoice.provider.email %}
+                                <div class="mb-2">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    <a href="mailto:{{ payment.invoice.provider.email }}">{{ payment.invoice.provider.email }}</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                {% if payment.invoice.provider.contact_person %}
+                                <div class="mb-2">
+                                    <strong>Contact Person:</strong><br>
+                                    {{ payment.invoice.provider.contact_person }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card quick-actions mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'daycare_invoices:invoice_detail' payment.invoice.pk %}" class="btn btn-primary">
+                            <i class="fas fa-file-invoice me-1"></i>View Invoice
+                        </a>
+                        
+                        <a href="{% url 'daycare_invoices:provider_detail' payment.invoice.provider.pk %}" class="btn btn-info">
+                            <i class="fas fa-building me-1"></i>View Provider
+                        </a>
+                        
+                        <button type="button" class="btn btn-secondary" id="print-btn">
+                            <i class="fas fa-print me-1"></i>Print Receipt
+                        </button>
+                        
+                        <button type="button" class="btn btn-outline-secondary" id="share-btn" style="display: none;">
+                            <i class="fas fa-share me-1"></i>Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Payment Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Payment Amount:</span>
+                        <strong class="text-success">${{ payment.amount|floatformat:2 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Invoice Total:</span>
+                        <span>${{ payment.invoice.amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Paid:</span>
+                        <span class="text-success">${{ payment.invoice.total_paid|floatformat:2 }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Outstanding:</span>
+                        <strong class="{% if payment.invoice.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                            ${{ payment.invoice.outstanding_amount|floatformat:2 }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Payment Timeline</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline-item invoice">
+                        <div class="fw-bold">Invoice Created</div>
+                        <div class="small">Invoice #{{ payment.invoice.pk }}</div>
+                        <small class="text-muted">{{ payment.invoice.created_at|date:"M j, Y g:i A" }}</small>
+                    </div>
+                    
+                    {% for p in payment.invoice.payment_set.all %}
+                    <div class="timeline-item payment">
+                        <div class="fw-bold">Payment Received</div>
+                        <div class="small">
+                            ${{ p.amount|floatformat:2 }} via {{ p.get_payment_method_display }}
+                            {% if p.pk == payment.pk %}<span class="badge bg-primary ms-1">Current</span>{% endif %}
+                        </div>
+                        <small class="text-muted">{{ p.payment_date|date:"M j, Y" }}</small>
+                        {% if p.notes %}
+                        <div class="small text-muted mt-1">{{ p.notes|truncatechars:50 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Related Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-link me-2"></i>Related</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if payment.invoice.outstanding_amount > 0 %}
+                        <a href="{% url 'daycare_invoices:payment_create_for_invoice' payment.invoice.pk %}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-plus me-1"></i>Add Another Payment
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'daycare_invoices:payment_list' %}?provider={{ payment.invoice.provider.pk }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-list me-1"></i>All Provider Payments
+                        </a>
+                        
+                        <a href="{% url 'daycare_invoices:invoice_create' %}?provider={{ payment.invoice.provider.pk }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-file-invoice me-1"></i>New Invoice for Provider
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'daycare_invoices:payment_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Payments
+                </a>
+                <a href="{% url 'daycare_invoices:dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

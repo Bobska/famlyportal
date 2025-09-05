@@ -1,0 +1,505 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+{% load app_nav %}
+
+{% block title %}{% if payment %}Edit Payment{% else %}Record Payment{% endif %}{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'daycare_invoices' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.form-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.form-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-section h6 {
+    color: #495057;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.help-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.required-field label::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.invoice-preview {
+    background: #e3f2fd;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.amount-preview {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #28a745;
+    padding: 0.75rem;
+    background: #d4edda;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.outstanding-amount {
+    font-size: 1rem;
+    color: #dc3545;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.btn-group-custom {
+    gap: 0.5rem;
+}
+
+.invoice-details {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1rem;
+    background: white;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-paid { background-color: #d4edda; color: #155724; }
+.status-pending { background-color: #fff3cd; color: #856404; }
+.status-overdue { background-color: #f8d7da; color: #721c24; }
+.status-partial { background-color: #cce5ff; color: #004085; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const invoiceSelect = document.querySelector('#id_invoice');
+    const amountField = document.querySelector('#id_amount');
+    const amountPreview = document.querySelector('#amount-preview');
+    const invoicePreview = document.querySelector('#invoice-preview');
+    const invoiceDetails = document.querySelector('#invoice-details');
+    
+    // Invoice data for JS processing
+    const invoiceData = {
+        {% for invoice in form.invoice.queryset %}
+        {{ invoice.pk }}: {
+            'provider': '{{ invoice.provider.name|escapejs }}',
+            'amount': {{ invoice.amount }},
+            'paid_amount': {{ invoice.total_paid|default:0 }},
+            'outstanding': {{ invoice.outstanding_amount|default:invoice.amount }},
+            'due_date': '{{ invoice.due_date|date:"M j, Y" }}',
+            'status': '{{ invoice.status }}',
+            'description': '{{ invoice.description|default:""|escapejs }}',
+            'child': '{{ invoice.child.first_name|default:"" }} {{ invoice.child.last_name|default:""|escapejs }}'
+        },
+        {% endfor %}
+    };
+    
+    // Update invoice preview when invoice is selected
+    function updateInvoicePreview() {
+        const invoiceId = invoiceSelect.value;
+        if (invoiceId && invoiceData[invoiceId]) {
+            const invoice = invoiceData[invoiceId];
+            const outstanding = invoice.outstanding;
+            
+            // Update amount field to outstanding amount
+            if (!amountField.value || amountField.value == '0') {
+                amountField.value = outstanding.toFixed(2);
+            }
+            
+            // Show invoice details
+            invoiceDetails.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <strong>Provider:</strong><br>
+                            ${invoice.provider}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Child:</strong><br>
+                            ${invoice.child || 'Not specified'}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Due Date:</strong><br>
+                            ${invoice.due_date}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <strong>Invoice Amount:</strong><br>
+                            $${invoice.amount.toFixed(2)}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Paid Amount:</strong><br>
+                            $${invoice.paid_amount.toFixed(2)}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Outstanding:</strong><br>
+                            <span class="text-danger fw-bold">$${outstanding.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+                ${invoice.description ? `
+                <div class="mt-2">
+                    <strong>Description:</strong><br>
+                    ${invoice.description}
+                </div>
+                ` : ''}
+                <div class="mt-2">
+                    <span class="status-badge status-${invoice.status}">${invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}</span>
+                </div>
+            `;
+            
+            invoicePreview.style.display = 'block';
+            updateAmountPreview();
+        } else {
+            invoicePreview.style.display = 'none';
+        }
+    }
+    
+    // Update amount preview
+    function updateAmountPreview() {
+        const amount = parseFloat(amountField.value) || 0;
+        const invoiceId = invoiceSelect.value;
+        
+        if (amountPreview) {
+            amountPreview.textContent = '$' + amount.toFixed(2);
+            
+            // Show warning if amount exceeds outstanding
+            const outstanding = document.querySelector('#outstanding-amount');
+            if (outstanding) outstanding.remove();
+            
+            if (invoiceId && invoiceData[invoiceId]) {
+                const invoice = invoiceData[invoiceId];
+                if (amount > invoice.outstanding) {
+                    const warning = document.createElement('div');
+                    warning.id = 'outstanding-amount';
+                    warning.className = 'outstanding-amount';
+                    warning.textContent = `Warning: Amount exceeds outstanding balance of $${invoice.outstanding.toFixed(2)}`;
+                    amountPreview.parentNode.appendChild(warning);
+                }
+            }
+        }
+    }
+    
+    // Auto-suggest payment method based on amount
+    function suggestPaymentMethod() {
+        const amount = parseFloat(amountField.value) || 0;
+        const methodField = document.querySelector('#id_payment_method');
+        
+        if (methodField && !methodField.value) {
+            if (amount <= 50) {
+                methodField.value = 'cash';
+            } else if (amount <= 500) {
+                methodField.value = 'check';
+            } else {
+                methodField.value = 'bank_transfer';
+            }
+        }
+    }
+    
+    // Event listeners
+    if (invoiceSelect) {
+        invoiceSelect.addEventListener('change', updateInvoicePreview);
+        // Initial load
+        updateInvoicePreview();
+    }
+    
+    if (amountField) {
+        amountField.addEventListener('input', updateAmountPreview);
+        amountField.addEventListener('blur', suggestPaymentMethod);
+        // Initial update
+        updateAmountPreview();
+    }
+    
+    // Form validation
+    const form = document.querySelector('#payment-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const amount = parseFloat(amountField.value || 0);
+            const invoiceId = invoiceSelect.value;
+            
+            if (amount <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid payment amount greater than 0.');
+                amountField.focus();
+                return false;
+            }
+            
+            if (!invoiceId) {
+                e.preventDefault();
+                alert('Please select an invoice for this payment.');
+                invoiceSelect.focus();
+                return false;
+            }
+            
+            // Confirm if overpayment
+            if (invoiceId && invoiceData[invoiceId]) {
+                const invoice = invoiceData[invoiceId];
+                if (amount > invoice.outstanding) {
+                    if (!confirm(`This payment amount ($${amount.toFixed(2)}) exceeds the outstanding balance ($${invoice.outstanding.toFixed(2)}). Continue anyway?`)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+            }
+        });
+    }
+    
+    // Set default payment date to today
+    const dateField = document.querySelector('#id_payment_date');
+    if (dateField && !dateField.value) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateField.value = `${year}-${month}-${day}`;
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Form Header -->
+    <div class="form-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-1">
+                    {% if payment %}
+                        Edit Payment #{{ payment.pk }}
+                    {% else %}
+                        Record New Payment
+                    {% endif %}
+                </h1>
+                <p class="mb-0 opacity-75">
+                    {% if payment %}
+                        Update payment details and information
+                    {% else %}
+                        Record a payment received for an invoice
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% if payment %}{% url 'daycare_invoices:payment_detail' payment.pk %}{% else %}{% url 'daycare_invoices:payment_list' %}{% endif %}" 
+                   class="btn btn-light">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card form-card">
+                <div class="card-body p-4">
+                    <form method="post" id="payment-form" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Invoice Selection -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-file-invoice me-2"></i>Invoice Information</h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.invoice.id_for_label }}" class="form-label">Invoice</label>
+                                        {{ form.invoice|add_class:"form-select" }}
+                                        {% if form.invoice.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.invoice.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Select the invoice this payment is for</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Invoice Preview -->
+                            <div id="invoice-preview" class="invoice-preview" style="display: none;">
+                                <h6 class="mb-3">Invoice Details</h6>
+                                <div id="invoice-details"></div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Details -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-credit-card me-2"></i>Payment Details</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.amount.id_for_label }}" class="form-label">Payment Amount</label>
+                                        {{ form.amount|add_class:"form-control" }}
+                                        {% if form.amount.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Amount received in this payment</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Amount Preview</label>
+                                        <div class="amount-preview" id="amount-preview">$0.00</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.payment_date.id_for_label }}" class="form-label">Payment Date</label>
+                                        {{ form.payment_date|add_class:"form-control" }}
+                                        {% if form.payment_date.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.payment_date.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">Date when payment was received</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 required-field">
+                                        <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
+                                        {{ form.payment_method|add_class:"form-select" }}
+                                        {% if form.payment_method.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.payment_method.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="help-text">How the payment was received</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Information -->
+                        <div class="form-section">
+                            <h6><i class="fas fa-sticky-note me-2"></i>Additional Information</h6>
+                            <div class="mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {{ form.notes|add_class:"form-control" }}
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Optional notes about this payment (check number, transaction ID, etc.)</div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div class="btn-group-custom d-flex">
+                                <a href="{% if payment %}{% url 'daycare_invoices:payment_detail' payment.pk %}{% else %}{% url 'daycare_invoices:payment_list' %}{% endif %}" 
+                                   class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
+                            </div>
+                            <div class="btn-group-custom d-flex">
+                                <button type="submit" name="action" value="save" class="btn btn-success">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% if payment %}Update Payment{% else %}Record Payment{% endif %}
+                                </button>
+                                {% if not payment %}
+                                <button type="submit" name="action" value="save_and_add" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Save & Add Another
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Payment Help</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Quick Tips:</strong>
+                        <ul class="small mt-2 mb-0">
+                            <li>Payment amount will auto-fill with outstanding balance</li>
+                            <li>Payment date defaults to today</li>
+                            <li>Payment method is auto-suggested based on amount</li>
+                            <li>Add notes for check numbers or transaction IDs</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Payment Methods:</strong>
+                        <ul class="small mt-2 mb-0">
+                            <li><strong>Cash:</strong> Physical cash payment</li>
+                            <li><strong>Check:</strong> Bank check or money order</li>
+                            <li><strong>Credit Card:</strong> Card payment</li>
+                            <li><strong>Bank Transfer:</strong> Electronic transfer</li>
+                            <li><strong>Other:</strong> Any other method</li>
+                        </ul>
+                    </div>
+
+                    {% if not payment %}
+                    <div class="alert alert-success">
+                        <small>
+                            <i class="fas fa-lightbulb me-1"></i>
+                            After recording the payment, the invoice status will be automatically updated.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Outstanding Invoices -->
+            {% if outstanding_invoices %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Outstanding Invoices</h6>
+                </div>
+                <div class="card-body">
+                    {% for invoice in outstanding_invoices %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                        <div>
+                            <div class="fw-bold">{{ invoice.provider.name }}</div>
+                            <small class="text-muted">Invoice #{{ invoice.pk }}</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-danger">${{ invoice.outstanding_amount|floatformat:2 }}</div>
+                            <small class="text-muted">Due {{ invoice.due_date|date:"M j" }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

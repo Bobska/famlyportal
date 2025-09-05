@@ -34,38 +34,64 @@
     font-weight: 500;
 }
 
-/* Welcome Strip - 40px MAX */
+/* Enhanced Welcome Section - 60px height */
 .welcome-strip {
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    padding: 0.75rem 0;
-    height: 40px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 0;
+    height: 60px;
     display: flex;
     align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.welcome-text {
-    font-size: 0.9rem;
+.welcome-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.welcome-main {
+    font-size: 1rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+.welcome-stats {
+    font-size: 0.85rem;
     color: #6c757d;
-    font-weight: 500;
+    display: flex;
+    gap: 1.5rem;
 }
 
-/* Main Dashboard Container - Full Viewport */
+.welcome-stats .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Main Dashboard Container - Optimized Layout */
 .dashboard-container {
-    height: calc(100vh - 90px); /* 50px nav + 40px welcome strip */
-    overflow-y: auto;
-    padding: 1rem 0;
+    min-height: calc(100vh - 110px); /* 50px nav + 60px welcome */
+    padding: 1.5rem 0 2rem 0; /* Extra bottom padding for stats */
+    overflow-y: visible;
 }
 
 .app-grid {
     height: 100%;
-    display: flex;
-    align-items: center;
+    /* Removed: display: flex; and align-items: center; for top alignment */
+}
+
+.app-grid .container {
+    padding-top: 0;
 }
 
 .app-grid .row {
     width: 100%;
     margin: 0;
+    margin-top: 0;
+    align-items: stretch; /* Ensure consistent card heights */
 }
 
 .app-grid .col-xl-3,
@@ -181,6 +207,63 @@
     color: #616161;
 }
 
+/* Bottom Stats Section */
+.stats-bottom {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.stat-card-bottom {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f3f4;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card-bottom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.25rem;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
 /* No Family State */
 .no-family-hero {
     background: white;
@@ -211,7 +294,7 @@
 
 @media (max-width: 768px) {
     .dashboard-container {
-        height: calc(100vh - 80px);
+        min-height: calc(100vh - 145px); /* Adjusted for mobile */
         padding: 0.75rem 0;
     }
     
@@ -234,12 +317,37 @@
     }
     
     .welcome-strip {
-        height: 35px;
-        padding: 0.5rem 0;
+        height: 50px;
+        padding: 0.75rem 0;
     }
     
-    .welcome-text {
+    .welcome-main {
+        font-size: 0.9rem;
+    }
+    
+    .welcome-stats {
         font-size: 0.8rem;
+        gap: 1rem;
+    }
+    
+    .stat-card-bottom {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.25rem;
+    }
+    
+    .stats-bottom {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
     }
 }
 
@@ -283,12 +391,29 @@
 
 {% block content %}
 {% if primary_family %}
-<!-- Compact Welcome Strip (40px) -->
+<!-- Enhanced Welcome Section (60px) -->
 <div class="welcome-strip">
     <div class="container">
-        <span class="welcome-text">
-            Welcome {{ user.first_name|default:user.username }} | {{ primary_family.name }} Family | {% now "l, F j" %}
-        </span>
+        <div class="welcome-content">
+            <div class="welcome-main">
+                <i class="bi bi-house-heart me-2"></i>
+                Welcome {{ user.first_name|default:user.username }} | {{ primary_family.name }} Family
+            </div>
+            <div class="welcome-stats d-none d-md-flex">
+                <div class="stat-item">
+                    <i class="bi bi-calendar3"></i>
+                    <span>{% now "l, F j" %}</span>
+                </div>
+                <div class="stat-item">
+                    <i class="bi bi-people"></i>
+                    <span>{% get_family_member_count as member_count %}{{ member_count }} member{{ member_count|pluralize }}</span>
+                </div>
+                <div class="stat-item">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span>8 apps</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -401,6 +526,56 @@
             </div>
             {% endif %}
             
+        </div>
+    </div>
+    
+    <!-- Bottom Stats Section - Optional -->
+    <div class="container mt-4">
+        <div class="row stats-bottom">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card-bottom">
+                    <div class="stat-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{% get_family_member_count as member_count %}{{ member_count }}</div>
+                        <div class="stat-label">Family Member{{ member_count|pluralize }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card-bottom">
+                    <div class="stat-icon">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">8</div>
+                        <div class="stat-label">Available Apps</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card-bottom">
+                    <div class="stat-icon">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ primary_family_member.get_role_display }}</div>
+                        <div class="stat-label">Your Role</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card-bottom">
+                    <div class="stat-icon">
+                        <i class="bi bi-calendar-plus"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ primary_family_member.joined_at|date:"M Y" }}</div>
+                        <div class="stat-label">Member Since</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

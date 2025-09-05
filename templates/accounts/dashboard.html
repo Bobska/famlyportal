@@ -688,55 +688,55 @@ footer {
             </div>
             {% endif %}
             
-            <!-- Subscription Tracker App - In Development -->
+            <!-- Subscription Tracker App - Ready -->
             {% has_app_permission 'subscription_tracker' as can_subscriptions %}
             {% if can_subscriptions %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <div class="app-card in-development">
-                    <span class="status-badge dev">In Dev</span>
+                <a href="{% url 'subscription_tracker:dashboard' %}" class="app-card available">
+                    <span class="status-badge ready">Ready</span>
                     <i class="bi bi-arrow-repeat app-icon"></i>
                     <h5 class="app-title">Subscription Tracker</h5>
                     <p class="app-description">Monitor recurring subscriptions and costs</p>
-                </div>
+                </a>
             </div>
             {% endif %}
             
-            <!-- Upcoming Payments App - In Development -->
+            <!-- Upcoming Payments App - Ready -->
             {% has_app_permission 'upcoming_payments' as can_payments %}
             {% if can_payments %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <div class="app-card in-development">
-                    <span class="status-badge dev">In Dev</span>
+                <a href="{% url 'upcoming_payments:dashboard' %}" class="app-card available">
+                    <span class="status-badge ready">Ready</span>
                     <i class="bi bi-calendar-check app-icon"></i>
                     <h5 class="app-title">Payment Reminders</h5>
                     <p class="app-description">Never miss bills with smart reminders</p>
-                </div>
+                </a>
             </div>
             {% endif %}
             
-            <!-- Credit Cards App - In Development -->
+            <!-- Credit Cards App - Ready -->
             {% has_app_permission 'credit_cards' as can_credit %}
             {% if can_credit %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <div class="app-card in-development">
-                    <span class="status-badge dev">In Dev</span>
+                <a href="{% url 'credit_cards:dashboard' %}" class="app-card available">
+                    <span class="status-badge ready">Ready</span>
                     <i class="bi bi-credit-card app-icon"></i>
                     <h5 class="app-title">Credit Cards</h5>
                     <p class="app-description">Monitor spending and payment schedules</p>
-                </div>
+                </a>
             </div>
             {% endif %}
             
-            <!-- Household Budget App - In Development -->
+            <!-- Household Budget App - Ready -->
             {% has_app_permission 'household_budget' as can_budget %}
             {% if can_budget %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <div class="app-card in-development">
-                    <span class="status-badge dev">In Dev</span>
+                <a href="{% url 'household_budget:dashboard' %}" class="app-card available">
+                    <span class="status-badge ready">Ready</span>
                     <i class="bi bi-piggy-bank app-icon"></i>
                     <h5 class="app-title">Family Budget</h5>
                     <p class="app-description">Plan expenses and manage finances</p>
-                </div>
+                </a>
             </div>
             {% endif %}
             
@@ -776,8 +776,8 @@ footer {
                         <i class="bi bi-grid-3x3-gap"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-number">8</div>
-                        <div class="stat-label">Available Apps</div>
+                        <div class="stat-number">7</div>
+                        <div class="stat-label">Ready Apps</div>
                     </div>
                 </div>
             </div>

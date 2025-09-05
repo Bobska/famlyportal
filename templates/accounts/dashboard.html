@@ -231,9 +231,11 @@ main {
     cursor: not-allowed;
 }
 
+/* Remove hover effect for coming soon apps */
 .app-card.coming-soon:hover {
-    transform: translateY(-2px);
+    transform: none;
     color: #616161;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* App Icons */
@@ -649,12 +651,12 @@ footer {
     <div class="container app-grid">
         <div class="row">
             
-            <!-- Timesheet App - Available -->
+            <!-- Timesheet App - In Development -->
             {% has_app_permission 'timesheet' as can_timesheet %}
             {% if can_timesheet %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'timesheet:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <a href="{% url 'timesheet:dashboard' %}" class="app-card in-development">
+                    <span class="status-badge dev">In Dev</span>
                     <i class="bi bi-clock app-icon"></i>
                     <h5 class="app-title">Time Tracking</h5>
                     <p class="app-description">Track work hours and manage projects across multiple jobs</p>
@@ -662,12 +664,12 @@ footer {
             </div>
             {% endif %}
             
-            <!-- Daycare Invoices App - Available -->
+            <!-- Daycare Invoices App - In Development -->
             {% has_app_permission 'daycare_invoices' as can_daycare %}
             {% if can_daycare %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'daycare_invoices:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <a href="{% url 'daycare_invoices:dashboard' %}" class="app-card in-development">
+                    <span class="status-badge dev">In Dev</span>
                     <i class="bi bi-receipt app-icon"></i>
                     <h5 class="app-title">Daycare Invoices</h5>
                     <p class="app-description">Manage childcare billing and track payments</p>
@@ -675,25 +677,25 @@ footer {
             </div>
             {% endif %}
             
-            <!-- Employment History App - Available -->
+            <!-- Employment History App - Coming Soon -->
             {% has_app_permission 'employment_history' as can_employment %}
             {% if can_employment %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'employment_history:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <div class="app-card coming-soon">
+                    <span class="status-badge soon">Soon</span>
                     <i class="bi bi-briefcase app-icon"></i>
                     <h5 class="app-title">Employment History</h5>
                     <p class="app-description">Track career progression and job details</p>
-                </a>
+                </div>
             </div>
             {% endif %}
             
-            <!-- Subscription Tracker App - Ready -->
+            <!-- Subscription Tracker App - In Development -->
             {% has_app_permission 'subscription_tracker' as can_subscriptions %}
             {% if can_subscriptions %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'subscription_tracker:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <a href="{% url 'subscription_tracker:dashboard' %}" class="app-card in-development">
+                    <span class="status-badge dev">In Dev</span>
                     <i class="bi bi-arrow-repeat app-icon"></i>
                     <h5 class="app-title">Subscription Tracker</h5>
                     <p class="app-description">Monitor recurring subscriptions and costs</p>
@@ -701,38 +703,38 @@ footer {
             </div>
             {% endif %}
             
-            <!-- Upcoming Payments App - Ready -->
+            <!-- Upcoming Payments App - Coming Soon -->
             {% has_app_permission 'upcoming_payments' as can_payments %}
             {% if can_payments %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'upcoming_payments:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <div class="app-card coming-soon">
+                    <span class="status-badge soon">Soon</span>
                     <i class="bi bi-calendar-check app-icon"></i>
                     <h5 class="app-title">Payment Reminders</h5>
                     <p class="app-description">Never miss bills with smart reminders</p>
-                </a>
+                </div>
             </div>
             {% endif %}
             
-            <!-- Credit Cards App - Ready -->
+            <!-- Credit Cards App - Coming Soon -->
             {% has_app_permission 'credit_cards' as can_credit %}
             {% if can_credit %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'credit_cards:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <div class="app-card coming-soon">
+                    <span class="status-badge soon">Soon</span>
                     <i class="bi bi-credit-card app-icon"></i>
                     <h5 class="app-title">Credit Cards</h5>
                     <p class="app-description">Monitor spending and payment schedules</p>
-                </a>
+                </div>
             </div>
             {% endif %}
             
-            <!-- Household Budget App - Ready -->
+            <!-- Household Budget App - In Development -->
             {% has_app_permission 'household_budget' as can_budget %}
             {% if can_budget %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'household_budget:dashboard' %}" class="app-card available">
-                    <span class="status-badge ready">Ready</span>
+                <a href="{% url 'household_budget:dashboard' %}" class="app-card in-development">
+                    <span class="status-badge dev">In Dev</span>
                     <i class="bi bi-piggy-bank app-icon"></i>
                     <h5 class="app-title">Family Budget</h5>
                     <p class="app-description">Plan expenses and manage finances</p>
@@ -776,8 +778,8 @@ footer {
                         <i class="bi bi-grid-3x3-gap"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-number">7</div>
-                        <div class="stat-label">Ready Apps</div>
+                        <div class="stat-number">4</div>
+                        <div class="stat-label">Apps in Development</div>
                     </div>
                 </div>
             </div>

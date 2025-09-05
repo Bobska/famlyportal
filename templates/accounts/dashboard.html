@@ -34,15 +34,28 @@
     font-weight: 500;
 }
 
-/* Enhanced Welcome Section - 60px height */
-.welcome-strip {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-bottom: 1px solid #dee2e6;
-    padding: 1rem 0;
-    height: 60px;
+/* Personal Welcome Section - 90px */
+.welcome-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem 0;
+    height: 90px;
     display: flex;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -5%;
+    width: 150px;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.08);
+    transform: rotate(15deg);
 }
 
 .welcome-content {
@@ -50,31 +63,71 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    position: relative;
+    z-index: 1;
 }
 
-.welcome-main {
-    font-size: 1rem;
-    color: #495057;
+.welcome-left {
+    flex: 1;
+}
+
+.welcome-greeting {
+    font-size: 1.3rem;
     font-weight: 600;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    line-height: 1.2;
 }
 
-.welcome-stats {
+.welcome-question {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.welcome-right {
+    text-align: right;
+    font-weight: 500;
+    min-width: 140px;
+}
+
+.live-time {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.live-date {
     font-size: 0.85rem;
-    color: #6c757d;
-    display: flex;
-    gap: 1.5rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
 }
 
-.welcome-stats .stat-item {
+.live-weather {
+    font-size: 0.85rem;
+    opacity: 0.9;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.25rem;
+}
+
+.weather-icon {
+    font-size: 1rem;
+}
+
+/* Loading state for weather */
+.weather-loading {
+    opacity: 0.6;
+    font-style: italic;
 }
 
 /* Main Dashboard Container - Optimized Layout */
 .dashboard-container {
-    min-height: calc(100vh - 110px); /* 50px nav + 60px welcome */
-    padding: 1.5rem 0 2rem 0; /* Extra bottom padding for stats */
+    min-height: calc(100vh - 220px); /* 50px nav + 90px welcome + 80px footer buffer */
+    padding: 1.5rem 0 1rem 0;
     overflow-y: visible;
 }
 
@@ -294,7 +347,7 @@
 
 @media (max-width: 768px) {
     .dashboard-container {
-        min-height: calc(100vh - 145px); /* Adjusted for mobile */
+        min-height: calc(100vh - 170px); /* Adjusted for mobile with 90px welcome */
         padding: 0.75rem 0;
     }
     
@@ -316,18 +369,29 @@
         font-size: 0.8rem;
     }
     
-    .welcome-strip {
-        height: 50px;
-        padding: 0.75rem 0;
+    .welcome-section {
+        height: 80px;
+        padding: 1.25rem 0;
     }
     
-    .welcome-main {
-        font-size: 0.9rem;
+    .welcome-greeting {
+        font-size: 1.1rem;
     }
     
-    .welcome-stats {
+    .welcome-question {
+        font-size: 0.85rem;
+    }
+    
+    .live-time {
+        font-size: 1rem;
+    }
+    
+    .live-date, .live-weather {
         font-size: 0.8rem;
-        gap: 1rem;
+    }
+    
+    .welcome-right {
+        min-width: 120px;
     }
     
     .stat-card-bottom {
@@ -358,6 +422,49 @@
     
     .dashboard-container {
         padding: 0.5rem 0;
+    }
+    
+    .welcome-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .welcome-right {
+        text-align: center;
+        min-width: auto;
+    }
+    
+    .live-weather {
+        justify-content: center;
+    }
+}
+
+/* Additional responsive CSS for welcome section */
+@media (max-width: 768px) {
+    .welcome-section {
+        height: 80px;
+        padding: 1.25rem 0;
+    }
+    
+    .welcome-greeting {
+        font-size: 1.1rem;
+    }
+    
+    .welcome-question {
+        font-size: 0.85rem;
+    }
+    
+    .live-time {
+        font-size: 1rem;
+    }
+    
+    .live-date, .live-weather {
+        font-size: 0.8rem;
+    }
+    
+    .welcome-right {
+        min-width: 120px;
     }
 }
 
@@ -391,26 +498,27 @@
 
 {% block content %}
 {% if primary_family %}
-<!-- Enhanced Welcome Section (60px) -->
-<div class="welcome-strip">
+<!-- Personal Welcome Section (90px) -->
+<div class="welcome-section">
     <div class="container">
         <div class="welcome-content">
-            <div class="welcome-main">
-                <i class="bi bi-house-heart me-2"></i>
-                Welcome {{ user.first_name|default:user.username }} | {{ primary_family.name }} Family
+            <div class="welcome-left">
+                <div class="welcome-greeting" id="dynamic-greeting">
+                    Good morning, {{ user.first_name|default:user.username }}
+                </div>
+                <div class="welcome-question">
+                    What would you like to do today?
+                </div>
             </div>
-            <div class="welcome-stats d-none d-md-flex">
-                <div class="stat-item">
-                    <i class="bi bi-calendar3"></i>
-                    <span>{% now "l, F j" %}</span>
+            <div class="welcome-right">
+                <div class="live-time" id="live-clock">
+                    <!-- Live time will be inserted here -->
                 </div>
-                <div class="stat-item">
-                    <i class="bi bi-people"></i>
-                    <span>{% get_family_member_count as member_count %}{{ member_count }} member{{ member_count|pluralize }}</span>
+                <div class="live-date" id="live-date">
+                    <!-- Live date will be inserted here -->
                 </div>
-                <div class="stat-item">
-                    <i class="bi bi-grid-3x3-gap"></i>
-                    <span>8 apps</span>
+                <div class="live-weather" id="weather-info">
+                    <span class="weather-loading">Loading weather...</span>
                 </div>
             </div>
         </div>
@@ -610,8 +718,9 @@
 
 {% block extra_js %}
 <script>
-// Enhanced tablet app-like interactions
+// Live clock, date, and weather functionality
 document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced tablet app-like interactions
     const appCards = document.querySelectorAll('.app-card.available');
     
     appCards.forEach(card => {
@@ -631,6 +740,133 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.transform = '';
         });
     });
+    
+    // Update time and date
+    function updateDateTime() {
+        const now = new Date();
+        
+        // Update time (12-hour format)
+        const timeOptions = {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        };
+        document.getElementById('live-clock').textContent = now.toLocaleTimeString('en-US', timeOptions);
+        
+        // Update date
+        const dateOptions = {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric'
+        };
+        document.getElementById('live-date').textContent = now.toLocaleDateString('en-US', dateOptions);
+        
+        // Update greeting based on time
+        updateGreeting(now.getHours());
+    }
+    
+    // Update greeting based on time of day
+    function updateGreeting(hour) {
+        const userName = '{{ user.first_name|default:user.username }}';
+        let greeting;
+        
+        if (hour < 12) {
+            greeting = `Good morning, ${userName}`;
+        } else if (hour < 17) {
+            greeting = `Good afternoon, ${userName}`;
+        } else {
+            greeting = `Good evening, ${userName}`;
+        }
+        
+        document.getElementById('dynamic-greeting').textContent = greeting;
+    }
+    
+    // Weather functionality
+    async function loadWeather() {
+        try {
+            // Get user's location
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        await fetchWeather(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        // Fallback to default location (Auckland, NZ based on user location from prompt)
+                        console.log('Geolocation failed, using default location');
+                        await fetchWeather(-36.8485, 174.7633); // Auckland coordinates
+                    },
+                    { timeout: 5000 }
+                );
+            } else {
+                // Fallback for browsers without geolocation
+                await fetchWeather(-36.8485, 174.7633);
+            }
+        } catch (error) {
+            showWeatherError();
+        }
+    }
+    
+    // Fetch weather data from OpenWeatherMap API
+    async function fetchWeather(lat, lon) {
+        try {
+            // You'll need to get a free API key from https://openweathermap.org/api
+            const API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with actual API key
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+            );
+            
+            if (!response.ok) throw new Error('Weather API failed');
+            
+            const data = await response.json();
+            displayWeather(data);
+        } catch (error) {
+            console.error('Weather fetch failed:', error);
+            showWeatherError();
+        }
+    }
+    
+    // Display weather information
+    function displayWeather(data) {
+        const temp = Math.round(data.main.temp);
+        const condition = data.weather[0].main;
+        const icon = getWeatherIcon(condition);
+        
+        document.getElementById('weather-info').innerHTML = `
+            <i class="bi ${icon} weather-icon"></i>
+            <span>${temp}°C ${condition}</span>
+        `;
+    }
+    
+    // Map weather conditions to Bootstrap icons
+    function getWeatherIcon(condition) {
+        const iconMap = {
+            'Clear': 'bi-sun',
+            'Clouds': 'bi-cloud',
+            'Rain': 'bi-cloud-rain',
+            'Drizzle': 'bi-cloud-drizzle',
+            'Thunderstorm': 'bi-cloud-lightning',
+            'Snow': 'bi-snow',
+            'Mist': 'bi-cloud-fog',
+            'Fog': 'bi-cloud-fog',
+            'Haze': 'bi-cloud-haze'
+        };
+        return iconMap[condition] || 'bi-cloud';
+    }
+    
+    // Show error state for weather
+    function showWeatherError() {
+        document.getElementById('weather-info').innerHTML = `
+            <i class="bi bi-cloud-slash weather-icon"></i>
+            <span>Weather unavailable</span>
+        `;
+    }
+    
+    // Initialize
+    updateDateTime();
+    loadWeather();
+    
+    // Update time every minute
+    setInterval(updateDateTime, 60000);
 });
 </script>
 {% endblock %}

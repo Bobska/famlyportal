@@ -47,9 +47,20 @@ def is_nav_item_active(request, nav_url_pattern, current_url_name):
         if nav_url == current_url:
             return True
         
-        # Parent URL match (for sub-pages)
-        if current_url.startswith(nav_url) and nav_url != '/':
-            return True
+        # For dashboard URLs, only match exact paths to avoid always being active
+        if 'dashboard' in nav_url_pattern.lower():
+            return nav_url == current_url
+        
+        # Parent URL match (for sub-pages) - but be more specific
+        if current_url.startswith(nav_url) and nav_url != '/' and len(nav_url) > 1:
+            # Ensure we don't match overly broad patterns
+            url_segments = nav_url.strip('/').split('/')
+            current_segments = current_url.strip('/').split('/')
+            
+            # Only match if the navigation URL has at least 2 segments
+            # and current URL starts with all segments of nav URL
+            if len(url_segments) >= 2:
+                return current_segments[:len(url_segments)] == url_segments
             
     except NoReverseMatch:
         pass

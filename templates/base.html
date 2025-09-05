@@ -20,7 +20,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top" style="z-index: 1030;">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{% url 'accounts:dashboard' %}">
                 <i class="bi bi-house-heart"></i> FamlyPortal
@@ -166,29 +166,29 @@
     <!-- App-Specific Secondary Navigation -->
     {% block extra_nav %}{% endblock %}
 
-    <!-- Messages -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-            {% if message.tags == 'error' %}
-                <i class="bi bi-exclamation-triangle"></i>
-            {% elif message.tags == 'warning' %}
-                <i class="bi bi-exclamation-circle"></i>
-            {% elif message.tags == 'success' %}
-                <i class="bi bi-check-circle"></i>
-            {% else %}
-                <i class="bi bi-info-circle"></i>
-            {% endif %}
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <!-- Main Content -->
     <main class="container mt-4">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {% if message.tags == 'error' %}
+                    <i class="bi bi-exclamation-triangle"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-circle"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="bi bi-check-circle"></i>
+                {% else %}
+                    <i class="bi bi-info-circle"></i>
+                {% endif %}
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
         {% block content %}{% endblock %}
     </main>
 

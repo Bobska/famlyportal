@@ -6,7 +6,9 @@
     {% if object %}Edit Transaction{% else %}Add Transaction{% endif %}
 {% endblock %}
 
+{% block extra_nav %}
 {% app_navigation 'household_budget' %}
+{% endblock %}
 
 {% block extra_css %}
 <style>

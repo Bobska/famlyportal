@@ -307,10 +307,10 @@ def get_app_navigation_config(app_name: str) -> Optional[Dict[str, Any]]:
         'daycare_invoices': {
             'items': [
                 {'name': 'Dashboard', 'url': 'daycare_invoices:dashboard', 'icon': 'bi-house'},
-                {'name': 'Invoices', 'url': 'daycare_invoices:invoice_list', 'icon': 'bi-file-text'},
+                {'name': 'Invoices', 'url': 'daycare_invoices:invoice_list', 'icon': 'bi-file-earmark-text'},
                 {'name': 'Providers', 'url': 'daycare_invoices:provider_list', 'icon': 'bi-building'},
-                {'name': 'Children', 'url': 'daycare_invoices:child_list', 'icon': 'bi-people'},
-                {'name': 'Payments', 'url': 'daycare_invoices:payment_list', 'icon': 'bi-credit-card'}
+                {'name': 'Payments', 'url': 'daycare_invoices:payment_list', 'icon': 'bi-credit-card'},
+                {'name': 'Reports', 'url': 'daycare_invoices:financial_report', 'icon': 'bi-bar-chart'}
             ]
         },
         'employment_history': {
@@ -350,10 +350,9 @@ def get_app_navigation_config(app_name: str) -> Optional[Dict[str, Any]]:
         'subscription_tracker': {
             'items': [
                 {'name': 'Dashboard', 'url': 'subscription_tracker:dashboard', 'icon': 'bi-house'},
-                {'name': 'Subscriptions', 'url': 'subscription_tracker:subscription_list', 'icon': 'bi-check-circle'},
+                {'name': 'Subscriptions', 'url': 'subscription_tracker:subscription_list', 'icon': 'bi-arrow-repeat'},
                 {'name': 'Categories', 'url': 'subscription_tracker:category_list', 'icon': 'bi-tags'},
-                {'name': 'Calendar', 'url': 'subscription_tracker:calendar', 'icon': 'bi-calendar'},
-                {'name': 'Analytics', 'url': 'subscription_tracker:analytics', 'icon': 'bi-graph-up'}
+                {'name': 'Analytics', 'url': 'subscription_tracker:cost_analysis', 'icon': 'bi-graph-up'}
             ]
         }
     }

@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load app_nav %}
 
 {% block title %}{{ subscription.name }} - Subscription Tracker{% endblock %}
+
+{% block extra_nav %}
+{% app_navigation 'subscription_tracker' %}
+{% endblock %}
 
 {% block extra_css %}
 <style>

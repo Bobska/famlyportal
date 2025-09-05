@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Invoice Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">Invoice Management</h1>
+                    <p class="text-muted">Track and manage all daycare invoices</p>
+                </div>
+                <a href="{% url 'daycare_invoices:invoice_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Invoice
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-filter"></i> Filter Invoices
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="{{ filter_form.provider.id_for_label }}" class="form-label">Provider</label>
+                    {{ filter_form.provider|add_class:"form-select" }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.child.id_for_label }}" class="form-label">Child</label>
+                    {{ filter_form.child|add_class:"form-select" }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ filter_form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ filter_form.status|add_class:"form-select" }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ filter_form.date_range_start.id_for_label }}" class="form-label">From Date</label>
+                    {{ filter_form.date_range_start|add_class:"form-control" }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ filter_form.date_range_end.id_for_label }}" class="form-label">To Date</label>
+                    {{ filter_form.date_range_end|add_class:"form-control" }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ filter_form.amount_min.id_for_label }}" class="form-label">Min Amount</label>
+                    {{ filter_form.amount_min|add_class:"form-control" }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ filter_form.amount_max.id_for_label }}" class="form-label">Max Amount</label>
+                    {{ filter_form.amount_max|add_class:"form-control" }}
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-4">
+                        {{ filter_form.overdue_only|add_class:"form-check-input" }}
+                        <label class="form-check-label" for="{{ filter_form.overdue_only.id_for_label }}">
+                            Overdue only
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label>&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i> Apply Filters
+                        </button>
+                        <a href="{% url 'daycare_invoices:invoice_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Clear All
+                        </a>
+                        <button type="button" class="btn btn-outline-info" onclick="exportToCSV()">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Summary -->
+    {% if total_count > 0 %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        Showing {{ page_obj.object_list|length }} of {{ total_count }} invoices
+        {% if request.GET %}
+            (filtered results)
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Invoice Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Child</th>
+                            <th>Provider</th>
+                            <th>Date</th>
+                            <th>Due Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in page_obj %}
+                        <tr {% if invoice.is_overdue %}class="table-danger"{% elif invoice.status == 'partial' %}class="table-warning"{% elif invoice.status == 'paid' %}class="table-success"{% endif %}>
+                            <td>
+                                <strong>#{{ invoice.invoice_number }}</strong>
+                                {% if invoice.is_overdue %}
+                                    <br><small class="text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        {{ invoice.days_overdue }} days overdue
+                                    </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ invoice.child.full_name }}</strong>
+                                {% if invoice.child.provider %}
+                                    <br><small class="text-muted">{{ invoice.child.provider.name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ invoice.provider.name }}</td>
+                            <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                            <td>
+                                {{ invoice.due_date|date:"M d, Y" }}
+                                {% if invoice.due_date < today %}
+                                    <br><small class="text-danger">Overdue</small>
+                                {% elif invoice.due_date <= next_week %}
+                                    <br><small class="text-warning">Due soon</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>${{ invoice.amount|floatformat:2 }}</strong>
+                                {% if invoice.status != 'paid' %}
+                                    {% with remaining=invoice.remaining_balance %}
+                                        {% if remaining != invoice.amount %}
+                                            <br><small class="text-muted">
+                                                Remaining: ${{ remaining|floatformat:2 }}
+                                            </small>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if invoice.status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif invoice.status == 'partial' %}
+                                    <span class="badge bg-warning">Partial</span>
+                                {% elif invoice.status == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'daycare_invoices:invoice_detail' invoice.pk %}" 
+                                       class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if invoice.status != 'paid' %}
+                                    <a href="{% url 'daycare_invoices:invoice_update' invoice.pk %}" 
+                                       class="btn btn-sm btn-outline-secondary" title="Edit Invoice">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'daycare_invoices:payment_create_for_invoice' invoice.pk %}" 
+                                       class="btn btn-sm btn-outline-success" title="Record Payment">
+                                        <i class="fas fa-credit-card"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">No Invoices Found</h4>
+                                {% if request.GET %}
+                                <p class="text-muted">
+                                    Try adjusting your filters or 
+                                    <a href="{% url 'daycare_invoices:invoice_list' %}">view all invoices</a>.
+                                </p>
+                                {% else %}
+                                <p class="text-muted">Get started by creating your first invoice.</p>
+                                <a href="{% url 'daycare_invoices:invoice_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Create First Invoice
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Invoice pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportToCSV() {
+    // Build the CSV export URL with current filters
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    window.location.href = '{% url "daycare_invoices:invoice_list" %}?' + params.toString();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-update child dropdown based on provider selection
+    const providerSelect = document.querySelector('#{{ filter_form.provider.id_for_label }}');
+    const childSelect = document.querySelector('#{{ filter_form.child.id_for_label }}');
+    
+    if (providerSelect && childSelect) {
+        providerSelect.addEventListener('change', function() {
+            const providerId = this.value;
+            if (providerId) {
+                // Filter children by provider (this would need AJAX implementation)
+                // For now, just clear the child selection
+                childSelect.value = '';
+            }
+        });
+    }
+    
+    // Set date inputs to proper format
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        if (!input.value && input.id.includes('start')) {
+            // Default start date to beginning of current month
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            input.value = firstDay.toISOString().split('T')[0];
+        }
+    });
+});
+</script>
+{% endblock %}

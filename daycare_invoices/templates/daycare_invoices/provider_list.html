@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Daycare Providers{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">Daycare Providers</h1>
+                    <p class="text-muted">Manage your daycare provider information</p>
+                </div>
+                <a href="{% url 'daycare_invoices:provider_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Provider
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ filter_form.search.id_for_label }}" class="form-label">Search</label>
+                    {{ filter_form.search|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-4">
+                        {{ filter_form.active_only|add_class:"form-check-input" }}
+                        <label class="form-check-label" for="{{ filter_form.active_only.id_for_label }}">
+                            Active providers only
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label>&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i> Filter
+                        </button>
+                        <a href="{% url 'daycare_invoices:provider_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Provider Cards -->
+    <div class="row">
+        {% for stat in provider_stats %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ stat.provider.name }}</h5>
+                    {% if stat.provider.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <!-- Contact Information -->
+                    {% if stat.provider.contact_person %}
+                    <p class="mb-2">
+                        <i class="fas fa-user text-muted"></i>
+                        <strong>Contact:</strong> {{ stat.provider.contact_person }}
+                    </p>
+                    {% endif %}
+                    
+                    {% if stat.provider.phone %}
+                    <p class="mb-2">
+                        <i class="fas fa-phone text-muted"></i>
+                        <strong>Phone:</strong> 
+                        <a href="tel:{{ stat.provider.phone }}">{{ stat.provider.phone }}</a>
+                    </p>
+                    {% endif %}
+                    
+                    {% if stat.provider.email %}
+                    <p class="mb-2">
+                        <i class="fas fa-envelope text-muted"></i>
+                        <strong>Email:</strong> 
+                        <a href="mailto:{{ stat.provider.email }}">{{ stat.provider.email }}</a>
+                    </p>
+                    {% endif %}
+                    
+                    {% if stat.provider.address %}
+                    <p class="mb-3">
+                        <i class="fas fa-map-marker-alt text-muted"></i>
+                        <strong>Address:</strong><br>
+                        <small>{{ stat.provider.address }}</small>
+                    </p>
+                    {% endif %}
+
+                    <!-- Services -->
+                    {% if stat.provider.services %}
+                    <div class="mb-3">
+                        <strong>Services:</strong><br>
+                        {% for service in stat.provider.services %}
+                            <span class="badge bg-light text-dark me-1">{{ service }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Financial Summary -->
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h5 mb-0 text-danger">${{ stat.outstanding|floatformat:2 }}</div>
+                            <small class="text-muted">Outstanding</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 mb-0 text-primary">{{ stat.children_count }}</div>
+                            <small class="text-muted">Children</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 mb-0 text-info">{{ stat.total_invoices }}</div>
+                            <small class="text-muted">Invoices</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        <a href="{% url 'daycare_invoices:provider_detail' stat.provider.pk %}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <a href="{% url 'daycare_invoices:provider_update' stat.provider.pk %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="{% url 'daycare_invoices:invoice_create' %}?provider={{ stat.provider.pk }}" 
+                           class="btn btn-outline-success">
+                            <i class="fas fa-file-invoice"></i> Invoice
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Providers Found</h4>
+                {% if request.GET %}
+                <p class="text-muted">Try adjusting your search filters or 
+                    <a href="{% url 'daycare_invoices:provider_list' %}">clear all filters</a>.
+                </p>
+                {% else %}
+                <p class="text-muted">Get started by adding your first daycare provider.</p>
+                <a href="{% url 'daycare_invoices:provider_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Your First Provider
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quick Stats -->
+    {% if provider_stats %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i> Quick Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="h4 mb-0 text-primary">{{ provider_stats|length }}</div>
+                            <small class="text-muted">Total Providers</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 mb-0 text-success">
+                                {% regroup provider_stats by provider.is_active as active_groups %}
+                                {% for group in active_groups %}
+                                    {% if group.grouper %}{{ group.list|length }}{% endif %}
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">Active</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 mb-0 text-warning">
+                                {% regroup provider_stats by children_count as children_groups %}
+                                {{ provider_stats|length|add:"-1"|add:"1" }}
+                            </div>
+                            <small class="text-muted">With Children</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 mb-0 text-danger">
+                                ${% for stat in provider_stats %}{{ stat.outstanding|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                            </div>
+                            <small class="text-muted">Total Outstanding</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

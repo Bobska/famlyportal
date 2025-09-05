@@ -1,0 +1,51 @@
+{% load family_tags %}
+
+<!-- Bottom Stats Section -->
+<div class="container mt-4">
+    <div class="row stats-bottom">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card-bottom">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">{% get_family_member_count as member_count %}{{ member_count }}</div>
+                    <div class="stat-label">Family Member{{ member_count|pluralize }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card-bottom">
+                <div class="stat-icon">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">Apps in Development</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card-bottom">
+                <div class="stat-icon">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ primary_family_member.get_role_display }}</div>
+                    <div class="stat-label">Your Role</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card-bottom">
+                <div class="stat-icon">
+                    <i class="bi bi-calendar-plus"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ user.date_joined|date:"M Y" }}</div>
+                    <div class="stat-label">Member Since</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,122 @@
+<!-- Location Settings Modal -->
+<div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="locationModalLabel">
+                    <i class="bi bi-geo-alt me-2"></i>Weather Location Settings
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Choose your preferred location for weather information:</p>
+                
+                <div class="location-options">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="locationOption" id="autoLocation" value="auto" checked>
+                        <label class="form-check-label" for="autoLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-crosshair me-2 text-primary"></i>
+                                <div>
+                                    <strong>Use Current Location</strong>
+                                    <div class="small text-muted">Automatically detect your location</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="locationOption" id="aucklandLocation" value="auckland">
+                        <label class="form-check-label" for="aucklandLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo-alt me-2 text-success"></i>
+                                <div>
+                                    <strong>Auckland, New Zealand</strong>
+                                    <div class="small text-muted">-36.8485, 174.7633</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="locationOption" id="wellingtonLocation" value="wellington">
+                        <label class="form-check-label" for="wellingtonLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo-alt me-2 text-success"></i>
+                                <div>
+                                    <strong>Wellington, New Zealand</strong>
+                                    <div class="small text-muted">-41.2865, 174.7762</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="locationOption" id="christchurchLocation" value="christchurch">
+                        <label class="form-check-label" for="christchurchLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo-alt me-2 text-success"></i>
+                                <div>
+                                    <strong>Christchurch, New Zealand</strong>
+                                    <div class="small text-muted">-43.5321, 172.6362</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="locationOption" id="sydneyLocation" value="sydney">
+                        <label class="form-check-label" for="sydneyLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo-alt me-2 text-info"></i>
+                                <div>
+                                    <strong>Sydney, Australia</strong>
+                                    <div class="small text-muted">-33.8688, 151.2093</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="locationOption" id="melbourneLocation" value="melbourne">
+                        <label class="form-check-label" for="melbourneLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo-alt me-2 text-info"></i>
+                                <div>
+                                    <strong>Melbourne, Australia</strong>
+                                    <div class="small text-muted">-37.8136, 144.9631</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="locationOption" id="londonLocation" value="london">
+                        <label class="form-check-label" for="londonLocation">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-geo-alt me-2 text-warning"></i>
+                                <div>
+                                    <strong>London, United Kingdom</strong>
+                                    <div class="small text-muted">51.5074, -0.1278</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="current-location-status mt-3 p-2 bg-light rounded" id="currentLocationStatus">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Current setting: <span id="currentLocationText">Auto-detect location</span>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveLocationSettings()">
+                    <i class="bi bi-check-lg me-1"></i>Save Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

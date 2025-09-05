@@ -16,106 +16,58 @@
     {% load app_nav %}
     <link href="{% static 'css/main.css' %}" rel="stylesheet">
     
+    <!-- Navigation Styles -->
+    <style>
+/* ==========================================================================
+   Navigation Styles
+   ========================================================================== */
+
+/* Compact Navigation - 50px MAX */
+.compact-nav {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    min-height: 50px;
+    max-height: 50px;
+}
+
+.compact-nav .navbar-brand {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.25rem 0;
+}
+
+.compact-nav .nav-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.compact-nav .compact-dropdown {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.compact-nav .family-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Mobile Navigation Adjustments */
+@media (max-width: 768px) {
+    .compact-nav .family-name {
+        display: none !important;
+    }
+    
+    .compact-nav .navbar-brand {
+        font-size: 1rem;
+    }
+}
+    </style>
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark compact-nav" style="z-index: 1030;">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'accounts:dashboard' %}">
-                <i class="bi bi-house-heart me-1"></i> FamlyPortal
-            </a>
-            
-            {% if user.is_authenticated and user.primary_family %}
-            <!-- Family Name Display -->
-            <span class="navbar-text family-name text-white d-none d-md-inline">
-                <i class="bi bi-people-fill me-1"></i>
-                {{ user.primary_family.name }}
-            </span>
-            {% endif %}
-            
-            {% if user.is_authenticated %}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <!-- User Profile Dropdown -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle compact-dropdown" href="#" role="button" data-bs-toggle="dropdown">
-                            {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle me-1" width="24" height="24">
-                            {% else %}
-                                <i class="bi bi-person-circle me-1"></i>
-                            {% endif %}
-                            {{ user|user_display_name }}
-                            {% if user.primary_family_member %}
-                                <small class="ms-1 opacity-75">({{ user.primary_family_member.get_role_display }})</small>
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
-                            <li class="dropdown-header">
-                                <i class="bi bi-person"></i> {{ user|user_display_name }}
-                                <br><small class="text-muted">{{ user.email }}</small>
-                                {% if user.primary_family_member %}
-                                    <br><small class="text-warning">{{ user.primary_family_member.get_role_display }}</small>
-                                {% endif %}
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            
-                            <!-- Profile Settings -->
-                            <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
-                                <i class="bi bi-person-gear"></i> Profile Settings
-                            </a></li>
-                            
-                            {% if user.primary_family %}
-                            <li><hr class="dropdown-divider"></li>
-                            
-                            <!-- Family Management -->
-                            <li><a class="dropdown-item" href="{% url 'accounts:family_members' user.primary_family.pk %}">
-                                <i class="bi bi-people"></i> Family Members
-                            </a></li>
-                            
-                            {% if user.is_family_admin %}
-                            <li><a class="dropdown-item" href="{% url 'accounts:family' %}">
-                                <i class="bi bi-gear"></i> Family Settings
-                            </a></li>
-                            {% endif %}
-                            
-                            <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
-                                <i class="bi bi-plus-circle"></i> Join Another Family
-                            </a></li>
-                            {% endif %}
-                            
-                            {% if not user.primary_family %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounts:join_family' %}">
-                                <i class="bi bi-plus-circle"></i> Join a Family
-                            </a></li>
-                            {% endif %}
-                            
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
-                                <i class="bi bi-box-arrow-right"></i> Sign Out
-                            </a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            {% else %}
-            <!-- Non-authenticated menu -->
-            <div class="d-flex">
-                <a href="{% url 'accounts:login' %}" class="btn btn-outline-light me-2">
-                    <i class="bi bi-box-arrow-in-right"></i> Sign In
-                </a>
-                <a href="{% url 'accounts:register' %}" class="btn btn-light">
-                    <i class="bi bi-person-plus"></i> Register
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </nav>
+    {% include 'partials/navigation.html' %}
 
     <!-- App-Specific Secondary Navigation -->
     {% block extra_nav %}{% endblock %}

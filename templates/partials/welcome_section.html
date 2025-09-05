@@ -1,0 +1,35 @@
+{% load family_tags %}
+
+<!-- Enhanced Welcome Section with fallbacks -->
+<div class="welcome-section">
+    <div class="container">
+        <div class="welcome-content">
+            <div class="welcome-left">
+                <div class="welcome-greeting" id="dynamic-greeting">
+                    Good {% now "A" as current_period %}{% if current_period == "AM" %}morning{% else %}{% if "now"|time:"H"|add:0 < 17 %}afternoon{% else %}evening{% endif %}{% endif %}, {{ user.first_name|default:user.username }}
+                </div>
+                <div class="welcome-question">
+                    What would you like to do today?
+                </div>
+            </div>
+            <div class="welcome-right">
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                    <div class="time-weather-info">
+                        <div class="live-time" id="live-clock">
+                            {% now "g:i A" %} <!-- Django fallback -->
+                        </div>
+                        <div class="live-date" id="live-date">
+                            {% now "l, M j" %} <!-- Django fallback -->
+                        </div>
+                        <div class="live-weather" id="weather-info">
+                            <span class="weather-loading">Loading weather...</span>
+                        </div>
+                    </div>
+                    <button class="settings-btn" onclick="openLocationSettings()" title="Weather Location Settings">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

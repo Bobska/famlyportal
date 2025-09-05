@@ -1,0 +1,43 @@
+/* ==========================================================================
+   Navigation Styles
+   ========================================================================== */
+
+/* Compact Navigation - 50px MAX */
+.compact-nav {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    min-height: 50px;
+    max-height: 50px;
+}
+
+.compact-nav .navbar-brand {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.25rem 0;
+}
+
+.compact-nav .nav-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.compact-nav .compact-dropdown {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.compact-nav .family-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Mobile Navigation Adjustments */
+@media (max-width: 768px) {
+    .compact-nav .family-name {
+        display: none !important;
+    }
+    
+    .compact-nav .navbar-brand {
+        font-size: 1rem;
+    }
+}

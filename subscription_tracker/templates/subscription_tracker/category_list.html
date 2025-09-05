@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Categories - Subscription Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-tags"></i> Subscription Categories</h2>
+                    <p class="text-muted">Organize your subscriptions by category</p>
+                </div>
+                <a href="{% url 'subscription_tracker:dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Categories List -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Existing Categories</h5>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th class="text-center">Subscriptions</th>
+                                    <th class="text-end">Monthly Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-tag text-primary me-2"></i>
+                                        <strong>{{ category.name }}</strong>
+                                    </td>
+                                    <td>{{ category.description|default:"No description" }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ category.subscription_count }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        ${{ category.total_monthly_cost|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tags fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">No categories created yet. Add your first category below.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Category Form -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-plus"></i> Add New Category</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Category Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
+                            {{ form.color }}
+                            {% if form.color.errors %}
+                                <div class="text-danger small">{{ form.color.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save"></i> Create Category
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Category Suggestions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Suggested Categories</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap">
+                        <span class="badge bg-light text-dark me-1 mb-1">Entertainment</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">Productivity</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">Fitness</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">Education</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">News</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">Music</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">Cloud Storage</span>
+                        <span class="badge bg-light text-dark me-1 mb-1">Gaming</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ subscription.name }} - Subscription Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .subscription-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    .payment-history {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .status-badge {
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Subscription Header -->
+    <div class="subscription-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center mb-2">
+                    <h1 class="mb-0 me-3">{{ subscription.name }}</h1>
+                    <span class="badge bg-light text-dark status-badge">
+                        <i class="fas fa-circle text-{% if subscription.status == 'active' %}success{% elif subscription.status == 'paused' %}warning{% else %}danger{% endif %}"></i>
+                        {{ subscription.get_status_display }}
+                    </span>
+                </div>
+                {% if subscription.category %}
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-tag"></i> {{ subscription.category.name }}
+                </p>
+                {% endif %}
+                {% if subscription.description %}
+                <p class="mt-2 mb-0 opacity-90">{{ subscription.description }}</p>
+                {% endif %}
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group" role="group">
+                    <a href="{% url 'subscription_tracker:subscription_update' subscription.pk %}" 
+                       class="btn btn-light">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    {% if subscription.status == 'active' %}
+                    <button class="btn btn-success mark-payment" 
+                            data-subscription-id="{{ subscription.id }}">
+                        <i class="fas fa-check"></i> Mark Paid
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'subscription_tracker:subscription_delete' subscription.pk %}" 
+                       class="btn btn-outline-light">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Details -->
+        <div class="col-lg-8">
+            <!-- Cost Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-dollar-sign"></i> Cost Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h3 class="text-primary">${{ subscription.cost }}</h3>
+                                <p class="text-muted mb-0">{{ subscription.get_billing_cycle_display }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>${{ subscription.monthly_cost|floatformat:2 }}</h4>
+                                <p class="text-muted mb-0">Per Month</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>${{ subscription.annual_cost|floatformat:2 }}</h4>
+                                <p class="text-muted mb-0">Per Year</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>{{ subscription.days_until_renewal }}</h4>
+                                <p class="text-muted mb-0">Days Until Renewal</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Dates -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar"></i> Billing Dates</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Start Date:</strong> {{ subscription.start_date|date:"F j, Y" }}</p>
+                            <p><strong>Next Billing:</strong> 
+                                <span class="{% if subscription.is_due_soon %}text-warning fw-bold{% endif %}">
+                                    {{ subscription.next_billing_date|date:"F j, Y" }}
+                                    {% if subscription.is_due_soon %}
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Auto-renewal:</strong> 
+                                {% if subscription.auto_renew %}
+                                    <span class="text-success"><i class="fas fa-check"></i> Enabled</span>
+                                {% else %}
+                                    <span class="text-warning"><i class="fas fa-times"></i> Disabled</span>
+                                {% endif %}
+                            </p>
+                            {% if subscription.payment_method %}
+                            <p><strong>Payment Method:</strong> {{ subscription.payment_method }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Additional Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if subscription.website_url %}
+                            <p><strong>Website:</strong> 
+                                <a href="{{ subscription.website_url }}" target="_blank" class="text-decoration-none">
+                                    {{ subscription.website_url }} <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </p>
+                            {% endif %}
+                            <p><strong>Added:</strong> {{ subscription.created_at|date:"F j, Y" }}</p>
+                            {% if subscription.updated_at != subscription.created_at %}
+                            <p><strong>Last Updated:</strong> {{ subscription.updated_at|date:"F j, Y" }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if subscription.used_by.exists %}
+                            <p><strong>Used By:</strong></p>
+                            <div class="d-flex flex-wrap">
+                                {% for user in subscription.used_by.all %}
+                                <span class="badge bg-light text-dark me-1 mb-1">{{ user.get_full_name|default:user.username }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Payment History</h5>
+                    <span class="badge bg-primary">{{ payment_count }} payments</span>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                    <div class="payment-history">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in payments %}
+                                    <tr>
+                                        <td>{{ payment.payment_date|date:"M j, Y" }}</td>
+                                        <td>${{ payment.amount }}</td>
+                                        <td>{{ payment.payment_method|default:"Not specified" }}</td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Paid
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">No payment history yet.</p>
+                        {% if subscription.status == 'active' %}
+                        <button class="btn btn-primary mark-payment" 
+                                data-subscription-id="{{ subscription.id }}">
+                            <i class="fas fa-plus"></i> Record First Payment
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Statistics -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="card stat-card mb-4">
+                <div class="card-body text-center">
+                    <h3 class="text-success">${{ total_paid|floatformat:2 }}</h3>
+                    <p class="text-muted mb-0">Total Paid</p>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            {% if alerts %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bell"></i> Active Alerts</h6>
+                </div>
+                <div class="card-body">
+                    {% for alert in alerts %}
+                    <div class="alert alert-{{ alert.alert_type }} alert-sm" role="alert">
+                        <small>
+                            <strong>{{ alert.get_alert_type_display }}:</strong>
+                            {{ alert.message }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if subscription.status == 'active' %}
+                        <button class="btn btn-outline-warning btn-sm" onclick="pauseSubscription({{ subscription.id }})">
+                            <i class="fas fa-pause"></i> Pause Subscription
+                        </button>
+                        {% elif subscription.status == 'paused' %}
+                        <button class="btn btn-outline-success btn-sm" onclick="resumeSubscription({{ subscription.id }})">
+                            <i class="fas fa-play"></i> Resume Subscription
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'subscription_tracker:subscription_update' subscription.pk %}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit Details
+                        </a>
+                        
+                        <a href="{% url 'subscription_tracker:subscription_list' %}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-list"></i> Back to List
+                        </a>
+                        
+                        <hr>
+                        
+                        <a href="{% url 'subscription_tracker:subscription_delete' subscription.pk %}" 
+                           class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i> Delete Subscription
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark payment functionality
+    document.querySelectorAll('.mark-payment').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const subscriptionId = this.dataset.subscriptionId;
+            
+            if (confirm('Mark this payment as completed?')) {
+                fetch(`{% url 'subscription_tracker:mark_payment' 0 %}`.replace('0', subscriptionId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `subscription_id=${subscriptionId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const alert = document.createElement('div');
+                        alert.className = 'alert alert-success alert-dismissible fade show';
+                        alert.innerHTML = `
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.container').insertBefore(alert, document.querySelector('.subscription-header'));
+                        
+                        // Refresh the page after a short delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while marking the payment.');
+                });
+            }
+        });
+    });
+});
+
+function pauseSubscription(subscriptionId) {
+    if (confirm('Are you sure you want to pause this subscription?')) {
+        // Implement pause functionality
+        fetch(`/subscription-tracker/api/bulk-actions/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `subscription_ids=${subscriptionId}&action=pause`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function resumeSubscription(subscriptionId) {
+    if (confirm('Are you sure you want to resume this subscription?')) {
+        // Implement resume functionality
+        fetch(`/subscription-tracker/api/bulk-actions/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `subscription_ids=${subscriptionId}&action=activate`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

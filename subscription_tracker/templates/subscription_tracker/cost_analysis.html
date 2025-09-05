@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cost Analysis - Subscription Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cost-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.5rem;
+    }
+    .category-chart {
+        max-height: 300px;
+    }
+    .stats-card {
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-chart-pie"></i> Cost Analysis</h2>
+                    <p class="text-muted">Analyze your family's subscription spending patterns</p>
+                </div>
+                <div>
+                    <a href="{% url 'subscription_tracker:dashboard' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <a href="{% url 'subscription_tracker:export_csv' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export Data
+                    </a>
+                </div>
+            </div>
+
+            <!-- Cost Overview Cards -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card cost-card stats-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-calendar-day fa-2x mb-3"></i>
+                            <h3>${{ monthly_total|floatformat:2 }}</h3>
+                            <p class="mb-0">Monthly Total</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card stats-card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-calendar-week fa-2x mb-3"></i>
+                            <h3>${{ quarterly_total|floatformat:2 }}</h3>
+                            <p class="mb-0">Quarterly Total</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card stats-card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-calendar-alt fa-2x mb-3"></i>
+                            <h3>${{ annual_total|floatformat:2 }}</h3>
+                            <p class="mb-0">Annual Total</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card stats-card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-list fa-2x mb-3"></i>
+                            <h3>{{ subscription_count }}</h3>
+                            <p class="mb-0">Active Subscriptions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Category Breakdown -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-tags"></i> Spending by Category</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if category_costs %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th class="text-end">Monthly Cost</th>
+                                            <th class="text-end">% of Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category, cost in category_costs.items %}
+                                        <tr>
+                                            <td>
+                                                <i class="fas fa-tag text-muted me-2"></i>
+                                                {{ category }}
+                                            </td>
+                                            <td class="text-end">${{ cost|floatformat:2 }}</td>
+                                            <td class="text-end">
+                                                {% widthratio cost monthly_total 100 %}%
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-chart-pie fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No subscription data available.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription List -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Active Subscriptions</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if subscriptions %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Service</th>
+                                            <th class="text-end">Monthly Cost</th>
+                                            <th class="text-center">Cycle</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for subscription in subscriptions %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'subscription_tracker:subscription_detail' subscription.pk %}" 
+                                                   class="text-decoration-none">
+                                                    {{ subscription.name }}
+                                                </a>
+                                            </td>
+                                            <td class="text-end">
+                                                ${{ subscription.monthly_cost|floatformat:2 }}
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-light text-dark">
+                                                    {{ subscription.get_billing_cycle_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No active subscriptions found.</p>
+                                <a href="{% url 'subscription_tracker:subscription_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add Your First Subscription
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cost Insights -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Cost Insights</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-piggy-bank fa-2x text-primary mb-3"></i>
+                                            <h6>Annual Savings Potential</h6>
+                                            <p class="text-muted small">
+                                                If you switched all monthly to annual billing with 15% discount:
+                                            </p>
+                                            <h5 class="text-success">
+                                                ${% widthratio annual_total 100 15 %}
+                                            </h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-calculator fa-2x text-info mb-3"></i>
+                                            <h6>Average Cost per Service</h6>
+                                            <p class="text-muted small">
+                                                Mean monthly cost across all subscriptions:
+                                            </p>
+                                            <h5 class="text-info">
+                                                {% if subscription_count > 0 %}
+                                                    ${% widthratio monthly_total subscription_count 1 %}
+                                                {% else %}
+                                                    $0.00
+                                                {% endif %}
+                                            </h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-chart-line fa-2x text-warning mb-3"></i>
+                                            <h6>Cost as % of Income</h6>
+                                            <p class="text-muted small">
+                                                Recommended: Keep subscriptions under 5% of income
+                                            </p>
+                                            <h5 class="text-warning">
+                                                Need Income Data
+                                            </h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            {% if monthly_total > 50 %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Recommendations</h6>
+                        <ul class="mb-0">
+                            <li>Review subscriptions you haven't used recently</li>
+                            <li>Consider annual billing for frequently used services (often 10-20% cheaper)</li>
+                            <li>Set alerts for upcoming renewals to avoid unwanted charges</li>
+                            {% if monthly_total > 100 %}
+                            <li>Your monthly subscription costs exceed $100 - consider setting a budget limit</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

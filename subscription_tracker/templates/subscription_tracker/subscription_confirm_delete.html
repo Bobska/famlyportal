@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete {{ subscription.name }} - Subscription Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                        <h4>Delete "{{ subscription.name }}"?</h4>
+                        <p class="text-muted">This action cannot be undone. All payment history and data associated with this subscription will be permanently deleted.</p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-info-circle"></i> Subscription Details:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Service:</strong> {{ subscription.name }}</li>
+                            <li><strong>Monthly Cost:</strong> ${{ subscription.monthly_cost|floatformat:2 }}</li>
+                            <li><strong>Status:</strong> {{ subscription.get_status_display }}</li>
+                            <li><strong>Payment Records:</strong> {{ payment_count }} payments totaling ${{ total_paid|floatformat:2 }}</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post" class="d-flex justify-content-between">
+                        {% csrf_token %}
+                        <a href="{% url 'subscription_tracker:subscription_detail' subscription.pk %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Yes, Delete Subscription
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

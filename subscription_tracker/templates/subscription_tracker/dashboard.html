@@ -1,0 +1,424 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load app_nav %}
+
+{% block title %}Subscription Tracker{% endblock %}
+
+{% block extra_nav %}
+{% app_navigation 'subscription_tracker' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+        transition: transform 0.2s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+    }
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    .subscription-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    .subscription-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    .category-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .cost-breakdown {
+        max-height: 300px;
+    }
+    .alert-item {
+        border-left: 4px solid #ffc107;
+        background: #fff8e1;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 0 8px 8px 0;
+    }
+    .renewal-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    .renewal-timeline::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+    .renewal-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .renewal-item::before {
+        content: '';
+        position: absolute;
+        left: -24px;
+        top: 5px;
+        width: 8px;
+        height: 8px;
+        background: #007bff;
+        border-radius: 50%;
+    }
+    .quick-add-form {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Summary Statistics -->
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="stat-value">${{ total_monthly_cost|floatformat:0 }}</div>
+            <div class="stat-label">Monthly Cost</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <div class="stat-value">${{ total_annual_cost|floatformat:0 }}</div>
+            <div class="stat-label">Annual Cost</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="stat-value">{{ active_count }}</div>
+            <div class="stat-label">Active Subscriptions</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <div class="stat-value">{{ upcoming_renewals|length }}</div>
+            <div class="stat-label">Due This Month</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quick Add Subscription -->
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card">
+            <h5 class="mb-3">
+                <i class="bi bi-plus-circle text-primary me-2"></i>
+                Quick Add Subscription
+            </h5>
+            <form method="post" class="quick-add-form">
+                {% csrf_token %}
+                <input type="hidden" name="quick_add" value="1">
+                
+                <div class="mb-3">
+                    {{ quick_form.name.label_tag }}
+                    {{ quick_form.name }}
+                    <datalist id="common-services">
+                        <option value="Netflix">
+                        <option value="Spotify">
+                        <option value="Amazon Prime">
+                        <option value="Disney+">
+                        <option value="Hulu">
+                        <option value="YouTube Premium">
+                        <option value="Microsoft 365">
+                        <option value="Adobe Creative Cloud">
+                        <option value="GitHub">
+                        <option value="Dropbox">
+                    </datalist>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ quick_form.cost.label_tag }}
+                            {{ quick_form.cost }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ quick_form.billing_cycle.label_tag }}
+                            {{ quick_form.billing_cycle }}
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    Add Subscription
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Upcoming Renewals -->
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card">
+            <h5 class="mb-3">
+                <i class="bi bi-calendar-event text-warning me-2"></i>
+                Upcoming Renewals
+            </h5>
+            {% if upcoming_renewals %}
+                <div class="renewal-timeline">
+                    {% for subscription in upcoming_renewals %}
+                    <div class="renewal-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold">{{ subscription.name }}</div>
+                                <small class="text-muted">
+                                    {{ subscription.next_billing_date|date:"M j" }}
+                                    {% if subscription.days_until_renewal <= 0 %}
+                                        <span class="badge bg-danger ms-1">Overdue</span>
+                                    {% elif subscription.days_until_renewal <= 3 %}
+                                        <span class="badge bg-warning ms-1">Due Soon</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ subscription.cost }}</div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="markPayment({{ subscription.id }})">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted text-center py-3">
+                    <i class="bi bi-calendar-check fs-3 d-block mb-2"></i>
+                    No renewals due this month
+                </p>
+            {% endif %}
+            
+            <div class="text-center mt-3">
+                <a href="{% url 'subscription_tracker:subscription_list' %}?due_soon=1" class="btn btn-outline-primary btn-sm">
+                    View All Due
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alerts -->
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card">
+            <h5 class="mb-3">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                Alerts & Notifications
+            </h5>
+            {% if alerts %}
+                {% for alert in alerts %}
+                <div class="alert-item">
+                    <div class="fw-bold">{{ alert.title }}</div>
+                    <small class="text-muted">{{ alert.message }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center py-3">
+                    <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
+                    No alerts at this time
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Cost Breakdown by Category -->
+    <div class="col-lg-6 mb-4">
+        <div class="dashboard-card">
+            <h5 class="mb-3">
+                <i class="bi bi-pie-chart text-success me-2"></i>
+                Cost by Category
+            </h5>
+            {% if categories %}
+                <div class="cost-breakdown">
+                    {% for category in categories %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="category-color" style="background-color: {{ category.color }};"></span>
+                            <span class="fw-bold">{{ category.name }}</span>
+                            <br>
+                            <small class="text-muted ms-4">{{ category.subscription_count }} subscription{{ category.subscription_count|pluralize }}</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold">${{ category.total_monthly_cost|floatformat:2 }}/mo</div>
+                            <small class="text-muted">Monthly total</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted text-center py-3">
+                    <i class="bi bi-tags fs-3 d-block mb-2"></i>
+                    No categories yet
+                </p>
+            {% endif %}
+            
+            <div class="text-center mt-3">
+                <a href="{% url 'subscription_tracker:cost_analysis' %}" class="btn btn-outline-success btn-sm">
+                    View Analytics
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Subscriptions -->
+    <div class="col-lg-6 mb-4">
+        <div class="dashboard-card">
+            <h5 class="mb-3">
+                <i class="bi bi-clock-history text-info me-2"></i>
+                Recent Subscriptions
+            </h5>
+            {% if recent_subscriptions %}
+                {% for subscription in recent_subscriptions %}
+                <div class="subscription-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold">{{ subscription.name }}</div>
+                            <small class="text-muted">
+                                {% if subscription.category %}
+                                    <span class="category-color" style="background-color: {{ subscription.category.color }};"></span>
+                                    {{ subscription.category.name }}
+                                {% else %}
+                                    Uncategorized
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold">${{ subscription.monthly_cost|floatformat:2 }}/mo</div>
+                            <a href="{{ subscription.get_absolute_url }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center py-3">
+                    <i class="bi bi-list-ul fs-3 d-block mb-2"></i>
+                    No subscriptions yet
+                </p>
+            {% endif %}
+            
+            <div class="text-center mt-3">
+                <a href="{% url 'subscription_tracker:subscription_list' %}" class="btn btn-outline-info btn-sm">
+                    View All Subscriptions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="row">
+    <div class="col-12">
+        <div class="text-center">
+            <a href="{% url 'subscription_tracker:subscription_create' %}" class="btn btn-primary btn-lg me-3">
+                <i class="bi bi-plus-lg me-2"></i>
+                Add New Subscription
+            </a>
+            <a href="{% url 'subscription_tracker:category_list' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-tags me-2"></i>
+                Manage Categories
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markPayment(subscriptionId) {
+    if (confirm('Mark this payment as completed?')) {
+        fetch(`/subscription-tracker/api/mark-payment/${subscriptionId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error marking payment');
+            }
+        });
+    }
+}
+
+// Auto-submit quick add form with AJAX
+document.addEventListener('DOMContentLoaded', function() {
+    const quickForm = document.querySelector('.quick-add-form');
+    if (quickForm) {
+        quickForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(quickForm);
+            
+            fetch('/subscription-tracker/api/quick-add/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = `
+                        <i class="bi bi-check-circle me-2"></i>
+                        ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.container').insertBefore(alert, document.querySelector('.row'));
+                    
+                    // Reset form
+                    quickForm.reset();
+                    
+                    // Reload page after short delay
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error adding subscription');
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -53,6 +53,7 @@ LOCAL_APPS = [
     'upcoming_payments',
     'credit_cards',
     'household_budget',
+    'subscription_tracker',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

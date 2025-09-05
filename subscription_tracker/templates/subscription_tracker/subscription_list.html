@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Subscription List - {{ family.name }} - Subscription Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .subscription-card {
+        transition: transform 0.2s;
+    }
+    .subscription-card:hover {
+        transform: translateY(-2px);
+    }
+    .status-active {
+        color: #28a745;
+    }
+    .status-paused {
+        color: #ffc107;
+    }
+    .status-cancelled {
+        color: #dc3545;
+    }
+    .cost-monthly {
+        font-size: 1.1em;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-list"></i> All Subscriptions</h2>
+                    <p class="text-muted">Manage your family's subscription services</p>
+                </div>
+                <div>
+                    <a href="{% url 'subscription_tracker:subscription_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Subscription
+                    </a>
+                    <a href="{% url 'subscription_tracker:export_csv' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter and Search -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            {{ filter_form.search.label_tag }}
+                            {{ filter_form.search }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ filter_form.category.label_tag }}
+                            {{ filter_form.category }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ filter_form.status.label_tag }}
+                            {{ filter_form.status }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Min Cost</label>
+                            {{ filter_form.min_cost }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Max Cost</label>
+                            {{ filter_form.max_cost }}
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <a href="{% url 'subscription_tracker:subscription_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="row mb-3">
+                <div class="col">
+                    <p class="text-muted">
+                        Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ total_count }} subscriptions
+                    </p>
+                </div>
+            </div>
+
+            <!-- Subscription Cards -->
+            <div class="row">
+                {% for subscription in page_obj %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card subscription-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">
+                                    <a href="{% url 'subscription_tracker:subscription_detail' subscription.pk %}" 
+                                       class="text-decoration-none">
+                                        {{ subscription.name }}
+                                    </a>
+                                </h5>
+                                <span class="badge bg-light text-dark status-{{ subscription.status }}">
+                                    <i class="fas fa-circle"></i> {{ subscription.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            {% if subscription.category %}
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-tag"></i> {{ subscription.category.name }}
+                            </p>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-6">
+                                    <p class="cost-monthly text-primary mb-1">
+                                        ${{ subscription.monthly_cost|floatformat:2 }}/mo
+                                    </p>
+                                    <small class="text-muted">
+                                        ${{ subscription.cost }} {{ subscription.get_billing_cycle_display|lower }}
+                                    </small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <p class="mb-1 small">
+                                        <strong>Next Billing:</strong><br>
+                                        <span class="{% if subscription.is_due_soon %}text-warning{% endif %}">
+                                            {{ subscription.next_billing_date|date:"M j, Y" }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {% if subscription.description %}
+                            <p class="card-text small text-muted mt-2">
+                                {{ subscription.description|truncatewords:15 }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    {% if subscription.status == 'active' %}
+                                    <button class="btn btn-sm btn-outline-success mark-payment" 
+                                            data-subscription-id="{{ subscription.id }}">
+                                        <i class="fas fa-check"></i> Mark Paid
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'subscription_tracker:subscription_update' subscription.pk %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'subscription_tracker:subscription_delete' subscription.pk %}" 
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h4>No Subscriptions Found</h4>
+                        <p class="text-muted">Try adjusting your filters or add your first subscription.</p>
+                        <a href="{% url 'subscription_tracker:subscription_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Your First Subscription
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Subscription pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark payment functionality
+    document.querySelectorAll('.mark-payment').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const subscriptionId = this.dataset.subscriptionId;
+            
+            if (confirm('Mark this payment as completed?')) {
+                fetch(`{% url 'subscription_tracker:mark_payment' 0 %}`.replace('0', subscriptionId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `subscription_id=${subscriptionId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const alert = document.createElement('div');
+                        alert.className = 'alert alert-success alert-dismissible fade show';
+                        alert.innerHTML = `
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.row'));
+                        
+                        // Refresh the page after a short delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while marking the payment.');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

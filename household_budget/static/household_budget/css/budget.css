@@ -2,15 +2,12 @@
    Budget App Specific Styles - Dashboard Consistent Styling
    ========================================================================== */
 
-/* Navigation Gap Fix - Seamless connection */
+/* Navigation Gap Fix - Override app_nav.html sticky positioning for budget app */
 .app-navigation {
+    position: static !important; /* Override sticky positioning from app_nav.html */
+    top: auto !important; /* Remove any top offset */
     margin-top: 0 !important;
     border-top: none !important;
-    position: sticky;
-    top: 56px; /* Height of main nav */
-    z-index: 1020;
-    background: white;
-    border-bottom: 1px solid #e9ecef;
 }
 
 /* Remove any gaps between main nav and app nav */
@@ -322,11 +319,6 @@ main.container {
    ========================================================================== */
 
 @media (max-width: 768px) {
-    .app-navigation {
-        position: static;
-        top: auto;
-    }
-    
     .budget-card,
     .summary-card,
     .category-tree,

@@ -41,11 +41,9 @@ class CategoryForm(forms.ModelForm):
     
     class Meta:
         model = Category
-        fields = ['name', 'parent', 'icon', 'color', 'sort_order']
+        fields = ['name', 'parent', 'color']  # Exclude icon and sort_order to use model defaults
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Category name'}),
             'parent': forms.Select(attrs={'class': 'form-select'}),
-            'icon': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'bi-folder'}),
             'color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control'}),
-            'sort_order': forms.NumberInput(attrs={'class': 'form-control'}),
         }

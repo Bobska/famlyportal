@@ -6,6 +6,7 @@
 /* Prevent layout shift from scrollbars */
 html {
     overflow-y: scroll; /* Always show vertical scrollbar */
+    height: 100%;
 }
 
 /* ==========================================================================
@@ -29,16 +30,20 @@ html {
 /* Ensure body accounts for fixed navigation */
 body {
     padding-top: 50px; /* Match navigation height */
-    min-height: 100vh;
+    height: 100vh; /* Full viewport height */
     display: flex;
     flex-direction: column;
+    margin: 0; /* Remove default margin */
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 /* Reset main container margin since nav is now fixed */
 main.container {
     margin-top: 0 !important;
     padding-top: 1rem;
-    flex: 1; /* Take up remaining space */
+    flex: 1 0 auto; /* Grow to fill space, don't shrink, auto basis */
+    padding-bottom: 2rem; /* Add bottom padding for breathing room */
+    overflow-y: auto; /* Allow scrolling within main content if needed */
 }
 
 .compact-nav .container {
@@ -122,8 +127,9 @@ main.container {
 
 /* Footer positioning - always at bottom */
 footer {
-    margin-top: auto; /* Push footer to bottom */
+    margin-top: 0 !important; /* Override Bootstrap mt-5 */
     flex-shrink: 0; /* Prevent footer from shrinking */
+    width: 100%;
 }
 
 /* Message alerts enhancement */

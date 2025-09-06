@@ -19,15 +19,45 @@
     <!-- Navigation Styles -->
     <style>
 /* ==========================================================================
-   Navigation Styles
+   Navigation Styles - Fixed Position
    ========================================================================== */
 
-/* Compact Navigation - 50px MAX */
+/* Prevent layout shift from scrollbars */
+html {
+    overflow-y: scroll; /* Always show vertical scrollbar */
+}
+
+/* Compact Navigation - 50px MAX with stable positioning */
 .compact-nav {
     padding-top: 0.25rem !important;
     padding-bottom: 0.25rem !important;
     min-height: 50px;
     max-height: 50px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    transition: none; /* Prevent any animations that could cause shifts */
+}
+
+/* Ensure body accounts for fixed navigation */
+body {
+    padding-top: 50px; /* Match navigation height */
+}
+
+/* Reset main container margin since nav is now fixed */
+main.container {
+    margin-top: 0 !important;
+    padding-top: 1rem;
+}
+
+.compact-nav .container {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    padding-left: 15px;
+    padding-right: 15px;
 }
 
 .compact-nav .navbar-brand {
@@ -61,6 +91,37 @@
         font-size: 1rem;
     }
 }
+
+/* Bootstrap container responsive breakpoints */
+@media (min-width: 576px) {
+    .compact-nav .container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .compact-nav .container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .compact-nav .container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .compact-nav .container {
+        max-width: 1140px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .compact-nav .container {
+        max-width: 1320px;
+    }
+}
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -73,7 +134,7 @@
     {% block extra_nav %}{% endblock %}
 
     <!-- Main Content -->
-    <main class="container mt-4">
+    <main class="container">
         <!-- Messages -->
         {% if messages %}
         <div class="mb-3">

@@ -1,17 +1,25 @@
+{% load family_tags %}
+
 <!-- Page Footer -->
-<footer class="bg-light mt-5 py-4" role="contentinfo">
+<footer class="bg-light py-4" role="contentinfo">
     <div class="container text-center text-muted">
         <div class="row">
             <div class="col-md-8 mx-auto">
-                <p class="mb-1">&copy; 2025 FamlyPortal. Built with Django and Bootstrap.</p>
-                <small>Helping families stay organized and connected.</small>
-                
-                <!-- Footer Links -->
-                <div class="mt-2">
-                    <small>
-                        <span class="text-muted">Version 1.0</span>
-                    </small>
-                </div>
+            <p class="mb-1">&copy; {% current_year %} FamlyPortal. Built with Django and Bootstrap.</p>
+            <small>Helping families stay organized and connected.</small>
+            
+            <!-- Footer Links -->
+            <div class="mt-2">
+                <small>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'accounts:profile' %}" class="text-muted me-3">Profile</a>
+                        {% if user.primary_family %}
+                            <a href="{% url 'accounts:family_members' user.primary_family.pk %}" class="text-muted me-3">Family</a>
+                        {% endif %}
+                    {% endif %}
+                    <span class="text-muted">Version 1.0</span>
+                </small>
+            </div>
             </div>
         </div>
     </div>

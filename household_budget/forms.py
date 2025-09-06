@@ -5,6 +5,15 @@ from .models import Category, Transaction
 class TransactionForm(forms.ModelForm):
     """Form for creating and editing transactions"""
     
+    def __init__(self, *args, **kwargs):
+        family = kwargs.pop('family', None)
+        super().__init__(*args, **kwargs)
+        
+        if family:
+            self.fields['category'].queryset = Category.objects.filter(family=family)
+        else:
+            self.fields['category'].queryset = Category.objects.none()
+    
     class Meta:
         model = Transaction
         fields = ['merchant_payee', 'date', 'amount', 'transaction_type', 'category', 'notes']
@@ -20,6 +29,15 @@ class TransactionForm(forms.ModelForm):
 
 class CategoryForm(forms.ModelForm):
     """Form for creating and editing categories"""
+    
+    def __init__(self, *args, **kwargs):
+        family = kwargs.pop('family', None)
+        super().__init__(*args, **kwargs)
+        
+        if family:
+            self.fields['parent'].queryset = Category.objects.filter(family=family)
+        else:
+            self.fields['parent'].queryset = Category.objects.none()
     
     class Meta:
         model = Category

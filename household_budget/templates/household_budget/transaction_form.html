@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load app_nav %}
+
+{% block title %}
+    {% if object %}Edit Transaction{% else %}Add Transaction{% endif %}
+{% endblock %}
+
+{% block extra_nav %}
+{% app_navigation 'household_budget' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    .form-header {
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+    .help-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    .form-section {
+        margin-bottom: 25px;
+    }
+    .form-section h5 {
+        color: #495057;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    .receipt-preview {
+        max-width: 200px;
+        max-height: 200px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    .category-color-indicator {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        border: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="form-card">
+                <div class="form-header">
+                    <h2>
+                        {% if object %}
+                            <i class="bi bi-pencil-square text-primary me-2"></i>
+                            Edit Transaction
+                        {% else %}
+                            <i class="bi bi-plus-circle text-success me-2"></i>
+                            Add New Transaction
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if object %}
+                            Update the transaction details below
+                        {% else %}
+                            Enter the transaction details below
+                        {% endif %}
+                    </p>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Basic Information -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-info-circle me-2"></i>Basic Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.date.id_for_label }}" class="form-label required-field">
+                                        Transaction Date
+                                    </label>
+                                    {{ form.date }}
+                                    {% if form.date.errors %}
+                                        <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                                    {% endif %}
+                                    {% if form.date.help_text %}
+                                        <div class="help-text">{{ form.date.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label required-field">
+                                        Amount
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.amount }}
+                                    </div>
+                                    {% if form.amount.errors %}
+                                        <div class="text-danger small">{{ form.amount.errors.0 }}</div>
+                                    {% endif %}
+                                    {% if form.amount.help_text %}
+                                        <div class="help-text">{{ form.amount.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.merchant_payee.id_for_label }}" class="form-label required-field">
+                                Merchant/Payee
+                            </label>
+                            {{ form.merchant_payee }}
+                            {% if form.merchant_payee.errors %}
+                                <div class="text-danger small">{{ form.merchant_payee.errors.0 }}</div>
+                            {% endif %}
+                            {% if form.merchant_payee.help_text %}
+                                <div class="help-text">{{ form.merchant_payee.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Categorization -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-tags me-2"></i>Categorization</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_type.id_for_label }}" class="form-label required-field">
+                                        Transaction Type
+                                    </label>
+                                    {{ form.transaction_type }}
+                                    {% if form.transaction_type.errors %}
+                                        <div class="text-danger small">{{ form.transaction_type.errors.0 }}</div>
+                                    {% endif %}
+                                    {% if form.transaction_type.help_text %}
+                                        <div class="help-text">{{ form.transaction_type.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.category.id_for_label }}" class="form-label">
+                                        Category
+                                    </label>
+                                    {{ form.category }}
+                                    {% if form.category.errors %}
+                                        <div class="text-danger small">{{ form.category.errors.0 }}</div>
+                                    {% endif %}
+                                    {% if form.category.help_text %}
+                                        <div class="help-text">{{ form.category.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Details -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-journal-text me-2"></i>Additional Details</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                Notes
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger small">{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                            {% if form.notes.help_text %}
+                                <div class="help-text">{{ form.notes.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-section">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <button type="submit" class="btn btn-primary btn-lg me-2">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    {% if object %}Update Transaction{% else %}Save Transaction{% endif %}
+                                </button>
+                                {% if not object %}
+                                <button type="submit" name="save_and_add_another" class="btn btn-success">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Save & Add Another
+                                </button>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'household_budget:transaction_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Quick Help -->
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info">
+                        <i class="bi bi-lightbulb me-2"></i>Quick Tips
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Transaction Type:</strong> Choose "Income" for money coming in, "Expense" for money going out</li>
+                        <li><strong>Category:</strong> Select a category to track where your money comes from or goes to</li>
+                        <li><strong>Payee:</strong> The person or business you're transacting with</li>
+                        <li><strong>Account:</strong> Which account or payment method you used</li>
+                        <li><strong>Receipt:</strong> Upload a photo of your receipt for record keeping</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-suggest from previous payees (could be enhanced with actual data)
+        const payeeField = document.getElementById('{{ form.payee.id_for_label }}');
+        
+        // Category color indicator
+        const categoryField = document.getElementById('{{ form.category.id_for_label }}');
+        if (categoryField) {
+            categoryField.addEventListener('change', function() {
+                // This could be enhanced to show category color
+                console.log('Category changed:', this.value);
+            });
+        }
+        
+        // Transaction type change handler
+        const typeField = document.getElementById('{{ form.transaction_type.id_for_label }}');
+        if (typeField) {
+            typeField.addEventListener('change', function() {
+                // Could filter categories based on type
+                console.log('Transaction type changed:', this.value);
+            });
+        }
+        
+        // Receipt image preview
+        const receiptField = document.getElementById('{{ form.receipt_image.id_for_label }}');
+        if (receiptField) {
+            receiptField.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Create or update preview
+                        let preview = document.getElementById('receipt-preview');
+                        if (!preview) {
+                            preview = document.createElement('img');
+                            preview.id = 'receipt-preview';
+                            preview.className = 'receipt-preview mt-2';
+                            receiptField.parentNode.appendChild(preview);
+                        }
+                        preview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Form validation enhancement
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                    
+                    // Re-enable if validation fails
+                    setTimeout(function() {
+                        if (submitBtn.disabled) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        }
+                    }, 5000);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

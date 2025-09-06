@@ -171,10 +171,10 @@ class Transaction(FamilyScopedModel):
         """Custom validation"""
         super().clean()
         
-        if self.amount <= 0:
+        if self.amount is not None and self.amount <= 0:
             raise ValidationError("Amount must be greater than 0.")
         
-        if self.date > timezone.now().date():
+        if self.date and self.date > timezone.now().date():
             raise ValidationError("Transaction date cannot be in the future.")
     
     @property

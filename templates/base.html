@@ -1,176 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'partials/head_common.html' %}
+    
     <title>{% block title %}FamlyPortal{% endblock %}</title>
+    <meta name="description" content="{% block description %}FamlyPortal - Helping families stay organized and connected{% endblock %}">
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Page-Specific Preloads -->
+    {% block preload %}{% endblock %}
     
-    {% load static %}
-    {% load family_tags %}
-    {% load app_status %}
-    {% load app_nav %}
-    <link href="{% static 'css/main.css' %}" rel="stylesheet">
-    
-    <!-- Navigation Styles -->
-    <style>
-/* ==========================================================================
-   Navigation Styles - Fixed Position
-   ========================================================================== */
-
-/* Prevent layout shift from scrollbars */
-html {
-    overflow-y: scroll; /* Always show vertical scrollbar */
-}
-
-/* Compact Navigation - 50px MAX with stable positioning */
-.compact-nav {
-    padding-top: 0.25rem !important;
-    padding-bottom: 0.25rem !important;
-    min-height: 50px;
-    max-height: 50px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1030;
-    transition: none; /* Prevent any animations that could cause shifts */
-}
-
-/* Ensure body accounts for fixed navigation */
-body {
-    padding-top: 50px; /* Match navigation height */
-}
-
-/* Reset main container margin since nav is now fixed */
-main.container {
-    margin-top: 0 !important;
-    padding-top: 1rem;
-}
-
-.compact-nav .container {
-    max-width: 100%;
-    width: 100%;
-    margin: 0 auto;
-    padding-left: 15px;
-    padding-right: 15px;
-}
-
-.compact-nav .navbar-brand {
-    font-size: 1.1rem;
-    font-weight: 600;
-    padding: 0.25rem 0;
-}
-
-.compact-nav .nav-link {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.9rem;
-}
-
-.compact-nav .compact-dropdown {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.9rem;
-}
-
-.compact-nav .family-name {
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-/* Mobile Navigation Adjustments */
-@media (max-width: 768px) {
-    .compact-nav .family-name {
-        display: none !important;
-    }
-    
-    .compact-nav .navbar-brand {
-        font-size: 1rem;
-    }
-}
-
-/* Bootstrap container responsive breakpoints */
-@media (min-width: 576px) {
-    .compact-nav .container {
-        max-width: 540px;
-    }
-}
-
-@media (min-width: 768px) {
-    .compact-nav .container {
-        max-width: 720px;
-    }
-}
-
-@media (min-width: 992px) {
-    .compact-nav .container {
-        max-width: 960px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .compact-nav .container {
-        max-width: 1140px;
-    }
-}
-
-@media (min-width: 1400px) {
-    .compact-nav .container {
-        max-width: 1320px;
-    }
-}
-    </style>
-    
+    <!-- Page-Specific CSS -->
     {% block extra_css %}{% endblock %}
+    
+    <!-- Additional Meta Tags -->
+    {% block meta %}{% endblock %}
 </head>
-<body>
-    <!-- Navigation -->
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Accessibility Skip Link -->
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+    
+    <!-- Main Navigation -->
     {% include 'partials/navigation.html' %}
 
     <!-- App-Specific Secondary Navigation -->
     {% block extra_nav %}{% endblock %}
 
-    <!-- Main Content -->
-    <main class="container">
-        <!-- Messages -->
-        {% if messages %}
-        <div class="mb-3">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                {% if message.tags == 'error' %}
-                    <i class="bi bi-exclamation-triangle"></i>
-                {% elif message.tags == 'warning' %}
-                    <i class="bi bi-exclamation-circle"></i>
-                {% elif message.tags == 'success' %}
-                    <i class="bi bi-check-circle"></i>
-                {% else %}
-                    <i class="bi bi-info-circle"></i>
-                {% endif %}
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+    <!-- Main Content Container -->
+    <main id="main-content" class="container" role="main">
+        <!-- System Messages -->
+        {% include 'partials/messages.html' %}
         
+        <!-- Page Breadcrumbs -->
+        {% block breadcrumbs %}{% endblock %}
+        
+        <!-- Main Page Content -->
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-light mt-5 py-4">
-        <div class="container text-center text-muted">
-            <p class="mb-1">&copy; {% current_year %} FamlyPortal. Built with Django and Bootstrap.</p>
-            <small>Helping families stay organized and connected.</small>
-        </div>
-    </footer>
+    <!-- Page Footer -->
+    {% include 'partials/footer.html' %}
 
-    <!-- Bootstrap 5 JS -->
+    <!-- Core JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- FamlyPortal Main JS -->
     <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- Page-Specific JavaScript -->
     {% block extra_js %}{% endblock %}
+    
+    <!-- Analytics & Tracking -->
+    {% block analytics %}{% endblock %}
 </body>
 </html>

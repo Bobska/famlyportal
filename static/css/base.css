@@ -1,0 +1,158 @@
+/* ==========================================================================
+   FamlyPortal Base Template Styles
+   Navigation, Layout, and Core Styling
+   ========================================================================== */
+
+/* Prevent layout shift from scrollbars */
+html {
+    overflow-y: scroll; /* Always show vertical scrollbar */
+}
+
+/* ==========================================================================
+   Fixed Navigation Styles
+   ========================================================================== */
+
+/* Compact Navigation - 50px MAX with stable positioning */
+.compact-nav {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    min-height: 50px;
+    max-height: 50px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    transition: none; /* Prevent any animations that could cause shifts */
+}
+
+/* Ensure body accounts for fixed navigation */
+body {
+    padding-top: 50px; /* Match navigation height */
+}
+
+/* Reset main container margin since nav is now fixed */
+main.container {
+    margin-top: 0 !important;
+    padding-top: 1rem;
+}
+
+.compact-nav .container {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.compact-nav .navbar-brand {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.25rem 0;
+}
+
+.compact-nav .nav-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.compact-nav .compact-dropdown {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.compact-nav .family-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   Navigation Responsive Design
+   ========================================================================== */
+
+/* Mobile Navigation Adjustments */
+@media (max-width: 768px) {
+    .compact-nav .family-name {
+        display: none !important;
+    }
+    
+    .compact-nav .navbar-brand {
+        font-size: 1rem;
+    }
+}
+
+/* Bootstrap container responsive breakpoints */
+@media (min-width: 576px) {
+    .compact-nav .container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .compact-nav .container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .compact-nav .container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .compact-nav .container {
+        max-width: 1140px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .compact-nav .container {
+        max-width: 1320px;
+    }
+}
+
+/* ==========================================================================
+   Base Layout Enhancements
+   ========================================================================== */
+
+/* Main content area spacing */
+main.container {
+    min-height: calc(100vh - 50px - 120px); /* Full height minus nav and footer */
+}
+
+/* Footer spacing */
+footer {
+    margin-top: auto;
+}
+
+/* Message alerts enhancement */
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.alert .bi {
+    margin-right: 0.5rem;
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Animation utilities */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

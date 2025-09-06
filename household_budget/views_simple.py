@@ -9,7 +9,6 @@ from datetime import date
 from decimal import Decimal
 
 from .models import Category, Transaction
-from .forms import TransactionForm
 
 
 # Dashboard View
@@ -22,7 +21,6 @@ def dashboard(request):
         'monthly_expenses': Decimal('0.00'),
         'monthly_net': Decimal('0.00'),
         'recent_transactions': Transaction.objects.all()[:10],
-        'top_categories': [],
     }
     return render(request, 'household_budget/dashboard.html', context)
 
@@ -34,29 +32,21 @@ class TransactionListView(ListView):
     template_name = 'household_budget/transaction_list.html'
     context_object_name = 'transactions'
     paginate_by = 25
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['categories'] = Category.objects.all()
-        context['total_income'] = Decimal('0.00')
-        context['total_expenses'] = Decimal('0.00')
-        context['net_total'] = Decimal('0.00')
-        return context
 
 
 @method_decorator(login_required, name='dispatch')
 class TransactionCreateView(CreateView):
     model = Transaction
-    form_class = TransactionForm
     template_name = 'household_budget/transaction_form.html'
+    fields = ['merchant_payee', 'date', 'amount', 'transaction_type', 'category', 'notes']
     success_url = reverse_lazy('household_budget:transaction_list')
 
 
 @method_decorator(login_required, name='dispatch')
 class TransactionUpdateView(UpdateView):
     model = Transaction
-    form_class = TransactionForm
     template_name = 'household_budget/transaction_form.html'
+    fields = ['merchant_payee', 'date', 'amount', 'transaction_type', 'category', 'notes']
     success_url = reverse_lazy('household_budget:transaction_list')
 
 
@@ -68,32 +58,21 @@ class TransactionDeleteView(DeleteView):
 
 
 # Category Views
-@login_required 
+@login_required
 def category_tree(request):
-    """Category tree management view"""
-    categories = Category.objects.filter(parent__isnull=True)
-    
-    context = {
-        'categories': categories,
-        'category_stats': [],
-    }
+    """Category management with tree view"""
+    root_categories = Category.objects.filter(parent__isnull=True, is_active=True)
+    context = {'root_categories': root_categories}
     return render(request, 'household_budget/category_tree.html', context)
-
-
-@method_decorator(login_required, name='dispatch')
-class CategoryCreateView(CreateView):
-    model = Category
-    template_name = 'household_budget/category_form.html'
-    fields = ['name', 'parent', 'icon', 'color']
-    success_url = reverse_lazy('household_budget:category_tree')
 
 
 # Reports View
 @login_required
 def reports(request):
-    """Budget reports view"""
+    """Budget reports and summaries"""
     context = {
-        'monthly_data': [],
-        'category_breakdown': [],
+        'income_total': Decimal('0.00'),
+        'expense_total': Decimal('0.00'),
+        'net_total': Decimal('0.00'),
     }
     return render(request, 'household_budget/reports.html', context)

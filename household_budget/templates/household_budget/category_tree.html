@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load app_nav %}
+
+{% block title %}Category Management{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'household_budget' %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'household_budget/css/budget.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Category Management</h2>
+        <a href="{% url 'household_budget:category_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Category
+        </a>
+    </div>
+
+    <!-- Category Tree -->
+    <div class="budget-card">
+        <div class="card-header">
+            <h5 class="mb-0">Category Tree</h5>
+        </div>
+        <div class="card-body">
+            {% if categories %}
+                <div class="category-tree" id="categoryTree">
+                    {% for category in categories %}
+                        {% if category.parent is None %}
+                            {% include 'household_budget/partials/category_node.html' with category=category %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-diagram-3 fs-1 text-muted"></i>
+                    <h5 class="text-muted mt-3">No categories yet</h5>
+                    <p class="text-muted">Create your first category to start organizing your transactions.</p>
+                    <a href="{% url 'household_budget:category_add' %}" class="btn btn-primary">
+                        Create Category
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Category Statistics -->
+    {% if category_stats %}
+    <div class="budget-card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Category Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for stat in category_stats %}
+                <div class="col-md-4 mb-3">
+                    <div class="category-stat-card">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="category-icon me-2">
+                                <i class="{{ stat.icon }}"></i>
+                            </div>
+                            <h6 class="mb-0">{{ stat.name }}</h6>
+                        </div>
+                        <div class="category-amount {% if stat.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if stat.transaction_type == 'income' %}+{% else %}-{% endif %}${{ stat.total_amount|floatformat:2 }}
+                        </div>
+                        <small class="text-muted">{{ stat.transaction_count }} transaction{{ stat.transaction_count|pluralize }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Category Edit Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCategoryForm" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="editCategoryName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="editCategoryName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryIcon" class="form-label">Icon</label>
+                        <input type="text" class="form-control" id="editCategoryIcon" name="icon" placeholder="bi bi-house">
+                        <small class="form-text text-muted">Use Bootstrap Icons classes (e.g., bi bi-house)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="editCategoryColor" name="color">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryParent" class="form-label">Parent Category</label>
+                        <select class="form-select" id="editCategoryParent" name="parent">
+                            <option value="">No Parent (Top Level)</option>
+                            {% for category in categories %}
+                                {% if category.parent is None %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="editCategoryForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the category "<span id="deleteCategoryName"></span>"?</p>
+                <div id="categoryWarning" class="alert alert-warning" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    This category has <span id="transactionCount"></span> transaction(s) and <span id="subcategoryCount"></span> subcategory(ies).
+                </div>
+                <p class="text-danger"><small>This action cannot be undone. All transactions in this category will be moved to "Uncategorized".</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="deleteCategoryForm" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete Category</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Category tree expand/collapse functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add fade-in animation
+        document.querySelector('.fade-in').style.opacity = '1';
+        
+        // Initialize category tree
+        initializeCategoryTree();
+        
+        // Add event listeners for category actions
+        document.querySelectorAll('.category-edit-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const categoryId = this.dataset.categoryId;
+                editCategory(categoryId);
+            });
+        });
+        
+        document.querySelectorAll('.category-delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const categoryId = this.dataset.categoryId;
+                const categoryName = this.dataset.categoryName;
+                const transactionCount = this.dataset.transactionCount || 0;
+                const subcategoryCount = this.dataset.subcategoryCount || 0;
+                deleteCategory(categoryId, categoryName, transactionCount, subcategoryCount);
+            });
+        });
+    });
+
+    function initializeCategoryTree() {
+        // Add click handlers for expand/collapse
+        document.querySelectorAll('.category-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const categoryNode = this.closest('.category-node');
+                const children = categoryNode.querySelector('.category-children');
+                
+                if (children) {
+                    if (children.style.display === 'none') {
+                        children.style.display = 'block';
+                        this.querySelector('i').className = 'bi bi-chevron-down';
+                    } else {
+                        children.style.display = 'none';
+                        this.querySelector('i').className = 'bi bi-chevron-right';
+                    }
+                }
+            });
+        });
+    }
+
+    function editCategory(categoryId) {
+        // Fetch category data and populate form
+        fetch(`/budget/category/${categoryId}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editCategoryName').value = data.name;
+                document.getElementById('editCategoryIcon').value = data.icon || '';
+                document.getElementById('editCategoryColor').value = data.color || '#007bff';
+                document.getElementById('editCategoryParent').value = data.parent || '';
+                
+                document.getElementById('editCategoryForm').action = `/budget/category/${categoryId}/edit/`;
+                
+                const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching category data:', error);
+                alert('Error loading category data. Please try again.');
+            });
+    }
+
+    function deleteCategory(categoryId, categoryName, transactionCount, subcategoryCount) {
+        document.getElementById('deleteCategoryName').textContent = categoryName;
+        document.getElementById('deleteCategoryForm').action = `/budget/category/${categoryId}/delete/`;
+        
+        // Show warning if category has transactions or subcategories
+        if (transactionCount > 0 || subcategoryCount > 0) {
+            document.getElementById('transactionCount').textContent = transactionCount;
+            document.getElementById('subcategoryCount').textContent = subcategoryCount;
+            document.getElementById('categoryWarning').style.display = 'block';
+        } else {
+            document.getElementById('categoryWarning').style.display = 'none';
+        }
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
+        modal.show();
+    }
+
+    // Drag and drop functionality for reordering categories
+    function enableDragDrop() {
+        // This would implement drag and drop reordering
+        // For now, keeping it simple without this feature
+    }
+</script>
+{% endblock %}

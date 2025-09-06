@@ -15,7 +15,6 @@ urlpatterns = [
     
     # Category Management
     path('categories/', views.category_tree, name='category_tree'),
-    path('categories/add/', views.CategoryCreateView.as_view(), name='category_add'),
     
     # Reports
     path('reports/', views.reports, name='reports'),

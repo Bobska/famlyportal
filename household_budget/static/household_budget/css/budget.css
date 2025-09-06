@@ -1,0 +1,457 @@
+/* ==========================================================================
+   Budget App Specific Styles - Dashboard Consistent Styling
+   ========================================================================== */
+
+/* Navigation Gap Fix - Seamless connection */
+.app-navigation {
+    margin-top: 0 !important;
+    border-top: none !important;
+    position: sticky;
+    top: 56px; /* Height of main nav */
+    z-index: 1020;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Remove any gaps between main nav and app nav */
+.navbar + .app-navigation {
+    margin-top: 0;
+    border-top: none;
+}
+
+/* Main content should start right after app nav */
+main.container {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+/* ==========================================================================
+   Dashboard Cards - Match Main Dashboard Style
+   ========================================================================== */
+
+.budget-card {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    margin-bottom: 1.5rem;
+}
+
+.budget-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.budget-card .card-header {
+    border-bottom: 1px solid #f1f3f4;
+    background: transparent;
+    padding: 1.25rem 1.5rem 1rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.budget-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Summary Cards */
+.summary-card {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-left: 4px solid transparent;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.income {
+    border-left-color: #28a745;
+}
+
+.summary-card.expense {
+    border-left-color: #dc3545;
+}
+
+.summary-card.net {
+    border-left-color: #007bff;
+}
+
+.summary-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.summary-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+}
+
+/* ==========================================================================
+   Transaction Cards
+   ========================================================================== */
+
+.transaction-card {
+    background: white;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    border-left: 4px solid transparent;
+}
+
+.transaction-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.transaction-card.income {
+    border-left-color: #28a745;
+}
+
+.transaction-card.expense {
+    border-left-color: #dc3545;
+}
+
+.transaction-card.transfer {
+    border-left-color: #ffc107;
+}
+
+.transaction-amount {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.transaction-amount.positive {
+    color: #28a745;
+}
+
+.transaction-amount.negative {
+    color: #dc3545;
+}
+
+.transaction-amount.neutral {
+    color: #ffc107;
+}
+
+.transaction-merchant {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.transaction-details {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* ==========================================================================
+   Category Tree Styling
+   ========================================================================== */
+
+.category-tree {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.category-node {
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.category-node:hover {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+.category-node.expandable {
+    border-left: 3px solid #007bff;
+}
+
+.category-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-size: 0.9rem;
+    color: white;
+}
+
+.category-children {
+    margin-left: 2rem;
+    border-left: 2px dashed #e9ecef;
+    padding-left: 1rem;
+}
+
+.expand-toggle {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    margin-right: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.expand-toggle:hover {
+    background-color: #f8f9fa;
+}
+
+.expand-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.expand-toggle.expanded i {
+    transform: rotate(90deg);
+}
+
+/* ==========================================================================
+   Forms - Dashboard Consistent
+   ========================================================================== */
+
+.budget-form {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.form-control {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-select {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* ==========================================================================
+   Buttons - Dashboard Consistent
+   ========================================================================== */
+
+.btn {
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    border: none;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
+    border: none;
+}
+
+.btn-outline-primary {
+    border: 2px solid #007bff;
+    color: #007bff;
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: #007bff;
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .app-navigation {
+        position: static;
+        top: auto;
+    }
+    
+    .budget-card,
+    .summary-card,
+    .category-tree,
+    .budget-form {
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    
+    .summary-value {
+        font-size: 1.5rem;
+    }
+    
+    .transaction-card {
+        padding: 0.75rem;
+    }
+    
+    .category-children {
+        margin-left: 1rem;
+        padding-left: 0.75rem;
+    }
+}
+
+/* ==========================================================================
+   Loading States and Transitions
+   ========================================================================== */
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Quick Action Buttons
+   ========================================================================== */
+
+.quick-actions {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.quick-action-btn {
+    background: white;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    color: #6c757d;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.quick-action-btn:hover {
+    border-color: #007bff;
+    color: #007bff;
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+.quick-action-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* ==========================================================================
+   Budget Health Indicators
+   ========================================================================== */
+
+.budget-health {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    text-align: center;
+}
+
+.health-indicator {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+}
+
+.health-indicator.excellent {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.health-indicator.good {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+}
+
+.health-indicator.warning {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+}
+
+.health-indicator.danger {
+    background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+}

@@ -1,0 +1,244 @@
+{% extends 'budget_allocation/base.html' %}
+{% load static %}
+
+{% block page_title %}Weekly Allocation{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item active" aria-current="page">Weekly Allocation</li>
+{% endblock %}
+
+{% block page_actions %}
+{% if not current_week.allocation_locked %}
+    <a href="{% url 'budget_allocation:allocation_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>Add Allocation
+    </a>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<!-- Week Navigation -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="?week={{ prev_week.week_start_date|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-chevron-left me-1"></i>Previous Week
+                    </a>
+                    
+                    <div class="text-center">
+                        <h4 class="mb-1">
+                            Week of {{ current_week.week_start_date|date:"M d, Y" }}
+                        </h4>
+                        <p class="text-muted mb-0">
+                            {{ current_week.week_start_date|date:"M d" }} - {{ current_week.week_end_date|date:"M d, Y" }}
+                        </p>
+                        {% if current_week.allocation_locked %}
+                            <span class="badge bg-warning mt-2">
+                                <i class="fas fa-lock me-1"></i>Allocation Locked
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success mt-2">
+                                <i class="fas fa-unlock me-1"></i>Open for Changes
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <a href="?week={{ next_week.week_start_date|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                        Next Week<i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Allocation Summary -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Allocation Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Total Available</h6>
+                            <h4 class="text-info">${{ total_available|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Total Allocated</h6>
+                            <h4 class="text-primary">${{ total_allocated|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Remaining</h6>
+                            <h4 class="{% if remaining >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ${{ remaining|floatformat:2 }}
+                            </h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Allocation Rate</h6>
+                            <h4 class="{% if allocation_percentage <= 100 %}text-success{% else %}text-warning{% endif %}">
+                                {{ allocation_percentage|floatformat:1 }}%
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if remaining < 0 %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Over-allocated!</strong> You have allocated ${{ remaining|floatformat:2|slice:"1:" }} more than available.
+                    </div>
+                {% elif remaining > 0 %}
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You have ${{ remaining|floatformat:2 }} remaining to allocate.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Allocations by Account -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Allocations by Account
+                </h5>
+                {% if not current_week.allocation_locked %}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#lockWeekModal">
+                            <i class="fas fa-lock me-1"></i>Lock Week
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if allocations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Account</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">% of Total</th>
+                                    <th>Description</th>
+                                    {% if not current_week.allocation_locked %}
+                                        <th class="text-end">Actions</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for allocation in allocations %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="account-color-indicator me-2" 
+                                                      style="background-color: {{ allocation.account.color|default:'#6c757d' }}; width: 12px; height: 12px; border-radius: 2px;"></span>
+                                                <a href="{% url 'budget_allocation:account_detail' allocation.account.pk %}" class="text-decoration-none">
+                                                    {{ allocation.account.name }}
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ allocation.account.account_type }}">
+                                                {{ allocation.account.get_account_type_display }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>${{ allocation.amount|floatformat:2 }}</strong>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if total_allocated > 0 %}
+                                                {{ allocation.amount|div:total_allocated|mul:100|floatformat:1 }}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if allocation.description %}
+                                                {{ allocation.description|truncatechars:50 }}
+                                            {% else %}
+                                                <span class="text-muted">No description</span>
+                                            {% endif %}
+                                        </td>
+                                        {% if not current_week.allocation_locked %}
+                                            <td class="text-end">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'budget_allocation:allocation_update' allocation.pk %}" class="btn btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'budget_allocation:allocation_delete' allocation.pk %}" class="btn btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No allocations for this week</h5>
+                        <p class="text-muted">Start by allocating funds to your accounts.</p>
+                        {% if not current_week.allocation_locked %}
+                            <a href="{% url 'budget_allocation:allocation_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Create First Allocation
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lock Week Modal -->
+{% if not current_week.allocation_locked %}
+<div class="modal fade" id="lockWeekModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lock Week Allocation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to lock the allocation for this week?</p>
+                <p class="text-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Once locked, you won't be able to modify allocations for this week.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'budget_allocation:allocation_lock_week' %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="week_start_date" value="{{ current_week.week_start_date|date:'Y-m-d' }}">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-lock me-1"></i>Lock Week
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

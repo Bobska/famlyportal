@@ -10,4 +10,169 @@
     border-top: none !important;
 }
 
-/* App-specific styling will be added as features are implemented */
+/* Account color indicators */
+.account-color-indicator {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Account tree styling */
+.account-tree .account-item {
+    position: relative;
+}
+
+.account-tree .account-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 100%;
+    height: 20px;
+    border-left: 2px solid #e9ecef;
+}
+
+/* Progress bars for allocation percentages */
+.allocation-progress {
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.allocation-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+    transition: width 0.3s ease;
+}
+
+.allocation-progress-bar.over-allocated {
+    background: linear-gradient(90deg, #dc3545 0%, #fd7e14 100%);
+}
+
+/* Week navigation */
+.week-navigation {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+/* Quick stats cards */
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-card .stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Account type badges */
+.badge.bg-income {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-expense {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-savings {
+    background-color: #17a2b8 !important;
+}
+
+.badge.bg-debt {
+    background-color: #fd7e14 !important;
+}
+
+.badge.bg-investment {
+    background-color: #6f42c1 !important;
+}
+
+/* Transaction type indicators */
+.transaction-income {
+    border-left: 4px solid #28a745;
+}
+
+.transaction-expense {
+    border-left: 4px solid #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .account-tree .account-item {
+        margin-bottom: 1rem;
+    }
+    
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Animation for loading states */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced table styling */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+
+/* Form enhancements */
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+}
+
+/* Color picker styling */
+input[type="color"] {
+    width: 60px;
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 0.25rem;
+}

@@ -1,0 +1,143 @@
+{% extends 'budget_allocation/base.html' %}
+{% load static %}
+
+{% block page_title %}{% if form.instance.pk %}Edit Account{% else %}Create Account{% endif %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:account_list' %}">Accounts</a></li>
+<li class="breadcrumb-item active" aria-current="page">{% if form.instance.pk %}Edit{% else %}Create{% endif %}</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-{% if form.instance.pk %}edit{% else %}plus{% endif %} me-2"></i>
+                    {% if form.instance.pk %}Edit Account{% else %}Create New Account{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Account Name *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.name.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.account_type.id_for_label }}" class="form-label">Account Type *</label>
+                                {{ form.account_type }}
+                                {% if form.account_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.account_type.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.parent_account.id_for_label }}" class="form-label">Parent Account</label>
+                                {{ form.parent_account }}
+                                {% if form.parent_account.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.parent_account.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Leave empty for top-level account</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
+                                {{ form.color }}
+                                {% if form.color.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.color.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Choose a color to identify this account</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-check mb-3">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            Account is active
+                        </label>
+                        {% if form.is_active.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.is_active.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'budget_allocation:account_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if form.instance.pk %}Update Account{% else %}Create Account{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if form.instance.pk %}
+<!-- Account Type Information -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Account Type Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>{{ form.instance.get_account_type_display }}:</strong>
+                    {% if form.instance.account_type == 'income' %}
+                        Income accounts track money coming into your budget.
+                    {% elif form.instance.account_type == 'expense' %}
+                        Expense accounts track money going out of your budget.
+                    {% elif form.instance.account_type == 'savings' %}
+                        Savings accounts are for money set aside for future use.
+                    {% elif form.instance.account_type == 'debt' %}
+                        Debt accounts track money owed to others.
+                    {% elif form.instance.account_type == 'investment' %}
+                        Investment accounts track money invested for growth.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

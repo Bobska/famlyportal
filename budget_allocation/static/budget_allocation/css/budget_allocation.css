@@ -1,0 +1,13 @@
+/* ==========================================================================
+   Budget Allocation App Specific Styles
+   ========================================================================== */
+
+/* Navigation Gap Fix - Override app_nav.html sticky positioning for budget allocation app */
+.app-navigation {
+    position: static !important; /* Override sticky positioning from app_nav.html */
+    top: auto !important; /* Remove any top offset */
+    margin-top: 0 !important;
+    border-top: none !important;
+}
+
+/* App-specific styling will be added as features are implemented */

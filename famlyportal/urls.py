@@ -39,6 +39,7 @@ urlpatterns = [
     path('credit-cards/', include('credit_cards.urls')),
     path('household-budget/', include('household_budget.urls')),
     path('subscription-tracker/', include('subscription_tracker.urls')),
+    path('budget-allocation/', include('budget_allocation.urls')),
 ]
 
 # Serve media files in development

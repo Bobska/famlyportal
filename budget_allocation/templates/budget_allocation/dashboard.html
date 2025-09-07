@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load app_nav %}
+
+{% block title %}Budget Allocation Dashboard{% endblock %}
+
+{% block extra_nav %}
+    {% app_navigation 'budget_allocation' %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'budget_allocation/css/budget_allocation.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="h3 mb-0">
+                            <i class="bi-pie-chart me-2"></i>
+                            Budget Allocation Dashboard
+                        </h1>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Welcome to the Budget Allocation app. This application will help you 
+                            allocate and track your budget across different categories and goals.
+                        </p>
+                        <div class="alert alert-info">
+                            <i class="bi-info-circle me-2"></i>
+                            <strong>Coming Soon:</strong> Full budget allocation functionality is being developed.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

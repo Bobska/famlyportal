@@ -172,7 +172,7 @@ def account_create(request):
         'form': form,
         'family': family,
     }
-    return render(request, 'budget_allocation/account/create.html', context)
+    return render(request, 'budget_allocation/account/form.html', context)
 
 
 @login_required

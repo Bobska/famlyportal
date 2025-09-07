@@ -2,7 +2,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from .models import (
-    Account, Allocation, Transaction, BudgetTemplate, FamilySettings
+    Account, Allocation, Transaction, BudgetTemplate, FamilySettings,
+    AccountLoan, LoanPayment
 )
 
 
@@ -368,6 +369,131 @@ class FamilySettingsForm(forms.ModelForm):
         
         # Add help text
         self.fields['week_start_day'].help_text = "What day should your budget week start on?"
+        self.fields['default_interest_rate'].help_text = "Default weekly interest rate for new loans (as decimal, e.g. 0.020 for 2%)"
+        self.fields['notification_threshold'].help_text = "Minimum amount for automatic notifications and actions"
+        self.fields['auto_allocate_enabled'].help_text = "Automatically apply budget templates each week"
+        self.fields['auto_repay_enabled'].help_text = "Automatically repay loans when accounts have sufficient funds"
+
+
+# Future loan management forms (placeholder for advanced loan features)
+class AccountLoanForm(forms.ModelForm):
+    """Form for creating inter-account loans"""
+    
+    class Meta:
+        model = AccountLoan
+        fields = [
+            'lender_account', 'borrower_account', 'original_amount',
+            'weekly_interest_rate', 'loan_date'
+        ]
+        widgets = {
+            'lender_account': forms.Select(attrs={'class': 'form-select'}),
+            'borrower_account': forms.Select(attrs={'class': 'form-select'}),
+            'original_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': '0.00'
+            }),
+            'weekly_interest_rate': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.001',
+                'min': '0.000',
+                'max': '1.000',
+                'placeholder': '0.020'
+            }),
+            'loan_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.family = kwargs.pop('family', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.family:
+            # Filter accounts to family accounts
+            family_accounts = Account.objects.filter(
+                family=self.family,
+                is_active=True
+            ).order_by('account_type', 'name')
+            
+            self.fields['lender_account'].queryset = family_accounts
+            self.fields['borrower_account'].queryset = family_accounts
+        
+        # Set default date to today
+        if not self.instance.pk:
+            from datetime import date
+            self.fields['loan_date'].initial = date.today()
+        
+        # Add help text
+        self.fields['lender_account'].help_text = "Account providing the loan"
+        self.fields['borrower_account'].help_text = "Account receiving the loan"
+        self.fields['original_amount'].help_text = "Principal loan amount"
+        self.fields['weekly_interest_rate'].help_text = "Weekly interest rate (e.g. 0.020 for 2%)"
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        lender_account = cleaned_data.get('lender_account')
+        borrower_account = cleaned_data.get('borrower_account')
+        
+        # Validate different accounts
+        if lender_account and borrower_account and lender_account == borrower_account:
+            raise ValidationError("Lender and borrower accounts must be different.")
+        
+        return cleaned_data
+
+
+class LoanPaymentForm(forms.ModelForm):
+    """Form for recording loan payments"""
+    
+    class Meta:
+        model = LoanPayment
+        fields = ['amount', 'payment_date', 'notes']
+        widgets = {
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': '0.00'
+            }),
+            'payment_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Notes about this payment (optional)'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.loan = kwargs.pop('loan', None)
+        super().__init__(*args, **kwargs)
+        
+        # Set default date to today
+        if not self.instance.pk:
+            from datetime import date
+            self.fields['payment_date'].initial = date.today()
+        
+        # Make notes optional
+        self.fields['notes'].required = False
+        
+        # Add help text
+        self.fields['amount'].help_text = "Payment amount in dollars"
+        self.fields['payment_date'].help_text = "Date when payment was made"
+    
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        
+        if self.loan and amount:
+            if amount > self.loan.remaining_amount:
+                raise ValidationError(
+                    f"Payment amount cannot exceed remaining balance of ${self.loan.remaining_amount}"
+                )
+        
+        return amount
         self.fields['default_interest_rate'].help_text = "Default weekly interest rate for loans (as decimal, e.g., 0.01 = 1%)"
         self.fields['notification_threshold'].help_text = "Minimum account balance to trigger low balance notifications"
         self.fields['auto_allocate_enabled'].help_text = "Automatically allocate money based on budget templates"

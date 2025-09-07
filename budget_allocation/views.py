@@ -7,6 +7,9 @@ from django.utils.decorators import method_decorator
 from django.db.models import Sum, Q, Count
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 
@@ -19,6 +22,10 @@ from .models import (
 from .forms import (
     AccountForm, AllocationForm, TransactionForm, 
     BudgetTemplateForm, FamilySettingsForm
+)
+from .utilities import (
+    get_current_week, get_available_money, transfer_money,
+    get_account_balance, get_account_tree
 )
 
 
@@ -580,3 +587,127 @@ def family_settings(request):
         'family': family,
     }
     return render(request, 'budget_allocation/settings.html', context)
+
+
+# Simplified API endpoints for future loan functionality
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def account_balance_api(request, account_id):
+    """Get current account balance via AJAX"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'error': 'Family not found'}, status=400)
+    
+    try:
+        account = Account.objects.get(pk=account_id, family=family)
+        current_week = get_current_week(family)
+        balance = get_account_balance(account, current_week)
+        
+        return JsonResponse({
+            'account_id': account.pk,
+            'name': account.name,
+            'balance': float(balance),
+            'formatted_balance': f"${balance:,.2f}"
+        })
+    except Account.DoesNotExist:
+        return JsonResponse({'error': 'Account not found'}, status=404)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def allocation_suggestions_api(request):
+    """Get auto-allocation suggestions via AJAX"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'error': 'Family not found'}, status=400)
+    
+    current_week = get_current_week(family)
+    available_money = get_available_money(family, current_week)
+    templates = BudgetTemplate.objects.filter(
+        family=family,
+        is_active=True
+    ).order_by('priority')
+    
+    suggestions = []
+    remaining_money = available_money
+    
+    for template in templates:
+        if remaining_money <= 0:
+            break
+            
+        if template.allocation_type == 'percentage' and template.percentage:
+            suggested_amount = min(
+                available_money * (template.percentage / 100),
+                remaining_money
+            )
+        elif template.allocation_type == 'fixed' and template.weekly_amount:
+            suggested_amount = min(template.weekly_amount, remaining_money)
+        else:  # range or calculated
+            suggested_amount = min(template.min_amount or 0, remaining_money)
+        
+        if suggested_amount and suggested_amount > 0:
+            suggestions.append({
+                'account_id': template.account.pk,
+                'account_name': template.account.name,
+                'amount': float(suggested_amount),
+                'formatted_amount': f"${suggested_amount:,.2f}",
+                'priority': template.priority,
+                'allocation_type': template.allocation_type
+            })
+            remaining_money -= suggested_amount
+    
+    return JsonResponse({
+        'suggestions': suggestions,
+        'total_available': float(available_money),
+        'remaining_after_suggestions': float(remaining_money)
+    })
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def week_summary_api(request):
+    """Get current week financial summary via AJAX"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'error': 'Family not found'}, status=400)
+    
+    current_week = get_current_week(family)
+    
+    # Calculate totals
+    total_allocated = Allocation.objects.filter(
+        week=current_week
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    total_income = Transaction.objects.filter(
+        account__family=family,
+        week=current_week,
+        transaction_type='income'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    total_expenses = Transaction.objects.filter(
+        account__family=family,
+        week=current_week,
+        transaction_type='expense'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    available_money = get_available_money(family, current_week)
+    
+    # Get account tree
+    account_tree = get_account_tree(family)
+    
+    return JsonResponse({
+        'week_start': current_week.start_date.strftime('%Y-%m-%d'),
+        'week_end': current_week.end_date.strftime('%Y-%m-%d'),
+        'total_allocated': float(total_allocated),
+        'total_income': float(total_income),
+        'total_expenses': float(total_expenses),
+        'available_money': float(available_money),
+        'account_tree': account_tree,
+        'formatted_allocated': f"${total_allocated:,.2f}",
+        'formatted_income': f"${total_income:,.2f}",
+        'formatted_expenses': f"${total_expenses:,.2f}",
+        'formatted_available': f"${available_money:,.2f}"
+    })

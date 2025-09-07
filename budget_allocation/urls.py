@@ -26,9 +26,11 @@ urlpatterns = [
     path('budget-templates/', views.budget_template_list, name='budget_template_list'),
     path('budget-templates/create/', views.budget_template_create, name='budget_template_create'),
     
-    # Loan management
-    path('loans/', views.loan_list, name='loan_list'),
-    
     # Settings
     path('settings/', views.family_settings, name='family_settings'),
+    
+    # API Endpoints
+    path('api/account/<int:account_id>/balance/', views.account_balance_api, name='account_balance_api'),
+    path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),
+    path('api/week-summary/', views.week_summary_api, name='week_summary_api'),
 ]

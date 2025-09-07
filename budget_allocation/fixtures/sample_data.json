@@ -1,0 +1,1842 @@
+[
+  {
+    "model": "accounts.family",
+    "pk": 1,
+    "fields": {
+      "name": "Johnson Family",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "username": "john_johnson",
+      "first_name": "John",
+      "last_name": "Johnson",
+      "email": "john@johnsonfamily.com",
+      "is_staff": false,
+      "is_superuser": false,
+      "date_joined": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 2,
+    "fields": {
+      "username": "sarah_johnson",
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "email": "sarah@johnsonfamily.com",
+      "is_staff": false,
+      "is_superuser": false,
+      "date_joined": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.familymember",
+    "pk": 1,
+    "fields": {
+      "user": 1,
+      "family": 1,
+      "role": "admin",
+      "joined_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.familymember",
+    "pk": 2,
+    "fields": {
+      "user": 2,
+      "family": 1,
+      "role": "parent",
+      "joined_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.familysettings",
+    "pk": 1,
+    "fields": {
+      "family": 1,
+      "week_start_day": 0,
+      "default_interest_rate": "0.0200",
+      "auto_allocate_enabled": true,
+      "auto_repay_enabled": false,
+      "notification_threshold": "100.00",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 1,
+    "fields": {
+      "family": 1,
+      "name": "Johnson Family Budget",
+      "description": "Root account for all family finances",
+      "account_type": "root",
+      "parent": null,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 2,
+    "fields": {
+      "family": 1,
+      "name": "Income",
+      "description": "All family income sources",
+      "account_type": "income",
+      "parent": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 3,
+    "fields": {
+      "family": 1,
+      "name": "John's Salary",
+      "description": "Primary income from software development job",
+      "account_type": "income",
+      "parent": 2,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 4,
+    "fields": {
+      "family": 1,
+      "name": "Sarah's Salary",
+      "description": "Income from teaching position",
+      "account_type": "income",
+      "parent": 2,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 5,
+    "fields": {
+      "family": 1,
+      "name": "Side Projects",
+      "description": "Freelance and consulting income",
+      "account_type": "income",
+      "parent": 2,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 6,
+    "fields": {
+      "family": 1,
+      "name": "Essential Expenses",
+      "description": "Must-have expenses for daily living",
+      "account_type": "spending",
+      "parent": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 7,
+    "fields": {
+      "family": 1,
+      "name": "Housing",
+      "description": "Rent, utilities, maintenance",
+      "account_type": "spending",
+      "parent": 6,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 8,
+    "fields": {
+      "family": 1,
+      "name": "Groceries",
+      "description": "Food and household supplies",
+      "account_type": "spending",
+      "parent": 6,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 9,
+    "fields": {
+      "family": 1,
+      "name": "Transportation",
+      "description": "Car payments, gas, public transit",
+      "account_type": "spending",
+      "parent": 6,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 10,
+    "fields": {
+      "family": 1,
+      "name": "Healthcare",
+      "description": "Insurance, medications, doctor visits",
+      "account_type": "spending",
+      "parent": 6,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 11,
+    "fields": {
+      "family": 1,
+      "name": "Savings & Investments",
+      "description": "Long-term savings and investment funds",
+      "account_type": "spending",
+      "parent": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 12,
+    "fields": {
+      "family": 1,
+      "name": "Emergency Fund",
+      "description": "Emergency savings (6 months expenses)",
+      "account_type": "spending",
+      "parent": 11,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 13,
+    "fields": {
+      "family": 1,
+      "name": "Retirement",
+      "description": "401k and IRA contributions",
+      "account_type": "spending",
+      "parent": 11,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 14,
+    "fields": {
+      "family": 1,
+      "name": "House Down Payment",
+      "description": "Saving for first home purchase",
+      "account_type": "spending",
+      "parent": 11,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 15,
+    "fields": {
+      "family": 1,
+      "name": "Lifestyle & Entertainment",
+      "description": "Non-essential but enjoyable expenses",
+      "account_type": "spending",
+      "parent": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 16,
+    "fields": {
+      "family": 1,
+      "name": "Dining Out",
+      "description": "Restaurants and takeout",
+      "account_type": "spending",
+      "parent": 15,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 17,
+    "fields": {
+      "family": 1,
+      "name": "Vacation Fund",
+      "description": "Annual vacation savings",
+      "account_type": "spending",
+      "parent": 15,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 18,
+    "fields": {
+      "family": 1,
+      "name": "Hobbies",
+      "description": "Personal interests and hobbies",
+      "account_type": "spending",
+      "parent": 15,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 19,
+    "fields": {
+      "family": 1,
+      "name": "Debt Payments",
+      "description": "Credit cards, loans, and other debt",
+      "account_type": "spending",
+      "parent": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.account",
+    "pk": 20,
+    "fields": {
+      "family": 1,
+      "name": "Student Loans",
+      "description": "Monthly student loan payments",
+      "account_type": "spending",
+      "parent": 19,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 1,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-07-22",
+      "end_date": "2024-07-28",
+      "is_current": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 2,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-07-29",
+      "end_date": "2024-08-04",
+      "is_current": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 3,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-08-05",
+      "end_date": "2024-08-11",
+      "is_current": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 4,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-08-12",
+      "end_date": "2024-08-18",
+      "is_current": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 5,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-08-19",
+      "end_date": "2024-08-25",
+      "is_current": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 6,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-08-26",
+      "end_date": "2024-09-01",
+      "is_current": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.weeklyperiod",
+    "pk": 7,
+    "fields": {
+      "family": 1,
+      "start_date": "2024-09-02",
+      "end_date": "2024-09-08",
+      "is_current": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 1,
+    "fields": {
+      "family": 1,
+      "account": 7,
+      "name": "Weekly Housing Allocation",
+      "description": "Fixed weekly amount for rent and utilities",
+      "allocation_type": "fixed",
+      "weekly_amount": "500.00",
+      "priority": 1,
+      "is_essential": true,
+      "never_miss": true,
+      "auto_allocate": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 2,
+    "fields": {
+      "family": 1,
+      "account": 8,
+      "name": "Weekly Grocery Budget",
+      "description": "Food and household supplies",
+      "allocation_type": "fixed",
+      "weekly_amount": "150.00",
+      "priority": 1,
+      "is_essential": true,
+      "never_miss": true,
+      "auto_allocate": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 3,
+    "fields": {
+      "family": 1,
+      "account": 9,
+      "name": "Transportation Costs",
+      "description": "Gas, car payment, maintenance",
+      "allocation_type": "fixed",
+      "weekly_amount": "100.00",
+      "priority": 1,
+      "is_essential": true,
+      "never_miss": true,
+      "auto_allocate": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 4,
+    "fields": {
+      "family": 1,
+      "account": 12,
+      "name": "Emergency Fund Building",
+      "description": "10% of income to emergency savings",
+      "allocation_type": "percentage",
+      "percentage": "10.00",
+      "priority": 2,
+      "is_essential": false,
+      "never_miss": false,
+      "auto_allocate": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 5,
+    "fields": {
+      "family": 1,
+      "account": 13,
+      "name": "Retirement Savings",
+      "description": "15% of income for retirement",
+      "allocation_type": "percentage",
+      "percentage": "15.00",
+      "priority": 2,
+      "is_essential": false,
+      "never_miss": false,
+      "auto_allocate": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 6,
+    "fields": {
+      "family": 1,
+      "account": 16,
+      "name": "Dining Out Budget",
+      "description": "Flexible restaurant budget",
+      "allocation_type": "range",
+      "min_amount": "50.00",
+      "max_amount": "200.00",
+      "priority": 4,
+      "is_essential": false,
+      "never_miss": false,
+      "auto_allocate": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.budgettemplate",
+    "pk": 7,
+    "fields": {
+      "family": 1,
+      "account": 17,
+      "name": "Vacation Savings",
+      "description": "Save for annual vacation",
+      "allocation_type": "fixed",
+      "weekly_amount": "75.00",
+      "priority": 3,
+      "is_essential": false,
+      "never_miss": false,
+      "auto_allocate": true,
+      "is_active": true,
+      "annual_amount": "4000.00",
+      "current_saved": "1250.00",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 1,
+    "fields": {
+      "account": 3,
+      "week": 1,
+      "amount": "2400.00",
+      "transaction_type": "income",
+      "description": "Bi-weekly salary - Software Development",
+      "transaction_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 2,
+    "fields": {
+      "account": 4,
+      "week": 1,
+      "amount": "800.00",
+      "transaction_type": "income",
+      "description": "Weekly teaching salary",
+      "transaction_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 3,
+    "fields": {
+      "account": 7,
+      "week": 1,
+      "amount": "-500.00",
+      "transaction_type": "expense",
+      "description": "Weekly housing allocation",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 4,
+    "fields": {
+      "account": 8,
+      "week": 1,
+      "amount": "-150.00",
+      "transaction_type": "expense",
+      "description": "Weekly grocery shopping",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 5,
+    "fields": {
+      "account": 9,
+      "week": 1,
+      "amount": "-100.00",
+      "transaction_type": "expense",
+      "description": "Transportation costs",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 6,
+    "fields": {
+      "account": 10,
+      "week": 1,
+      "amount": "-50.00",
+      "transaction_type": "expense",
+      "description": "Healthcare expenses",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 7,
+    "fields": {
+      "account": 16,
+      "week": 1,
+      "amount": "-75.00",
+      "transaction_type": "expense",
+      "description": "Dining out",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 8,
+    "fields": {
+      "account": 12,
+      "week": 1,
+      "amount": "-200.00",
+      "transaction_type": "expense",
+      "description": "Emergency fund contribution",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 9,
+    "fields": {
+      "account": 13,
+      "week": 1,
+      "amount": "-300.00",
+      "transaction_type": "expense",
+      "description": "Retirement savings",
+      "transaction_date": "2024-07-23",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 10,
+    "fields": {
+      "account": 4,
+      "week": 2,
+      "amount": "800.00",
+      "transaction_type": "income",
+      "description": "Weekly teaching salary",
+      "transaction_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 11,
+    "fields": {
+      "account": 7,
+      "week": 2,
+      "amount": "-500.00",
+      "transaction_type": "expense",
+      "description": "Weekly housing allocation",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 12,
+    "fields": {
+      "account": 8,
+      "week": 2,
+      "amount": "-150.00",
+      "transaction_type": "expense",
+      "description": "Weekly grocery shopping",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 13,
+    "fields": {
+      "account": 9,
+      "week": 2,
+      "amount": "-100.00",
+      "transaction_type": "expense",
+      "description": "Transportation costs",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 14,
+    "fields": {
+      "account": 10,
+      "week": 2,
+      "amount": "-50.00",
+      "transaction_type": "expense",
+      "description": "Healthcare expenses",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 15,
+    "fields": {
+      "account": 16,
+      "week": 2,
+      "amount": "-75.00",
+      "transaction_type": "expense",
+      "description": "Dining out",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 16,
+    "fields": {
+      "account": 12,
+      "week": 2,
+      "amount": "-200.00",
+      "transaction_type": "expense",
+      "description": "Emergency fund contribution",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 17,
+    "fields": {
+      "account": 13,
+      "week": 2,
+      "amount": "-300.00",
+      "transaction_type": "expense",
+      "description": "Retirement savings",
+      "transaction_date": "2024-07-30",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 18,
+    "fields": {
+      "account": 3,
+      "week": 3,
+      "amount": "2400.00",
+      "transaction_type": "income",
+      "description": "Bi-weekly salary - Software Development",
+      "transaction_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 19,
+    "fields": {
+      "account": 4,
+      "week": 3,
+      "amount": "800.00",
+      "transaction_type": "income",
+      "description": "Weekly teaching salary",
+      "transaction_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 20,
+    "fields": {
+      "account": 5,
+      "week": 3,
+      "amount": "500.00",
+      "transaction_type": "income",
+      "description": "Freelance web development project",
+      "transaction_date": "2024-08-07",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 21,
+    "fields": {
+      "account": 7,
+      "week": 3,
+      "amount": "-500.00",
+      "transaction_type": "expense",
+      "description": "Weekly housing allocation",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 22,
+    "fields": {
+      "account": 8,
+      "week": 3,
+      "amount": "-150.00",
+      "transaction_type": "expense",
+      "description": "Weekly grocery shopping",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 23,
+    "fields": {
+      "account": 9,
+      "week": 3,
+      "amount": "-100.00",
+      "transaction_type": "expense",
+      "description": "Transportation costs",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 24,
+    "fields": {
+      "account": 10,
+      "week": 3,
+      "amount": "-50.00",
+      "transaction_type": "expense",
+      "description": "Healthcare expenses",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 25,
+    "fields": {
+      "account": 16,
+      "week": 3,
+      "amount": "-75.00",
+      "transaction_type": "expense",
+      "description": "Dining out",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 26,
+    "fields": {
+      "account": 12,
+      "week": 3,
+      "amount": "-200.00",
+      "transaction_type": "expense",
+      "description": "Emergency fund contribution",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 27,
+    "fields": {
+      "account": 13,
+      "week": 3,
+      "amount": "-300.00",
+      "transaction_type": "expense",
+      "description": "Retirement savings",
+      "transaction_date": "2024-08-06",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 28,
+    "fields": {
+      "account": 4,
+      "week": 4,
+      "amount": "800.00",
+      "transaction_type": "income",
+      "description": "Weekly teaching salary",
+      "transaction_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 29,
+    "fields": {
+      "account": 7,
+      "week": 4,
+      "amount": "-500.00",
+      "transaction_type": "expense",
+      "description": "Weekly housing allocation",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 30,
+    "fields": {
+      "account": 8,
+      "week": 4,
+      "amount": "-150.00",
+      "transaction_type": "expense",
+      "description": "Weekly grocery shopping",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 31,
+    "fields": {
+      "account": 9,
+      "week": 4,
+      "amount": "-100.00",
+      "transaction_type": "expense",
+      "description": "Transportation costs",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 32,
+    "fields": {
+      "account": 10,
+      "week": 4,
+      "amount": "-50.00",
+      "transaction_type": "expense",
+      "description": "Healthcare expenses",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 33,
+    "fields": {
+      "account": 16,
+      "week": 4,
+      "amount": "-75.00",
+      "transaction_type": "expense",
+      "description": "Dining out",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 34,
+    "fields": {
+      "account": 12,
+      "week": 4,
+      "amount": "-200.00",
+      "transaction_type": "expense",
+      "description": "Emergency fund contribution",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 35,
+    "fields": {
+      "account": 13,
+      "week": 4,
+      "amount": "-300.00",
+      "transaction_type": "expense",
+      "description": "Retirement savings",
+      "transaction_date": "2024-08-13",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 36,
+    "fields": {
+      "account": 3,
+      "week": 5,
+      "amount": "2400.00",
+      "transaction_type": "income",
+      "description": "Bi-weekly salary - Software Development",
+      "transaction_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 37,
+    "fields": {
+      "account": 4,
+      "week": 5,
+      "amount": "800.00",
+      "transaction_type": "income",
+      "description": "Weekly teaching salary",
+      "transaction_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 38,
+    "fields": {
+      "account": 7,
+      "week": 5,
+      "amount": "-500.00",
+      "transaction_type": "expense",
+      "description": "Weekly housing allocation",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 39,
+    "fields": {
+      "account": 8,
+      "week": 5,
+      "amount": "-150.00",
+      "transaction_type": "expense",
+      "description": "Weekly grocery shopping",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 40,
+    "fields": {
+      "account": 9,
+      "week": 5,
+      "amount": "-100.00",
+      "transaction_type": "expense",
+      "description": "Transportation costs",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 41,
+    "fields": {
+      "account": 10,
+      "week": 5,
+      "amount": "-50.00",
+      "transaction_type": "expense",
+      "description": "Healthcare expenses",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 42,
+    "fields": {
+      "account": 16,
+      "week": 5,
+      "amount": "-75.00",
+      "transaction_type": "expense",
+      "description": "Dining out",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 43,
+    "fields": {
+      "account": 12,
+      "week": 5,
+      "amount": "-200.00",
+      "transaction_type": "expense",
+      "description": "Emergency fund contribution",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.transaction",
+    "pk": 44,
+    "fields": {
+      "account": 13,
+      "week": 5,
+      "amount": "-300.00",
+      "transaction_type": "expense",
+      "description": "Retirement savings",
+      "transaction_date": "2024-08-20",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 1,
+    "fields": {
+      "week": 1,
+      "to_account": 7,
+      "from_account": 2,
+      "amount": "500.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 1,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 2,
+    "fields": {
+      "week": 1,
+      "to_account": 8,
+      "from_account": 2,
+      "amount": "150.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 2,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 3,
+    "fields": {
+      "week": 1,
+      "to_account": 9,
+      "from_account": 2,
+      "amount": "100.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 3,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 4,
+    "fields": {
+      "week": 1,
+      "to_account": 12,
+      "from_account": 2,
+      "amount": "320.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 4,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 5,
+    "fields": {
+      "week": 1,
+      "to_account": 13,
+      "from_account": 2,
+      "amount": "480.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 5,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 6,
+    "fields": {
+      "week": 1,
+      "to_account": 16,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 6,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 7,
+    "fields": {
+      "week": 1,
+      "to_account": 17,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 7,
+      "processed": true,
+      "processed_date": "2024-07-22",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 8,
+    "fields": {
+      "week": 2,
+      "to_account": 7,
+      "from_account": 2,
+      "amount": "500.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 1,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 9,
+    "fields": {
+      "week": 2,
+      "to_account": 8,
+      "from_account": 2,
+      "amount": "150.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 2,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 10,
+    "fields": {
+      "week": 2,
+      "to_account": 9,
+      "from_account": 2,
+      "amount": "100.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 3,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 11,
+    "fields": {
+      "week": 2,
+      "to_account": 12,
+      "from_account": 2,
+      "amount": "80.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 4,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 12,
+    "fields": {
+      "week": 2,
+      "to_account": 13,
+      "from_account": 2,
+      "amount": "120.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 5,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 13,
+    "fields": {
+      "week": 2,
+      "to_account": 16,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 6,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 14,
+    "fields": {
+      "week": 2,
+      "to_account": 17,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 7,
+      "processed": true,
+      "processed_date": "2024-07-29",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 15,
+    "fields": {
+      "week": 3,
+      "to_account": 7,
+      "from_account": 2,
+      "amount": "500.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 1,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 16,
+    "fields": {
+      "week": 3,
+      "to_account": 8,
+      "from_account": 2,
+      "amount": "150.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 2,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 17,
+    "fields": {
+      "week": 3,
+      "to_account": 9,
+      "from_account": 2,
+      "amount": "100.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 3,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 18,
+    "fields": {
+      "week": 3,
+      "to_account": 12,
+      "from_account": 2,
+      "amount": "320.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 4,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 19,
+    "fields": {
+      "week": 3,
+      "to_account": 13,
+      "from_account": 2,
+      "amount": "480.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 5,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 20,
+    "fields": {
+      "week": 3,
+      "to_account": 16,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 6,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 21,
+    "fields": {
+      "week": 3,
+      "to_account": 17,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 7,
+      "processed": true,
+      "processed_date": "2024-08-05",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 22,
+    "fields": {
+      "week": 4,
+      "to_account": 7,
+      "from_account": 2,
+      "amount": "500.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 1,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 23,
+    "fields": {
+      "week": 4,
+      "to_account": 8,
+      "from_account": 2,
+      "amount": "150.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 2,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 24,
+    "fields": {
+      "week": 4,
+      "to_account": 9,
+      "from_account": 2,
+      "amount": "100.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 3,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 25,
+    "fields": {
+      "week": 4,
+      "to_account": 12,
+      "from_account": 2,
+      "amount": "80.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 4,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 26,
+    "fields": {
+      "week": 4,
+      "to_account": 13,
+      "from_account": 2,
+      "amount": "120.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 5,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 27,
+    "fields": {
+      "week": 4,
+      "to_account": 16,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 6,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 28,
+    "fields": {
+      "week": 4,
+      "to_account": 17,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 7,
+      "processed": true,
+      "processed_date": "2024-08-12",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 29,
+    "fields": {
+      "week": 5,
+      "to_account": 7,
+      "from_account": 2,
+      "amount": "500.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 1,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 30,
+    "fields": {
+      "week": 5,
+      "to_account": 8,
+      "from_account": 2,
+      "amount": "150.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 2,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 31,
+    "fields": {
+      "week": 5,
+      "to_account": 9,
+      "from_account": 2,
+      "amount": "100.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 3,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 32,
+    "fields": {
+      "week": 5,
+      "to_account": 12,
+      "from_account": 2,
+      "amount": "320.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 4,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 33,
+    "fields": {
+      "week": 5,
+      "to_account": 13,
+      "from_account": 2,
+      "amount": "480.0",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 5,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 34,
+    "fields": {
+      "week": 5,
+      "to_account": 16,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 6,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.allocation",
+    "pk": 35,
+    "fields": {
+      "week": 5,
+      "to_account": 17,
+      "from_account": 2,
+      "amount": "75.00",
+      "allocation_type": "automatic",
+      "description": "Auto-allocation from budget template",
+      "template": 7,
+      "processed": true,
+      "processed_date": "2024-08-19",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.accountloan",
+    "pk": 1,
+    "fields": {
+      "family": 1,
+      "lender_account": 12,
+      "borrower_account": 17,
+      "original_amount": "1500.00",
+      "remaining_amount": "900.00",
+      "weekly_interest_rate": "0.0150",
+      "loan_date": "2024-07-08",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.accountloan",
+    "pk": 2,
+    "fields": {
+      "family": 1,
+      "lender_account": 13,
+      "borrower_account": 14,
+      "original_amount": "2000.00",
+      "remaining_amount": "2000.00",
+      "weekly_interest_rate": "0.0100",
+      "loan_date": "2024-08-19",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.loanpayment",
+    "pk": 1,
+    "fields": {
+      "family": 1,
+      "loan": 1,
+      "week": 2,
+      "amount": "200.00",
+      "payment_date": "2024-07-29",
+      "notes": "Partial loan repayment",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "budget_allocation.loanpayment",
+    "pk": 2,
+    "fields": {
+      "family": 1,
+      "loan": 1,
+      "week": 4,
+      "amount": "400.00",
+      "payment_date": "2024-08-12",
+      "notes": "Large payment toward vacation loan",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

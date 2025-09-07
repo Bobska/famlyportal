@@ -1,7 +1,7 @@
 {% extends 'budget_allocation/base.html' %}
 {% load static %}
 
-{% block page_title %}{{ title }}{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
@@ -9,24 +9,30 @@
 
 {% block page_actions %}
 <div class="btn-group" role="group">
-    <a href="{% url 'budget_allocation:allocation_dashboard' %}" class="btn btn-primary">
-        <i class="fas fa-exchange-alt me-1"></i>Weekly Allocation
-    </a>
-    <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-success">
-        <i class="fas fa-plus me-1"></i>Add Transaction
+    {% if not current_week.allocation_locked %}
+        <button class="btn btn-primary allocation-btn" data-bs-toggle="modal" data-bs-target="#allocateMoneyModal">
+            <i class="fas fa-exchange-alt me-1"></i>Allocate Money
+        </button>
+    {% endif %}
+    <a href="{% url 'budget_allocation:allocation_dashboard' %}" class="btn btn-outline-primary">
+        <i class="fas fa-calendar-week me-1"></i>View Allocations
     </a>
 </div>
 {% endblock %}
 
 {% block page_content %}
-<!-- Current Week Summary -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+<!-- Current Week Summary Card -->
+<div class="card week-summary-card mb-4">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-calendar-week me-2"></i>Current Week: {{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}
+                    <i class="fas fa-calendar-week me-2"></i>
+                    Week of {{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}
                 </h5>
+                <small class="opacity-75">Week {{ current_week.week_number }} of {{ current_week.year }}</small>
+            </div>
+            <div class="text-end">
                 {% if current_week.allocation_locked %}
                     <span class="badge bg-warning">
                         <i class="fas fa-lock me-1"></i>Locked
@@ -37,94 +43,186 @@
                     </span>
                 {% endif %}
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h6 class="text-muted">Total Income</h6>
-                            <h4 class="text-success">${{ week_summary.total_income|floatformat:2 }}</h4>
-                        </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bg-light border-0">
+                    <div class="stat-value text-success">
+                        ${{ week_summary.total_income|floatformat:2 }}
                     </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h6 class="text-muted">Total Expenses</h6>
-                            <h4 class="text-danger">${{ week_summary.total_expenses|floatformat:2 }}</h4>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h6 class="text-muted">Total Allocated</h6>
-                            <h4 class="text-primary">${{ week_summary.total_allocated|floatformat:2 }}</h4>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h6 class="text-muted">Net Flow</h6>
-                            <h4 class="{% if week_summary.net_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                ${{ week_summary.net_flow|floatformat:2 }}
-                            </h4>
-                        </div>
+                    <div class="stat-label">Total Income</div>
+                    <div class="stat-change">
+                        {% if week_summary.income_change >= 0 %}
+                            <i class="fas fa-arrow-up text-success"></i>
+                        {% else %}
+                            <i class="fas fa-arrow-down text-danger"></i>
+                        {% endif %}
+                        {{ week_summary.income_change|floatformat:2 }}% vs last week
                     </div>
                 </div>
             </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bg-light border-0">
+                    <div class="stat-value text-primary">
+                        ${{ week_summary.total_allocated|floatformat:2 }}
+                    </div>
+                    <div class="stat-label">Total Allocated</div>
+                    <div class="allocation-progress mt-2">
+                        <div class="allocation-progress-bar" style="width: {{ week_summary.allocation_percentage }}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bg-light border-0">
+                    <div class="stat-value {% if week_summary.available_to_allocate >= 0 %}text-info{% else %}text-warning{% endif %}">
+                        ${{ week_summary.available_to_allocate|floatformat:2 }}
+                    </div>
+                    <div class="stat-label">Available to Allocate</div>
+                    {% if week_summary.available_to_allocate < 0 %}
+                        <small class="text-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Over-allocated
+                        </small>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bg-light border-0">
+                    <div class="stat-value {% if week_summary.net_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ${{ week_summary.net_flow|floatformat:2 }}
+                    </div>
+                    <div class="stat-label">Net Flow</div>
+                    <small class="text-muted">Income - Expenses</small>
+                </div>
+            </div>
         </div>
+
+        <!-- Allocation Status Alert -->
+        {% if not current_week.allocation_locked %}
+            {% if week_summary.available_to_allocate > 0 %}
+                <div class="alert alert-info mt-3" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You have <strong>${{ week_summary.available_to_allocate|floatformat:2 }}</strong> ready to allocate.
+                    <button class="btn btn-sm btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#allocateMoneyModal">
+                        Allocate Now
+                    </button>
+                </div>
+            {% elif week_summary.available_to_allocate < 0 %}
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    You are over-allocated by <strong>${{ week_summary.available_to_allocate|floatformat:2|slice:"1:" }}</strong>.
+                    Consider adjusting your allocations.
+                </div>
+            {% else %}
+                <div class="alert alert-success mt-3" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Perfect! All income has been allocated.
+                </div>
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 
-<!-- Quick Actions and Account Overview -->
+<!-- Main Content Row -->
 <div class="row">
-    <!-- Account Tree -->
-    <div class="col-md-8">
-        <div class="card">
+    <!-- Account Tree View -->
+    <div class="col-lg-8">
+        <div class="card account-overview-card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-sitemap me-2"></i>Account Overview
                 </h5>
-                <a href="{% url 'budget_allocation:account_list' %}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-list me-1"></i>Manage Accounts
-                </a>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" onclick="expandAllAccounts()">
+                        <i class="fas fa-expand-alt"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="collapseAllAccounts()">
+                        <i class="fas fa-compress-alt"></i>
+                    </button>
+                    <a href="{% url 'budget_allocation:account_create' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 {% if root_accounts %}
                     <div class="account-tree">
                         {% for account in root_accounts %}
-                            <div class="account-item mb-3">
-                                <div class="d-flex justify-content-between align-items-center p-3 border rounded">
-                                    <div class="d-flex align-items-center">
-                                        <span class="account-color-indicator me-3" style="background-color: {{ account.color|default:'#6c757d' }}"></span>
-                                        <div>
-                                            <h6 class="mb-1">
-                                                <a href="{% url 'budget_allocation:account_detail' account.pk %}" class="text-decoration-none">
-                                                    {{ account.name }}
-                                                </a>
-                                            </h6>
-                                            <small class="text-muted">{{ account.get_account_type_display }}</small>
+                            <div class="account-node" data-account-id="{{ account.id }}">
+                                <div class="account-item p-3 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            {% if account.children.all %}
+                                                <button class="btn btn-sm btn-ghost toggle-account me-2" data-account-id="{{ account.id }}">
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="me-4"></span>
+                                            {% endif %}
+                                            <div class="account-color-indicator me-3" 
+                                                 style="background-color: {{ account.color|default:'#6c757d' }}"></div>
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    <a href="{% url 'budget_allocation:account_detail' account.pk %}" 
+                                                       class="text-decoration-none account-link">
+                                                        {{ account.name }}
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted">{{ account.get_account_type_display }}</small>
+                                                {% if account.description %}
+                                                    <br><small class="text-muted">{{ account.description|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-{{ account.account_type }} text-uppercase">
-                                            {{ account.account_type }}
-                                        </span>
-                                        {% if not account.is_active %}
-                                            <span class="badge bg-secondary ms-1">Inactive</span>
-                                        {% endif %}
+                                        <div class="text-end">
+                                            <div class="account-balance mb-1">
+                                                <span class="balance-amount" data-account-id="{{ account.id }}">
+                                                    ${{ account.current_balance|floatformat:2|default:"0.00" }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-{{ account.account_type }}">
+                                                    {{ account.account_type|upper }}
+                                                </span>
+                                                {% if not account.is_active %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Show child accounts if any -->
+                                <!-- Child Accounts -->
                                 {% if account.children.all %}
-                                    <div class="ms-4 mt-2">
+                                    <div class="child-accounts" id="children-{{ account.id }}" style="display: block;">
                                         {% for child in account.children.all %}
-                                            <div class="d-flex justify-content-between align-items-center p-2 border rounded mb-1">
-                                                <div class="d-flex align-items-center">
-                                                    <span class="account-color-indicator me-2" style="background-color: {{ child.color|default:'#6c757d' }}"></span>
-                                                    <a href="{% url 'budget_allocation:account_detail' child.pk %}" class="text-decoration-none">
-                                                        {{ child.name }}
-                                                    </a>
+                                            <div class="account-item child-account p-3 ps-5 border-bottom bg-light">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="account-color-indicator me-3" 
+                                                             style="background-color: {{ child.color|default:'#6c757d' }}"></div>
+                                                        <div>
+                                                            <h6 class="mb-1">
+                                                                <a href="{% url 'budget_allocation:account_detail' child.pk %}" 
+                                                                   class="text-decoration-none account-link">
+                                                                    {{ child.name }}
+                                                                </a>
+                                                            </h6>
+                                                            <small class="text-muted">{{ child.get_account_type_display }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <div class="account-balance mb-1">
+                                                            <span class="balance-amount" data-account-id="{{ child.id }}">
+                                                                ${{ child.current_balance|floatformat:2|default:"0.00" }}
+                                                            </span>
+                                                        </div>
+                                                        {% if not child.is_active %}
+                                                            <span class="badge bg-secondary">Inactive</span>
+                                                        {% endif %}
+                                                    </div>
                                                 </div>
-                                                {% if not child.is_active %}
-                                                    <span class="badge bg-secondary">Inactive</span>
-                                                {% endif %}
                                             </div>
                                         {% endfor %}
                                     </div>
@@ -133,12 +231,12 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-4">
+                    <div class="text-center py-5">
                         <i class="fas fa-plus-circle fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No accounts yet</h5>
                         <p class="text-muted">Create your first account to start budget allocation.</p>
                         <a href="{% url 'budget_allocation:account_create' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i>Create Account
+                            <i class="fas fa-plus me-1"></i>Create First Account
                         </a>
                     </div>
                 {% endif %}
@@ -146,8 +244,56 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
-    <div class="col-md-4">
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Allocation Progress -->
+        {% if essential_accounts_not_allocated or budget_templates_ready %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-tasks me-2"></i>Allocation Progress
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if essential_accounts_not_allocated %}
+                    <div class="mb-3">
+                        <h6 class="text-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Essential Accounts
+                        </h6>
+                        <small class="text-muted">These accounts need allocation first:</small>
+                        <ul class="list-unstyled mt-2">
+                            {% for account in essential_accounts_not_allocated %}
+                                <li class="mb-1">
+                                    <i class="fas fa-circle-notch text-warning me-2"></i>
+                                    {{ account.name }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if budget_templates_ready %}
+                    <div>
+                        <h6 class="text-success">
+                            <i class="fas fa-magic me-1"></i>Ready Templates
+                        </h6>
+                        <small class="text-muted">These templates can auto-allocate:</small>
+                        <ul class="list-unstyled mt-2">
+                            {% for template in budget_templates_ready %}
+                                <li class="mb-1">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    {{ template.name }}
+                                    <button class="btn btn-sm btn-outline-success ms-2" 
+                                            onclick="applyTemplate({{ template.id }})">Apply</button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Recent Transactions -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -160,15 +306,17 @@
             </div>
             <div class="card-body">
                 {% if recent_transactions %}
-                    <div class="list-group list-group-flush">
+                    <div class="transaction-list">
                         {% for transaction in recent_transactions %}
-                            <div class="list-group-item px-0">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ transaction.description|truncatechars:25 }}</h6>
-                                        <small class="text-muted">{{ transaction.account.name }} • {{ transaction.transaction_date }}</small>
-                                    </div>
-                                    <span class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                            <div class="transaction-item d-flex justify-content-between align-items-center mb-3 p-2 rounded {{ transaction.transaction_type }}">
+                                <div>
+                                    <div class="fw-medium">{{ transaction.description|truncatechars:20 }}</div>
+                                    <small class="text-muted">
+                                        {{ transaction.account.name }} • {{ transaction.transaction_date|date:"M d" }}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold {% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
                                         {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
                                     </span>
                                 </div>
@@ -176,12 +324,16 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted text-center py-3">No recent transactions</p>
+                    <div class="text-center py-3">
+                        <i class="fas fa-receipt fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No recent transactions</p>
+                        <small class="text-muted">Start by recording income or expenses</small>
+                    </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Active Loans -->
+        <!-- Active Loans Summary -->
         {% if active_loans %}
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -189,26 +341,61 @@
                     <i class="fas fa-handshake me-2"></i>Active Loans
                 </h6>
                 <a href="{% url 'budget_allocation:loan_list' %}" class="btn btn-sm btn-outline-primary">
-                    View All
+                    Manage
                 </a>
             </div>
             <div class="card-body">
-                <div class="list-group list-group-flush">
-                    {% for loan in active_loans %}
-                        <div class="list-group-item px-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">{{ loan.lender_account.name }} → {{ loan.borrower_account.name }}</h6>
-                                    <small class="text-muted">{{ loan.weekly_interest_rate|floatformat:2 }}% weekly</small>
-                                </div>
-                                <span class="text-danger fw-bold">${{ loan.remaining_amount|floatformat:2 }}</span>
+                {% for loan in active_loans %}
+                    <div class="loan-item mb-3 p-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <div class="fw-medium">{{ loan.lender_account.name }} → {{ loan.borrower_account.name }}</div>
+                                <small class="text-muted">{{ loan.weekly_interest_rate|floatformat:2 }}% weekly interest</small>
                             </div>
+                            <span class="text-danger fw-bold">${{ loan.remaining_amount|floatformat:2 }}</span>
                         </div>
-                    {% endfor %}
-                </div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-danger" style="width: {{ loan.completion_percentage }}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                Week {{ loan.weeks_remaining }} of {{ loan.total_weeks }}
+                            </small>
+                            <button class="btn btn-sm btn-outline-success" onclick="quickRepayLoan({{ loan.id }})">
+                                Quick Pay
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar_extra %}
+<!-- Week Navigation -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="fas fa-calendar me-2"></i>Week Navigation
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="?week={{ prev_week.start_date|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            <span class="text-muted">Week {{ current_week.week_number }}</span>
+            <a href="?week={{ next_week.start_date|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+        <div class="current-week-info text-center">
+            <div class="fw-medium">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d" }}</div>
+            <small class="text-muted">{{ current_week.year }}</small>
+        </div>
     </div>
 </div>
 {% endblock %}

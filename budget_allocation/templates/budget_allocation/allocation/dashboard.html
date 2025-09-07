@@ -10,7 +10,7 @@
 
 {% block page_actions %}
 {% if not current_week.allocation_locked %}
-    <a href="{% url 'budget_allocation:allocation_create' %}" class="btn btn-primary">
+    <a href="{% url 'budget_allocation:create_allocation' %}" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i>Add Allocation
     </a>
 {% endif %}
@@ -165,7 +165,7 @@
                                         </td>
                                         <td class="text-end">
                                             {% if total_allocated > 0 %}
-                                                {{ allocation.amount|div:total_allocated|mul:100|floatformat:1 }}%
+                                                {% widthratio allocation.amount total_allocated 100 %}%
                                             {% else %}
                                                 0%
                                             {% endif %}
@@ -200,7 +200,7 @@
                         <h5 class="text-muted">No allocations for this week</h5>
                         <p class="text-muted">Start by allocating funds to your accounts.</p>
                         {% if not current_week.allocation_locked %}
-                            <a href="{% url 'budget_allocation:allocation_create' %}" class="btn btn-primary">
+                            <a href="{% url 'budget_allocation:create_allocation' %}" class="btn btn-primary">
                                 <i class="fas fa-plus me-1"></i>Create First Allocation
                             </a>
                         {% endif %}
@@ -229,11 +229,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="{% url 'budget_allocation:allocation_lock_week' %}" class="d-inline">
+                <form method="post" action="#" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="week_start_date" value="{{ current_week.week_start_date|date:'Y-m-d' }}">
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-lock me-1"></i>Lock Week
+                    <button type="submit" class="btn btn-warning" disabled title="Feature coming soon">
+                        <i class="fas fa-lock me-1"></i>Lock Week (Coming Soon)
                     </button>
                 </form>
             </div>

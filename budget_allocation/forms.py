@@ -61,6 +61,17 @@ class AccountForm(forms.ModelForm):
         self.fields['parent'].required = False
         self.fields['parent'].empty_label = "No parent (root account)"
     
+    def clean_parent(self):
+        """Validate parent field"""
+        parent = self.cleaned_data.get('parent')
+        account_type = self.data.get('account_type')
+        
+        # Root accounts cannot have parents
+        if account_type == 'root' and parent:
+            raise forms.ValidationError("Root accounts cannot have a parent")
+        
+        return parent
+    
     def clean(self):
         cleaned_data = super().clean()
         parent = cleaned_data.get('parent')
@@ -83,6 +94,18 @@ class AccountForm(forms.ModelForm):
                 )
         
         return cleaned_data
+    
+    def save(self, commit=True):
+        """Save account with family assignment"""
+        account = super().save(commit=False)
+        
+        if self.family:
+            account.family = self.family
+            
+        if commit:
+            account.save()
+            
+        return account
 
 
 class AllocationForm(forms.ModelForm):
@@ -355,30 +378,64 @@ class BudgetTemplateForm(forms.ModelForm):
         self.fields['never_miss'].help_text = "Never skip this allocation"
         self.fields['auto_allocate'].help_text = "Automatically allocate when processing weekly budget"
     
-    def clean(self):
-        cleaned_data = super().clean()
-        allocation_type = cleaned_data.get('allocation_type')
-        weekly_amount = cleaned_data.get('weekly_amount')
-        percentage = cleaned_data.get('percentage')
-        min_amount = cleaned_data.get('min_amount')
-        max_amount = cleaned_data.get('max_amount')
+    def clean_weekly_amount(self):
+        """Validate weekly_amount for fixed allocation type"""
+        weekly_amount = self.cleaned_data.get('weekly_amount')
+        allocation_type = self.data.get('allocation_type')
         
-        # Validate required fields based on allocation type
         if allocation_type == 'fixed' and not weekly_amount:
-            raise ValidationError("Weekly amount is required for fixed allocation type.")
+            raise forms.ValidationError("Fixed allocation type requires weekly_amount")
+        
+        return weekly_amount
+    
+    def clean_percentage(self):
+        """Validate percentage for percentage allocation type"""
+        percentage = self.cleaned_data.get('percentage')
+        allocation_type = self.data.get('allocation_type')
         
         if allocation_type == 'percentage' and not percentage:
-            raise ValidationError("Percentage is required for percentage allocation type.")
+            raise forms.ValidationError("Percentage allocation type requires percentage")
         
-        if allocation_type == 'range':
-            if not min_amount and not max_amount:
-                raise ValidationError("At least one of min or max amount is required for range allocation type.")
+        return percentage
+    
+    def clean_min_amount(self):
+        """Validate min_amount for range allocation type"""
+        min_amount = self.cleaned_data.get('min_amount')
+        allocation_type = self.data.get('allocation_type')
+        max_amount = self.data.get('max_amount')
         
-        # Validate min/max relationship
+        if allocation_type == 'range' and not min_amount and not max_amount:
+            raise forms.ValidationError("Range allocation type requires min_amount and max_amount")
+        
+        return min_amount
+    
+    def clean_max_amount(self):
+        """Validate max_amount for range allocation type"""
+        max_amount = self.cleaned_data.get('max_amount')
+        min_amount = self.cleaned_data.get('min_amount')
+        allocation_type = self.data.get('allocation_type')
+        
+        # Check if both amounts are missing for range type
+        if allocation_type == 'range' and not min_amount and not max_amount:
+            raise forms.ValidationError("Range allocation type requires min_amount and max_amount")
+        
+        # Check min/max relationship
         if min_amount and max_amount and min_amount > max_amount:
-            raise ValidationError("Minimum amount cannot be greater than maximum amount.")
+            raise forms.ValidationError("Minimum amount cannot be greater than maximum amount")
         
-        return cleaned_data
+        return max_amount
+    
+    def save(self, commit=True):
+        """Save budget template with family assignment"""
+        template = super().save(commit=False)
+        
+        if self.family:
+            template.family = self.family
+            
+        if commit:
+            template.save()
+            
+        return template
 
 
 class FamilySettingsForm(forms.ModelForm):

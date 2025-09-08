@@ -81,9 +81,10 @@ class AccountFormTests(BudgetAllocationFormTestCase):
         form_data = {
             'name': 'Test Account',
             'account_type': 'spending',
-            'parent': self.root_account.pk,
+            'parent': self.spending_account.pk,  # Use spending account as parent
             'description': 'Test account description',
-            'color': '#28a745'
+            'color': '#28a745',
+            'sort_order': 1
         }
         
         form = AccountForm(data=form_data, family=self.family)
@@ -91,13 +92,12 @@ class AccountFormTests(BudgetAllocationFormTestCase):
         self.assertTrue(form.is_valid())
         
         # Test saving the form
-        account = form.save(commit=False)
-        account.family = self.family
-        account.save()
+        account = form.save()
         
         self.assertEqual(account.name, 'Test Account')
         self.assertEqual(account.account_type, 'spending')
-        self.assertEqual(account.parent, self.root_account)
+        self.assertEqual(account.parent, self.spending_account)
+        self.assertEqual(account.family, self.family)
     
     def test_invalid_account_form_empty_name(self):
         """Test form with empty name"""
@@ -141,16 +141,19 @@ class AccountFormTests(BudgetAllocationFormTestCase):
         form = AccountForm(family=self.family)
         
         # Parent choices should only include accounts from same family
-        parent_pks = [choice[0] for choice in form.fields['parent'].choices if choice[0]]
-        self.assertIn(str(self.root_account.pk), parent_pks)
-        self.assertNotIn(str(other_account.pk), parent_pks)
+        parent_queryset = form.fields['parent'].queryset
+        parent_pks = [account.pk for account in parent_queryset]
+        self.assertIn(self.root_account.pk, parent_pks)
+        self.assertNotIn(other_account.pk, parent_pks)
     
     def test_root_account_no_parent(self):
         """Test that root accounts cannot have parents"""
         form_data = {
             'name': 'Root Account',
             'account_type': 'root',
-            'parent': self.root_account.pk  # Should not be allowed
+            'parent': self.root_account.pk,  # Should not be allowed
+            'color': '#ff0000',
+            'sort_order': 0
         }
         
         form = AccountForm(data=form_data, family=self.family)

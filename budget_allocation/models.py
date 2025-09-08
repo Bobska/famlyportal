@@ -32,8 +32,12 @@ class Account(FamilyScopedModel):
     ACCOUNT_TYPE_CHOICES = [
         ('root', 'Root Account'),
         ('income', 'Income Account'),
-        ('spending', 'Spending Account'),
+        ('expense', 'Expense Account'),  # Changed from 'spending'
     ]
+    
+    # Color families for auto-assignment
+    INCOME_COLORS = ['#28a745', '#20c997', '#198754']  # Green family
+    EXPENSE_COLORS = ['#dc3545', '#fd7e14', '#ffc107', '#0d6efd', '#6f42c1']  # Warm colors
     
     name = models.CharField(
         max_length=100,
@@ -42,7 +46,7 @@ class Account(FamilyScopedModel):
     account_type = models.CharField(
         max_length=20,
         choices=ACCOUNT_TYPE_CHOICES,
-        help_text="Type of account: root, income, or spending"
+        help_text="Type of account: root, income, or expense"
     )
     parent = models.ForeignKey(
         'self',
@@ -54,7 +58,7 @@ class Account(FamilyScopedModel):
     )
     description = models.TextField(
         blank=True,
-        help_text="Description of the account purpose"
+        help_text="Optional description of what this account is for"
     )
     color = models.CharField(
         max_length=7,
@@ -90,6 +94,97 @@ class Account(FamilyScopedModel):
     
     def __str__(self):
         return f"{self.family.name} - {self.full_path}"
+    
+    def save(self, *args, **kwargs):
+        """Override save to auto-assign color if not set"""
+        if not self.color or self.color == '#007bff':  # Default blue color
+            self.color = self.get_auto_assigned_color()
+        super().save(*args, **kwargs)
+    
+    def get_auto_assigned_color(self):
+        """Auto-assign color based on account type and hierarchy"""
+        if self.account_type == 'income':
+            # Use green family colors for income accounts
+            colors = self.INCOME_COLORS
+        elif self.account_type == 'expense':
+            # Use warm colors for expense accounts
+            colors = self.EXPENSE_COLORS
+        else:
+            # Root accounts or other types use default blue
+            return '#007bff'
+        
+        # If this account has a parent, get colors already used by siblings
+        if self.parent:
+            sibling_colors = set(
+                self.parent.children.exclude(pk=self.pk).values_list('color', flat=True)
+            )
+            # Find first available color in the family
+            for color in colors:
+                if color not in sibling_colors:
+                    return color
+        
+        # If no parent, use the first color or cycle through if all colors used
+        family_accounts = Account.objects.filter(
+            family=self.family, 
+            account_type=self.account_type
+        ).exclude(pk=self.pk)
+        
+        used_colors = set(family_accounts.values_list('color', flat=True))
+        
+        # Find first available color
+        for color in colors:
+            if color not in used_colors:
+                return color
+        
+        # If all colors used, cycle through them
+        return colors[family_accounts.count() % len(colors)]
+    
+    @property
+    def is_user_visible(self):
+        """Returns False for root accounts that should be hidden from users"""
+        return self.account_type != 'root'
+    
+    @property
+    def can_have_children(self):
+        """Returns True for accounts that can have child accounts"""
+        return self.account_type in ['income', 'expense']
+    
+    @classmethod
+    def setup_default_accounts_for_family(cls, family):
+        """Create default Income and Expense accounts for new family"""
+        created_accounts = []
+        
+        # Create Income account if it doesn't exist
+        income_account, created = cls.objects.get_or_create(
+            family=family,
+            name='Income',
+            account_type='income',
+            defaults={
+                'description': 'All sources of income for your family',
+                'color': cls.INCOME_COLORS[0],
+                'sort_order': 1,
+                'is_active': True,
+            }
+        )
+        if created:
+            created_accounts.append(income_account)
+        
+        # Create Expense account if it doesn't exist
+        expense_account, created = cls.objects.get_or_create(
+            family=family,
+            name='Expenses',
+            account_type='expense',
+            defaults={
+                'description': 'All family expenses and spending categories',
+                'color': cls.EXPENSE_COLORS[0],
+                'sort_order': 2,
+                'is_active': True,
+            }
+        )
+        if created:
+            created_accounts.append(expense_account)
+        
+        return created_accounts
     
     def clean(self):
         """Custom validation"""

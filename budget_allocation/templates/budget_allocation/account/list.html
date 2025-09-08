@@ -57,14 +57,16 @@
                                                     <a href="{% url 'budget_allocation:account_detail' account.pk %}" class="btn btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="{% url 'budget_allocation:account_update' account.pk %}" class="btn btn-outline-secondary">
+                                                    <a href="{% url 'budget_allocation:account_edit' account.pk %}" class="btn btn-outline-secondary">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
+                                                    {% comment %}
                                                     {% if account.can_delete %}
                                                         <a href="{% url 'budget_allocation:account_delete' account.pk %}" class="btn btn-outline-danger">
                                                             <i class="fas fa-trash"></i>
                                                         </a>
                                                     {% endif %}
+                                                    {% endcomment %}
                                                 </div>
                                             </div>
                                         </div>
@@ -95,14 +97,16 @@
                                                                                 <a href="{% url 'budget_allocation:account_detail' child.pk %}" class="btn btn-outline-primary btn-sm">
                                                                                     <i class="fas fa-eye"></i>
                                                                                 </a>
-                                                                                <a href="{% url 'budget_allocation:account_update' child.pk %}" class="btn btn-outline-secondary btn-sm">
+                                                                                <a href="{% url 'budget_allocation:account_edit' child.pk %}" class="btn btn-outline-secondary btn-sm">
                                                                                     <i class="fas fa-edit"></i>
                                                                                 </a>
+                                                                                {% comment %}
                                                                                 {% if child.can_delete %}
                                                                                     <a href="{% url 'budget_allocation:account_delete' child.pk %}" class="btn btn-outline-danger btn-sm">
                                                                                         <i class="fas fa-trash"></i>
                                                                                     </a>
                                                                                 {% endif %}
+                                                                                {% endcomment %}
                                                                             </div>
                                                                         </div>
                                                                     </div>

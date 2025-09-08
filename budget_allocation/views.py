@@ -123,13 +123,23 @@ def account_list(request):
         return redirect('accounts:dashboard')
     
     # Get all accounts for the family
-    accounts = Account.objects.filter(family=family).order_by(
+    all_accounts = Account.objects.filter(family=family).select_related('parent').order_by(
         'account_type', 'sort_order', 'name'
     )
     
-    # Group by account type
+    # Get root accounts (accounts with no parent)
+    root_accounts = all_accounts.filter(parent__isnull=True)
+    
+    # Debug: Add some logging to understand what's happening
+    print(f"Account List Debug:")
+    print(f"  User: {request.user}")
+    print(f"  Family: {family}")
+    print(f"  Total accounts for family: {all_accounts.count()}")
+    print(f"  Root accounts: {root_accounts.count()}")
+    
+    # Group all accounts by type for additional data
     accounts_by_type = {}
-    for account in accounts:
+    for account in all_accounts:
         if account.account_type not in accounts_by_type:
             accounts_by_type[account.account_type] = []
         accounts_by_type[account.account_type].append(account)
@@ -137,8 +147,10 @@ def account_list(request):
     context = {
         'title': 'Account Management',
         'family': family,
+        'root_accounts': root_accounts,
         'accounts_by_type': accounts_by_type,
         'account_types': Account.ACCOUNT_TYPE_CHOICES,
+        'total_accounts': all_accounts.count(),
     }
     return render(request, 'budget_allocation/account/list.html', context)
 

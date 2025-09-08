@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .account { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .root { background-color: #f0f8ff; }
+        .child { background-color: #f8f8ff; margin-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Account Debug Information</h1>
+    <p><strong>Total Accounts:</strong> {{ total_accounts }}</p>
+    
+    <h2>All Accounts (Raw Data)</h2>
+    {% for account in all_accounts %}
+        <div class="account">
+            <strong>ID:</strong> {{ account.pk }} | 
+            <strong>Name:</strong> {{ account.name }} | 
+            <strong>Type:</strong> {{ account.account_type }} | 
+            <strong>Parent:</strong> {{ account.parent.name|default:"None" }} | 
+            <strong>Family:</strong> {{ account.family.name|default:"No family" }} |
+            <strong>Active:</strong> {{ account.is_active }}
+        </div>
+    {% empty %}
+        <p>No accounts found in database.</p>
+    {% endfor %}
+    
+    <h2>Root Accounts (Template Logic)</h2>
+    {% for account in root_accounts %}
+        <div class="account root">
+            <strong>Root:</strong> {{ account.name }} ({{ account.account_type }}) - Family: {{ account.family.name }}
+            {% for child in account.children.all %}
+                <div class="account child">
+                    <strong>Child:</strong> {{ child.name }} ({{ child.account_type }})
+                </div>
+            {% endfor %}
+        </div>
+    {% empty %}
+        <p>No root accounts found (this is what the main template sees).</p>
+    {% endfor %}
+</body>
+</html>

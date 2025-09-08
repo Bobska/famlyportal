@@ -147,12 +147,19 @@ class AllocationForm(forms.ModelForm):
             
             # Filter weeks to family weeks
             self.fields['week'].queryset = self.family.weeklyperiod_set.order_by('-start_date')
+            
+            # Set default week if none provided
+            if not self.instance.pk and 'week' not in self.initial:
+                current_week = self.family.weeklyperiod_set.filter(is_active=True).first()
+                if current_week:
+                    self.initial['week'] = current_week.pk
         
         # Add help text
         self.fields['from_account'].help_text = "Account to transfer money from"
         self.fields['to_account'].help_text = "Account to transfer money to"
         self.fields['amount'].help_text = "Amount to allocate in dollars"
         self.fields['notes'].required = False
+        self.fields['week'].required = False  # Make week optional
     
     def clean_to_account(self):
         """Validate to_account selection"""
@@ -179,6 +186,24 @@ class AllocationForm(forms.ModelForm):
         
         if self.family:
             allocation.family = self.family
+            
+            # Auto-assign week if not provided
+            if not allocation.week_id:
+                from .models import WeeklyPeriod
+                from datetime import date, timedelta
+                
+                # Get or create current week
+                today = date.today()
+                week_start = today - timedelta(days=today.weekday())
+                week_end = week_start + timedelta(days=6)
+                
+                current_week, created = WeeklyPeriod.objects.get_or_create(
+                    start_date=week_start,
+                    end_date=week_end,
+                    family=self.family,
+                    defaults={'is_active': True}
+                )
+                allocation.week = current_week
             
         if commit:
             allocation.save()

@@ -270,7 +270,7 @@ def account_edit(request, pk):
         'account': account,
         'family': family,
     }
-    return render(request, 'budget_allocation/account/edit.html', context)
+    return render(request, 'budget_allocation/account/form.html', context)
 
 
 # Allocation Views
@@ -355,6 +355,21 @@ def create_allocation(request):
         if form.is_valid():
             allocation = form.save(commit=False)
             allocation.family = family
+            
+            # Auto-assign to current week if not specified
+            if not allocation.week:
+                today = date.today()
+                week_start = today - timedelta(days=today.weekday())
+                week_end = week_start + timedelta(days=6)
+                
+                current_week, created = WeeklyPeriod.objects.get_or_create(
+                    start_date=week_start,
+                    end_date=week_end,
+                    family=family,
+                    defaults={'is_active': True}
+                )
+                allocation.week = current_week
+            
             allocation.save()
             
             messages.success(request, f'Allocation of ${allocation.amount} created successfully.')
@@ -440,7 +455,7 @@ def transaction_create(request):
             transaction.family = family
             
             # Auto-assign to current week if not specified
-            if not transaction.week:
+            if transaction.week_id is None:
                 today = date.today()
                 week_start = today - timedelta(days=today.weekday())
                 week_end = week_start + timedelta(days=6)

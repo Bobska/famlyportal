@@ -1,0 +1,91 @@
+{% extends 'budget_allocation/base.html' %}
+{% load static %}
+
+{% block page_title %}Budget Templates{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item active" aria-current="page">Budget Templates</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>
+        <i class="fas fa-template me-2"></i>Budget Templates
+    </h4>
+    <a href="{% url 'budget_allocation:budget_template_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Create Template
+    </a>
+</div>
+
+{% if templates %}
+    <div class="row">
+        {% for template in templates %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="card-title mb-0">{{ template.account.name }}</h6>
+                        <span class="badge bg-primary">Priority {{ template.priority }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Type:</strong>
+                            <span class="badge bg-info">{{ template.get_allocation_type_display }}</span>
+                        </div>
+                        
+                        {% if template.allocation_type == 'fixed' %}
+                            <div class="mb-2">
+                                <strong>Weekly Amount:</strong> ${{ template.weekly_amount }}
+                            </div>
+                        {% elif template.allocation_type == 'percentage' %}
+                            <div class="mb-2">
+                                <strong>Percentage:</strong> {{ template.percentage }}%
+                            </div>
+                        {% elif template.allocation_type == 'range' %}
+                            <div class="mb-2">
+                                <strong>Range:</strong> ${{ template.min_amount }} - ${{ template.max_amount }}
+                            </div>
+                        {% endif %}
+                        
+                        {% if template.notes %}
+                            <div class="mb-2">
+                                <small class="text-muted">{{ template.notes }}</small>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="template_{{ template.pk }}_active" 
+                                       {% if template.is_active %}checked{% endif %} disabled>
+                                <label class="form-check-label" for="template_{{ template.pk }}_active">
+                                    Active
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                            <a href="#" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="#" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-template fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Budget Templates Yet</h5>
+        <p class="text-muted mb-4">Budget templates help automate your weekly allocations.</p>
+        <a href="{% url 'budget_allocation:budget_template_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Your First Template
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

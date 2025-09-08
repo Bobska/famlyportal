@@ -125,7 +125,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'budget_allocation/js/dashboard.js' %}"></script>
 {% endblock %}
 
 {% block title %}Budget Allocation{% if title %} - {{ title }}{% endif %}{% endblock %}
@@ -154,13 +153,13 @@
             <div class="sidebar-section">Accounts</div>
             <ul class="sidebar-nav">
                 <li class="sidebar-nav-item">
-                    <a href="{% url 'budget_allocation:account_list' %}" class="sidebar-nav-link {% if 'account' in request.resolver_match.url_name %}active{% endif %}">
+                    <a href="{% url 'budget_allocation:account_list' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'account_list' %}active{% endif %}">
                         <i class="fas fa-folder"></i>
                         All Accounts
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="{% url 'budget_allocation:account_create' %}" class="sidebar-nav-link {% if 'account' in request.resolver_match.url_name %}active{% endif %}">
+                    <a href="{% url 'budget_allocation:account_create' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'account_create' %}active{% endif %}">
                         <i class="fas fa-plus"></i>
                         New Account
                     </a>

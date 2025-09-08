@@ -616,6 +616,32 @@ def family_settings(request):
 @login_required
 @family_required
 @app_permission_required('budget_allocation')
+def accounts_api(request):
+    """Get all accounts with their current balances"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'error': 'Family not found'}, status=400)
+    
+    current_week = get_current_week(family)
+    accounts = Account.objects.filter(family=family).order_by('sort_order')
+    
+    account_data = {}
+    for account in accounts:
+        balance = get_account_balance(account, current_week)
+        account_data[str(account.pk)] = {
+            'id': account.pk,
+            'name': account.name,
+            'balance': float(balance),
+            'formatted_balance': f"${balance:,.2f}",
+            'account_type': account.account_type
+        }
+    
+    return JsonResponse(account_data)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
 def account_balance_api(request, account_id):
     """Get current account balance via AJAX"""
     family = get_user_family(request.user)

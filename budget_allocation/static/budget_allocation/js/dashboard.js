@@ -321,7 +321,7 @@ async function quickRepayLoan(loanId) {
  */
 async function loadAccountData() {
     try {
-        const response = await fetch('/budget_allocation/api/accounts/', {
+        const response = await fetch('/budget-allocation/api/accounts/', {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }

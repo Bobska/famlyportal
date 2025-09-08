@@ -30,6 +30,7 @@ urlpatterns = [
     path('settings/', views.family_settings, name='family_settings'),
     
     # API Endpoints
+    path('api/accounts/', views.accounts_api, name='accounts_api'),
     path('api/account/<int:account_id>/balance/', views.account_balance_api, name='account_balance_api'),
     path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),
     path('api/week-summary/', views.week_summary_api, name='week_summary_api'),

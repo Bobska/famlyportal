@@ -11,8 +11,9 @@ urlpatterns = [
     # Account management
     path('accounts/', views.account_list, name='account_list'),
     path('accounts/create/', views.account_create, name='account_create'),
-    path('accounts/<int:pk>/', views.account_detail, name='account_detail'),
-    path('accounts/<int:pk>/edit/', views.account_edit, name='account_edit'),
+    path('account/<int:account_id>/', views.account_detail, name='account_detail'),
+    path('account/<int:account_id>/edit/', views.account_edit, name='account_edit'),
+    path('account/<int:parent_id>/add-child/', views.add_child_account, name='add_child_account'),
     
     # Allocation management
     path('allocation/', views.allocation_dashboard, name='allocation_dashboard'),

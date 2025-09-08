@@ -60,6 +60,48 @@ def auto_setup_accounts_on_family_creation(family, created_by_user=None):
     return setup_default_accounts_for_family(family, created_by_user)
 
 
+def ensure_default_accounts_exist(family):
+    """
+    Ensure that default Income and Expense accounts exist for a family.
+    
+    This is a wrapper around setup_default_accounts_for_family that
+    can be safely called multiple times - it only creates accounts
+    if they don't already exist.
+    
+    Args:
+        family: Family instance to check/create accounts for
+    
+    Returns:
+        dict: Summary of any accounts created
+    """
+    from .models import Account
+    
+    # Check if basic accounts already exist
+    has_income = Account.objects.filter(
+        family=family, 
+        account_type='income'
+    ).exists()
+    
+    has_expense = Account.objects.filter(
+        family=family, 
+        account_type='expense'
+    ).exists()
+    
+    # If both exist, no setup needed
+    if has_income and has_expense:
+        return {
+            'family': family,
+            'created_accounts': [],
+            'created_count': 0,
+            'setup_needed': False,
+        }
+    
+    # Otherwise, run the setup
+    result = setup_default_accounts_for_family(family)
+    result['setup_needed'] = True
+    return result
+
+
 def get_account_color_suggestions(account_type, family, parent_account=None):
     """
     Get suggested colors for a new account based on type and existing accounts.

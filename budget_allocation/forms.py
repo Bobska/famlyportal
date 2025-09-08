@@ -1,5 +1,6 @@
 # Budget Allocation App Forms
 from django import forms
+from django.db import models
 from django.core.exceptions import ValidationError
 from .models import (
     Account, Allocation, Transaction, BudgetTemplate, FamilySettings,
@@ -48,7 +49,14 @@ class AccountForm(forms.ModelForm):
         
         # Set initial values
         if not self.instance.pk:  # Only for new accounts
-            self.initial['sort_order'] = 0
+            # Set sort_order to next available number
+            if self.family:
+                max_sort_order = Account.objects.filter(family=self.family).aggregate(
+                    models.Max('sort_order')
+                )['sort_order__max'] or 0
+                self.initial['sort_order'] = max_sort_order + 1
+            else:
+                self.initial['sort_order'] = 0
             self.initial['is_active'] = True
         
         # Filter parent choices to accounts in the same family
@@ -60,12 +68,12 @@ class AccountForm(forms.ModelForm):
         
         # Add CSS classes and help text
         self.fields['name'].help_text = "Choose a descriptive name for this account"
-        self.fields['parent'].help_text = "Select a parent account to create a hierarchy. Leave empty only for root accounts."
+        self.fields['parent'].help_text = "Select a parent account to create a hierarchy. Required for income and spending accounts."
         self.fields['sort_order'].help_text = "Lower numbers appear first in lists"
         
-        # Make parent field optional
+        # Make parent field optional initially (validation will check based on account_type)
         self.fields['parent'].required = False
-        self.fields['parent'].empty_label = "No parent (root account)"
+        self.fields['parent'].empty_label = "No parent (only for root accounts)"
     
     def clean_parent(self):
         """Validate parent field"""
@@ -94,10 +102,22 @@ class AccountForm(forms.ModelForm):
                 raise ValidationError("This would create a circular reference.")
             
             # Validate account type compatibility
-            if account_type != parent.account_type:
-                raise ValidationError(
-                    f"Child account type ({account_type}) must match parent account type ({parent.account_type})."
-                )
+            # Root accounts can have income/spending children
+            # Income/spending accounts can have same-type children
+            if parent.account_type == 'root':
+                # Root accounts can have income or spending children
+                if account_type not in ['income', 'spending']:
+                    raise ValidationError(
+                        f"Root accounts can only have income or spending children, not {account_type}."
+                    )
+            elif parent.account_type in ['income', 'spending']:
+                # Income/spending accounts can only have children of the same type
+                if account_type != parent.account_type:
+                    raise ValidationError(
+                        f"Child account type ({account_type}) must match parent account type ({parent.account_type})."
+                    )
+            else:
+                raise ValidationError(f"Invalid parent account type: {parent.account_type}")
         
         return cleaned_data
     

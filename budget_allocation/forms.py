@@ -305,9 +305,9 @@ class BudgetTemplateForm(forms.ModelForm):
             }),
             'percentage': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'step': '0.1',
-                'min': '0.0',
-                'max': '100.0',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
                 'placeholder': '0.0'
             }),
             'min_amount': forms.NumberInput(attrs={
@@ -547,7 +547,7 @@ class AccountLoanForm(forms.ModelForm):
         
         # Validate different accounts
         if lender_account and borrower_account and lender_account == borrower_account:
-            raise ValidationError("Lender and borrower accounts must be different.")
+            self.add_error('borrower_account', "Lender and borrower accounts must be different.")
         
         return cleaned_data
 

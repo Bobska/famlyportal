@@ -5,6 +5,7 @@ Test form validation, field rendering, and data processing for budget allocation
 """
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from accounts.models import User
 from decimal import Decimal
 from datetime import date
@@ -526,8 +527,9 @@ class AccountLoanFormTests(BudgetAllocationFormTestCase):
         form = AccountLoanForm(data=form_data, family=self.family)
         
         self.assertFalse(form.is_valid())
-        # Check for validation error in __all__ errors
-        self.assertIn('Cannot loan from account to itself', str(form.errors))
+        # Check for validation error on borrower_account field
+        self.assertIn('borrower_account', form.errors)
+        self.assertIn('Lender and borrower accounts must be different', str(form.errors))
     
     def test_invalid_loan_zero_amount(self):
         """Test loan form with zero amount"""
@@ -802,7 +804,8 @@ class FormCleanMethodTests(BudgetAllocationFormTestCase):
             'lender_account': self.savings_account.pk,
             'borrower_account': self.savings_account.pk,
             'original_amount': '300.00',
-            'weekly_interest_rate': '0.0200'
+            'weekly_interest_rate': '0.0200',
+            'loan_date': timezone.now().date()
         }
         
         form = AccountLoanForm(data=form_data, family=self.family)

@@ -695,12 +695,18 @@ class AccountLoan(FamilyScopedModel):
         if self.remaining_amount is not None and self.remaining_amount < 0:
             raise ValidationError("Remaining amount cannot be negative")
         
-        if self.lender_account == self.borrower_account:
+        # Only validate accounts if both IDs are set (not None)
+        if self.lender_account_id and self.borrower_account_id and self.lender_account_id == self.borrower_account_id:
             raise ValidationError("Cannot loan from account to itself")
         
-        # Check that both accounts belong to same family
-        if self.lender_account.family != self.borrower_account.family:
-            raise ValidationError("Both accounts must belong to the same family")
+        # Check that both accounts belong to same family (only if both are set)
+        if self.lender_account_id and self.borrower_account_id:
+            try:
+                if self.lender_account.family != self.borrower_account.family:
+                    raise ValidationError("Both accounts must belong to the same family")
+            except (Account.DoesNotExist, AttributeError):
+                # Skip validation if accounts don't exist yet
+                pass
     
     def calculate_weekly_interest(self):
         """Calculate weekly interest on remaining amount"""

@@ -60,7 +60,7 @@ def has_app_permission(context, app_name):
         
         # Parents have access to most apps except admin-only
         if family_member.role == 'parent':
-            admin_only_apps = ['household_budget', 'credit_cards']
+            admin_only_apps = ['household_budget', 'credit_cards', 'budget_allocation']
             return app_name not in admin_only_apps
         
         # Children have limited access
@@ -122,6 +122,7 @@ def app_icon(app_name):
         'upcoming_payments': 'bi-calendar-check',
         'credit_cards': 'bi-credit-card',
         'household_budget': 'bi-piggy-bank',
+        'budget_allocation': 'bi-pie-chart',
         'autocraftcv': 'bi-file-text'
     }
     return app_icons.get(app_name, 'bi-app')

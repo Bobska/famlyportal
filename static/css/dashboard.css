@@ -210,6 +210,17 @@ main {
     color: #0d47a1;
 }
 
+/* Ready Apps - Green Background */
+.app-card.ready {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%);
+    border: 1px solid #81c784;
+    color: #1b5e20;
+}
+
+.app-card.ready:hover {
+    color: #1b5e20;
+}
+
 /* In Development Apps - Yellow Background */
 .app-card.in-development {
     background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);

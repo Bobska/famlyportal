@@ -96,6 +96,19 @@
             </div>
             {% endif %}
             
+            <!-- Budget Allocation App - In Development -->
+            {% has_app_permission 'budget_allocation' as can_budget_allocation %}
+            {% if can_budget_allocation %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                <a href="{% url 'budget_allocation:dashboard' %}" class="app-card in-development">
+                    <span class="status-badge dev">In Dev</span>
+                    <i class="bi bi-pie-chart app-icon"></i>
+                    <h5 class="app-title">Budget Allocation</h5>
+                    <p class="app-description">Weekly budget planning and money allocation system</p>
+                </a>
+            </div>
+            {% endif %}
+            
             <!-- AutoCraft CV App - Coming Soon -->
             {% has_app_permission 'autocraftcv' as can_cv %}
             {% if can_cv %}

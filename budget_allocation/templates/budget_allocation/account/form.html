@@ -1,5 +1,6 @@
 {% extends 'budget_allocation/base_with_sidebar.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
 
 {% block page_title %}{% if form.instance.pk %}Edit Account{% else %}Create Account{% endif %}{% endblock %}
 
@@ -12,31 +13,6 @@
 {% block page_content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <!-- Account Type Help -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-info-circle me-2"></i>Account Types & Rules
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <strong>Root Account:</strong>
-                        <p class="small text-muted">Top-level accounts with no parent. Examples: "Income", "Spending"</p>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Income Account:</strong>
-                        <p class="small text-muted">Track money coming in. Can be children of Root or other Income accounts. Examples: "Salary", "Freelance"</p>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Spending Account:</strong>
-                        <p class="small text-muted">Track money going out. Can be children of Root or other Spending accounts. Examples: "Groceries", "Rent"</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -45,8 +21,38 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
+                {% if form.instance.pk and form.instance.parent is None %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Editing Root Account:</strong> This is a main category account ({{ form.instance.get_account_type_display }}).
+                    Some fields are restricted to maintain system integrity.
+                </div>
+                {% endif %}
+
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Color Preview JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.querySelector('#id_color');
+    const colorPreview = document.querySelector('#color-preview-edit');
+    
+    if (colorInput && colorPreview) {
+        // Set initial color
+        colorPreview.style.backgroundColor = colorInput.value;
+        
+        // Update preview when color changes
+        colorInput.addEventListener('input', function() {
+            colorPreview.style.backgroundColor = this.value;
+        });
+    }
+});
+</script>
+{% endblock %}
                     
                     <div class="row">
                         <div class="col-md-6">

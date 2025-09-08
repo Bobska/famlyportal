@@ -2,136 +2,228 @@
 from django import forms
 from django.db import models
 from django.core.exceptions import ValidationError
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Field, Submit, Div, HTML
+from crispy_forms.bootstrap import FormActions
 from .models import (
     Account, Allocation, Transaction, BudgetTemplate, FamilySettings,
     AccountLoan, LoanPayment
 )
 
 
-class AccountForm(forms.ModelForm):
-    """Form for creating and editing accounts"""
+class ChildAccountForm(forms.ModelForm):
+    """Simple form for creating child accounts"""
     
     class Meta:
         model = Account
-        fields = [
-            'name', 'account_type', 'parent', 'description', 
-            'color', 'is_active', 'sort_order'
-        ]
+        fields = ['name', 'description', 'color']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter account name'
+                'placeholder': 'e.g., Salary, Groceries, Car Insurance'
             }),
-            'account_type': forms.Select(attrs={'class': 'form-select'}),
-            'parent': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Enter account description (optional)'
+                'placeholder': 'Optional: What is this account for?'
             }),
             'color': forms.TextInput(attrs={
                 'class': 'form-control',
-                'type': 'color',
-                'value': '#6c757d'
+                'type': 'color'
+            })
+        }
+    
+    def __init__(self, *args, parent=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parent = parent
+        
+        # Auto-assign color based on parent
+        if parent and not self.instance.pk:
+            from .utils import get_next_color_for_parent
+            suggested_color = get_next_color_for_parent(parent)
+            self.fields['color'].initial = suggested_color
+        
+        # Make description optional but helpful
+        self.fields['description'].required = False
+        
+        # Customize labels
+        self.fields['name'].label = 'Account Name'
+        self.fields['description'].label = 'Description (Optional)'
+        self.fields['color'].label = 'Color'
+        
+        # Add help text
+        if parent:
+            self.fields['name'].help_text = f'Create a new account under "{parent.name}"'
+            self.fields['color'].help_text = 'Choose a color to easily identify this account'
+        
+        # Setup crispy forms helper
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Field('name', css_class='mb-3'),
+            Field('description', css_class='mb-3'),
+            Div(
+                Field('color', css_class='w-50'),
+                HTML('<small class="form-text text-muted">Preview: <span id="color-preview" style="display:inline-block; width:20px; height:20px; border:1px solid #ccc; margin-left:10px;"></span></small>'),
+                css_class='mb-3'
+            ),
+            FormActions(
+                Submit('submit', 'Create Account', css_class='btn btn-primary'),
+                HTML('<a href="{% url "budget_allocation:account_detail" account_id=parent_account.id %}" class="btn btn-secondary ms-2">Cancel</a>' if parent else '')
+            )
+        )
+        self.helper.form_method = 'post'
+    
+    def clean_name(self):
+        """Validate account name is unique within parent"""
+        name = self.cleaned_data['name']
+        if self.parent:
+            existing = Account.objects.filter(
+                family=self.parent.family,
+                parent=self.parent,
+                name__iexact=name
+            ).exclude(pk=self.instance.pk if self.instance else None)
+            
+            if existing.exists():
+                raise forms.ValidationError(
+                    f'An account named "{name}" already exists under {self.parent.name}.'
+                )
+        return name
+    
+    def clean_color(self):
+        """Validate color is a valid hex code"""
+        color = self.cleaned_data['color']
+        if color and not color.startswith('#'):
+            color = '#' + color
+        
+        # Basic hex color validation
+        if color and len(color) != 7:
+            raise forms.ValidationError('Color must be a valid hex code (e.g., #FF5733)')
+        
+        return color
+
+
+class AccountForm(forms.ModelForm):
+    """Form for editing existing accounts"""
+    
+    class Meta:
+        model = Account
+        fields = ['name', 'description', 'color', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3
             }),
-            'sort_order': forms.NumberInput(attrs={
+            'color': forms.TextInput(attrs={
                 'class': 'form-control',
-                'min': 0,
-                'value': 0,
-                'required': True
+                'type': 'color'
             }),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
     
     def __init__(self, *args, **kwargs):
         self.family = kwargs.pop('family', None)
         super().__init__(*args, **kwargs)
         
-        # Set initial values
-        if not self.instance.pk:  # Only for new accounts
-            # Set sort_order to next available number
-            if self.family:
-                max_sort_order = Account.objects.filter(family=self.family).aggregate(
-                    models.Max('sort_order')
-                )['sort_order__max'] or 0
-                self.initial['sort_order'] = max_sort_order + 1
-            else:
-                self.initial['sort_order'] = 0
-            self.initial['is_active'] = True
+        # Don't allow editing of Income/Expense root accounts
+        if self.instance and self.instance.parent is None:
+            self.fields['name'].widget.attrs['readonly'] = True
+            self.fields['name'].help_text = 'Root account names cannot be changed'
         
-        # Filter parent choices to accounts in the same family
-        if self.family:
-            self.fields['parent'].queryset = Account.objects.filter(
-                family=self.family,
-                is_active=True
-            ).exclude(pk=self.instance.pk if self.instance.pk else None)
+        # Make description optional
+        self.fields['description'].required = False
         
-        # Add CSS classes and help text
-        self.fields['name'].help_text = "Choose a descriptive name for this account"
-        self.fields['parent'].help_text = "Select a parent account to create a hierarchy. Required for income and spending accounts."
-        self.fields['sort_order'].help_text = "Lower numbers appear first in lists"
+        # Customize labels
+        self.fields['is_active'].label = 'Account is active'
+        self.fields['color'].help_text = 'Choose a color to easily identify this account'
         
-        # Make parent field optional initially (validation will check based on account_type)
-        self.fields['parent'].required = False
-        self.fields['parent'].empty_label = "No parent (only for root accounts)"
+        # Add validation warning for deactivation
+        if self.instance and self.instance.pk:
+            child_count = self.instance.children.filter(is_active=True).count()
+            if child_count > 0:
+                self.fields['is_active'].help_text = f'Warning: This account has {child_count} active child accounts'
+        
+        # Setup crispy forms helper
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Field('name', css_class='mb-3'),
+            Field('description', css_class='mb-3'),
+            Div(
+                Field('color', css_class='w-50'),
+                HTML('<small class="form-text text-muted">Preview: <span id="color-preview-edit" style="display:inline-block; width:20px; height:20px; border:1px solid #ccc; margin-left:10px;"></span></small>'),
+                css_class='mb-3'
+            ),
+            Field('is_active', css_class='mb-3'),
+            FormActions(
+                Submit('submit', 'Update Account', css_class='btn btn-primary'),
+                HTML('<a href="{% url "budget_allocation:account_detail" account_id=account.id %}" class="btn btn-secondary ms-2">Cancel</a>')
+            )
+        )
+        self.helper.form_method = 'post'
     
-    def clean_parent(self):
-        """Validate parent field"""
-        parent = self.cleaned_data.get('parent')
-        account_type = self.cleaned_data.get('account_type')
+    def clean_name(self):
+        """Validate account name"""
+        name = self.cleaned_data['name']
         
-        # Root accounts cannot have parents
-        if account_type == 'root' and parent:
-            raise forms.ValidationError("Root accounts cannot have a parent")
+        # Prevent changes to root account names
+        if self.instance and self.instance.parent is None and self.instance.name != name:
+            raise forms.ValidationError('Root account names cannot be changed')
         
-        return parent
+        # Check for uniqueness within parent (if has parent)
+        if self.instance and self.instance.parent:
+            existing = Account.objects.filter(
+                family=self.instance.family,
+                parent=self.instance.parent,
+                name__iexact=name
+            ).exclude(pk=self.instance.pk)
+            
+            if existing.exists():
+                raise forms.ValidationError(
+                    f'An account named "{name}" already exists under {self.instance.parent.name}.'
+                )
+        
+        return name
     
-    def clean(self):
-        cleaned_data = super().clean()
-        parent = cleaned_data.get('parent')
-        account_type = cleaned_data.get('account_type')
+    def clean_is_active(self):
+        """Validate account deactivation"""
+        is_active = self.cleaned_data['is_active']
         
-        # Validate parent-child relationship
-        if parent:
-            # Prevent circular references
-            if self.instance.pk and parent.pk == self.instance.pk:
-                raise ValidationError("An account cannot be its own parent.")
+        if self.instance and self.instance.pk and not is_active:
+            # Check for active children
+            active_children = self.instance.children.filter(is_active=True).count()
+            if active_children > 0:
+                raise forms.ValidationError(
+                    f'Cannot deactivate account with {active_children} active child accounts. '
+                    'Please deactivate child accounts first.'
+                )
             
-            # Check if parent would create a cycle
-            if self.instance.pk and parent.has_ancestor(self.instance):
-                raise ValidationError("This would create a circular reference.")
+            # Check for recent transactions (last 30 days)
+            from django.utils import timezone
+            from datetime import timedelta
             
-            # Validate account type compatibility
-            # Root accounts can have income/spending children
-            # Income/spending accounts can have same-type children
-            if parent.account_type == 'root':
-                # Root accounts can have income or spending children
-                if account_type not in ['income', 'spending']:
-                    raise ValidationError(
-                        f"Root accounts can only have income or spending children, not {account_type}."
-                    )
-            elif parent.account_type in ['income', 'spending']:
-                # Income/spending accounts can only have children of the same type
-                if account_type != parent.account_type:
-                    raise ValidationError(
-                        f"Child account type ({account_type}) must match parent account type ({parent.account_type})."
-                    )
-            else:
-                raise ValidationError(f"Invalid parent account type: {parent.account_type}")
+            recent_date = timezone.now().date() - timedelta(days=30)
+            recent_transactions = Transaction.objects.filter(
+                account=self.instance,
+                transaction_date__gte=recent_date
+            ).count()
+            
+            if recent_transactions > 0:
+                # Don't prevent, but warn (this is just a form validation, view can handle the warning)
+                pass
         
-        return cleaned_data
+        return is_active
     
-    def save(self, commit=True):
-        """Save account with family assignment"""
-        account = super().save(commit=False)
+    def clean_color(self):
+        """Validate color is a valid hex code"""
+        color = self.cleaned_data['color']
+        if color and not color.startswith('#'):
+            color = '#' + color
         
-        if self.family:
-            account.family = self.family
-            
-        if commit:
-            account.save()
-            
-        return account
+        # Basic hex color validation
+        if color and len(color) != 7:
+            raise forms.ValidationError('Color must be a valid hex code (e.g., #FF5733)')
+        
+        return color
 
 
 class AllocationForm(forms.ModelForm):

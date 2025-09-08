@@ -266,3 +266,37 @@ def get_account_path_display(account):
     
     path_parts.reverse()
     return " > ".join(path_parts)
+
+
+def get_next_color_for_parent(parent_account):
+    """
+    Get the next suggested color for a child account based on parent.
+    
+    Args:
+        parent_account: Parent Account instance
+    
+    Returns:
+        str: Hex color code for the new child account
+    """
+    from .models import Account
+    
+    if parent_account.account_type == 'income':
+        available_colors = Account.INCOME_COLORS
+    elif parent_account.account_type == 'expense':
+        available_colors = Account.EXPENSE_COLORS
+    else:
+        return '#007bff'  # Default blue for other types
+    
+    # Get colors already used by sibling accounts
+    used_colors = set(
+        parent_account.children.values_list('color', flat=True)
+    )
+    
+    # Find first available color
+    for color in available_colors:
+        if color not in used_colors:
+            return color
+    
+    # If all colors are used, cycle through them
+    sibling_count = parent_account.children.count()
+    return available_colors[sibling_count % len(available_colors)]

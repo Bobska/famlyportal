@@ -384,14 +384,15 @@ def add_child_account(request, parent_id):
         return redirect('budget_allocation:account_detail', account_id=parent_account.id)
     
     if request.method == 'POST':
-        # We'll need to create a ChildAccountForm or adapt the existing AccountForm
-        form = AccountForm(request.POST, family=family)
+        # Use the new ChildAccountForm
+        from .forms import ChildAccountForm
+        form = ChildAccountForm(request.POST, parent=parent_account)
         if form.is_valid():
             child_account = form.save(commit=False)
             child_account.family = family
             child_account.parent = parent_account
             child_account.account_type = parent_account.account_type
-            # Color will be auto-assigned in save() method
+            # Color will be auto-assigned in save() method if not set
             child_account.save()
             
             # Create history entry
@@ -409,10 +410,8 @@ def add_child_account(request, parent_id):
             messages.error(request, "Please correct the errors below.")
     else:
         # Pre-populate form with parent account info
-        form = AccountForm(family=family, initial={
-            'account_type': parent_account.account_type,
-            'parent': parent_account,
-        })
+        from .forms import ChildAccountForm
+        form = ChildAccountForm(parent=parent_account)
     
     context = {
         'title': f'Add Child Account to {parent_account.name}',

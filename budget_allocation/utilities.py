@@ -49,10 +49,18 @@ def get_available_money(family, week):
     
     # Already allocated money
     allocated = Allocation.objects.filter(
+        family=family,
         week=week
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    return income - allocated
+    # Expenses for the week
+    expenses = Transaction.objects.filter(
+        account__family=family,
+        week=week,
+        transaction_type='expense'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    return income - allocated - expenses
 
 
 def transfer_money(from_account, to_account, amount, week, description, loan=None, loan_payment=None):
@@ -69,8 +77,10 @@ def transfer_money(from_account, to_account, amount, week, description, loan=Non
     
     # Create outgoing transaction (expense)
     Transaction.objects.create(
+        family=from_account.family,
         account=from_account,
         week=week,
+        transaction_date=date.today(),
         amount=amount,
         transaction_type='expense',
         description=f"Transfer out: {description}"
@@ -78,8 +88,10 @@ def transfer_money(from_account, to_account, amount, week, description, loan=Non
     
     # Create incoming transaction (income)
     Transaction.objects.create(
+        family=to_account.family,
         account=to_account,
         week=week,
+        transaction_date=date.today(),
         amount=amount,
         transaction_type='income',
         description=f"Transfer in: {description}"
@@ -92,7 +104,7 @@ def get_account_balance(account, week):
     
     # Get all allocations to this account up to this week
     allocations = Allocation.objects.filter(
-        account=account,
+        to_account=account,
         week__start_date__lte=week.start_date
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
@@ -137,11 +149,20 @@ def get_account_tree(family):
 
 def apply_budget_templates(family, week):
     """Apply budget templates to allocate money automatically"""
-    from .models import FamilySettings, BudgetTemplate, Allocation
+    from .models import FamilySettings, BudgetTemplate, Allocation, Account
     
     settings = FamilySettings.objects.filter(family=family).first()
     if not settings or not settings.auto_allocate_enabled:
         return
+    
+    # Get the income account for the family
+    income_account = Account.objects.filter(
+        family=family,
+        account_type='income'
+    ).first()
+    
+    if not income_account:
+        return  # No income account to allocate from
     
     available_money = get_available_money(family, week)
     if available_money <= 0:
@@ -170,9 +191,11 @@ def apply_budget_templates(family, week):
         
         if amount > 0:
             Allocation.objects.create(
-                account=template.account,
+                family=family,
+                from_account=income_account,
+                to_account=template.account,
                 week=week,
                 amount=amount,
-                description=f"Auto-allocation: {template.account.name} - {template.allocation_type}"
+                notes=f"Auto-allocation: {template.account.name} - {template.allocation_type}"
             )
             remaining_money -= amount

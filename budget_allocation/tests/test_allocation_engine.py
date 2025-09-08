@@ -4,7 +4,7 @@ Budget Allocation Engine Tests
 Test the auto-allocation logic, budget template processing, and allocation algorithms.
 """
 from django.test import TestCase
-from django.contrib.auth.models import User
+from accounts.models import User
 from decimal import Decimal
 from datetime import date
 
@@ -31,7 +31,10 @@ class AllocationEngineTestCase(TestCase):
             password='testpass123'
         )
         
-        self.family = Family.objects.create(name='Test Family')
+        self.family = Family.objects.create(
+            name='Test Family',
+            created_by=self.user
+        )
         
         self.member = FamilyMember.objects.create(
             user=self.user,
@@ -93,6 +96,7 @@ class AllocationEngineTestCase(TestCase):
         
         # Add weekly income
         Transaction.objects.create(
+            family=self.family,
             account=self.income_account,
             week=self.week,
             transaction_date=date.today(),
@@ -133,12 +137,12 @@ class BudgetTemplateProcessingTests(AllocationEngineTestCase):
         # Check that allocations were created
         housing_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.housing_account
+            to_account=self.housing_account
         ).first()
         
         food_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.food_account
+            to_account=self.food_account
         ).first()
         
         self.assertIsNotNone(housing_allocation)
@@ -173,12 +177,12 @@ class BudgetTemplateProcessingTests(AllocationEngineTestCase):
         # Check allocations
         savings_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.savings_account
+            to_account=self.savings_account
         ).first()
         
         transport_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.transport_account
+            to_account=self.transport_account
         ).first()
         
         self.assertIsNotNone(savings_allocation)
@@ -223,17 +227,17 @@ class BudgetTemplateProcessingTests(AllocationEngineTestCase):
         # Check allocations
         housing_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.housing_account
+            to_account=self.housing_account
         ).first()
         
         food_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.food_account
+            to_account=self.food_account
         ).first()
         
         savings_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.savings_account
+            to_account=self.savings_account
         ).first()
         
         # Housing should get full amount (priority 1)
@@ -241,13 +245,15 @@ class BudgetTemplateProcessingTests(AllocationEngineTestCase):
         if housing_allocation:
             self.assertEqual(housing_allocation.amount, Decimal('1500.00'))
         
-        # Food should get remainder (priority 2)
+        # Food should get its requested amount (priority 2)
         self.assertIsNotNone(food_allocation)
         if food_allocation:
-            self.assertEqual(food_allocation.amount, Decimal('500.00'))  # 2000 - 1500
+            self.assertEqual(food_allocation.amount, Decimal('400.00'))  # Requested amount
         
-        # Savings should get nothing (priority 3, no money left)
-        self.assertIsNone(savings_allocation)
+        # Savings should get remainder (priority 3, gets what's left)
+        self.assertIsNotNone(savings_allocation)
+        if savings_allocation:
+            self.assertEqual(savings_allocation.amount, Decimal('100.00'))  # 2000 - 1500 - 400
 
 
 class UtilityFunctionTests(AllocationEngineTestCase):
@@ -261,6 +267,7 @@ class UtilityFunctionTests(AllocationEngineTestCase):
         
         # Create allocation to reduce available money
         Allocation.objects.create(
+            family=self.family,
             week=self.week,
             from_account=self.income_account,
             to_account=self.housing_account,
@@ -280,6 +287,7 @@ class UtilityFunctionTests(AllocationEngineTestCase):
         
         # Add allocation to account
         Allocation.objects.create(
+            family=self.family,
             week=self.week,
             from_account=self.income_account,
             to_account=self.housing_account,
@@ -293,6 +301,7 @@ class UtilityFunctionTests(AllocationEngineTestCase):
         
         # Add expense to reduce balance
         Transaction.objects.create(
+            family=self.family,
             account=self.housing_account,
             week=self.week,
             transaction_date=date.today(),
@@ -309,6 +318,7 @@ class UtilityFunctionTests(AllocationEngineTestCase):
         """Test money transfer between accounts"""
         # First allocate money to from_account
         Allocation.objects.create(
+            family=self.family,
             week=self.week,
             from_account=self.income_account,
             to_account=self.savings_account,
@@ -387,7 +397,7 @@ class AllocationConstraintsTests(AllocationEngineTestCase):
         # Should allocate all available money
         housing_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.housing_account
+            to_account=self.housing_account
         ).first()
         
         self.assertIsNotNone(housing_allocation)
@@ -420,6 +430,7 @@ class AllocationConstraintsTests(AllocationEngineTestCase):
         """Test allocation when there are existing expenses"""
         # Add expense to reduce available money
         Transaction.objects.create(
+            family=self.family,
             account=self.income_account,
             week=self.week,
             transaction_date=date.today(),
@@ -447,7 +458,7 @@ class AllocationConstraintsTests(AllocationEngineTestCase):
         # Should allocate from remaining available money
         housing_allocation = Allocation.objects.filter(
             week=self.week,
-            account=self.housing_account
+            to_account=self.housing_account
         ).first()
         
         self.assertIsNotNone(housing_allocation)

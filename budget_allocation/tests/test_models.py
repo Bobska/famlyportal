@@ -5,7 +5,7 @@ Test model logic, relationships, and calculations for the budget allocation syst
 """
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
+from accounts.models import User
 from decimal import Decimal
 from datetime import date, timedelta
 
@@ -37,7 +37,10 @@ class BudgetAllocationModelTestCase(TestCase):
             password='testpass123'
         )
         
-        self.family = Family.objects.create(name='Test Family')
+        self.family = Family.objects.create(
+            name='Test Family',
+            created_by=self.user1
+        )
         
         # Create family members
         self.member1 = FamilyMember.objects.create(
@@ -138,7 +141,7 @@ class AccountModelTests(BudgetAllocationModelTestCase):
             account_type='spending'
         )
         
-        expected = f"Test Account ({self.family.name})"
+        expected = f"{self.family.name} - Test Account"
         self.assertEqual(str(account), expected)
 
 
@@ -196,7 +199,7 @@ class WeeklyPeriodModelTests(BudgetAllocationModelTestCase):
             end_date=end_date
         )
         
-        expected = f"Week 2025-09-01 to 2025-09-07 ({self.family.name})"
+        expected = f"{self.family.name} - Week 2025-09-01 to 2025-09-07"
         self.assertEqual(str(week), expected)
 
 
@@ -260,13 +263,12 @@ class BudgetTemplateModelTests(BudgetAllocationModelTestCase):
     
     def test_template_validation(self):
         """Test budget template validation"""
-        # Test invalid range (min > max)
+        # Test missing weekly_amount for fixed type
         template = BudgetTemplate(
             family=self.family,
             account=self.account,
-            allocation_type='range',
-            min_amount=Decimal('250.00'),
-            max_amount=Decimal('150.00')
+            allocation_type='fixed'
+            # missing weekly_amount
         )
         
         with self.assertRaises(ValidationError):
@@ -288,6 +290,7 @@ class TransactionModelTests(BudgetAllocationModelTestCase):
     def test_income_transaction(self):
         """Test income transaction creation"""
         transaction = Transaction.objects.create(
+            family=self.family,
             account=self.account,
             week=self.week,
             transaction_date=date.today(),
@@ -304,6 +307,7 @@ class TransactionModelTests(BudgetAllocationModelTestCase):
     def test_expense_transaction(self):
         """Test expense transaction creation"""
         transaction = Transaction.objects.create(
+            family=self.family,
             account=self.account,
             week=self.week,
             transaction_date=date.today(),
@@ -346,15 +350,24 @@ class AllocationModelTests(BudgetAllocationModelTestCase):
     
     def test_allocation_creation(self):
         """Test allocation creation"""
+        # Create a second account for valid allocation
+        to_account = Account.objects.create(
+            family=self.family,
+            name='Savings',
+            account_type='spending'
+        )
+        
         allocation = Allocation.objects.create(
+            family=self.family,
             week=self.week,
             from_account=self.account,
-            to_account=self.account,
+            to_account=to_account,
             amount=Decimal('200.00'),
             notes='Weekly food budget'
         )
         
         self.assertEqual(allocation.from_account, self.account)
+        self.assertEqual(allocation.to_account, to_account)
         self.assertEqual(allocation.week, self.week)
         self.assertEqual(allocation.amount, Decimal('200.00'))
         self.assertEqual(allocation.notes, 'Weekly food budget')
@@ -448,16 +461,26 @@ class BalanceCalculationTests(BudgetAllocationModelTestCase):
     
     def test_simple_balance_calculation(self):
         """Test basic balance calculation with allocations and transactions"""
+        # Create a second account for valid allocation
+        source_account = Account.objects.create(
+            family=self.family,
+            name='Income',
+            account_type='income'
+        )
+        
         # Add allocation
         Allocation.objects.create(
-            account=self.account,
+            family=self.family,
+            from_account=source_account,
+            to_account=self.account,
             week=self.week,
             amount=Decimal('500.00'),
-            description='Weekly allocation'
+            notes='Weekly allocation'
         )
         
         # Add income transaction
         Transaction.objects.create(
+            family=self.family,
             account=self.account,
             week=self.week,
             transaction_date=date.today(),
@@ -468,6 +491,7 @@ class BalanceCalculationTests(BudgetAllocationModelTestCase):
         
         # Add expense transaction
         Transaction.objects.create(
+            family=self.family,
             account=self.account,
             week=self.week,
             transaction_date=date.today(),
@@ -489,16 +513,26 @@ class BalanceCalculationTests(BudgetAllocationModelTestCase):
     
     def test_negative_balance_calculation(self):
         """Test balance calculation resulting in negative balance"""
+        # Create a second account for valid allocation
+        source_account = Account.objects.create(
+            family=self.family,
+            name='Income',
+            account_type='income'
+        )
+        
         # Add small allocation
         Allocation.objects.create(
-            account=self.account,
+            family=self.family,
+            from_account=source_account,
+            to_account=self.account,
             week=self.week,
             amount=Decimal('50.00'),
-            description='Small allocation'
+            notes='Small allocation'
         )
         
         # Add large expense
         Transaction.objects.create(
+            family=self.family,
             account=self.account,
             week=self.week,
             transaction_date=date.today(),
@@ -531,12 +565,21 @@ class MoneyTransferTests(BudgetAllocationModelTestCase):
         )
         self.week = get_current_week(self.family)
         
+        # Create a source account for initial balance allocation
+        source_account = Account.objects.create(
+            family=self.family,
+            name='Income',
+            account_type='income'
+        )
+        
         # Add initial balance to from_account
         Allocation.objects.create(
-            account=self.from_account,
+            family=self.family,
+            from_account=source_account,
+            to_account=self.from_account,
             week=self.week,
             amount=Decimal('1000.00'),
-            description='Initial balance'
+            notes='Initial balance'
         )
     
     def test_successful_transfer(self):

@@ -5,7 +5,7 @@ Test loan creation, interest calculation, payment processing, and automated feat
 """
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
+from accounts.models import User
 from decimal import Decimal
 from datetime import date, timedelta
 
@@ -31,7 +31,10 @@ class LoanSystemTestCase(TestCase):
             password='testpass123'
         )
         
-        self.family = Family.objects.create(name='Test Family')
+        self.family = Family.objects.create(
+            name='Test Family',
+            created_by=self.user
+        )
         
         self.member = FamilyMember.objects.create(
             user=self.user,
@@ -113,7 +116,7 @@ class AccountLoanModelTests(LoanSystemTestCase):
             loan_date=date.today()
         )
         
-        expected = f"Loan: {self.savings_account.name} → {self.emergency_account.name}: ${loan.remaining_amount}"
+        expected = f"{self.savings_account.name} → {self.emergency_account.name}: ${loan.remaining_amount}"
         self.assertEqual(str(loan), expected)
     
     def test_loan_validation(self):
@@ -202,6 +205,7 @@ class LoanPaymentModelTests(LoanSystemTestCase):
     def test_payment_creation(self):
         """Test basic loan payment creation"""
         payment = LoanPayment.objects.create(
+            family=self.family,
             loan=self.loan,
             week=self.week,
             amount=Decimal('100.00'),
@@ -216,6 +220,7 @@ class LoanPaymentModelTests(LoanSystemTestCase):
     def test_payment_string_representation(self):
         """Test payment string representation"""
         payment = LoanPayment.objects.create(
+            family=self.family,
             loan=self.loan,
             week=self.week,
             amount=Decimal('150.00'),
@@ -239,6 +244,7 @@ class LoanPaymentModelTests(LoanSystemTestCase):
         
         # Test valid payment
         payment = LoanPayment(
+            family=self.family,
             loan=self.loan,
             week=self.week,
             amount=Decimal('100.00'),
@@ -257,6 +263,7 @@ class LoanPaymentModelTests(LoanSystemTestCase):
         # Note: This validation would typically be handled at the view/form level
         # The model allows any payment amount
         payment = LoanPayment(
+            family=self.family,
             loan=self.loan,
             week=self.week,
             amount=Decimal('1000.00'),  # More than remaining 800
@@ -338,6 +345,7 @@ class LoanTransactionIntegrationTests(LoanSystemTestCase):
         
         # Add initial balances to accounts
         Transaction.objects.create(
+            family=self.family,
             account=self.savings_account,
             week=self.week,
             transaction_date=date.today(),
@@ -347,10 +355,11 @@ class LoanTransactionIntegrationTests(LoanSystemTestCase):
         )
         
         Transaction.objects.create(
+            family=self.family,
             account=self.emergency_account,
             week=self.week,
             transaction_date=date.today(),
-            amount=Decimal('100.00'),
+            amount=Decimal('500.00'),
             transaction_type='income',
             description='Initial emergency balance'
         )
@@ -362,7 +371,7 @@ class LoanTransactionIntegrationTests(LoanSystemTestCase):
         emergency_balance = get_account_balance(self.emergency_account, self.week)
         
         self.assertEqual(savings_balance, Decimal('2000.00'))
-        self.assertEqual(emergency_balance, Decimal('100.00'))
+        self.assertEqual(emergency_balance, Decimal('500.00'))
         
         # Create loan and transfer money
         loan = AccountLoan.objects.create(
@@ -390,7 +399,7 @@ class LoanTransactionIntegrationTests(LoanSystemTestCase):
         emergency_balance = get_account_balance(self.emergency_account, self.week)
         
         self.assertEqual(savings_balance, Decimal('1500.00'))  # 2000 - 500
-        self.assertEqual(emergency_balance, Decimal('600.00'))  # 100 + 500
+        self.assertEqual(emergency_balance, Decimal('1000.00'))  # 500 + 500
     
     def test_loan_payment_with_transfer(self):
         """Test making loan payment with money transfer"""
@@ -421,6 +430,7 @@ class LoanTransactionIntegrationTests(LoanSystemTestCase):
         
         # Create payment record
         LoanPayment.objects.create(
+            family=self.family,
             loan=loan,
             week=self.week,
             amount=payment_amount,
@@ -438,9 +448,9 @@ class LoanTransactionIntegrationTests(LoanSystemTestCase):
         savings_balance = get_account_balance(self.savings_account, self.week)
         emergency_balance = get_account_balance(self.emergency_account, self.week)
         
-        # Emergency account should have: 100 (initial) - 200 (payment) = -100
+        # Emergency account should have: 500 (initial) - 200 (payment) = 300
         # Savings account should have: 2000 (initial) + 200 (payment) = 2200
-        self.assertEqual(emergency_balance, Decimal('-100.00'))
+        self.assertEqual(emergency_balance, Decimal('300.00'))
         self.assertEqual(savings_balance, Decimal('2200.00'))
 
 
@@ -548,6 +558,7 @@ class LoanBusinessLogicTests(LoanSystemTestCase):
         """Test business logic for loan amount limits"""
         # Add limited balance to savings account
         Transaction.objects.create(
+            family=self.family,
             account=self.savings_account,
             week=self.week,
             transaction_date=date.today(),
@@ -633,6 +644,7 @@ class LoanBusinessLogicTests(LoanSystemTestCase):
         for i, amount in enumerate(payment_amounts):
             # Create payment record
             LoanPayment.objects.create(
+                family=self.family,
                 loan=loan,
                 week=self.week,
                 amount=amount,

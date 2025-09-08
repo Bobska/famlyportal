@@ -5,7 +5,7 @@ Test form validation, field rendering, and data processing for budget allocation
 """
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
+from accounts.models import User
 from decimal import Decimal
 from datetime import date
 
@@ -31,7 +31,10 @@ class BudgetAllocationFormTestCase(TestCase):
             password='testpass123'
         )
         
-        self.family = Family.objects.create(name='Test Family')
+        self.family = Family.objects.create(
+            name='Test Family',
+            created_by=self.user
+        )
         
         self.member = FamilyMember.objects.create(
             user=self.user,

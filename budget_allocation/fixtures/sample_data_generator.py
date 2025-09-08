@@ -26,6 +26,7 @@ def create_sample_data():
         "pk": 1,
         "fields": {
             "name": "Johnson Family",
+            "created_by": 1,
             "created_at": "2024-01-01T00:00:00Z",
             "updated_at": "2024-01-01T00:00:00Z"
         }

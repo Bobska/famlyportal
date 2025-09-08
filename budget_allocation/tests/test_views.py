@@ -5,7 +5,7 @@ Test view functionality, permissions, and HTTP responses for the budget allocati
 """
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth.models import User
+from accounts.models import User
 from django.http import JsonResponse
 from decimal import Decimal
 from datetime import date
@@ -29,7 +29,10 @@ class BudgetAllocationViewTestCase(TestCase):
             password='testpass123'
         )
         
-        self.family = Family.objects.create(name='Test Family')
+        self.family = Family.objects.create(
+            name='Test Family',
+            created_by=self.user
+        )
         
         self.member = FamilyMember.objects.create(
             user=self.user,
@@ -249,6 +252,7 @@ class TransactionViewTests(BudgetAllocationViewTestCase):
         """Test transaction list view"""
         # Create test transaction
         Transaction.objects.create(
+            family=self.family,
             account=self.spending_account,
             week=self.week,
             transaction_date=date.today(),
@@ -452,6 +456,7 @@ class APIViewTests(BudgetAllocationViewTestCase):
         """Test account balance API endpoint"""
         # Add some transactions to create a balance
         Transaction.objects.create(
+            family=self.family,
             account=self.spending_account,
             week=self.week,
             transaction_date=date.today(),
@@ -521,7 +526,10 @@ class PermissionTests(BudgetAllocationViewTestCase):
             password='testpass123'
         )
         
-        self.other_family = Family.objects.create(name='Other Family')
+        self.other_family = Family.objects.create(
+            name='Other Family',
+            created_by=self.user
+        )
         
         self.other_member = FamilyMember.objects.create(
             user=self.other_user,
@@ -589,6 +597,7 @@ class PaginationTests(BudgetAllocationViewTestCase):
         # Create many transactions to trigger pagination
         for i in range(25):
             Transaction.objects.create(
+                family=self.family,
                 account=self.spending_account,
                 week=self.week,
                 transaction_date=date.today(),

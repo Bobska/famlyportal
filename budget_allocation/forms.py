@@ -36,7 +36,8 @@ class AccountForm(forms.ModelForm):
             'sort_order': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 0,
-                'value': 0
+                'value': 0,
+                'required': True
             }),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
@@ -44,6 +45,11 @@ class AccountForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.family = kwargs.pop('family', None)
         super().__init__(*args, **kwargs)
+        
+        # Set initial values
+        if not self.instance.pk:  # Only for new accounts
+            self.initial['sort_order'] = 0
+            self.initial['is_active'] = True
         
         # Filter parent choices to accounts in the same family
         if self.family:
@@ -54,7 +60,7 @@ class AccountForm(forms.ModelForm):
         
         # Add CSS classes and help text
         self.fields['name'].help_text = "Choose a descriptive name for this account"
-        self.fields['parent'].help_text = "Select a parent account to create a hierarchy (optional)"
+        self.fields['parent'].help_text = "Select a parent account to create a hierarchy. Leave empty only for root accounts."
         self.fields['sort_order'].help_text = "Lower numbers appear first in lists"
         
         # Make parent field optional
@@ -64,7 +70,7 @@ class AccountForm(forms.ModelForm):
     def clean_parent(self):
         """Validate parent field"""
         parent = self.cleaned_data.get('parent')
-        account_type = self.data.get('account_type')
+        account_type = self.cleaned_data.get('account_type')
         
         # Root accounts cannot have parents
         if account_type == 'root' and parent:

@@ -160,7 +160,7 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="{% url 'budget_allocation:account_create' %}" class="sidebar-nav-link">
+                    <a href="{% url 'budget_allocation:account_create' %}" class="sidebar-nav-link {% if 'account' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-plus"></i>
                         New Account
                     </a>
@@ -177,7 +177,7 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="{% url 'budget_allocation:transaction_create' %}" class="sidebar-nav-link">
+                    <a href="{% url 'budget_allocation:transaction_create' %}" class="sidebar-nav-link {% if 'transaction' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-plus-circle"></i>
                         Record Transaction
                     </a>

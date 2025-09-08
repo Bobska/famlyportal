@@ -171,6 +171,14 @@ def account_create(request):
             
             messages.success(request, f'Account "{account.name}" created successfully.')
             return redirect('budget_allocation:account_list')
+        else:
+            # Debug: print form errors
+            print("Form validation failed:")
+            for field, errors in form.errors.items():
+                print(f"  {field}: {errors}")
+            if hasattr(form, 'non_field_errors'):
+                print(f"  Non-field errors: {form.non_field_errors()}")
+            messages.error(request, "Please correct the errors below.")
     else:
         form = AccountForm(family=family)
     

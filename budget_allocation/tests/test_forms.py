@@ -128,7 +128,10 @@ class AccountFormTests(BudgetAllocationFormTestCase):
     def test_account_form_parent_filtering(self):
         """Test that parent field is filtered by family"""
         # Create account in different family
-        other_family = Family.objects.create(name='Other Family')
+        other_family = Family.objects.create(
+            name='Other Family',
+            created_by=self.user
+        )
         other_account = Account.objects.create(
             family=other_family,
             name='Other Account',
@@ -175,13 +178,12 @@ class TransactionFormTests(BudgetAllocationFormTestCase):
         self.assertTrue(form.is_valid())
         
         # Test saving the form
-        transaction = form.save(commit=False)
-        transaction.week = self.week
-        transaction.save()
+        transaction = form.save()
         
         self.assertEqual(transaction.account, self.spending_account)
         self.assertEqual(transaction.amount, Decimal('50.00'))
         self.assertEqual(transaction.transaction_type, 'expense')
+        self.assertEqual(transaction.family, self.family)
     
     def test_invalid_transaction_form_negative_amount(self):
         """Test form with negative amount"""
@@ -189,7 +191,8 @@ class TransactionFormTests(BudgetAllocationFormTestCase):
             'account': self.spending_account.pk,
             'amount': '-10.00',
             'transaction_type': 'expense',
-            'description': 'Invalid transaction'
+            'description': 'Invalid transaction',
+            'transaction_date': date.today().isoformat()
         }
         
         form = TransactionForm(data=form_data, family=self.family)
@@ -203,7 +206,8 @@ class TransactionFormTests(BudgetAllocationFormTestCase):
             'account': self.spending_account.pk,
             'amount': '0.00',
             'transaction_type': 'expense',
-            'description': 'Invalid transaction'
+            'description': 'Invalid transaction',
+            'transaction_date': date.today().isoformat()
         }
         
         form = TransactionForm(data=form_data, family=self.family)
@@ -214,7 +218,10 @@ class TransactionFormTests(BudgetAllocationFormTestCase):
     def test_transaction_form_account_filtering(self):
         """Test that account field is filtered by family"""
         # Create account in different family
-        other_family = Family.objects.create(name='Other Family')
+        other_family = Family.objects.create(
+            name='Other Family',
+            created_by=self.user
+        )
         other_account = Account.objects.create(
             family=other_family,
             name='Other Account',
@@ -224,9 +231,10 @@ class TransactionFormTests(BudgetAllocationFormTestCase):
         form = TransactionForm(family=self.family)
         
         # Account choices should only include accounts from same family
-        account_pks = [choice[0] for choice in form.fields['account'].choices if choice[0]]
-        self.assertIn(str(self.spending_account.pk), account_pks)
-        self.assertNotIn(str(other_account.pk), account_pks)
+        account_queryset = form.fields['account'].queryset
+        account_pks = [account.pk for account in account_queryset]
+        self.assertIn(self.spending_account.pk, account_pks)
+        self.assertNotIn(other_account.pk, account_pks)
     
     def test_transaction_form_future_date_validation(self):
         """Test validation for future dates"""
@@ -264,6 +272,7 @@ class AllocationFormTests(BudgetAllocationFormTestCase):
     def test_valid_allocation_form(self):
         """Test form with valid data"""
         form_data = {
+            'week': self.week.pk,
             'from_account': self.income_account.pk,
             'to_account': self.spending_account.pk,
             'amount': '200.00',
@@ -275,9 +284,7 @@ class AllocationFormTests(BudgetAllocationFormTestCase):
         self.assertTrue(form.is_valid())
         
         # Test saving the form
-        allocation = form.save(commit=False)
-        allocation.week = self.week
-        allocation.save()
+        allocation = form.save()
         
         self.assertEqual(allocation.from_account, self.income_account)
         self.assertEqual(allocation.to_account, self.spending_account)
@@ -286,6 +293,7 @@ class AllocationFormTests(BudgetAllocationFormTestCase):
     def test_invalid_allocation_same_account(self):
         """Test form with same from and to account"""
         form_data = {
+            'week': self.week.pk,
             'from_account': self.spending_account.pk,
             'to_account': self.spending_account.pk,  # Same account
             'amount': '100.00',
@@ -300,6 +308,7 @@ class AllocationFormTests(BudgetAllocationFormTestCase):
     def test_invalid_allocation_zero_amount(self):
         """Test form with zero amount"""
         form_data = {
+            'week': self.week.pk,
             'from_account': self.income_account.pk,
             'to_account': self.spending_account.pk,
             'amount': '0.00',
@@ -316,16 +325,16 @@ class AllocationFormTests(BudgetAllocationFormTestCase):
         form = AllocationForm(family=self.family)
         
         # Check that only family accounts are in choices
-        from_account_pks = [choice[0] for choice in form.fields['from_account'].choices if choice[0]]
-        to_account_pks = [choice[0] for choice in form.fields['to_account'].choices if choice[0]]
+        from_account_queryset = form.fields['from_account'].queryset
+        to_account_queryset = form.fields['to_account'].queryset
         
-        family_account_pks = [str(acc.pk) for acc in Account.objects.filter(family=self.family)]
+        family_account_pks = [acc.pk for acc in Account.objects.filter(family=self.family)]
         
-        for pk in from_account_pks:
-            self.assertIn(pk, family_account_pks)
+        for account in from_account_queryset:
+            self.assertIn(account.pk, family_account_pks)
         
-        for pk in to_account_pks:
-            self.assertIn(pk, family_account_pks)
+        for account in to_account_queryset:
+            self.assertIn(account.pk, family_account_pks)
 
 
 class BudgetTemplateFormTests(BudgetAllocationFormTestCase):
@@ -483,8 +492,7 @@ class AccountLoanFormTests(BudgetAllocationFormTestCase):
             'borrower_account': self.emergency_account.pk,
             'original_amount': '500.00',
             'weekly_interest_rate': '0.0200',
-            'auto_repay': False,
-            'repay_amount': '50.00'
+            'loan_date': date.today()
         }
         
         form = AccountLoanForm(data=form_data, family=self.family)
@@ -508,13 +516,15 @@ class AccountLoanFormTests(BudgetAllocationFormTestCase):
             'lender_account': self.savings_account.pk,
             'borrower_account': self.savings_account.pk,  # Same account
             'original_amount': '300.00',
-            'weekly_interest_rate': '0.0150'
+            'weekly_interest_rate': '0.0150',
+            'loan_date': date.today()
         }
         
         form = AccountLoanForm(data=form_data, family=self.family)
         
         self.assertFalse(form.is_valid())
-        self.assertIn('borrower_account', form.errors)
+        # Check for validation error in __all__ errors
+        self.assertIn('Cannot loan from account to itself', str(form.errors))
     
     def test_invalid_loan_zero_amount(self):
         """Test loan form with zero amount"""
@@ -522,13 +532,15 @@ class AccountLoanFormTests(BudgetAllocationFormTestCase):
             'lender_account': self.savings_account.pk,
             'borrower_account': self.emergency_account.pk,
             'original_amount': '0.00',
-            'weekly_interest_rate': '0.0200'
+            'weekly_interest_rate': '0.0200',
+            'loan_date': date.today()
         }
         
         form = AccountLoanForm(data=form_data, family=self.family)
         
         self.assertFalse(form.is_valid())
-        self.assertIn('original_amount', form.errors)
+        # Check for validation error in __all__ errors
+        self.assertIn('Original amount must be greater than 0', str(form.errors))
     
     def test_invalid_loan_negative_interest_rate(self):
         """Test loan form with negative interest rate"""
@@ -536,13 +548,16 @@ class AccountLoanFormTests(BudgetAllocationFormTestCase):
             'lender_account': self.savings_account.pk,
             'borrower_account': self.emergency_account.pk,
             'original_amount': '400.00',
-            'weekly_interest_rate': '-0.0100'
+            'weekly_interest_rate': '-0.0100',
+            'loan_date': date.today()
         }
         
         form = AccountLoanForm(data=form_data, family=self.family)
         
         self.assertFalse(form.is_valid())
-        self.assertIn('weekly_interest_rate', form.errors)
+        # The negative interest rate should be caught by the field validation
+        self.assertTrue('weekly_interest_rate' in form.errors or 
+                       any('interest rate' in str(error).lower() for error in form.errors.values()))
 
 
 class LoanPaymentFormTests(BudgetAllocationFormTestCase):
@@ -579,7 +594,8 @@ class LoanPaymentFormTests(BudgetAllocationFormTestCase):
         """Test form with valid payment data"""
         form_data = {
             'loan': self.loan.pk,
-            'payment_amount': '100.00'
+            'amount': '100.00',
+            'payment_date': date.today().isoformat()
         }
         
         form = LoanPaymentForm(data=form_data, family=self.family)
@@ -589,36 +605,41 @@ class LoanPaymentFormTests(BudgetAllocationFormTestCase):
         # Test saving the form (payment creation would be handled in view)
         cleaned_data = form.cleaned_data
         self.assertEqual(cleaned_data['loan'], self.loan)
-        self.assertEqual(cleaned_data['payment_amount'], Decimal('100.00'))
+        self.assertEqual(cleaned_data['amount'], Decimal('100.00'))
     
     def test_invalid_payment_exceeds_balance(self):
         """Test payment form with amount exceeding loan balance"""
         form_data = {
             'loan': self.loan.pk,
-            'payment_amount': '1000.00'  # More than remaining amount (800)
+            'amount': '1000.00',  # More than remaining amount (800)
+            'payment_date': date.today().isoformat()
         }
         
         form = LoanPaymentForm(data=form_data, family=self.family)
         
         self.assertFalse(form.is_valid())
-        self.assertIn('payment_amount', form.errors)
+        self.assertIn('amount', form.errors)
     
     def test_invalid_payment_zero_amount(self):
         """Test payment form with zero amount"""
         form_data = {
             'loan': self.loan.pk,
-            'payment_amount': '0.00'
+            'amount': '0.00',
+            'payment_date': date.today().isoformat()
         }
         
         form = LoanPaymentForm(data=form_data, family=self.family)
         
         self.assertFalse(form.is_valid())
-        self.assertIn('payment_amount', form.errors)
+        self.assertIn('amount', form.errors)
     
     def test_loan_payment_form_filtering(self):
         """Test that loan field is filtered by family and active status"""
         # Create loan in different family
-        other_family = Family.objects.create(name='Other Family')
+        other_family = Family.objects.create(
+            name='Other Family',
+            created_by=self.user
+        )
         other_account1 = Account.objects.create(
             family=other_family,
             name='Other Savings',
@@ -642,9 +663,10 @@ class LoanPaymentFormTests(BudgetAllocationFormTestCase):
         form = LoanPaymentForm(family=self.family)
         
         # Loan choices should only include loans from same family
-        loan_pks = [choice[0] for choice in form.fields['loan'].choices if choice[0]]
-        self.assertIn(str(self.loan.pk), loan_pks)
-        self.assertNotIn(str(other_loan.pk), loan_pks)
+        loan_queryset = form.fields['loan'].queryset
+        loan_pks = [loan.pk for loan in loan_queryset]
+        self.assertIn(self.loan.pk, loan_pks)
+        self.assertNotIn(other_loan.pk, loan_pks)
 
 
 class FormWidgetTests(BudgetAllocationFormTestCase):

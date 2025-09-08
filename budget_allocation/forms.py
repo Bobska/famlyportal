@@ -131,21 +131,36 @@ class AllocationForm(forms.ModelForm):
         self.fields['amount'].help_text = "Amount to allocate in dollars"
         self.fields['notes'].required = False
     
-    def clean(self):
-        cleaned_data = super().clean()
-        from_account = cleaned_data.get('from_account')
-        to_account = cleaned_data.get('to_account')
-        amount = cleaned_data.get('amount')
+    def clean_to_account(self):
+        """Validate to_account selection"""
+        to_account = self.cleaned_data.get('to_account')
+        from_account = self.cleaned_data.get('from_account')
         
-        # Validate different accounts
         if from_account and to_account and from_account == to_account:
-            raise ValidationError("From and To accounts must be different.")
+            raise forms.ValidationError("From and To accounts must be different")
         
-        # Validate positive amount
-        if amount and amount <= 0:
-            raise ValidationError("Amount must be greater than zero.")
+        return to_account
+    
+    def clean_amount(self):
+        """Validate allocation amount"""
+        amount = self.cleaned_data.get('amount')
         
-        return cleaned_data
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError("Amount must be greater than 0")
+        
+        return amount
+    
+    def save(self, commit=True):
+        """Save allocation with family assignment"""
+        allocation = super().save(commit=False)
+        
+        if self.family:
+            allocation.family = self.family
+            
+        if commit:
+            allocation.save()
+            
+        return allocation
 
 
 class TransactionForm(forms.ModelForm):
@@ -213,6 +228,36 @@ class TransactionForm(forms.ModelForm):
         if not self.instance.pk:
             from datetime import date
             self.fields['transaction_date'].initial = date.today()
+    
+    def clean_amount(self):
+        """Validate transaction amount"""
+        amount = self.cleaned_data.get('amount')
+        
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError("Amount must be greater than 0")
+        
+        return amount
+    
+    def save(self, commit=True):
+        """Save transaction with family assignment"""
+        transaction = super().save(commit=False)
+        
+        if self.family:
+            transaction.family = self.family
+            
+            # If no week specified, assign to current week
+            if not hasattr(transaction, 'week') or transaction.week is None:
+                from .models import WeeklyPeriod
+                current_week = WeeklyPeriod.objects.filter(
+                    family=self.family
+                ).order_by('-start_date').first()
+                if current_week:
+                    transaction.week = current_week
+            
+        if commit:
+            transaction.save()
+            
+        return transaction
 
 
 class BudgetTemplateForm(forms.ModelForm):
@@ -432,6 +477,12 @@ class AccountLoanForm(forms.ModelForm):
         self.fields['original_amount'].help_text = "Principal loan amount"
         self.fields['weekly_interest_rate'].help_text = "Weekly interest rate (e.g. 0.020 for 2%)"
     
+    def clean_weekly_interest_rate(self):
+        interest_rate = self.cleaned_data.get('weekly_interest_rate')
+        if interest_rate is not None and interest_rate < 0:
+            raise ValidationError("Interest rate cannot be negative.")
+        return interest_rate
+    
     def clean(self):
         cleaned_data = super().clean()
         lender_account = cleaned_data.get('lender_account')
@@ -449,8 +500,11 @@ class LoanPaymentForm(forms.ModelForm):
     
     class Meta:
         model = LoanPayment
-        fields = ['amount', 'payment_date', 'notes']
+        fields = ['loan', 'amount', 'payment_date', 'notes']
         widgets = {
+            'loan': forms.Select(attrs={
+                'class': 'form-control'
+            }),
             'amount': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
@@ -470,13 +524,22 @@ class LoanPaymentForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         self.loan = kwargs.pop('loan', None)
+        self.family = kwargs.pop('family', None)
         super().__init__(*args, **kwargs)
+        
+        # Filter loan choices by family and active status
+        if self.family:
+            from .models import AccountLoan
+            self.fields['loan'].queryset = AccountLoan.objects.filter(
+                family=self.family,
+                is_active=True
+            )
         
         # Set default date to today
         if not self.instance.pk:
             from datetime import date
             self.fields['payment_date'].initial = date.today()
-        
+            
         # Make notes optional
         self.fields['notes'].required = False
         
@@ -485,16 +548,16 @@ class LoanPaymentForm(forms.ModelForm):
         self.fields['payment_date'].help_text = "Date when payment was made"
     
     def clean_amount(self):
+        """Validate payment amount"""
         amount = self.cleaned_data.get('amount')
+        loan = self.cleaned_data.get('loan')
         
-        if self.loan and amount:
-            if amount > self.loan.remaining_amount:
-                raise ValidationError(
-                    f"Payment amount cannot exceed remaining balance of ${self.loan.remaining_amount}"
-                )
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError("Payment amount must be greater than 0")
+        
+        if loan and amount and amount > loan.remaining_amount:
+            raise forms.ValidationError(
+                f"Payment amount (${amount}) cannot exceed remaining loan balance (${loan.remaining_amount})"
+            )
         
         return amount
-        self.fields['default_interest_rate'].help_text = "Default weekly interest rate for loans (as decimal, e.g., 0.01 = 1%)"
-        self.fields['notification_threshold'].help_text = "Minimum account balance to trigger low balance notifications"
-        self.fields['auto_allocate_enabled'].help_text = "Automatically allocate money based on budget templates"
-        self.fields['auto_repay_enabled'].help_text = "Automatically repay loans when possible"

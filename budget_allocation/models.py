@@ -510,14 +510,16 @@ class Allocation(FamilyScopedModel):
         """Custom validation"""
         super().clean()
         
-        if self.amount <= 0:
+        if self.amount is not None and self.amount <= 0:
             raise ValidationError("Amount must be greater than 0")
         
-        if self.from_account == self.to_account:
+        if hasattr(self, 'from_account') and hasattr(self, 'to_account') and self.from_account == self.to_account:
             raise ValidationError("Cannot allocate from account to itself")
         
         # Check that both accounts belong to same family
-        if self.from_account.family != self.to_account.family:
+        if (hasattr(self, 'from_account') and hasattr(self, 'to_account') and 
+            self.from_account and self.to_account and 
+            self.from_account.family != self.to_account.family):
             raise ValidationError("Both accounts must belong to the same family")
 
 
@@ -611,7 +613,7 @@ class Transaction(FamilyScopedModel):
         """Custom validation"""
         super().clean()
         
-        if self.amount <= 0:
+        if self.amount is not None and self.amount <= 0:
             raise ValidationError("Amount must be greater than 0")
 
 
@@ -687,10 +689,10 @@ class AccountLoan(FamilyScopedModel):
         """Custom validation"""
         super().clean()
         
-        if self.original_amount <= 0:
+        if self.original_amount is not None and self.original_amount <= 0:
             raise ValidationError("Original amount must be greater than 0")
         
-        if self.remaining_amount < 0:
+        if self.remaining_amount is not None and self.remaining_amount < 0:
             raise ValidationError("Remaining amount cannot be negative")
         
         if self.lender_account == self.borrower_account:
@@ -782,7 +784,7 @@ class LoanPayment(FamilyScopedModel):
         """Custom validation"""
         super().clean()
         
-        if self.amount <= 0:
+        if self.amount is not None and self.amount <= 0:
             raise ValidationError("Payment amount must be greater than 0")
 
 

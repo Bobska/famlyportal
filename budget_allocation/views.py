@@ -108,7 +108,7 @@ def dashboard(request):
         'active_loans': active_loans,
         'recent_transactions': week_transactions.order_by('-transaction_date', '-created_at')[:5],
     }
-    return render(request, 'budget_allocation/dashboard.html', context)
+    return render(request, 'budget_allocation/dashboard_clean.html', context)
 
 
 # Account Views

@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'budget_allocation/css/budget_allocation.css' %}">
+<style>
+/* Sidebar Navigation Styles */
+.budget-sidebar {
+    background: #f8f9fa;
+    min-height: calc(100vh - 76px);
+    border-right: 1px solid #dee2e6;
+    padding: 0;
+}
+
+.sidebar-nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-nav-item {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.sidebar-nav-link:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.sidebar-nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+    border-left: 4px solid #0a58ca;
+}
+
+.sidebar-nav-link i {
+    width: 20px;
+    margin-right: 0.75rem;
+    text-align: center;
+}
+
+.sidebar-header {
+    background: #0d6efd;
+    color: white;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.sidebar-section {
+    padding: 0.75rem 1.25rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e9ecef;
+    background: #f1f3f4;
+}
+
+/* Main Content Area */
+.budget-main-content {
+    padding: 1.5rem;
+    background: white;
+    min-height: calc(100vh - 76px);
+}
+
+/* Clean Card Styles */
+.clean-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    margin-bottom: 1.5rem;
+}
+
+.clean-card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.clean-card-body {
+    padding: 1.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .budget-sidebar {
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .sidebar-nav {
+        display: flex;
+        overflow-x: auto;
+        padding: 0.5rem 0;
+    }
+    
+    .sidebar-nav-item {
+        border-bottom: none;
+        border-right: 1px solid #e9ecef;
+        min-width: max-content;
+    }
+    
+    .sidebar-nav-link {
+        padding: 0.75rem 1rem;
+        white-space: nowrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'budget_allocation/js/dashboard.js' %}"></script>
+{% endblock %}
+
+{% block title %}Budget Allocation{% if title %} - {{ title }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-3 col-md-4 budget-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-chart-pie me-2"></i>
+                Budget Allocation
+            </div>
+            
+            <!-- Navigation Menu -->
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:dashboard' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-home"></i>
+                        Dashboard
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Accounts Section -->
+            <div class="sidebar-section">Accounts</div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:account_list' %}" class="sidebar-nav-link {% if 'account' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-folder"></i>
+                        All Accounts
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:account_create' %}" class="sidebar-nav-link">
+                        <i class="fas fa-plus"></i>
+                        New Account
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Transactions Section -->
+            <div class="sidebar-section">Transactions</div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:transaction_list' %}" class="sidebar-nav-link {% if 'transaction' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-list"></i>
+                        All Transactions
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:transaction_create' %}" class="sidebar-nav-link">
+                        <i class="fas fa-plus-circle"></i>
+                        Record Transaction
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Budget Management Section -->
+            <div class="sidebar-section">Budget Management</div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:allocation_dashboard' %}" class="sidebar-nav-link {% if 'allocation' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-exchange-alt"></i>
+                        Weekly Allocations
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:budget_template_list' %}" class="sidebar-nav-link {% if 'template' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-clipboard-list"></i>
+                        Budget Templates
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Reports Section -->
+            <div class="sidebar-section">Reports & Tools</div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:family_settings' %}" class="sidebar-nav-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="col-lg-9 col-md-8 budget-main-content">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item">Budget Allocation</li>
+                    {% block breadcrumb_items %}{% endblock %}
+                </ol>
+            </nav>
+            
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">{% block page_title %}Budget Allocation{% endblock %}</h2>
+                    {% block page_description %}
+                    <p class="text-muted mb-0">Manage your family's weekly budget allocation and financial planning.</p>
+                    {% endblock %}
+                </div>
+                <div>
+                    {% block page_actions %}{% endblock %}
+                </div>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Main Page Content -->
+            {% block page_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

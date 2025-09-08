@@ -1,0 +1,279 @@
+{% extends 'budget_allocation/base_with_sidebar.html' %}
+{% load static %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    {% if not current_week.allocation_locked %}
+        <a href="{% url 'budget_allocation:create_allocation' %}" class="btn btn-primary">
+            <i class="fas fa-exchange-alt me-1"></i>Allocate Money
+        </a>
+    {% endif %}
+    <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-outline-success">
+        <i class="fas fa-plus me-1"></i>Add Transaction
+    </a>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<!-- Current Week Overview -->
+<div class="clean-card">
+    <div class="clean-card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-calendar-week me-2 text-primary"></i>
+                <span>Week of {{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</span>
+            </div>
+            <div>
+                {% if current_week.allocation_locked %}
+                    <span class="badge bg-warning">
+                        <i class="fas fa-lock me-1"></i>Locked
+                    </span>
+                {% else %}
+                    <span class="badge bg-success">
+                        <i class="fas fa-unlock me-1"></i>Open
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="clean-card-body">
+        <div class="row g-4">
+            <!-- Income -->
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h4 text-success mb-1">${{ week_summary.total_income|floatformat:2 }}</div>
+                    <div class="text-muted small">Total Income</div>
+                </div>
+            </div>
+            
+            <!-- Allocated -->
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h4 text-primary mb-1">${{ week_summary.total_allocated|floatformat:2 }}</div>
+                    <div class="text-muted small">Allocated</div>
+                </div>
+            </div>
+            
+            <!-- Available -->
+            <div class="col-md-3">
+                <div class="text-center">
+                    {% with available=week_summary.total_income|add:week_summary.total_allocated|add:"-"|stringformat:"s" %}
+                    <div class="h4 text-warning mb-1">${{ available|default:"0.00" }}</div>
+                    {% endwith %}
+                    <div class="text-muted small">Available to Allocate</div>
+                </div>
+            </div>
+            
+            <!-- Net Flow -->
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h4 {% if week_summary.net_flow >= 0 %}text-success{% else %}text-danger{% endif %} mb-1">
+                        ${{ week_summary.net_flow|floatformat:2 }}
+                    </div>
+                    <div class="text-muted small">Net Flow</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Account Summary -->
+        <div class="clean-card">
+            <div class="clean-card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-wallet me-2"></i>Account Overview</span>
+                    <a href="{% url 'budget_allocation:account_list' %}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+            </div>
+            <div class="clean-card-body">
+                {% if root_accounts %}
+                    <div class="account-list">
+                        {% for account in root_accounts %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <div class="account-color-dot me-3" style="background-color: {{ account.color }}"></div>
+                                <div>
+                                    <div class="fw-medium">{{ account.name }}</div>
+                                    <small class="text-muted">{{ account.get_account_type_display }}</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-medium">${{ account.current_balance|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-folder-open fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">No accounts found</p>
+                        <a href="{% url 'budget_allocation:account_create' %}" class="btn btn-primary">
+                            Create Your First Account
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Transactions -->
+        <div class="clean-card">
+            <div class="clean-card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-history me-2"></i>Recent Transactions</span>
+                    <a href="{% url 'budget_allocation:transaction_list' %}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+            </div>
+            <div class="clean-card-body">
+                {% if recent_transactions %}
+                    <div class="transaction-list">
+                        {% for transaction in recent_transactions %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <div class="transaction-icon me-3">
+                                    {% if transaction.transaction_type == 'income' %}
+                                        <i class="fas fa-plus-circle text-success"></i>
+                                    {% elif transaction.transaction_type == 'expense' %}
+                                        <i class="fas fa-minus-circle text-danger"></i>
+                                    {% else %}
+                                        <i class="fas fa-exchange-alt text-primary"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-medium">{{ transaction.description }}</div>
+                                    <small class="text-muted">{{ transaction.account.name }} • {{ transaction.transaction_date|date:"M d" }}</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-medium {% if transaction.transaction_type == 'income' %}text-success{% elif transaction.transaction_type == 'expense' %}text-danger{% endif %}">
+                                    {% if transaction.transaction_type == 'expense' %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">No transactions found</p>
+                        <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-primary">
+                            Record Your First Transaction
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="clean-card">
+            <div class="clean-card-header">
+                <i class="fas fa-bolt me-2"></i>Quick Actions
+            </div>
+            <div class="clean-card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'budget_allocation:transaction_create' %}?type=income" class="btn btn-success">
+                        <i class="fas fa-plus-circle me-1"></i>Record Income
+                    </a>
+                    <a href="{% url 'budget_allocation:transaction_create' %}?type=expense" class="btn btn-danger">
+                        <i class="fas fa-minus-circle me-1"></i>Record Expense
+                    </a>
+                    {% if not current_week.allocation_locked %}
+                    <a href="{% url 'budget_allocation:create_allocation' %}" class="btn btn-primary">
+                        <i class="fas fa-exchange-alt me-1"></i>Allocate Money
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'budget_allocation:account_create' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-folder-plus me-1"></i>New Account
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Week Navigation -->
+        <div class="clean-card">
+            <div class="clean-card-header">
+                <i class="fas fa-calendar me-2"></i>Week Navigation
+            </div>
+            <div class="clean-card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a href="?week={{ current_week.previous_week.id }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    <span class="text-center">
+                        <div class="fw-medium">Week {{ current_week.week_number }}</div>
+                        <small class="text-muted">{{ current_week.year }}</small>
+                    </span>
+                    <a href="?week={{ current_week.next_week.id }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+                <div class="text-center">
+                    <div class="fw-medium">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d" }}</div>
+                    <small class="text-muted">{{ current_week.start_date|date:"Y" }}</small>
+                </div>
+            </div>
+        </div>
+        
+        {% if active_loans %}
+        <!-- Active Loans -->
+        <div class="clean-card">
+            <div class="clean-card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-handshake me-2"></i>Active Loans</span>
+                    <a href="{% url 'budget_allocation:loan_list' %}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+            </div>
+            <div class="clean-card-body">
+                {% for loan in active_loans %}
+                <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div>
+                        <div class="fw-medium">{{ loan.lender_account.name }} → {{ loan.borrower_account.name }}</div>
+                        <small class="text-muted">Due: {{ loan.due_date|date:"M d, Y" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-medium">${{ loan.remaining_balance|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.account-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.transaction-icon {
+    width: 20px;
+    text-align: center;
+}
+
+.account-list .border-bottom:last-child,
+.transaction-list .border-bottom:last-child {
+    border-bottom: none !important;
+}
+</style>
+{% endblock %}

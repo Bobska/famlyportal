@@ -1,49 +1,206 @@
-{% extends 'base.html' %}
+{% extends 'budget_allocation/base_with_sidebar.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Add Child Account - {{ parent_account.name }}{% endblock %}
+{% block title %}Add Child Account to {{ parent_account.name }}{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
+{% block page_title %}Add Child Account{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:dashboard' %}">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:account_detail' parent_account.id %}">
+        {{ parent_account.name }}
+    </a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">Add Child Account</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
+            <!-- Parent Account Context Card -->
+            <div class="card mb-4" style="border-left: 6px solid {{ parent_account.color }};">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 24px; height: 24px; background-color: {{ parent_account.color }}; border-radius: 3px;"></div>
+                        <div>
+                            <h6 class="mb-1">Creating child account under:</h6>
+                            <h5 class="mb-0 text-primary">{{ parent_account.name }}</h5>
+                            <small class="text-muted">{{ parent_account.get_account_type_display|title }} Account</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Child Account Form -->
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header">
                     <h4 class="mb-0">
                         <i class="fas fa-plus-circle me-2"></i>
-                        Add Child Account
+                        New Child Account
                     </h4>
                 </div>
                 <div class="card-body">
+                    <!-- Information Alert -->
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Creating a new account under <strong>{{ parent_account.name }}</strong>
-                        <br>
-                        <small>This will be a {{ parent_account.get_account_type_display|lower }} account.</small>
+                        <div class="d-flex">
+                            <div class="me-2">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div>
+                                <strong>Child Account Benefits:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Inherits parent account type ({{ parent_account.get_account_type_display|title }})</li>
+                                    <li>Automatically gets a suggested color that complements the parent</li>
+                                    <li>Helps organize your finances with logical groupings</li>
+                                    <li>Balances roll up to parent for reporting</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
 
-                    {% crispy form %}
+                    <!-- Form -->
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <!-- Action Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'budget_allocation:account_detail' parent_account.id %}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left"></i> Back to {{ parent_account.name }}
+                                    </a>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Create Child Account
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Color Suggestions Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-palette"></i> Color Suggestions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Quick color options that work well with your parent account:</p>
+                    <div class="row" id="color-suggestions">
+                        <!-- Color suggestions will be populated by JavaScript -->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Color Preview JavaScript -->
+<!-- Enhanced JavaScript for Color Handling -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const colorInput = document.querySelector('#id_color');
-    const colorPreview = document.querySelector('#color-preview');
+    const parentColor = '{{ parent_account.color }}';
     
-    if (colorInput && colorPreview) {
-        // Set initial color
-        colorPreview.style.backgroundColor = colorInput.value;
+    // Create color suggestions based on parent account type
+    const isIncomeAccount = '{{ parent_account.account_type }}' === 'income';
+    const colorSuggestions = isIncomeAccount ? 
+        ['#28a745', '#20c997', '#17a2b8', '#6f42c1', '#fd7e14'] :  // Income colors
+        ['#dc3545', '#e83e8c', '#fd7e14', '#ffc107', '#6c757d'];   // Expense colors
+    
+    const colorSuggestionsContainer = document.getElementById('color-suggestions');
+    
+    // Create color suggestion buttons
+    colorSuggestions.forEach(color => {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-auto mb-2';
         
-        // Update preview when color changes
-        colorInput.addEventListener('input', function() {
-            colorPreview.style.backgroundColor = this.value;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-outline-secondary p-2';
+        button.style.width = '40px';
+        button.style.height = '40px';
+        button.style.backgroundColor = color;
+        button.style.border = '2px solid #dee2e6';
+        button.title = `Use color ${color}`;
+        
+        button.addEventListener('click', function() {
+            if (colorInput) {
+                colorInput.value = color;
+                updateColorPreview();
+                
+                // Remove active class from all color buttons
+                document.querySelectorAll('.color-suggestion-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+            }
         });
+        
+        button.classList.add('color-suggestion-btn');
+        colDiv.appendChild(button);
+        colorSuggestionsContainer.appendChild(colDiv);
+    });
+    
+    // Function to update color preview
+    function updateColorPreview() {
+        const colorPreview = document.querySelector('.color-preview');
+        if (colorPreview && colorInput) {
+            colorPreview.style.backgroundColor = colorInput.value;
+        }
+    }
+    
+    // Update preview when color input changes
+    if (colorInput) {
+        colorInput.addEventListener('input', updateColorPreview);
+        // Set initial preview
+        updateColorPreview();
+    }
+    
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
     }
 });
 </script>
+
+<style>
+.color-suggestion-btn.active {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.color-suggestion-btn:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+.color-preview {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    border: 2px solid #dee2e6;
+    display: inline-block;
+}
+</style>
 {% endblock %}

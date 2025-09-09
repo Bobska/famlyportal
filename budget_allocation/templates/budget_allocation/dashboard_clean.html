@@ -1,7 +1,7 @@
 {% extends 'budget_allocation/base_with_sidebar.html' %}
 {% load static %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}Budget Allocation Dashboard{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
@@ -21,33 +21,152 @@
 {% endblock %}
 
 {% block page_content %}
-<!-- Current Week Overview -->
-<div class="clean-card">
-    <div class="clean-card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-calendar-week me-2 text-primary"></i>
-                <span>Week of {{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</span>
-            </div>
-            <div>
-                {% if current_week.allocation_locked %}
-                    <span class="badge bg-warning">
-                        <i class="fas fa-lock me-1"></i>Locked
-                    </span>
-                {% else %}
-                    <span class="badge bg-success">
-                        <i class="fas fa-unlock me-1"></i>Open
-                    </span>
-                {% endif %}
+<div class="container-fluid">
+    <!-- Overall Balance Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="card-title">Overall Balance</h2>
+                    <h1 class="display-4 {% if overall_balance.net_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ${{ overall_balance.net_balance|floatformat:2 }}
+                    </h1>
+                    <p class="text-muted">Total Income - Total Expenses for {{ current_week }}</p>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-success">
+                                <h5>${{ overall_balance.total_income|floatformat:2 }}</h5>
+                                <small>Total Income</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-danger">
+                                <h5>${{ overall_balance.total_expenses|floatformat:2 }}</h5>
+                                <small>Total Expenses</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-info">
+                                <h5>${{ week_summary.total_allocated|floatformat:2 }}</h5>
+                                <small>Total Allocated</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="clean-card-body">
-        <div class="row g-4">
-            <!-- Income -->
-            <div class="col-md-3">
-                <div class="text-center">
-                    <div class="h4 text-success mb-1">${{ week_summary.total_income|floatformat:2 }}</div>
+    
+    <!-- Income and Expense Sections -->
+    <div class="row">
+        <!-- Income Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">📈 Income</h4>
+                </div>
+                <div class="card-body">
+                    {% for account in income_accounts %}
+                        {% if account.parent is None %}
+                            {% include 'budget_allocation/partials/account_tree.html' with account=account %}
+                        {% endif %}
+                    {% empty %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No income accounts yet.</p>
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- Add Income Source Button -->
+                    {% for account in income_accounts %}
+                        {% if account.parent is None %}
+                            <div class="mt-3 text-center">
+                                <a href="{% url 'budget_allocation:add_child_account' account.id %}" 
+                                   class="btn btn-outline-success">
+                                    <i class="fas fa-plus"></i> Add Income Source
+                                </a>
+                            </div>
+                            {% break %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Expense Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">📉 Expenses</h4>
+                </div>
+                <div class="card-body">
+                    {% for account in expense_accounts %}
+                        {% if account.parent is None %}
+                            {% include 'budget_allocation/partials/account_tree.html' with account=account %}
+                        {% endif %}
+                    {% empty %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No expense accounts yet.</p>
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- Add Expense Category Button -->
+                    {% for account in expense_accounts %}
+                        {% if account.parent is None %}
+                            <div class="mt-3 text-center">
+                                <a href="{% url 'budget_allocation:add_child_account' account.id %}" 
+                                   class="btn btn-outline-danger">
+                                    <i class="fas fa-plus"></i> Add Expense Category
+                                </a>
+                            </div>
+                            {% break %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions Row -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus-circle"></i><br>
+                                <small>Record Transaction</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'budget_allocation:create_allocation' %}" class="btn btn-info w-100">
+                                <i class="fas fa-chart-bar"></i><br>
+                                <small>Create Allocation</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'budget_allocation:account_list' %}" class="btn btn-secondary w-100">
+                                <i class="fas fa-list"></i><br>
+                                <small>View All Accounts</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'budget_allocation:budget_template_list' %}" class="btn btn-warning w-100">
+                                <i class="fas fa-template"></i><br>
+                                <small>Budget Templates</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                     <div class="text-muted small">Total Income</div>
                 </div>
             </div>

@@ -1,53 +1,249 @@
 {% extends 'budget_allocation/base_with_sidebar.html' %}
 {% load static %}
 
-{% block title %}{{ account.name }} - Account Details - Budget Allocation{% endblock %}
+{% block title %}{{ account.name }} - Account Details{% endblock %}
 
-{% block extra_css %}
-<style>
-.account-balance {
-    font-size: 2rem;
-    font-weight: bold;
-}
-.transaction-amount {
-    font-weight: 500;
-}
-.account-color-indicator {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 0.5rem;
-}
-.stat-card {
-    background: linear-gradient(135deg, var(--bs-primary-bg-subtle), var(--bs-light));
-    border: none;
-    transition: transform 0.2s ease;
-}
-.stat-card:hover {
-    transform: translateY(-2px);
-}
-</style>
+{% block page_title %}{{ account.name }} - Account Details{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:dashboard' %}">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+</li>
+{% if account.parent %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'budget_allocation:account_detail' account.parent.id %}">
+            {{ account.parent.name }}
+        </a>
+    </li>
+{% endif %}
+<li class="breadcrumb-item active" aria-current="page">{{ account.name }}</li>
 {% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'budget_allocation:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'budget_allocation:account_list' %}">Accounts</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{ account.name }}</li>
-    </ol>
-</nav>
-{% endblock %}
-
-{% block page_title %}
-<span class="account-color-indicator" style="background-color: {{ account.color }};"></span>
-{{ account.name }}
-{% endblock %}
-
-{% block page_actions %}
-<div class="btn-group" role="group">
-    <a href="{% url 'budget_allocation:account_edit' account.pk %}" class="btn btn-outline-primary">
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Account Header Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm" style="border-left: 6px solid {{ account.color }};">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-3" style="width: 20px; height: 20px; background-color: {{ account.color }}; border-radius: 3px;"></div>
+                                <h2 class="card-title mb-0">{{ account.name }}</h2>
+                                <span class="badge bg-secondary ms-2">{{ account.get_account_type_display|title }}</span>
+                            </div>
+                            {% if account.description %}
+                                <p class="text-muted mb-0">{{ account.description }}</p>
+                            {% endif %}
+                            
+                            <!-- Account Path -->
+                            <small class="text-muted">
+                                <i class="fas fa-sitemap"></i>
+                                {% if account.parent %}
+                                    {{ account.parent.name }} > {{ account.name }}
+                                {% else %}
+                                    Root Account
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="col-md-4 text-md-end">
+                            <h3 class="text-primary mb-1">${{ current_balance|floatformat:2|default:"0.00" }}</h3>
+                            <small class="text-muted">Current Balance</small>
+                            
+                            <!-- Status Indicator -->
+                            <div class="mt-2">
+                                {% if account.is_active %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Active
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-pause-circle"></i> Inactive
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="btn-group" role="group">
+                                {% if account.can_have_children %}
+                                    <a href="{% url 'budget_allocation:add_child_account' account.id %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Add Child Account
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'budget_allocation:account_edit' account.id %}" 
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-edit"></i> Edit Account
+                                </a>
+                                <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.id }}" 
+                                   class="btn btn-outline-success">
+                                    <i class="fas fa-plus-circle"></i> Add Transaction
+                                </a>
+                                {% if account.parent %}
+                                    <a href="{% url 'budget_allocation:account_detail' account.parent.id %}" 
+                                       class="btn btn-outline-info">
+                                        <i class="fas fa-arrow-up"></i> Parent Account
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Current Balance</h5>
+                    <h4 class="text-primary">${{ current_balance|floatformat:2|default:"0.00" }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Child Accounts</h5>
+                    <h4 class="text-info">{{ child_accounts.count }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Recent Transactions</h5>
+                    <h4 class="text-warning">{{ recent_transactions.count }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Account Type</h5>
+                    <h4 class="text-secondary">{{ account.get_account_type_display|title }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Child Accounts Section -->
+    {% if child_accounts %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-layer-group"></i> Child Accounts
+                        </h5>
+                        {% if account.can_have_children %}
+                            <a href="{% url 'budget_allocation:add_child_account' account.id %}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Add Child
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% for child in child_accounts %}
+                            {% include 'budget_allocation/partials/account_tree.html' with account=child %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Recent Transactions Section -->
+    {% if recent_transactions %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history"></i> Recent Transactions
+                        </h5>
+                        <a href="{% url 'budget_allocation:transaction_list' %}?account={{ account.id }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            View All Transactions
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                        <tr>
+                                            <td>{{ transaction.transaction_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <strong>{{ transaction.description|truncatechars:40 }}</strong>
+                                                {% if transaction.notes %}
+                                                    <br><small class="text-muted">{{ transaction.notes|truncatechars:30 }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold {% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    ${{ transaction.amount|floatformat:2 }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                                    {{ transaction.get_transaction_type_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="#" 
+                                                       class="btn btn-outline-primary btn-sm" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Transactions Yet</h5>
+                        <p class="text-muted">Start by adding your first transaction for this account.</p>
+                        <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.id }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-plus-circle"></i> Add First Transaction
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
         <i class="fas fa-edit me-1"></i>Edit Account
     </a>
     <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}" class="btn btn-primary">

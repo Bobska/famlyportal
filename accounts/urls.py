@@ -14,6 +14,7 @@ urlpatterns = [
     path('profile/', views.user_profile, name='profile'),
     
     # Family Management
+    path('create-family/', views.create_family, name='create_family'),
     path('join-family/', views.join_family, name='join_family'),
     path('family/', views.family_management, name='family'),
     path('family/<int:family_pk>/members/', views.family_members, name='family_members'),

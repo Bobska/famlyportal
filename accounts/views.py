@@ -10,7 +10,7 @@ from .models import User, Family, FamilyMember
 from .forms import (
     CustomUserCreationForm, CustomAuthenticationForm, 
     UserProfileForm, FamilyInviteForm, FamilyMemberRoleForm,
-    AddFamilyMemberForm
+    AddFamilyMemberForm, CreateFamilyForm
 )
 from .decorators import (
     family_required, family_admin_required, get_user_family_context,
@@ -161,6 +161,48 @@ def join_family(request):
     })
     
     return render(request, 'accounts/join_family.html', context)
+
+
+@login_required
+def create_family(request):
+    """Create a new family"""
+    if request.method == 'POST':
+        form = CreateFamilyForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Create the family with current user as creator
+                    family = form.save(commit=False)
+                    family.created_by = request.user
+                    family.save()
+                    
+                    # Add the current user as the admin
+                    FamilyMember.objects.create(
+                        user=request.user,
+                        family=family,
+                        role='admin'
+                    )
+                    
+                    messages.success(
+                        request, 
+                        f"Successfully created the {family.name} family! You are now the family administrator."
+                    )
+                    return redirect('accounts:dashboard')
+                    
+            except Exception as e:
+                messages.error(request, f"Failed to create family: {str(e)}")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = CreateFamilyForm()
+    
+    context = get_user_family_context(request.user)
+    context.update({
+        'form': form,
+        'page_title': 'Create Family',
+    })
+    
+    return render(request, 'accounts/create_family.html', context)
 
 
 @family_admin_required

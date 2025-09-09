@@ -215,6 +215,30 @@ class FamilyInviteForm(forms.Form):
         return invite_code
 
 
+class CreateFamilyForm(forms.ModelForm):
+    """Form for creating a new family"""
+    
+    class Meta:
+        model = Family
+        fields = ['name']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            'name',
+            FormActions(
+                Submit('submit', 'Create Family', css_class='btn btn-primary')
+            )
+        )
+        
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        if len(name.strip()) < 2:
+            raise ValidationError("Family name must be at least 2 characters long.")
+        return name.strip()
+
+
 class FamilyMemberRoleForm(forms.ModelForm):
     """Form for updating family member roles (admin only)"""
     

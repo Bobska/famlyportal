@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Family - FamlyPortal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle"></i>
+                    Create New Family
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Start your family portal to manage household activities together.</p>
+                
+                {% crispy form %}
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> What happens next?</h6>
+                    <ul class="mb-0">
+                        <li>You'll become the family administrator</li>
+                        <li>You can invite other family members using your family's invite code</li>
+                        <li>Access all family management tools and apps</li>
+                        <li>Control family member permissions and roles</li>
+                    </ul>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'budget_allocation/base_with_sidebar.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}{% if form.instance.pk %}Edit Account{% else %}Create Account{% endif %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:account_list' %}">Accounts</a></li>
+<li class="breadcrumb-item active" aria-current="page">{% if form.instance.pk %}Edit{% else %}Create{% endif %}</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-{% if form.instance.pk %}edit{% else %}plus{% endif %} me-2"></i>
+                    {% if form.instance.pk %}Edit Account{% else %}Create New Account{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if form.instance.pk and form.instance.parent is None %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Editing Root Account:</strong> This is a main category account ({{ form.instance.get_account_type_display }}).
+                    Some fields are restricted to maintain system integrity.
+                </div>
+                {% endif %}
+
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Color Preview JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.querySelector('#id_color');
+    const colorPreview = document.querySelector('#color-preview-edit');
+    
+    if (colorInput && colorPreview) {
+        // Set initial color
+        colorPreview.style.backgroundColor = colorInput.value;
+        
+        // Update preview when color changes
+        colorInput.addEventListener('input', function() {
+            colorPreview.style.backgroundColor = this.value;
+        });
+    }
+    
+    // Handle parent field visibility based on account type
+    const accountTypeField = document.querySelector('#id_account_type');
+    const parentContainer = document.querySelector('#parent-container');
+    const parentField = document.querySelector('#id_parent');
+    
+    function toggleParentField() {
+        if (accountTypeField && parentContainer) {
+            const accountType = accountTypeField.value;
+            if (accountType === 'root') {
+                // Root accounts don't need parents
+                parentContainer.style.display = 'none';
+                if (parentField) {
+                    parentField.value = '';
+                    parentField.required = false;
+                }
+            } else {
+                // Non-root accounts need parents
+                parentContainer.style.display = 'block';
+                if (parentField) {
+                    parentField.required = true;
+                }
+            }
+        }
+    }
+    
+    // Initial setup and event listener
+    if (accountTypeField) {
+        toggleParentField();
+        accountTypeField.addEventListener('change', toggleParentField);
+    }
+});
+</script>
+{% endblock %}

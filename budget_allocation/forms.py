@@ -68,7 +68,7 @@ class ChildAccountForm(forms.ModelForm):
             ),
             FormActions(
                 Submit('submit', 'Create Account', css_class='btn btn-primary'),
-                HTML('<a href="{% url "budget_allocation:account_detail" account_id=parent_account.id %}" class="btn btn-secondary ms-2">Cancel</a>' if parent else '')
+                HTML('<a href="{% url "budget_allocation:account_detail" account_id=' + str(parent.id) + ' %}" class="btn btn-secondary ms-2">Cancel</a>' if parent else '<a href="{% url "budget_allocation:account_list" %}" class="btn btn-secondary ms-2">Cancel</a>')
             )
         )
         self.helper.form_method = 'post'
@@ -155,8 +155,8 @@ class AccountForm(forms.ModelForm):
             ),
             Field('is_active', css_class='mb-3'),
             FormActions(
-                Submit('submit', 'Update Account', css_class='btn btn-primary'),
-                HTML('<a href="{% url "budget_allocation:account_detail" account_id=account.id %}" class="btn btn-secondary ms-2">Cancel</a>')
+                Submit('submit', 'Update Account' if self.instance.pk else 'Create Account', css_class='btn btn-primary'),
+                HTML('<a href="{% url "budget_allocation:account_detail" account_id=' + str(self.instance.id) + ' %}" class="btn btn-secondary ms-2">Cancel</a>' if self.instance.pk else '<a href="{% url "budget_allocation:account_list" %}" class="btn btn-secondary ms-2">Cancel</a>')
             )
         )
         self.helper.form_method = 'post'

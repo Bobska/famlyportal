@@ -388,12 +388,8 @@ def add_child_account(request, parent_id):
         from .forms import ChildAccountForm
         form = ChildAccountForm(request.POST, parent=parent_account)
         if form.is_valid():
-            child_account = form.save(commit=False)
-            child_account.family = family
-            child_account.parent = parent_account
-            child_account.account_type = parent_account.account_type
-            # Color will be auto-assigned in save() method if not set
-            child_account.save()
+            # The form's save method now handles setting parent, family, and account_type
+            child_account = form.save()
             
             # Create history entry
             AccountHistory.objects.create(

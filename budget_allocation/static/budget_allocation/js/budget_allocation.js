@@ -100,24 +100,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==========================================================================
     
     function initializeLoadingStates() {
-        const buttons = document.querySelectorAll('.btn[type="submit"]');
+        const forms = document.querySelectorAll('form');
         
-        buttons.forEach(button => {
-            button.addEventListener('click', function() {
-                if (this.form && this.form.checkValidity()) {
-                    this.disabled = true;
-                    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
-                    
-                    // Re-enable after 5 seconds as failsafe
-                    setTimeout(() => {
-                        this.disabled = false;
-                        this.innerHTML = this.dataset.originalText || 'Submit';
-                    }, 5000);
-                }
-            });
-            
-            // Store original text
-            button.dataset.originalText = button.innerHTML;
+        forms.forEach(form => {
+            const submitButton = form.querySelector('.btn[type="submit"]');
+            if (submitButton) {
+                // Store original text
+                submitButton.dataset.originalText = submitButton.innerHTML;
+                
+                form.addEventListener('submit', function(e) {
+                    // Only show loading if form validation passes
+                    if (form.checkValidity()) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
+                        
+                        // Re-enable after 10 seconds as failsafe
+                        setTimeout(() => {
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = submitButton.dataset.originalText || 'Submit';
+                        }, 10000);
+                    }
+                });
+            }
         });
     }
     

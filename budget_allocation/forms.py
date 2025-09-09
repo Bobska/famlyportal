@@ -32,7 +32,7 @@ class ChildAccountForm(forms.ModelForm):
                 'type': 'color'
             })
         }
-    
+
     def __init__(self, *args, parent=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.parent = parent
@@ -55,24 +55,7 @@ class ChildAccountForm(forms.ModelForm):
         if parent:
             self.fields['name'].help_text = f'Create a new account under "{parent.name}"'
             self.fields['color'].help_text = 'Choose a color to easily identify this account'
-        
-        # Setup crispy forms helper
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Field('name', css_class='mb-3'),
-            Field('description', css_class='mb-3'),
-            Div(
-                Field('color', css_class='w-50'),
-                HTML('<small class="form-text text-muted">Preview: <span id="color-preview" style="display:inline-block; width:20px; height:20px; border:1px solid #ccc; margin-left:10px;"></span></small>'),
-                css_class='mb-3'
-            ),
-            FormActions(
-                Submit('submit', 'Create Account', css_class='btn btn-primary'),
-                HTML('<a href="{% url "budget_allocation:account_detail" account_id=' + str(parent.id) + ' %}" class="btn btn-secondary ms-2">Cancel</a>' if parent else '<a href="{% url "budget_allocation:account_list" %}" class="btn btn-secondary ms-2">Cancel</a>')
-            )
-        )
-        self.helper.form_method = 'post'
-    
+
     def clean_name(self):
         """Validate account name is unique within parent"""
         name = self.cleaned_data['name']
@@ -88,7 +71,7 @@ class ChildAccountForm(forms.ModelForm):
                     f'An account named "{name}" already exists under {self.parent.name}.'
                 )
         return name
-    
+
     def clean_color(self):
         """Validate color is a valid hex code"""
         color = self.cleaned_data['color']
@@ -100,6 +83,33 @@ class ChildAccountForm(forms.ModelForm):
             raise forms.ValidationError('Color must be a valid hex code (e.g., #FF5733)')
         
         return color
+    
+    def clean(self):
+        """Set parent before model validation"""
+        cleaned_data = super().clean()
+        
+        # Set the parent on the instance before model validation
+        if self.parent:
+            self.instance.parent = self.parent
+            self.instance.family = self.parent.family
+            self.instance.account_type = self.parent.account_type
+        
+        return cleaned_data
+
+    def save(self, commit=True):
+        """Override save to ensure parent and other required fields are set"""
+        instance = super().save(commit=False)
+        
+        # Ensure parent is set (should already be set in clean(), but just in case)
+        if self.parent:
+            instance.parent = self.parent
+            instance.family = self.parent.family
+            instance.account_type = self.parent.account_type
+        
+        if commit:
+            instance.save()
+        
+        return instance
 
 
 class AccountForm(forms.ModelForm):

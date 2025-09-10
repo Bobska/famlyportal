@@ -75,13 +75,13 @@ def calculate_overall_balance(family, current_week=None):
     total_income = Transaction.objects.filter(
         account__family=family,
         account__account_type='income',
-        week=current_week
+        week__start_date__lte=current_week.start_date
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    
+
     total_expenses = Transaction.objects.filter(
         account__family=family,
         account__account_type='expense',
-        week=current_week
+        week__start_date__lte=current_week.start_date
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     
     return {
@@ -144,7 +144,8 @@ def dashboard(request):
         )
     
     # Calculate overall balance
-    overall_balance = calculate_overall_balance(family, current_week)
+    balance_data = calculate_overall_balance(family, current_week)
+    overall_balance = balance_data['net_balance']
     
     # Weekly summary
     week_allocations = Allocation.objects.filter(week=current_week)
@@ -163,9 +164,9 @@ def dashboard(request):
         'overall_balance': overall_balance,
         'week_summary': {
             'total_allocated': total_allocated,
-            'total_income': overall_balance.get('total_income', 0),
-            'total_expenses': overall_balance.get('total_expenses', 0),
-            'net_flow': overall_balance.get('net_balance', 0),
+            'total_income': balance_data.get('total_income', 0),
+            'total_expenses': balance_data.get('total_expenses', 0),
+            'net_flow': balance_data.get('net_balance', 0),
         },
         'active_loans': active_loans,
         'recent_transactions': week_transactions.order_by('-transaction_date', '-created_at')[:5],
@@ -204,7 +205,8 @@ def account_list(request):
     
     # Get current week and calculate overall balance (same as dashboard)
     current_week = get_current_week(family)
-    overall_balance = calculate_overall_balance(family, current_week)
+    balance_data = calculate_overall_balance(family, current_week)
+    overall_balance = balance_data['net_balance']
     
     context = {
         'title': 'Account Management',

@@ -696,6 +696,15 @@ def transaction_create(request):
         messages.error(request, "You must be part of a family to create transactions.")
         return redirect('accounts:dashboard')
     
+    # Get the account parameter if passed (from account detail page)
+    account_id = request.GET.get('account')
+    initial_account = None
+    if account_id:
+        try:
+            initial_account = Account.objects.get(id=account_id, family=family, is_active=True)
+        except Account.DoesNotExist:
+            pass
+    
     if request.method == 'POST':
         form = TransactionForm(request.POST, family=family)
         if form.is_valid():
@@ -703,8 +712,9 @@ def transaction_create(request):
             transaction.family = family
             
             # Auto-assign to current week if not specified
-            if transaction.week_id is None:
+            if not transaction.week:
                 today = date.today()
+                # Find the week start (Monday)
                 week_start = today - timedelta(days=today.weekday())
                 week_end = week_start + timedelta(days=6)
                 
@@ -712,21 +722,34 @@ def transaction_create(request):
                     start_date=week_start,
                     end_date=week_end,
                     family=family,
-                    defaults={'is_active': True}
+                    defaults={
+                        'is_active': True,
+                        'week_number': 1 + (week_start - date(week_start.year, 1, 1)).days // 7,
+                        'year': week_start.year
+                    }
                 )
                 transaction.week = current_week
             
             transaction.save()
             
             messages.success(request, f'Transaction "{transaction.description}" recorded successfully.')
+            
+            # Redirect back to account detail if we came from there
+            if initial_account:
+                return redirect('budget_allocation:account_detail', account_id=initial_account.pk)
             return redirect('budget_allocation:transaction_list')
     else:
-        form = TransactionForm(family=family)
+        # Initialize form with account if specified
+        initial = {}
+        if initial_account:
+            initial['account'] = initial_account
+        form = TransactionForm(family=family, initial=initial)
     
     context = {
         'title': 'Record Transaction',
         'form': form,
         'family': family,
+        'initial_account': initial_account,
     }
     return render(request, 'budget_allocation/transaction/create.html', context)
 

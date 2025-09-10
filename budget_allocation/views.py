@@ -54,7 +54,7 @@ def get_family_queryset(request, model_class):
 
 
 def calculate_overall_balance(family, current_week=None):
-    """Calculate overall balance: Total Income - Total Expenses"""
+    """Calculate overall balance: Total Income - Total Expenses up to and including selected week"""
     if not current_week:
         try:
             from .utilities import get_current_week
@@ -62,8 +62,8 @@ def calculate_overall_balance(family, current_week=None):
         except Exception:
             # Fallback if get_current_week doesn't exist
             today = date.today()
-            week_start = today - timedelta(days=today.weekday())
-            week_end = week_start + timedelta(days=6)
+            week_start = today - timedelta(days=today.weekday())  # Monday
+            week_end = week_start + timedelta(days=6)  # Sunday
             
             current_week, created = WeeklyPeriod.objects.get_or_create(
                 start_date=week_start,
@@ -75,13 +75,13 @@ def calculate_overall_balance(family, current_week=None):
     total_income = Transaction.objects.filter(
         account__family=family,
         account__account_type='income',
-        week__start_date__lte=current_week.start_date
+        week__start_date__lte=current_week.end_date
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
     total_expenses = Transaction.objects.filter(
         account__family=family,
         account__account_type='expense',
-        week__start_date__lte=current_week.start_date
+        week__start_date__lte=current_week.end_date
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     
     return {
@@ -107,22 +107,37 @@ def get_selected_week(request, family):
 
 
 def get_week_navigation_context(family, current_week):
-    """Get previous and next weeks for navigation"""
-    try:
-        previous_week = WeeklyPeriod.objects.filter(
-            family=family,
-            start_date__lt=current_week.start_date
-        ).order_by('-start_date').first()
-    except:
-        previous_week = None
+    """Get previous and next weeks for navigation, creating them if needed"""
+    from .utilities import get_current_week
+    from datetime import timedelta
     
-    try:
-        next_week = WeeklyPeriod.objects.filter(
-            family=family,
-            start_date__gt=current_week.start_date
-        ).order_by('start_date').first()
-    except:
-        next_week = None
+    # Calculate previous week (Monday to Sunday)
+    previous_week_start = current_week.start_date - timedelta(days=7)
+    previous_week_end = previous_week_start + timedelta(days=6)
+    
+    # Get or create previous week
+    previous_week, created = WeeklyPeriod.objects.get_or_create(
+        family=family,
+        start_date=previous_week_start,
+        defaults={
+            'end_date': previous_week_end,
+            'is_active': True
+        }
+    )
+    
+    # Calculate next week (Monday to Sunday)  
+    next_week_start = current_week.start_date + timedelta(days=7)
+    next_week_end = next_week_start + timedelta(days=6)
+    
+    # Get or create next week
+    next_week, created = WeeklyPeriod.objects.get_or_create(
+        family=family,
+        start_date=next_week_start,
+        defaults={
+            'end_date': next_week_end,
+            'is_active': True
+        }
+    )
     
     return {
         'previous_week': previous_week,

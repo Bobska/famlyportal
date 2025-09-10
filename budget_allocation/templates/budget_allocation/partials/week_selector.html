@@ -23,7 +23,7 @@
                     <!-- Current Week Display -->
                     <div class="text-center">
                         <div class="fw-bold">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</div>
-                        <small class="text-muted">Week {{ current_week.week_number }}</small>
+                        <small class="text-muted">Week {{ current_week.week_number|default:"" }} (Monday - Sunday)</small>
                     </div>
                     
                     <!-- Next Week Button -->

@@ -6,23 +6,17 @@ from datetime import date, timedelta
 
 
 def get_current_week(family):
-    """Get or create the current week for a family"""
+    """Get or create the current week for a family (Monday to Sunday)"""
     from .models import WeeklyPeriod, FamilySettings
-    
-    try:
-        # Try to get family settings
-        settings = FamilySettings.objects.filter(family=family).first()
-        week_start_day = settings.week_start_day if settings else 0
-    except Exception:
-        week_start_day = 0  # Default to Monday
     
     # Get or create current week period
     today = date.today()
     
-    # Find the start of the current week
-    days_since_week_start = (today.weekday() - week_start_day) % 7
-    week_start = today - timedelta(days=days_since_week_start)
-    week_end = week_start + timedelta(days=6)
+    # Find the start of the current week (Monday = 0, Sunday = 6)
+    # Python's weekday(): Monday = 0, Sunday = 6
+    days_since_monday = today.weekday()  # 0 = Monday, 6 = Sunday
+    week_start = today - timedelta(days=days_since_monday)  # Go back to Monday
+    week_end = week_start + timedelta(days=6)  # Sunday
     
     week, created = WeeklyPeriod.objects.get_or_create(
         family=family,
@@ -32,6 +26,11 @@ def get_current_week(family):
             'is_active': True
         }
     )
+    
+    # Update end_date if it was created with wrong value
+    if week.end_date != week_end:
+        week.end_date = week_end
+        week.save()
     
     return week
 
@@ -99,26 +98,26 @@ def transfer_money(from_account, to_account, amount, week, description, loan=Non
 
 
 def get_account_balance(account, week):
-    """Get current balance for an account up to specified week"""
+    """Get current balance for an account up to and including the specified week"""
     from .models import Allocation, Transaction
     
-    # Get all allocations to this account up to this week
+    # Get all allocations to this account up to and including this week
     allocations = Allocation.objects.filter(
         to_account=account,
-        week__start_date__lte=week.start_date
+        week__start_date__lte=week.end_date
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    # Get all expenses from this account up to this week
+    # Get all expenses from this account up to and including this week
     expenses = Transaction.objects.filter(
         account=account,
-        week__start_date__lte=week.start_date,
+        week__start_date__lte=week.end_date,
         transaction_type='expense'
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    # Get all income to this account up to this week
+    # Get all income to this account up to and including this week
     income = Transaction.objects.filter(
         account=account,
-        week__start_date__lte=week.start_date,
+        week__start_date__lte=week.end_date,
         transaction_type='income'
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     

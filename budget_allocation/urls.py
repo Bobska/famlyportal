@@ -23,6 +23,7 @@ urlpatterns = [
     # Transaction management
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/create/', views.transaction_create, name='transaction_create'),
+    path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
     # path('transactions/<int:pk>/', views.transaction_detail, name='transaction_detail'),
     # path('transactions/<int:pk>/edit/', views.transaction_update, name='transaction_update'),
     
@@ -39,4 +40,7 @@ urlpatterns = [
     path('api/account/<int:account_id>/toggle-status/', views.toggle_account_status_api, name='toggle_account_status_api'),
     path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),
     path('api/week-summary/', views.week_summary_api, name='week_summary_api'),
+    
+    # Week selection
+    path('set-week/<int:week_id>/', views.set_active_week, name='set_active_week'),
 ]

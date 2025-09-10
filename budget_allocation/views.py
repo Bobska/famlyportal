@@ -91,6 +91,46 @@ def calculate_overall_balance(family, current_week=None):
     }
 
 
+def get_selected_week(request, family):
+    """Get the selected week from session, or current week if none selected"""
+    selected_week_id = request.session.get('budget_selected_week_id')
+    
+    if selected_week_id:
+        try:
+            return WeeklyPeriod.objects.get(id=selected_week_id, family=family)
+        except WeeklyPeriod.DoesNotExist:
+            pass
+    
+    # Fall back to current week
+    from .utilities import get_current_week
+    return get_current_week(family)
+
+
+def get_week_navigation_context(family, current_week):
+    """Get previous and next weeks for navigation"""
+    try:
+        previous_week = WeeklyPeriod.objects.filter(
+            family=family,
+            start_date__lt=current_week.start_date
+        ).order_by('-start_date').first()
+    except:
+        previous_week = None
+    
+    try:
+        next_week = WeeklyPeriod.objects.filter(
+            family=family,
+            start_date__gt=current_week.start_date
+        ).order_by('start_date').first()
+    except:
+        next_week = None
+    
+    return {
+        'previous_week': previous_week,
+        'next_week': next_week,
+        'current_week': current_week,
+    }
+
+
 # Dashboard View
 @login_required
 @family_required
@@ -190,6 +230,10 @@ def account_list(request):
     from .utils import ensure_default_accounts_exist
     ensure_default_accounts_exist(family)
     
+    # Get selected week (from session or current week)
+    current_week = get_selected_week(request, family)
+    week_navigation = get_week_navigation_context(family, current_week)
+    
     # Get accounts organized by type (same as dashboard)
     income_accounts = Account.objects.filter(
         family=family, 
@@ -203,8 +247,7 @@ def account_list(request):
         is_active=True
     ).select_related('parent').order_by('sort_order', 'name')
     
-    # Get current week and calculate overall balance (same as dashboard)
-    current_week = get_current_week(family)
+    # Calculate overall balance for selected week
     balance_data = calculate_overall_balance(family, current_week)
     overall_balance = balance_data['net_balance']
     
@@ -214,6 +257,7 @@ def account_list(request):
         'expense_accounts': expense_accounts,
         'overall_balance': overall_balance,
         'current_week': current_week,
+        'week_navigation': week_navigation,
         'show_management_tools': True,  # Differentiate from dashboard
         'family': family,
     }
@@ -269,16 +313,15 @@ def account_create(request):
 
 @login_required
 @family_required
-@login_required
-@family_required
 @app_permission_required('budget_allocation')
 def account_detail(request, account_id):
     """Enhanced account detail view with comprehensive management features"""
     family = get_user_family(request.user)
     account = get_object_or_404(Account, id=account_id, family=family)
     
-    # Get current week for balance calculations
-    current_week = get_current_week(family)
+    # Get selected week for balance calculations
+    current_week = get_selected_week(request, family)
+    week_navigation = get_week_navigation_context(family, current_week)
     
     # Get child accounts with their balances
     child_accounts = account.children.filter(is_active=True).order_by('sort_order', 'name')
@@ -365,6 +408,7 @@ def account_detail(request, account_id):
         'history': history,
         'weekly_summary': weekly_summary,
         'current_week': current_week,
+        'week_navigation': week_navigation,
         'family': family,
     }
     return render(request, 'budget_allocation/account/detail.html', context)
@@ -765,6 +809,38 @@ def transaction_create(request):
     return render(request, 'budget_allocation/transaction/create.html', context)
 
 
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def transaction_delete(request, pk):
+    """Delete a transaction"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to delete transactions.")
+        return redirect('accounts:dashboard')
+    
+    transaction = get_object_or_404(Transaction, pk=pk, family=family)
+    
+    if request.method == 'POST':
+        account_id = transaction.account.id
+        transaction_desc = transaction.description or f"${transaction.amount} transaction"
+        transaction.delete()
+        
+        messages.success(request, f'Transaction "{transaction_desc}" deleted successfully.')
+        
+        # Redirect back to account detail if we have account info
+        if 'from_account' in request.GET:
+            return redirect('budget_allocation:account_detail', account_id=account_id)
+        return redirect('budget_allocation:transaction_list')
+    
+    context = {
+        'title': 'Delete Transaction',
+        'transaction': transaction,
+        'family': family,
+    }
+    return render(request, 'budget_allocation/transaction/delete.html', context)
+
+
 # Budget Template Views
 @login_required
 @family_required
@@ -1090,3 +1166,24 @@ def week_summary_api(request):
         'formatted_expenses': f"${total_expenses:,.2f}",
         'formatted_available': f"${available_money:,.2f}"
     })
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def set_active_week(request, week_id):
+    """Set the active week for balance calculations"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to set the active week.")
+        return redirect('accounts:dashboard')
+    
+    try:
+        week = WeeklyPeriod.objects.get(id=week_id, family=family)
+        request.session['budget_selected_week_id'] = week_id
+        messages.success(request, f'Now viewing balances for week of {week.start_date.strftime("%B %d, %Y")}')
+    except WeeklyPeriod.DoesNotExist:
+        messages.error(request, "Invalid week selected.")
+    
+    # Redirect to the previous page or account list if no referrer
+    return redirect(request.META.get('HTTP_REFERER', 'budget_allocation:account_list'))

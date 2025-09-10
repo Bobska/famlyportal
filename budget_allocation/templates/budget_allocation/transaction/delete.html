@@ -1,0 +1,97 @@
+{% extends 'budget_allocation/base_with_sidebar.html' %}
+{% load static %}
+
+{% block title %}Delete Transaction{% endblock %}
+
+{% block page_title %}Delete Transaction{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:dashboard' %}">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:transaction_list' %}">
+        <i class="fas fa-list"></i> Transactions
+    </a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:account_detail' transaction.account.pk %}">
+        {{ transaction.account.name }}
+    </a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">Delete Transaction</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-trash me-2"></i>Delete Transaction
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. The transaction will be permanently deleted.
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Transaction Details</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Date:</dt>
+                            <dd class="col-sm-8">{{ transaction.transaction_date|date:"M d, Y" }}</dd>
+                            
+                            <dt class="col-sm-4">Account:</dt>
+                            <dd class="col-sm-8">{{ transaction.account.name }}</dd>
+                            
+                            <dt class="col-sm-4">Amount:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-{% if transaction.transaction_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if transaction.transaction_type == 'income' %}success{% else %}danger{% endif %}">
+                                    {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                                </span>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Type:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-info">{{ transaction.get_transaction_type_display }}</span>
+                            </dd>
+                            
+                            {% if transaction.description %}
+                            <dt class="col-sm-4">Description:</dt>
+                            <dd class="col-sm-8">{{ transaction.description }}</dd>
+                            {% endif %}
+                            
+                            {% if transaction.payee %}
+                            <dt class="col-sm-4">Payee:</dt>
+                            <dd class="col-sm-8">{{ transaction.payee }}</dd>
+                            {% endif %}
+                            
+                            {% if transaction.reference %}
+                            <dt class="col-sm-4">Reference:</dt>
+                            <dd class="col-sm-8">{{ transaction.reference }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'budget_allocation:account_detail' transaction.account.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Delete Transaction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -15,20 +15,8 @@
 {% endblock %}
 
 {% block page_content %}
-<!-- Overall Balance Display (same as dashboard) -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card bg-light border-primary">
-            <div class="card-body text-center">
-                <h3 class="mb-1">Overall Balance</h3>
-                <h2 class="text-{% if overall_balance >= 0 %}success{% else %}danger{% endif %} mb-0">
-                    ${{ overall_balance|floatformat:2 }}
-                </h2>
-                <small class="text-muted">Week ending {{ current_week.end_date|date:"M d, Y" }}</small>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Week Selector -->
+{% include 'budget_allocation/partials/week_selector.html' %}
 
 <!-- Two Column Layout (same as dashboard) -->
 <div class="row">

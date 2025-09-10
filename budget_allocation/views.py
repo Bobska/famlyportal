@@ -284,10 +284,17 @@ def account_detail(request, account_id):
     # Calculate account balance using the same logic as dashboard
     account_balance = get_account_balance(account, current_week)
     
-    # Calculate child account balances
+    # Calculate child account balances and create enriched data structure
     child_balances = {}
+    enriched_child_accounts = []
     for child in child_accounts:
-        child_balances[child.id] = get_account_balance(child, current_week)
+        balance = get_account_balance(child, current_week)
+        child_balances[child.id] = balance
+        # Create enriched data with balance included
+        enriched_child_accounts.append({
+            'account': child,
+            'balance': balance
+        })
     
     # Get recent transactions with pagination
     transactions = Transaction.objects.filter(
@@ -346,6 +353,7 @@ def account_detail(request, account_id):
         'title': f'{account.name} - Account Details',
         'account': account,
         'child_accounts': child_accounts,
+        'enriched_child_accounts': enriched_child_accounts,
         'child_balances': child_balances,
         'account_balance': account_balance,
         'transactions': page_obj,

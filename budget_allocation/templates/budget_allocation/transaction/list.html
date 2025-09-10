@@ -138,14 +138,16 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{% url 'budget_allocation:transaction_update' transaction.pk %}" 
+                                        <!-- TODO: Implement transaction update view -->
+                                        <!-- <a href="{% url 'budget_allocation:transaction_update' transaction.pk %}" 
                                            class="btn btn-outline-primary" title="Edit">
                                             <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{% url 'budget_allocation:transaction_detail' transaction.pk %}" 
+                                        </a> -->
+                                        <!-- TODO: Implement transaction detail view -->
+                                        <!-- <a href="{% url 'budget_allocation:transaction_detail' transaction.pk %}" 
                                            class="btn btn-outline-info" title="View Details">
                                             <i class="fas fa-eye"></i>
-                                        </a>
+                                        </a> -->
                                         <button type="button" class="btn btn-outline-danger" 
                                                 onclick="confirmDelete('{{ transaction.pk }}', '{{ transaction.description|default:"this transaction" }}')"
                                                 title="Delete">

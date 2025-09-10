@@ -13,6 +13,7 @@ urlpatterns = [
     path('accounts/create/', views.account_create, name='account_create'),
     path('account/<int:account_id>/', views.account_detail, name='account_detail'),
     path('account/<int:account_id>/edit/', views.edit_account, name='edit_account'),
+    path('account/<int:account_id>/toggle-status/', views.toggle_account_status_api, name='toggle_account_status'),
     path('account/<int:parent_id>/add-child/', views.add_child_account, name='add_child_account'),
     
     # Allocation management
@@ -22,6 +23,8 @@ urlpatterns = [
     # Transaction management
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/create/', views.transaction_create, name='transaction_create'),
+    # path('transactions/<int:pk>/', views.transaction_detail, name='transaction_detail'),
+    # path('transactions/<int:pk>/edit/', views.transaction_update, name='transaction_update'),
     
     # Budget template management
     path('budget-templates/', views.budget_template_list, name='budget_template_list'),

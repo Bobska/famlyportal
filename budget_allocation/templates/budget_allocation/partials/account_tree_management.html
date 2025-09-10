@@ -37,20 +37,20 @@
                                 <span class="badge bg-secondary ms-1">Inactive</span>
                             {% endif %}
                         </div>
-                        <div class="btn-group btn-group-sm">
+                        <div class="btn-group">
                             <a href="{% url 'budget_allocation:account_detail' account.id %}" class="btn btn-outline-primary btn-sm" title="View Details">
-                                <i class="fas fa-eye"></i>
+                                <i class="fas fa-eye me-1"></i>View
                             </a>
                             <a href="{% url 'budget_allocation:edit_account' account.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Account">
-                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-edit me-1"></i>Edit
                             </a>
                             {% if account.can_have_children %}
                                 <a href="{% url 'budget_allocation:add_child_account' account.id %}" class="btn btn-outline-info btn-sm" title="Add Child Account">
-                                    <i class="fas fa-plus"></i>
+                                    <i class="fas fa-plus me-1"></i>Add
                                 </a>
                             {% endif %}
                             <button class="btn btn-outline-danger btn-sm" onclick="toggleAccountStatus('{{ account.id }}')" title="{% if account.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %}"></i>
+                                <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %} me-1"></i>{% if account.is_active %}Deactivate{% else %}Activate{% endif %}
                             </button>
                         </div>
                     </div>
@@ -86,15 +86,15 @@
                                                 <span class="badge bg-secondary ms-1">Inactive</span>
                                             {% endif %}
                                         </div>
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="btn-group">
                                             <a href="{% url 'budget_allocation:account_detail' child.id %}" class="btn btn-outline-primary btn-sm" title="View Details">
-                                                <i class="fas fa-eye"></i>
+                                                <i class="fas fa-eye me-1"></i>View
                                             </a>
                                             <a href="{% url 'budget_allocation:edit_account' child.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Account">
-                                                <i class="fas fa-edit"></i>
+                                                <i class="fas fa-edit me-1"></i>Edit
                                             </a>
                                             <button class="btn btn-outline-danger btn-sm" onclick="toggleAccountStatus('{{ child.id }}')" title="{% if child.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                                <i class="fas fa-{% if child.is_active %}pause{% else %}play{% endif %}"></i>
+                                                <i class="fas fa-{% if child.is_active %}pause{% else %}play{% endif %} me-1"></i>{% if child.is_active %}Deactivate{% else %}Activate{% endif %}
                                             </button>
                                         </div>
                                     </div>

@@ -379,11 +379,10 @@ def account_detail(request, account_id):
             'balance': balance
         })
     
-    # Get transactions for the selected week with pagination
+    # Get recent transactions with pagination (show all, not just selected week)
     transactions = Transaction.objects.filter(
         account=account,
-        family=family,
-        week=current_week
+        family=family
     ).order_by('-transaction_date', '-created_at')
     
     # Pagination for transactions

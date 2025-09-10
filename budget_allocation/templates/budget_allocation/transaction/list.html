@@ -133,23 +133,13 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div>Week {{ transaction.week.week_number }}</div>
-                                    <small class="text-muted">{{ transaction.week.year }}</small>
+                                    <div>{{ transaction.week.start_date|date:"M d" }} - {{ transaction.week.end_date|date:"M d, Y" }}</div>
+                                    <small class="text-muted">Week of {{ transaction.week.start_date|date:"M d" }}</small>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <!-- TODO: Implement transaction update view -->
-                                        <!-- <a href="{% url 'budget_allocation:transaction_update' transaction.pk %}" 
-                                           class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a> -->
-                                        <!-- TODO: Implement transaction detail view -->
-                                        <!-- <a href="{% url 'budget_allocation:transaction_detail' transaction.pk %}" 
-                                           class="btn btn-outline-info" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </a> -->
                                         <button type="button" class="btn btn-outline-danger" 
-                                                onclick="confirmDelete('{{ transaction.pk }}', '{{ transaction.description|default:"this transaction" }}')"
+                                                onclick="confirmDelete('{{ transaction.pk }}', '{{ transaction.description|default:"this transaction"|escapejs }}')"
                                                 title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>

@@ -528,11 +528,12 @@ class TransactionAdmin(FamilyScopedModelAdmin):
         """Display amount with color coding"""
         color = 'green' if obj.transaction_type == 'income' else 'red'
         sign = '+' if obj.transaction_type == 'income' else '-'
+        formatted_amount = f"${obj.amount:,.2f}"
         return format_html(
-            '<strong style="color: {};">{} ${:,.2f}</strong>',
+            '<strong style="color: {};">{} {}</strong>',
             color,
             sign,
-            obj.amount
+            formatted_amount
         )
     amount_display.short_description = 'Amount'
     amount_display.admin_order_field = 'amount'
@@ -559,7 +560,7 @@ class TransactionAdmin(FamilyScopedModelAdmin):
         return format_html(
             '<a href="{}" title="View week">{}</a>',
             reverse('admin:budget_allocation_weeklyperiod_change', args=[obj.week.id]),
-            f"{obj.week.start_date}"
+            str(obj.week.start_date)
         )
     week_display.short_description = 'Week'
     week_display.admin_order_field = 'week__start_date'

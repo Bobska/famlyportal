@@ -379,10 +379,11 @@ def account_detail(request, account_id):
             'balance': balance
         })
     
-    # Get recent transactions with pagination (show all, not just selected week)
+    # Get transactions for the selected week with pagination
     transactions = Transaction.objects.filter(
         account=account,
-        family=family
+        family=family,
+        week=current_week
     ).order_by('-transaction_date', '-created_at')
     
     # Pagination for transactions
@@ -795,33 +796,23 @@ def transaction_create(request):
             transaction = form.save(commit=False)
             transaction.family = family
             
-            # Auto-determine transaction type if not provided and we have an account
-            if not transaction.transaction_type and initial_account:
+            # Auto-determine transaction type if not provided
+            if not transaction.transaction_type and transaction.account:
                 # Default to expense for most account types, income for income accounts
-                if initial_account.account_type == 'income':
+                if transaction.account.account_type == 'income':
                     transaction.transaction_type = 'income'
                 else:
                     transaction.transaction_type = 'expense'
             
-            # Auto-assign to week based on transaction date
-            if not transaction.week and transaction.transaction_date:
-                from datetime import timedelta
-                trans_date = transaction.transaction_date
-                # Find the week start (Monday)
-                week_start = trans_date - timedelta(days=trans_date.weekday())
-                week_end = week_start + timedelta(days=6)
-                
-                current_week, created = WeeklyPeriod.objects.get_or_create(
-                    start_date=week_start,
-                    end_date=week_end,
-                    family=family,
-                    defaults={
-                        'is_active': True,
-                        'week_number': 1 + (week_start - date(week_start.year, 1, 1)).days // 7,
-                        'year': week_start.year
-                    }
+            # Always auto-assign week based on transaction date and transaction type
+            if transaction.transaction_date and transaction.transaction_type:
+                from .utilities import get_week_for_transaction
+                transaction.week = get_week_for_transaction(
+                    family, 
+                    transaction.transaction_date, 
+                    transaction.transaction_type
                 )
-                transaction.week = current_week
+                print(f"AUTO-ASSIGNED WEEK: {transaction.week.start_date} to {transaction.week.end_date} for {transaction.transaction_type} transaction on {transaction.transaction_date}")
             
             transaction.save()
             

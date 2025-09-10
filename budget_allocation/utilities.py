@@ -253,3 +253,41 @@ def apply_budget_templates(family, week):
                 notes=f"Auto-allocation: {template.account.name} - {template.allocation_type}"
             )
             remaining_money -= amount
+
+
+def get_week_for_transaction(family, transaction_date, transaction_type):
+    """Get the appropriate week for a transaction based on transaction type
+    
+    Args:
+        family: Family instance
+        transaction_date: Date of the transaction
+        transaction_type: 'income' or 'expense' (not account_type)
+    
+    Returns:
+        WeeklyPeriod instance
+    """
+    from .models import WeeklyPeriod
+    
+    # For income transactions: assign to the FOLLOWING week
+    # For expense transactions: assign to the week containing the transaction date
+    if transaction_type == 'income':
+        # Income goes to the next week
+        # Find Monday of current week, then add 7 days to get next Monday
+        current_week_start = transaction_date - timedelta(days=transaction_date.weekday())
+        week_start = current_week_start + timedelta(days=7)  # Next Monday
+        week_end = week_start + timedelta(days=6)  # Following Sunday
+    else:
+        # Expenses go to the current week
+        week_start = transaction_date - timedelta(days=transaction_date.weekday())
+        week_end = week_start + timedelta(days=6)
+    
+    week, created = WeeklyPeriod.objects.get_or_create(
+        start_date=week_start,
+        end_date=week_end,
+        family=family,
+        defaults={
+            'is_active': True
+        }
+    )
+    
+    return week

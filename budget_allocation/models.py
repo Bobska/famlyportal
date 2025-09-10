@@ -671,7 +671,9 @@ class Transaction(FamilyScopedModel):
         WeeklyPeriod,
         on_delete=models.CASCADE,
         related_name='allocation_transactions',
-        help_text="Week this transaction belongs to"
+        null=True,
+        blank=True,
+        help_text="Week this transaction belongs to (auto-assigned if not specified)"
     )
     account = models.ForeignKey(
         Account,

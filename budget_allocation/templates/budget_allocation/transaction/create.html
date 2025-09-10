@@ -252,24 +252,10 @@
                             {% endif %}
 
                             <!-- Week period - auto-calculated notice -->
-                            {% if initial_account %}
-                                <div class="alert alert-light" role="alert">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <small><strong>Week Period:</strong> Will be automatically calculated based on the transaction date.</small>
-                                </div>
-                                {{ form.week.as_hidden }}
-                            {% else %}
-                                <div class="mb-0">
-                                    <label for="{{ form.week.id_for_label }}" class="form-label">
-                                        <i class="fas fa-calendar-week me-1"></i>Week Period
-                                    </label>
-                                    {{ form.week }}
-                                    {% if form.week.errors %}
-                                        <div class="invalid-feedback d-block">{{ form.week.errors.0 }}</div>
-                                    {% endif %}
-                                    <div class="form-text">{{ form.week.help_text }}</div>
-                                </div>
-                            {% endif %}
+                            <div class="alert alert-light" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <small><strong>Week Period:</strong> Will be automatically calculated based on the transaction date and account type.</small>
+                            </div>
                         </div>
                     </div>
 

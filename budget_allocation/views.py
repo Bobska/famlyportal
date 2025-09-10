@@ -91,6 +91,28 @@ def calculate_overall_balance(family, current_week=None):
     }
 
 
+def calculate_weekly_balance(family, current_week):
+    """Calculate balance for a specific week only: Total Income - Total Expenses for that week"""
+    
+    total_income = Transaction.objects.filter(
+        account__family=family,
+        account__account_type='income',
+        week=current_week
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    total_expenses = Transaction.objects.filter(
+        account__family=family,
+        account__account_type='expense',
+        week=current_week
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    return {
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': total_income - total_expenses,
+    }
+
+
 def get_selected_week(request, family):
     """Get the selected week from session, or current week if none selected"""
     selected_week_id = request.session.get('budget_selected_week_id')
@@ -262,8 +284,8 @@ def account_list(request):
         is_active=True
     ).select_related('parent').order_by('sort_order', 'name')
     
-    # Calculate overall balance for selected week
-    balance_data = calculate_overall_balance(family, current_week)
+    # Calculate weekly balance for selected week (not cumulative)
+    balance_data = calculate_weekly_balance(family, current_week)
     overall_balance = balance_data['net_balance']
     
     context = {
@@ -341,14 +363,15 @@ def account_detail(request, account_id):
     # Get child accounts with their balances
     child_accounts = account.children.filter(is_active=True).order_by('sort_order', 'name')
     
-    # Calculate account balance including child accounts for parent display
-    account_balance = get_account_balance_with_children(account, current_week)
+    # Calculate account balance for the selected week only
+    from .utilities import get_account_weekly_balance_with_children
+    account_balance = get_account_weekly_balance_with_children(account, current_week)
     
-    # Calculate child account balances and create enriched data structure
+    # Calculate child account balances for the selected week
     child_balances = {}
     enriched_child_accounts = []
     for child in child_accounts:
-        balance = get_account_balance(child, current_week)
+        balance = get_account_weekly_balance_with_children(child, current_week)
         child_balances[child.id] = balance
         # Create enriched data with balance included
         enriched_child_accounts.append({
@@ -356,10 +379,11 @@ def account_detail(request, account_id):
             'balance': balance
         })
     
-    # Get recent transactions with pagination
+    # Get transactions for the selected week with pagination
     transactions = Transaction.objects.filter(
         account=account,
-        family=family
+        family=family,
+        week=current_week
     ).order_by('-transaction_date', '-created_at')
     
     # Pagination for transactions

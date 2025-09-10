@@ -124,6 +124,47 @@ def get_account_balance(account, week):
     return allocations + income - expenses
 
 
+def get_account_weekly_balance(account, week):
+    """Get balance for an account for a specific week only"""
+    from .models import Allocation, Transaction
+    
+    # Get allocations to this account for this specific week
+    allocations = Allocation.objects.filter(
+        to_account=account,
+        week=week
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    # Get expenses from this account for this specific week
+    expenses = Transaction.objects.filter(
+        account=account,
+        week=week,
+        transaction_type='expense'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    # Get income to this account for this specific week
+    income = Transaction.objects.filter(
+        account=account,
+        week=week,
+        transaction_type='income'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    return allocations + income - expenses
+
+
+def get_account_weekly_balance_with_children(account, week):
+    """Get weekly balance for an account including all child accounts for a specific week"""
+    
+    # Get balance for this account for the specific week
+    account_balance = get_account_weekly_balance(account, week)
+    
+    # Get balances for all child accounts recursively for the specific week
+    child_balances = Decimal('0')
+    for child in account.children.filter(is_active=True):
+        child_balances += get_account_weekly_balance_with_children(child, week)
+    
+    return account_balance + child_balances
+
+
 def get_account_balance_with_children(account, week):
     """Get current balance for an account including all child accounts"""
     

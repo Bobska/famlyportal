@@ -11,9 +11,14 @@
         <i class="fas fa-home"></i> Dashboard
     </a>
 </li>
+<li class="breadcrumb-item">
+    <a href="{% url 'budget_allocation:account_list' %}">
+        <i class="fas fa-sitemap"></i> Accounts
+    </a>
+</li>
 {% if account.parent %}
     <li class="breadcrumb-item">
-        <a href="{% url 'budget_allocation:account_detail' account.parent.id %}">
+        <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}">
             {{ account.parent.name }}
         </a>
     </li>
@@ -22,82 +27,367 @@
 {% endblock %}
 
 {% block page_content %}
-<div class="container-fluid">
-    <!-- Account Header Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm" style="border-left: 6px solid {{ account.color }};">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="me-3" style="width: 20px; height: 20px; background-color: {{ account.color }}; border-radius: 3px;"></div>
-                                <h2 class="card-title mb-0">{{ account.name }}</h2>
-                                <span class="badge bg-secondary ms-2">{{ account.get_account_type_display|title }}</span>
-                            </div>
-                            {% if account.description %}
-                                <p class="text-muted mb-0">{{ account.description }}</p>
-                            {% endif %}
-                            
-                            <!-- Account Path -->
-                            <small class="text-muted">
-                                <i class="fas fa-sitemap"></i>
-                                {% if account.parent %}
-                                    {{ account.parent.name }} > {{ account.name }}
-                                {% else %}
-                                    Root Account
-                                {% endif %}
-                            </small>
+<!-- Account Header Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm" style="border-left: 6px solid {{ account.color }};">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="me-3" style="width: 20px; height: 20px; background-color: {{ account.color }}; border-radius: 3px;"></div>
+                            <h2 class="card-title mb-0">{{ account.name }}</h2>
+                            <span class="badge bg-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} ms-2">
+                                {{ account.get_account_type_display|title }}
+                            </span>
                         </div>
+                        {% if account.description %}
+                            <p class="text-muted mb-2">{{ account.description }}</p>
+                        {% endif %}
                         
-                        <div class="col-md-4 text-md-end">
-                            <h3 class="text-primary mb-1">${{ current_balance|floatformat:2|default:"0.00" }}</h3>
-                            <small class="text-muted">Current Balance</small>
-                            
-                            <!-- Status Indicator -->
-                            <div class="mt-2">
-                                {% if account.is_active %}
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle"></i> Active
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-warning">
-                                        <i class="fas fa-pause-circle"></i> Inactive
-                                    </span>
-                                {% endif %}
-                            </div>
-                        </div>
+                        <!-- Account Path -->
+                        <small class="text-muted">
+                            <i class="fas fa-sitemap me-1"></i>
+                            {% if account.parent %}
+                                {{ account.parent.name }} → {{ account.name }}
+                            {% else %}
+                                Root Account
+                            {% endif %}
+                        </small>
                     </div>
                     
-                    <!-- Action Buttons -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="btn-group" role="group">
-                                {% if account.can_have_children %}
-                                    <a href="{% url 'budget_allocation:add_child_account' account.id %}" 
-                                       class="btn btn-primary">
-                                        <i class="fas fa-plus"></i> Add Child Account
-                                    </a>
-                                {% endif %}
-                                <a href="{% url 'budget_allocation:account_edit' account.id %}" 
-                                   class="btn btn-outline-secondary">
-                                    <i class="fas fa-edit"></i> Edit Account
+                    <div class="col-md-4 text-md-end">
+                        <h3 class="text-{% if account_balance >= 0 %}success{% else %}danger{% endif %} mb-1">
+                            ${{ account_balance|floatformat:2 }}
+                        </h3>
+                        <small class="text-muted">Current Balance</small>
+                        
+                        <!-- Status Indicator -->
+                        <div class="mt-2">
+                            {% if account.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Active
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-pause-circle"></i> Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="btn-group flex-wrap" role="group">
+                            {% if account.can_have_children %}
+                                <a href="{% url 'budget_allocation:add_child_account' account.pk %}" 
+                                   class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add Child Account
                                 </a>
-                                <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.id }}" 
-                                   class="btn btn-outline-success">
-                                    <i class="fas fa-plus-circle"></i> Add Transaction
+                            {% endif %}
+                            <a href="{% url 'budget_allocation:edit_account' account.pk %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-edit"></i> Edit Account
+                            </a>
+                            <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}" 
+                               class="btn btn-outline-success">
+                                <i class="fas fa-plus-circle"></i> Add Transaction
+                            </a>
+                            {% if account.parent %}
+                                <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}" 
+                                   class="btn btn-outline-info">
+                                    <i class="fas fa-arrow-up"></i> Parent Account
                                 </a>
-                                {% if account.parent %}
-                                    <a href="{% url 'budget_allocation:account_detail' account.parent.id %}" 
-                                       class="btn btn-outline-info">
-                                        <i class="fas fa-arrow-up"></i> Parent Account
-                                    </a>
-                                {% endif %}
-                            </div>
+                            {% endif %}
+                            <button class="btn btn-outline-{% if account.is_active %}warning{% else %}success{% endif %}" 
+                                    onclick="toggleAccountStatus({{ account.pk }})">
+                                <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %}"></i> 
+                                {% if account.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Child Accounts Section -->
+{% if child_accounts %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-code-branch me-2"></i>Child Accounts ({{ child_accounts.count }})
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for child in child_accounts %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3" style="width: 15px; height: 15px; background-color: {{ child.color }}; border-radius: 3px;"></div>
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'budget_allocation:account_detail' child.pk %}" class="text-decoration-none">
+                                                {{ child.name }}
+                                            </a>
+                                        </h6>
+                                        {% if child.description %}
+                                            <small class="text-muted">{{ child.description }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account.account_type == 'income' %}success{% else %}danger{% endif %}">
+                                        ${{ child_balances|get_item:child.pk|floatformat:2 }}
+                                    </span>
+                                    {% if not child.is_active %}
+                                        <span class="badge bg-secondary ms-1">Inactive</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Left Column: Transactions & Activity -->
+    <div class="col-md-8">
+        <!-- Recent Transactions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>Recent Transactions
+                    </h5>
+                    <a href="{% url 'budget_allocation:transaction_list' %}?account={{ account.pk }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ transaction.transaction_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {{ transaction.description }}
+                                            {% if transaction.notes %}
+                                                <br><small class="text-muted">{{ transaction.notes|truncatechars:50 }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if transaction.transaction_type == 'income' %}success{% else %}danger{% endif %}">
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="text-{% if transaction.transaction_type == 'income' %}success{% else %}danger{% endif %}">
+                                                {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}
+                                                ${{ transaction.amount|floatformat:2 }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if transactions.has_other_pages %}
+                        <div class="card-footer">
+                            <nav aria-label="Transaction pagination">
+                                <ul class="pagination pagination-sm justify-content-center mb-0">
+                                    {% if transactions.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.previous_page_number }}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in transactions.paginator.page_range %}
+                                        {% if transactions.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if transactions.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.next_page_number }}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No transactions yet</h5>
+                        <p class="text-muted">Start by adding your first transaction to this account.</p>
+                        <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Transaction
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Summary & Activity -->
+    <div class="col-md-4">
+        <!-- Weekly Summary -->
+        {% if weekly_summary %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Weekly Activity (Last 4 Weeks)
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% for week in weekly_summary %}
+                    <div class="border-bottom p-3 {% if forloop.first %}bg-light{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">{{ week.week_start|date:"M d" }} - {{ week.week_end|date:"M d" }}</small>
+                                {% if forloop.first %}<span class="badge bg-primary ms-1">Current</span>{% endif %}
+                            </div>
+                            <div class="text-end">
+                                <div class="text-{% if week.net >= 0 %}success{% else %}danger{% endif %} fw-bold">
+                                    ${{ week.net|floatformat:2 }}
+                                </div>
+                                <small class="text-muted">
+                                    +${{ week.income|floatformat:2 }} / -${{ week.expenses|floatformat:2 }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Allocations -->
+        {% if recent_allocations_in or recent_allocations_out %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-arrows-alt me-2"></i>Recent Allocations
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if recent_allocations_in %}
+                    <h6 class="text-success mb-2">Money In</h6>
+                    {% for allocation in recent_allocations_in %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small>From {{ allocation.from_account.name }}</small>
+                            <span class="text-success">+${{ allocation.amount|floatformat:2 }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% if recent_allocations_out %}
+                    {% if recent_allocations_in %}<hr>{% endif %}
+                    <h6 class="text-danger mb-2">Money Out</h6>
+                    {% for allocation in recent_allocations_out %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small>To {{ allocation.to_account.name }}</small>
+                            <span class="text-danger">-${{ allocation.amount|floatformat:2 }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Account History -->
+        {% if history %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>Account History
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% for entry in history %}
+                    <div class="border-bottom p-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <small class="fw-bold text-uppercase">{{ entry.action }}</small>
+                                {% if entry.old_value and entry.new_value %}
+                                    <br><small class="text-muted">{{ entry.old_value }} → {{ entry.new_value }}</small>
+                                {% elif entry.new_value %}
+                                    <br><small class="text-muted">{{ entry.new_value }}</small>
+                                {% endif %}
+                                {% if entry.notes %}
+                                    <br><small class="text-muted">{{ entry.notes }}</small>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ entry.timestamp|date:"M d, Y" }}</small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAccountStatus(accountId) {
+    if (confirm('Are you sure you want to change this account\'s status?')) {
+        fetch(`{% url 'budget_allocation:toggle_account_status_api' 0 %}`.replace('0', accountId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Refresh to show updated status
+            } else {
+                alert('Error updating account status: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating account status');
+        });
+    }
+}
+</script>
+{% endblock %}
         </div>
     </div>
     

@@ -129,7 +129,7 @@ def dashboard(request):
     
     # Get current week
     try:
-        current_week = WeeklyPeriod.objects.get_current_week(family)
+        current_week = get_current_week(family)
     except AttributeError:
         # Fallback to existing logic if get_current_week method doesn't exist
         today = date.today()
@@ -179,41 +179,41 @@ def dashboard(request):
 @family_required
 @app_permission_required('budget_allocation')
 def account_list(request):
-    """List all accounts in hierarchical structure"""
+    """Account list view with same layout as dashboard"""
     family = get_user_family(request.user)
     if not family:
         messages.error(request, "You must be part of a family to access accounts.")
         return redirect('accounts:dashboard')
     
-    # Get all accounts for the family
-    all_accounts = Account.objects.filter(family=family).select_related('parent').order_by(
-        'account_type', 'sort_order', 'name'
-    )
+    # Ensure default accounts exist
+    from .utils import ensure_default_accounts_exist
+    ensure_default_accounts_exist(family)
     
-    # Get root accounts (accounts with no parent)
-    root_accounts = all_accounts.filter(parent__isnull=True)
+    # Get accounts organized by type (same as dashboard)
+    income_accounts = Account.objects.filter(
+        family=family, 
+        account_type='income',
+        is_active=True
+    ).select_related('parent').order_by('sort_order', 'name')
     
-    # Debug: Add some logging to understand what's happening
-    print(f"Account List Debug:")
-    print(f"  User: {request.user}")
-    print(f"  Family: {family}")
-    print(f"  Total accounts for family: {all_accounts.count()}")
-    print(f"  Root accounts: {root_accounts.count()}")
+    expense_accounts = Account.objects.filter(
+        family=family, 
+        account_type='expense',
+        is_active=True
+    ).select_related('parent').order_by('sort_order', 'name')
     
-    # Group all accounts by type for additional data
-    accounts_by_type = {}
-    for account in all_accounts:
-        if account.account_type not in accounts_by_type:
-            accounts_by_type[account.account_type] = []
-        accounts_by_type[account.account_type].append(account)
+    # Get current week and calculate overall balance (same as dashboard)
+    current_week = get_current_week(family)
+    overall_balance = calculate_overall_balance(family, current_week)
     
     context = {
         'title': 'Account Management',
+        'income_accounts': income_accounts,
+        'expense_accounts': expense_accounts,
+        'overall_balance': overall_balance,
+        'current_week': current_week,
+        'show_management_tools': True,  # Differentiate from dashboard
         'family': family,
-        'root_accounts': root_accounts,
-        'accounts_by_type': accounts_by_type,
-        'account_types': Account.ACCOUNT_TYPE_CHOICES,
-        'total_accounts': all_accounts.count(),
     }
     return render(request, 'budget_allocation/account/list.html', context)
 
@@ -267,61 +267,94 @@ def account_create(request):
 
 @login_required
 @family_required
+@login_required
+@family_required
 @app_permission_required('budget_allocation')
 def account_detail(request, account_id):
-    """Account detail view with add child functionality"""
+    """Enhanced account detail view with comprehensive management features"""
     family = get_user_family(request.user)
-    account = get_object_or_404(
-        Account, 
-        id=account_id, 
-        family=family
-    )
+    account = get_object_or_404(Account, id=account_id, family=family)
     
-    # Get child accounts
+    # Get current week for balance calculations
+    current_week = get_current_week(family)
+    
+    # Get child accounts with their balances
     child_accounts = account.children.filter(is_active=True).order_by('sort_order', 'name')
     
-    # Get recent transactions
-    recent_transactions = Transaction.objects.filter(
+    # Calculate account balance using the same logic as dashboard
+    account_balance = get_account_balance(account, current_week)
+    
+    # Calculate child account balances
+    child_balances = {}
+    for child in child_accounts:
+        child_balances[child.id] = get_account_balance(child, current_week)
+    
+    # Get recent transactions with pagination
+    transactions = Transaction.objects.filter(
         account=account,
-        week__family=family
-    ).order_by('-transaction_date', '-created_at')[:10]
+        family=family
+    ).order_by('-transaction_date', '-created_at')
     
     # Pagination for transactions
-    paginator = Paginator(recent_transactions, 25)
-    page_number = request.GET.get('page')
+    paginator = Paginator(transactions, 25)
+    page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
-    # Account balance (sum of income minus expenses)
-    balance_data = Transaction.objects.filter(account=account).aggregate(
-        income=Sum('amount', filter=Q(transaction_type='income')) or 0,
-        expenses=Sum('amount', filter=Q(transaction_type='expense')) or 0
-    )
-    current_balance = (balance_data['income'] or 0) - (balance_data['expenses'] or 0)
-    
-    # Recent allocations
+    # Recent allocations involving this account
     recent_allocations_in = Allocation.objects.filter(
-        to_account=account
+        to_account=account,
+        week__family=family
     ).order_by('-created_at')[:5]
     
     recent_allocations_out = Allocation.objects.filter(
-        from_account=account
+        from_account=account,
+        week__family=family
     ).order_by('-created_at')[:5]
     
-    # Account history
+    # Account activity history
     history = AccountHistory.objects.filter(
         account=account
     ).order_by('-timestamp')[:10]
+    
+    # Weekly activity summary (last 4 weeks)
+    weekly_summary = []
+    for i in range(4):
+        week_start = current_week.start_date - timedelta(weeks=i)
+        week_end = current_week.end_date - timedelta(weeks=i)
+        
+        week_transactions = transactions.filter(
+            transaction_date__range=[week_start, week_end]
+        )
+        
+        income = week_transactions.filter(transaction_type='income').aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+        
+        expenses = week_transactions.filter(transaction_type='expense').aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+        
+        weekly_summary.append({
+            'week_start': week_start,
+            'week_end': week_end,
+            'income': income,
+            'expenses': expenses,
+            'net': income - expenses
+        })
     
     context = {
         'title': f'{account.name} - Account Details',
         'account': account,
         'child_accounts': child_accounts,
-        'recent_transactions': page_obj,
-        'current_balance': current_balance,
+        'child_balances': child_balances,
+        'account_balance': account_balance,
+        'transactions': page_obj,
         'recent_allocations_in': recent_allocations_in,
         'recent_allocations_out': recent_allocations_out,
         'can_add_children': account.can_have_children,
         'history': history,
+        'weekly_summary': weekly_summary,
+        'current_week': current_week,
         'family': family,
     }
     return render(request, 'budget_allocation/account/detail.html', context)
@@ -381,7 +414,7 @@ def add_child_account(request, parent_id):
     # Check if parent can have children
     if not parent_account.can_have_children:
         messages.error(request, f'Account "{parent_account.name}" cannot have child accounts.')
-        return redirect('budget_allocation:account_detail', account_id=parent_account.id)
+        return redirect('budget_allocation:account_detail', account_id=parent_account.pk)
     
     if request.method == 'POST':
         # Use the new ChildAccountForm
@@ -401,7 +434,7 @@ def add_child_account(request, parent_id):
             )
             
             messages.success(request, f'Account "{child_account.name}" created successfully!')
-            return redirect('budget_allocation:account_detail', account_id=parent_account.id)
+            return redirect('budget_allocation:account_detail', account_id=parent_account.pk)
         else:
             messages.error(request, "Please correct the errors below.")
     else:
@@ -416,6 +449,68 @@ def add_child_account(request, parent_id):
         'family': family,
     }
     return render(request, 'budget_allocation/account/add_child.html', context)
+
+
+@login_required
+@family_required  
+@app_permission_required('budget_allocation')
+def edit_account(request, account_id):
+    """Edit account details"""
+    family = get_user_family(request.user)
+    account = get_object_or_404(Account, id=account_id, family=family)
+    
+    if request.method == 'POST':
+        # Use appropriate form based on whether it's a child account
+        if account.parent:
+            from .forms import ChildAccountForm
+            form = ChildAccountForm(request.POST, instance=account, parent=account.parent)
+        else:
+            from .forms import AccountForm
+            form = AccountForm(request.POST, instance=account, family=family)
+            
+        if form.is_valid():
+            # Track what changed
+            changed_fields = []
+            for field in form.changed_data:
+                old_value = getattr(account, field)
+                changed_fields.append(f"{field}: {old_value} → {form.cleaned_data[field]}")
+            
+            updated_account = form.save()
+            
+            # Create history entry if changes were made
+            if changed_fields:
+                AccountHistory.objects.create(
+                    account=updated_account,
+                    family=family,
+                    action='updated',
+                    old_value="; ".join(changed_fields),
+                    new_value=updated_account.name,
+                    notes=f'Account updated by {request.user.get_full_name() or request.user.username}'
+                )
+            
+            messages.success(request, f'Account "{updated_account.name}" updated successfully!')
+            return redirect('budget_allocation:account_detail', account_id=updated_account.pk)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        # Initialize form with current account data
+        if account.parent:
+            from .forms import ChildAccountForm
+            form = ChildAccountForm(instance=account, parent=account.parent)
+        else:
+            from .forms import AccountForm
+            form = AccountForm(instance=account, family=family)
+    
+    context = {
+        'title': f'Edit Account: {account.name}',
+        'form': form,
+        'account': account,
+        'family': family,
+        'is_edit': True,
+    }
+    
+    template = 'budget_allocation/account/add_child.html' if account.parent else 'budget_allocation/account/edit.html'
+    return render(request, template, context)
 
 
 # Allocation Views
@@ -849,6 +944,54 @@ def allocation_suggestions_api(request):
         'total_available': float(available_money),
         'remaining_after_suggestions': float(remaining_money)
     })
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def toggle_account_status_api(request, account_id):
+    """Toggle account active status via AJAX"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST method required'}, status=405)
+    
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    try:
+        account = Account.objects.get(pk=account_id, family=family)
+        
+        # Toggle the status
+        account.is_active = not account.is_active
+        
+        # Set activation/deactivation dates
+        if account.is_active:
+            account.date_activated = date.today()
+            account.date_deactivated = None
+        else:
+            account.date_deactivated = date.today()
+        
+        account.save()
+        
+        # Create history entry
+        AccountHistory.objects.create(
+            account=account,
+            family=family,
+            action='activated' if account.is_active else 'deactivated',
+            new_value=str(account.is_active),
+            notes=f'Account {"activated" if account.is_active else "deactivated"} by {request.user.get_full_name() or request.user.username}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'is_active': account.is_active,
+            'message': f'Account {"activated" if account.is_active else "deactivated"} successfully'
+        })
+        
+    except Account.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Account not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @login_required

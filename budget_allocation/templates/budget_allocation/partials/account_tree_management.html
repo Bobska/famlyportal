@@ -1,0 +1,151 @@
+<!-- Account Tree with Management Tools -->
+<div class="list-group list-group-flush">
+    {% for account in accounts %}
+        {% if account.parent is None %}
+            <!-- Parent Account -->
+            <div class="list-group-item p-0">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            {% if account.children.all %}
+                                <button class="btn btn-sm btn-link p-0 text-muted" onclick="toggleAccountChildren('{{ account.id }}')">
+                                    <i class="fas fa-chevron-down" id="chevron-{{ account.id }}"></i>
+                                </button>
+                            {% else %}
+                                <span class="text-muted ms-2">
+                                    <i class="fas fa-circle fa-xs"></i>
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="mb-1">
+                                <a href="{% url 'budget_allocation:account_detail' account.id %}" class="text-decoration-none">
+                                    {{ account.name }}
+                                </a>
+                            </h6>
+                            {% if account.description %}
+                                <small class="text-muted">{{ account.description }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="mb-1">
+                            <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
+                                $0.00 <!-- This will be populated via JavaScript -->
+                            </span>
+                            {% if not account.is_active %}
+                                <span class="badge bg-secondary ms-1">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'budget_allocation:account_detail' account.id %}" class="btn btn-outline-primary btn-sm" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'budget_allocation:edit_account' account.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Account">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if account.can_have_children %}
+                                <a href="{% url 'budget_allocation:add_child_account' account.id %}" class="btn btn-outline-info btn-sm" title="Add Child Account">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                            {% endif %}
+                            <button class="btn btn-outline-danger btn-sm" onclick="toggleAccountStatus('{{ account.id }}')" title="{% if account.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Child Accounts -->
+                {% if account.children.all %}
+                    <div id="children-{{ account.id }}" class="collapse show">
+                        {% for child in account.children.all %}
+                            <div class="list-group-item px-5 py-2 bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-muted me-3">
+                                            <i class="fas fa-level-up-alt fa-rotate-90"></i>
+                                        </span>
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <a href="{% url 'budget_allocation:account_detail' child.id %}" class="text-decoration-none">
+                                                    {{ child.name }}
+                                                </a>
+                                            </h6>
+                                            {% if child.description %}
+                                                <small class="text-muted">{{ child.description }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="mb-1">
+                                            <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
+                                                $0.00 <!-- This will be populated via JavaScript -->
+                                            </span>
+                                            {% if not child.is_active %}
+                                                <span class="badge bg-secondary ms-1">Inactive</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'budget_allocation:account_detail' child.id %}" class="btn btn-outline-primary btn-sm" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'budget_allocation:edit_account' child.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Account">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger btn-sm" onclick="toggleAccountStatus('{{ child.id }}')" title="{% if child.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                                <i class="fas fa-{% if child.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<script>
+function toggleAccountChildren(accountId) {
+    const childrenContainer = document.getElementById('children-' + accountId);
+    const chevron = document.getElementById('chevron-' + accountId);
+    
+    if (childrenContainer.classList.contains('show')) {
+        childrenContainer.classList.remove('show');
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-right');
+    } else {
+        childrenContainer.classList.add('show');
+        chevron.classList.remove('fa-chevron-right');
+        chevron.classList.add('fa-chevron-down');
+    }
+}
+
+function toggleAccountStatus(accountId) {
+    if (confirm('Are you sure you want to change this account\'s status?')) {
+        // AJAX call to toggle account status
+        fetch(`/budget-allocation/api/account/${accountId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Refresh to show updated status
+            } else {
+                alert('Error updating account status: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating account status');
+        });
+    }
+}
+</script>

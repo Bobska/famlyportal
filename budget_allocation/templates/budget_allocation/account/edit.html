@@ -1,0 +1,225 @@
+{% extends 'budget_allocation/base_with_sidebar.html' %}
+{% load static %}
+
+{% block page_title %}{% if is_edit %}Edit Account{% else %}Create Account{% endif %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'budget_allocation:account_list' %}">Accounts</a></li>
+{% if account and is_edit %}
+    <li class="breadcrumb-item"><a href="{% url 'budget_allocation:account_detail' account.pk %}">{{ account.name }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Edit</li>
+{% else %}
+    <li class="breadcrumb-item active" aria-current="page">Create</li>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-{% if is_edit %}edit{% else %}plus{% endif %} me-2"></i>
+                    {% if is_edit %}Edit Account: {{ account.name }}{% else %}Create New Account{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Account Name -->
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            Account Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.name.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                    </div>
+
+                    <!-- Account Type -->
+                    <div class="mb-3">
+                        <label for="{{ form.account_type.id_for_label }}" class="form-label">
+                            Account Type <span class="text-danger">*</span>
+                        </label>
+                        {{ form.account_type }}
+                        {% if form.account_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.account_type.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">{{ form.account_type.help_text }}</small>
+                    </div>
+
+                    <!-- Parent Account (if applicable) -->
+                    {% if form.parent %}
+                        <div class="mb-3">
+                            <label for="{{ form.parent.id_for_label }}" class="form-label">
+                                Parent Account
+                            </label>
+                            {{ form.parent }}
+                            {% if form.parent.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.parent.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">{{ form.parent.help_text }}</small>
+                        </div>
+                    {% endif %}
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            Description
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                    </div>
+
+                    <!-- Color Picker -->
+                    {% if form.color %}
+                        <div class="mb-3">
+                            <label for="{{ form.color.id_for_label }}" class="form-label">
+                                Account Color
+                            </label>
+                            <div class="input-group">
+                                {{ form.color }}
+                                <span class="input-group-text">
+                                    <div id="color-preview" style="width: 20px; height: 20px; background-color: {{ form.color.value|default:'#007bff' }}; border-radius: 3px;"></div>
+                                </span>
+                            </div>
+                            {% if form.color.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.color.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">{{ form.color.help_text }}</small>
+                        </div>
+                    {% endif %}
+
+                    <!-- Sort Order -->
+                    {% if form.sort_order %}
+                        <div class="mb-3">
+                            <label for="{{ form.sort_order.id_for_label }}" class="form-label">
+                                Sort Order
+                            </label>
+                            {{ form.sort_order }}
+                            {% if form.sort_order.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.sort_order.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">{{ form.sort_order.help_text }}</small>
+                        </div>
+                    {% endif %}
+
+                    <!-- Active Status (for editing) -->
+                    {% if is_edit and form.is_active %}
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label for="{{ form.is_active.id_for_label }}" class="form-check-label">
+                                    Account is active
+                                </label>
+                            </div>
+                            {% if form.is_active.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.is_active.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">{{ form.is_active.help_text }}</small>
+                        </div>
+                    {% endif %}
+
+                    <!-- Form Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% if account %}{% url 'budget_allocation:account_detail' account.pk %}{% else %}{% url 'budget_allocation:account_list' %}{% endif %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if is_edit %}Update Account{% else %}Create Account{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Information Card (for editing) -->
+        {% if is_edit and account %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Account Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Created:</strong> {{ account.created_at|date:"M d, Y g:i A" }}</p>
+                            <p><strong>Last Updated:</strong> {{ account.updated_at|date:"M d, Y g:i A" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            {% if account.date_activated %}
+                                <p><strong>Activated:</strong> {{ account.date_activated|date:"M d, Y" }}</p>
+                            {% endif %}
+                            {% if account.date_deactivated %}
+                                <p><strong>Deactivated:</strong> {{ account.date_deactivated|date:"M d, Y" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if account.children.all %}
+                        <hr>
+                        <h6 class="text-muted">Child Accounts ({{ account.children.count }})</h6>
+                        <div class="row">
+                            {% for child in account.children.all %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="card border-start border-3" style="border-color: {{ child.color }}!important;">
+                                        <div class="card-body p-2">
+                                            <small>
+                                                <a href="{% url 'budget_allocation:account_detail' child.pk %}" class="text-decoration-none">
+                                                    {{ child.name }}
+                                                </a>
+                                                {% if not child.is_active %}
+                                                    <span class="badge bg-secondary ms-1">Inactive</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Color picker preview update
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.querySelector('input[type="color"]');
+    const colorPreview = document.getElementById('color-preview');
+    
+    if (colorInput && colorPreview) {
+        colorInput.addEventListener('input', function() {
+            colorPreview.style.backgroundColor = this.value;
+        });
+    }
+});
+</script>
+{% endblock %}

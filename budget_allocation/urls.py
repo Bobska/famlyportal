@@ -12,7 +12,7 @@ urlpatterns = [
     path('accounts/', views.account_list, name='account_list'),
     path('accounts/create/', views.account_create, name='account_create'),
     path('account/<int:account_id>/', views.account_detail, name='account_detail'),
-    path('account/<int:account_id>/edit/', views.account_edit, name='account_edit'),
+    path('account/<int:account_id>/edit/', views.edit_account, name='edit_account'),
     path('account/<int:parent_id>/add-child/', views.add_child_account, name='add_child_account'),
     
     # Allocation management
@@ -33,6 +33,7 @@ urlpatterns = [
     # API Endpoints
     path('api/accounts/', views.accounts_api, name='accounts_api'),
     path('api/account/<int:account_id>/balance/', views.account_balance_api, name='account_balance_api'),
+    path('api/account/<int:account_id>/toggle-status/', views.toggle_account_status_api, name='toggle_account_status_api'),
     path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),
     path('api/week-summary/', views.week_summary_api, name='week_summary_api'),
 ]

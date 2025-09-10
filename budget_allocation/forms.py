@@ -378,6 +378,7 @@ class TransactionForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         self.family = kwargs.pop('family', None)
+        self.initial_account = kwargs.pop('initial_account', None)
         super().__init__(*args, **kwargs)
         
         if self.family:
@@ -390,6 +391,27 @@ class TransactionForm(forms.ModelForm):
             # Filter weeks to family weeks
             self.fields['week'].queryset = self.family.weeklyperiod_set.order_by('-start_date')
         
+        # Handle account-specific form behavior
+        if self.initial_account:
+            # When coming from an account, make certain fields optional/hidden
+            self.fields['account'].disabled = True
+            self.fields['account'].initial = self.initial_account
+            self.fields['transaction_type'].required = False
+            self.fields['description'].required = False
+            
+            # Auto-populate payee with account name
+            if not self.instance.pk:
+                self.fields['payee'].initial = self.initial_account.name
+            
+            # Update help text for account-specific context
+            self.fields['payee'].help_text = "Merchant/Payee (auto-filled with account name)"
+            self.fields['account'].help_text = "Transaction will be recorded to this account"
+            self.fields['transaction_type'].help_text = "Leave blank to auto-determine based on account type"
+            self.fields['description'].help_text = "Optional description for this transaction"
+        else:
+            # General transaction form behavior
+            self.fields['description'].required = True
+        
         # Make optional fields not required
         self.fields['payee'].required = False
         self.fields['reference'].required = False
@@ -398,7 +420,7 @@ class TransactionForm(forms.ModelForm):
         # Add help text
         self.fields['transaction_date'].help_text = "Date when this transaction occurred"
         self.fields['amount'].help_text = "Transaction amount in dollars"
-        self.fields['week'].help_text = "Leave blank to auto-assign to current week"
+        self.fields['week'].help_text = "Leave blank to auto-assign based on transaction date"
         
         # Set default date to today
         if not self.instance.pk:
@@ -413,6 +435,16 @@ class TransactionForm(forms.ModelForm):
             raise forms.ValidationError("Amount must be greater than 0")
         
         return amount
+    
+    def clean(self):
+        """Custom form validation and field handling"""
+        cleaned_data = super().clean()
+        
+        # Handle disabled account field - Django ignores disabled fields
+        if self.initial_account:
+            cleaned_data['account'] = self.initial_account
+            
+        return cleaned_data
     
     def save(self, commit=True):
         """Save transaction with family assignment"""

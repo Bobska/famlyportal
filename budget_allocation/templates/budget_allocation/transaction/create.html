@@ -62,75 +62,144 @@
                     {% csrf_token %}
                     
                     <!-- Transaction Basic Info -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.account.id_for_label }}" class="form-label fw-bold">
-                                    <i class="fas fa-university me-1"></i>Account *
-                                </label>
-                                {{ form.account }}
-                                {% if form.account.errors %}
-                                    <div class="invalid-feedback d-block">{{ form.account.errors.0 }}</div>
-                                {% endif %}
-                                <div class="form-text">Choose which account this transaction affects</div>
-                            </div>
+                    {% if initial_account %}
+                        <!-- Account-specific transaction form -->
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Recording transaction for:</strong> {{ initial_account.name }}
+                            <br><small class="text-muted">Account and transaction type will be auto-determined.</small>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.transaction_type.id_for_label }}" class="form-label fw-bold">
-                                    <i class="fas fa-exchange-alt me-1"></i>Transaction Type *
-                                </label>
-                                {{ form.transaction_type }}
-                                {% if form.transaction_type.errors %}
-                                    <div class="invalid-feedback d-block">{{ form.transaction_type.errors.0 }}</div>
-                                {% endif %}
-                                <div class="form-text">Is this money coming in (income) or going out (expense)?</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Amount and Date -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.amount.id_for_label }}" class="form-label fw-bold">
-                                    <i class="fas fa-dollar-sign me-1"></i>Amount *
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    {{ form.amount }}
+                        
+                        <!-- Hidden account field -->
+                        {{ form.account.as_hidden }}
+                        
+                        <!-- Amount and Date - Full width when from account -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-dollar-sign me-1"></i>Amount *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.amount }}
+                                    </div>
+                                    {% if form.amount.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">Enter the transaction amount</div>
                                 </div>
-                                {% if form.amount.errors %}
-                                    <div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>
-                                {% endif %}
-                                <div class="form-text">Enter the transaction amount</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_date.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-calendar me-1"></i>Transaction Date *
+                                    </label>
+                                    {{ form.transaction_date }}
+                                    {% if form.transaction_date.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.transaction_date.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">When did this transaction occur?</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.transaction_date.id_for_label }}" class="form-label fw-bold">
-                                    <i class="fas fa-calendar me-1"></i>Transaction Date *
-                                </label>
-                                {{ form.transaction_date }}
-                                {% if form.transaction_date.errors %}
-                                    <div class="invalid-feedback d-block">{{ form.transaction_date.errors.0 }}</div>
-                                {% endif %}
-                                <div class="form-text">When did this transaction occur?</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Description -->
-                    <div class="mb-3">
-                        <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
-                            <i class="fas fa-pencil-alt me-1"></i>Description *
-                        </label>
-                        {{ form.description }}
-                        {% if form.description.errors %}
-                            <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">Briefly describe what this transaction was for</div>
-                    </div>
+                        <!-- Payee/Merchant - Auto-populated -->
+                        <div class="mb-3">
+                            <label for="{{ form.payee.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-store me-1"></i>Merchant/Payee
+                            </label>
+                            {{ form.payee }}
+                            {% if form.payee.errors %}
+                                <div class="invalid-feedback d-block">{{ form.payee.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.payee.help_text }}</div>
+                        </div>
+
+                        <!-- Description - Optional -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="fas fa-pencil-alt me-1"></i>Description (Optional)
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.description.help_text }}</div>
+                        </div>
+
+                    {% else %}
+                        <!-- General transaction form -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.account.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-university me-1"></i>Account *
+                                    </label>
+                                    {{ form.account }}
+                                    {% if form.account.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.account.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">Choose which account this transaction affects</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_type.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-exchange-alt me-1"></i>Transaction Type *
+                                    </label>
+                                    {{ form.transaction_type }}
+                                    {% if form.transaction_type.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.transaction_type.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">Is this money coming in (income) or going out (expense)?</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Amount and Date -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-dollar-sign me-1"></i>Amount *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.amount }}
+                                    </div>
+                                    {% if form.amount.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">Enter the transaction amount</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_date.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-calendar me-1"></i>Transaction Date *
+                                    </label>
+                                    {{ form.transaction_date }}
+                                    {% if form.transaction_date.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.transaction_date.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">When did this transaction occur?</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-pencil-alt me-1"></i>Description *
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Briefly describe what this transaction was for</div>
+                        </div>
+                    {% endif %}
 
                     <!-- Optional Details -->
                     <div class="card mb-3">
@@ -140,42 +209,67 @@
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ form.payee.id_for_label }}" class="form-label">
-                                            <i class="fas fa-user me-1"></i>Payee/Payer
-                                        </label>
-                                        {{ form.payee }}
-                                        {% if form.payee.errors %}
-                                            <div class="invalid-feedback d-block">{{ form.payee.errors.0 }}</div>
-                                        {% endif %}
-                                        <div class="form-text">Who was this transaction with?</div>
+                            {% if not initial_account %}
+                                <!-- Show payee field only for general transactions -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.payee.id_for_label }}" class="form-label">
+                                                <i class="fas fa-user me-1"></i>Payee/Payer
+                                            </label>
+                                            {{ form.payee }}
+                                            {% if form.payee.errors %}
+                                                <div class="invalid-feedback d-block">{{ form.payee.errors.0 }}</div>
+                                            {% endif %}
+                                            <div class="form-text">Who was this transaction with?</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.reference.id_for_label }}" class="form-label">
+                                                <i class="fas fa-hashtag me-1"></i>Reference
+                                            </label>
+                                            {{ form.reference }}
+                                            {% if form.reference.errors %}
+                                                <div class="invalid-feedback d-block">{{ form.reference.errors.0 }}</div>
+                                            {% endif %}
+                                            <div class="form-text">Check number, invoice number, etc.</div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ form.reference.id_for_label }}" class="form-label">
-                                            <i class="fas fa-hashtag me-1"></i>Reference
-                                        </label>
-                                        {{ form.reference }}
-                                        {% if form.reference.errors %}
-                                            <div class="invalid-feedback d-block">{{ form.reference.errors.0 }}</div>
-                                        {% endif %}
-                                        <div class="form-text">Check number, invoice number, etc.</div>
-                                    </div>
+                            {% else %}
+                                <!-- For account-specific transactions, just show reference -->
+                                <div class="mb-3">
+                                    <label for="{{ form.reference.id_for_label }}" class="form-label">
+                                        <i class="fas fa-hashtag me-1"></i>Reference
+                                    </label>
+                                    {{ form.reference }}
+                                    {% if form.reference.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.reference.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">Check number, invoice number, etc.</div>
                                 </div>
-                            </div>
-                            <div class="mb-0">
-                                <label for="{{ form.week.id_for_label }}" class="form-label">
-                                    <i class="fas fa-calendar-week me-1"></i>Week Period
-                                </label>
-                                {{ form.week }}
-                                {% if form.week.errors %}
-                                    <div class="invalid-feedback d-block">{{ form.week.errors.0 }}</div>
-                                {% endif %}
-                                <div class="form-text">Leave blank to auto-assign to current week</div>
-                            </div>
+                            {% endif %}
+
+                            <!-- Week period - auto-calculated notice -->
+                            {% if initial_account %}
+                                <div class="alert alert-light" role="alert">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small><strong>Week Period:</strong> Will be automatically calculated based on the transaction date.</small>
+                                </div>
+                                {{ form.week.as_hidden }}
+                            {% else %}
+                                <div class="mb-0">
+                                    <label for="{{ form.week.id_for_label }}" class="form-label">
+                                        <i class="fas fa-calendar-week me-1"></i>Week Period
+                                    </label>
+                                    {{ form.week }}
+                                    {% if form.week.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.week.errors.0 }}</div>
+                                    {% endif %}
+                                    <div class="form-text">{{ form.week.help_text }}</div>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -214,26 +308,48 @@
                 <div class="row">
                     <div class="col-md-6">
                         <ul class="list-unstyled mb-0">
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                <strong>Income:</strong> Money coming into your account (salary, gifts, etc.)
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                <strong>Expense:</strong> Money going out of your account (bills, purchases, etc.)
-                            </li>
+                            {% if initial_account %}
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>Auto-Detection:</strong> Transaction type will be determined based on account type
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>Merchant:</strong> Pre-filled with account name for easy tracking
+                                </li>
+                            {% else %}
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>Income:</strong> Money coming into your account (salary, gifts, etc.)
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>Expense:</strong> Money going out of your account (bills, purchases, etc.)
+                                </li>
+                            {% endif %}
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <ul class="list-unstyled mb-0">
-                            <li class="mb-2">
-                                <i class="fas fa-info text-primary me-2"></i>
-                                The week period helps organize transactions for budget planning
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-info text-primary me-2"></i>
-                                Reference numbers help track transactions in your bank statements
-                            </li>
+                            {% if initial_account %}
+                                <li class="mb-2">
+                                    <i class="fas fa-info text-primary me-2"></i>
+                                    Week period is automatically calculated from transaction date
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-info text-primary me-2"></i>
+                                    Description is optional for quick transaction entry
+                                </li>
+                            {% else %}
+                                <li class="mb-2">
+                                    <i class="fas fa-info text-primary me-2"></i>
+                                    The week period helps organize transactions for budget planning
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-info text-primary me-2"></i>
+                                    Reference numbers help track transactions in your bank statements
+                                </li>
+                            {% endif %}
                         </ul>
                     </div>
                 </div>

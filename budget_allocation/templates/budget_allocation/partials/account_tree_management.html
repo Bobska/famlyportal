@@ -31,7 +31,7 @@
                     <div class="text-end">
                         <div class="mb-1">
                             <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
-                                $0.00 <!-- This will be populated via JavaScript -->
+                                ${{ account.current_balance|floatformat:2 }}
                             </span>
                             {% if not account.is_active %}
                                 <span class="badge bg-secondary ms-1">Inactive</span>
@@ -80,7 +80,7 @@
                                     <div class="text-end">
                                         <div class="mb-1">
                                             <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
-                                                $0.00 <!-- This will be populated via JavaScript -->
+                                                ${{ child.current_balance|floatformat:2 }}
                                             </span>
                                             {% if not child.is_active %}
                                                 <span class="badge bg-secondary ms-1">Inactive</span>

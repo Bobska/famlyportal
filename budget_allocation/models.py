@@ -217,10 +217,27 @@ class Account(FamilyScopedModel):
     
     @property
     def current_balance(self):
-        """Calculate current balance based on allocations and transactions"""
-        # This would be calculated from allocations and transactions
-        # Placeholder implementation
-        return Decimal('0.00')
+        """Calculate current balance including child accounts"""
+        from .utilities import get_current_week, get_account_balance_with_children
+        
+        try:
+            current_week = get_current_week(self.family)
+            return get_account_balance_with_children(self, current_week)
+        except Exception:
+            # Fallback if there's any issue with week calculation
+            return Decimal('0.00')
+    
+    @property
+    def account_only_balance(self):
+        """Calculate balance for this account only (excluding children)"""
+        from .utilities import get_current_week, get_account_balance
+        
+        try:
+            current_week = get_current_week(self.family)
+            return get_account_balance(self, current_week)
+        except Exception:
+            # Fallback if there's any issue with week calculation
+            return Decimal('0.00')
     
     def get_allocated_amount(self, week=None):
         """Get total amount allocated to this account for a specific week"""

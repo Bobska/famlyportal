@@ -125,6 +125,20 @@ def get_account_balance(account, week):
     return allocations + income - expenses
 
 
+def get_account_balance_with_children(account, week):
+    """Get current balance for an account including all child accounts"""
+    
+    # Get balance for this account
+    account_balance = get_account_balance(account, week)
+    
+    # Get balances for all child accounts recursively
+    child_balances = Decimal('0')
+    for child in account.children.filter(is_active=True):
+        child_balances += get_account_balance_with_children(child, week)
+    
+    return account_balance + child_balances
+
+
 def get_account_tree(family):
     """Get hierarchical account tree for family"""
     from .models import Account

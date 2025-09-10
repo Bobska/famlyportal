@@ -25,7 +25,7 @@ from .forms import (
 )
 from .utilities import (
     get_current_week, get_available_money, transfer_money,
-    get_account_balance, get_account_tree
+    get_account_balance, get_account_balance_with_children, get_account_tree
 )
 
 
@@ -281,8 +281,8 @@ def account_detail(request, account_id):
     # Get child accounts with their balances
     child_accounts = account.children.filter(is_active=True).order_by('sort_order', 'name')
     
-    # Calculate account balance using the same logic as dashboard
-    account_balance = get_account_balance(account, current_week)
+    # Calculate account balance including child accounts for parent display
+    account_balance = get_account_balance_with_children(account, current_week)
     
     # Calculate child account balances and create enriched data structure
     child_balances = {}
@@ -706,16 +706,25 @@ def transaction_create(request):
             pass
     
     if request.method == 'POST':
-        form = TransactionForm(request.POST, family=family)
+        form = TransactionForm(request.POST, family=family, initial_account=initial_account)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.family = family
             
-            # Auto-assign to current week if not specified
-            if not transaction.week:
-                today = date.today()
+            # Auto-determine transaction type if not provided and we have an account
+            if not transaction.transaction_type and initial_account:
+                # Default to expense for most account types, income for income accounts
+                if initial_account.account_type == 'income':
+                    transaction.transaction_type = 'income'
+                else:
+                    transaction.transaction_type = 'expense'
+            
+            # Auto-assign to week based on transaction date
+            if not transaction.week and transaction.transaction_date:
+                from datetime import timedelta
+                trans_date = transaction.transaction_date
                 # Find the week start (Monday)
-                week_start = today - timedelta(days=today.weekday())
+                week_start = trans_date - timedelta(days=trans_date.weekday())
                 week_end = week_start + timedelta(days=6)
                 
                 current_week, created = WeeklyPeriod.objects.get_or_create(
@@ -732,7 +741,7 @@ def transaction_create(request):
             
             transaction.save()
             
-            messages.success(request, f'Transaction "{transaction.description}" recorded successfully.')
+            messages.success(request, f'Transaction "{transaction.description or "Transaction"}" recorded successfully.')
             
             # Redirect back to account detail if we came from there
             if initial_account:
@@ -743,7 +752,7 @@ def transaction_create(request):
         initial = {}
         if initial_account:
             initial['account'] = initial_account
-        form = TransactionForm(family=family, initial=initial)
+        form = TransactionForm(family=family, initial_account=initial_account, initial=initial)
     
     context = {
         'title': 'Record Transaction',
@@ -890,7 +899,11 @@ def accounts_api(request):
     
     account_data = {}
     for account in accounts:
-        balance = get_account_balance(account, current_week)
+        # Use rollup balance for parent accounts, individual balance for child accounts
+        if account.parent is None:
+            balance = get_account_balance_with_children(account, current_week)
+        else:
+            balance = get_account_balance(account, current_week)
         account_data[str(account.pk)] = {
             'id': account.pk,
             'name': account.name,
@@ -914,7 +927,11 @@ def account_balance_api(request, account_id):
     try:
         account = Account.objects.get(pk=account_id, family=family)
         current_week = get_current_week(family)
-        balance = get_account_balance(account, current_week)
+        # Use rollup balance for parent accounts, individual balance for child accounts
+        if account.parent is None:
+            balance = get_account_balance_with_children(account, current_week)
+        else:
+            balance = get_account_balance(account, current_week)
         
         return JsonResponse({
             'account_id': account.pk,

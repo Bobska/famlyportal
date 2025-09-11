@@ -12,7 +12,7 @@
     </a>
 </li>
 <li class="breadcrumb-item">
-    <a href="{% url 'budget_allocation:account_detail' parent_account.id %}">
+    <a href="{% url 'budget_allocation:account_detail' parent_account.pk %}">
         {{ parent_account.name }}
     </a>
 </li>
@@ -124,7 +124,7 @@
                         <div class="row mt-4">
                             <div class="col-12">
                                 <div class="d-flex justify-content-between">
-                                    <a href="{% url 'budget_allocation:account_detail' parent_account.id %}" 
+                                    <a href="{% url 'budget_allocation:account_detail' parent_account.pk %}" 
                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-arrow-left"></i> Back to {{ parent_account.name }}
                                     </a>

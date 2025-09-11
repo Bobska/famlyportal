@@ -172,9 +172,10 @@ class AccountForm(forms.ModelForm):
                 css_class='mb-3'
             ),
             Field('is_active', css_class='mb-3'),
+            Field('is_merchant_payee', css_class='mb-3'),
             FormActions(
                 Submit('submit', 'Update Account' if self.instance.pk else 'Create Account', css_class='btn btn-primary'),
-                HTML('<a href="{% url "budget_allocation:account_detail" account_id=' + str(self.instance.id) + ' %}" class="btn btn-secondary ms-2">Cancel</a>' if self.instance.pk else '<a href="{% url "budget_allocation:account_list" %}" class="btn btn-secondary ms-2">Cancel</a>')
+                # Cancel button will be handled in template
             )
         )
         self.helper.form_method = 'post'

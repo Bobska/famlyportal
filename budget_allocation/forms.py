@@ -16,7 +16,7 @@ class ChildAccountForm(forms.ModelForm):
     
     class Meta:
         model = Account
-        fields = ['name', 'description', 'color']
+        fields = ['name', 'description', 'color', 'is_merchant_payee']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -30,6 +30,9 @@ class ChildAccountForm(forms.ModelForm):
             'color': forms.TextInput(attrs={
                 'class': 'form-control',
                 'type': 'color'
+            }),
+            'is_merchant_payee': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
             })
         }
 
@@ -50,11 +53,13 @@ class ChildAccountForm(forms.ModelForm):
         self.fields['name'].label = 'Account Name'
         self.fields['description'].label = 'Description (Optional)'
         self.fields['color'].label = 'Color'
+        self.fields['is_merchant_payee'].label = 'Is this a merchant/payee?'
         
         # Add help text
         if parent:
             self.fields['name'].help_text = f'Create a new account under "{parent.name}"'
             self.fields['color'].help_text = 'Choose a color to easily identify this account'
+        self.fields['is_merchant_payee'].help_text = 'Check this if this account represents a specific merchant, store, or payee for easier transaction entry'
 
     def clean_name(self):
         """Validate account name is unique within parent"""
@@ -117,7 +122,7 @@ class AccountForm(forms.ModelForm):
     
     class Meta:
         model = Account
-        fields = ['name', 'description', 'color', 'is_active']
+        fields = ['name', 'description', 'color', 'is_active', 'is_merchant_payee']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={
@@ -128,7 +133,8 @@ class AccountForm(forms.ModelForm):
                 'class': 'form-control',
                 'type': 'color'
             }),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_merchant_payee': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
     
     def __init__(self, *args, **kwargs):
@@ -145,7 +151,9 @@ class AccountForm(forms.ModelForm):
         
         # Customize labels
         self.fields['is_active'].label = 'Account is active'
+        self.fields['is_merchant_payee'].label = 'Is this a merchant/payee?'
         self.fields['color'].help_text = 'Choose a color to easily identify this account'
+        self.fields['is_merchant_payee'].help_text = 'Check this if this account represents a specific merchant, store, or payee for easier transaction entry'
         
         # Add validation warning for deactivation
         if self.instance and self.instance.pk:
@@ -342,6 +350,18 @@ class AllocationForm(forms.ModelForm):
 class TransactionForm(forms.ModelForm):
     """Form for recording transactions"""
     
+    # Add merchant/payee selection field
+    merchant_payee = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label="Select a merchant/payee...",
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'id_merchant_payee'
+        }),
+        help_text="Choose from your saved merchants/payees or leave blank to enter manually"
+    )
+    
     class Meta:
         model = Transaction
         fields = [
@@ -390,6 +410,13 @@ class TransactionForm(forms.ModelForm):
             
             # Filter weeks to family weeks
             self.fields['week'].queryset = self.family.weeklyperiod_set.order_by('-start_date')
+            
+            # Populate merchant/payee dropdown with accounts marked as merchants/payees
+            self.fields['merchant_payee'].queryset = Account.objects.filter(
+                family=self.family,
+                is_merchant_payee=True,
+                is_active=True
+            ).order_by('name')
         
         # Handle account-specific form behavior
         if self.initial_account:

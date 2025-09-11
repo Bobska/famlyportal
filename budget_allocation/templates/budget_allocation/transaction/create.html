@@ -104,16 +104,28 @@
                             </div>
                         </div>
 
-                        <!-- Payee/Merchant - Auto-populated -->
+                        <!-- Merchant/Payee Selection Dropdown -->
+                        <div class="mb-3">
+                            <label for="{{ form.merchant_payee.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-store me-1"></i>Quick Select Merchant/Payee
+                            </label>
+                            {{ form.merchant_payee }}
+                            {% if form.merchant_payee.errors %}
+                                <div class="invalid-feedback d-block">{{ form.merchant_payee.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.merchant_payee.help_text }}</div>
+                        </div>
+
+                        <!-- Payee/Merchant - Manual Entry -->
                         <div class="mb-3">
                             <label for="{{ form.payee.id_for_label }}" class="form-label fw-bold">
-                                <i class="fas fa-store me-1"></i>Merchant/Payee
+                                <i class="fas fa-user me-1"></i>Merchant/Payee (Manual Entry)
                             </label>
                             {{ form.payee }}
                             {% if form.payee.errors %}
                                 <div class="invalid-feedback d-block">{{ form.payee.errors.0 }}</div>
                             {% endif %}
-                            <div class="form-text">{{ form.payee.help_text }}</div>
+                            <div class="form-text">{{ form.payee.help_text }} <em>This field will auto-fill when you select from the dropdown above.</em></div>
                         </div>
 
                         <!-- Description - Optional -->
@@ -384,6 +396,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 icon.className = 'fas fa-minus-circle me-1 text-danger';
             } else {
                 icon.className = 'fas fa-exchange-alt me-1';
+            }
+        });
+    }
+
+    // Merchant/Payee auto-fill functionality
+    const merchantPayeeField = document.getElementById('{{ form.merchant_payee.id_for_label }}');
+    const payeeField = document.getElementById('{{ form.payee.id_for_label }}');
+    
+    if (merchantPayeeField && payeeField) {
+        merchantPayeeField.addEventListener('change', function() {
+            if (this.value) {
+                // Get the selected option text (account name)
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.text !== "Select a merchant/payee...") {
+                    payeeField.value = selectedOption.text;
+                    // Add visual feedback
+                    payeeField.style.backgroundColor = '#e8f5e8';
+                    setTimeout(() => {
+                        payeeField.style.backgroundColor = '';
+                    }, 1500);
+                }
+            } else {
+                // Clear the payee field if no merchant is selected
+                payeeField.value = '';
             }
         });
     }

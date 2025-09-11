@@ -83,6 +83,10 @@ class Account(FamilyScopedModel):
         default=0,
         help_text="Order for sorting accounts within same parent"
     )
+    is_merchant_payee = models.BooleanField(
+        default=False,
+        help_text="Whether this account represents a merchant/payee for transactions"
+    )
     
     objects = AccountManager()
     

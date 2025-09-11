@@ -104,6 +104,21 @@
                                 <div class="invalid-feedback d-block">{{ form.color.errors.0 }}</div>
                             {% endif %}
                         </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_merchant_payee }}
+                                <label for="{{ form.is_merchant_payee.id_for_label }}" class="form-check-label">
+                                    {{ form.is_merchant_payee.label }}
+                                </label>
+                            </div>
+                            {% if form.is_merchant_payee.help_text %}
+                                <div class="form-text">{{ form.is_merchant_payee.help_text }}</div>
+                            {% endif %}
+                            {% if form.is_merchant_payee.errors %}
+                                <div class="invalid-feedback d-block">{{ form.is_merchant_payee.errors.0 }}</div>
+                            {% endif %}
+                        </div>
                         
                         <!-- Action Buttons -->
                         <div class="row mt-4">

@@ -346,7 +346,7 @@ class TransactionForm(forms.ModelForm):
         model = Transaction
         fields = [
             'transaction_date', 'account', 'description', 'amount',
-            'transaction_type', 'payee', 'reference'
+            'transaction_type', 'payee', 'reference', 'week'
         ]
         widgets = {
             'transaction_date': forms.DateInput(attrs={
@@ -373,6 +373,7 @@ class TransactionForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Reference number or check number (optional)'
             }),
+            'week': forms.Select(attrs={'class': 'form-select'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -386,6 +387,9 @@ class TransactionForm(forms.ModelForm):
                 family=self.family,
                 is_active=True
             ).order_by('account_type', 'name')
+            
+            # Filter weeks to family weeks
+            self.fields['week'].queryset = self.family.weeklyperiod_set.order_by('-start_date')
         
         # Handle account-specific form behavior
         if self.initial_account:
@@ -411,10 +415,12 @@ class TransactionForm(forms.ModelForm):
         # Make optional fields not required
         self.fields['payee'].required = False
         self.fields['reference'].required = False
+        self.fields['week'].required = False
         
         # Add help text
         self.fields['transaction_date'].help_text = "Date when this transaction occurred"
         self.fields['amount'].help_text = "Transaction amount in dollars"
+        self.fields['week'].help_text = "Leave blank to auto-assign based on transaction date"
         
         # Set default date to today
         if not self.instance.pk:

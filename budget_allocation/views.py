@@ -54,7 +54,7 @@ def get_family_queryset(request, model_class):
 
 
 def calculate_overall_balance(family, current_week=None):
-    """Calculate overall balance: Total Income - Total Expenses up to and including selected week"""
+    """Calculate overall balance: Total Income - Total Expenses"""
     if not current_week:
         try:
             from .utilities import get_current_week
@@ -62,8 +62,8 @@ def calculate_overall_balance(family, current_week=None):
         except Exception:
             # Fallback if get_current_week doesn't exist
             today = date.today()
-            week_start = today - timedelta(days=today.weekday())  # Monday
-            week_end = week_start + timedelta(days=6)  # Sunday
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
             
             current_week, created = WeeklyPeriod.objects.get_or_create(
                 start_date=week_start,
@@ -75,31 +75,9 @@ def calculate_overall_balance(family, current_week=None):
     total_income = Transaction.objects.filter(
         account__family=family,
         account__account_type='income',
-        week__start_date__lte=current_week.end_date
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-    total_expenses = Transaction.objects.filter(
-        account__family=family,
-        account__account_type='expense',
-        week__start_date__lte=current_week.end_date
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    
-    return {
-        'total_income': total_income,
-        'total_expenses': total_expenses,
-        'net_balance': total_income - total_expenses,
-    }
-
-
-def calculate_weekly_balance(family, current_week):
-    """Calculate balance for a specific week only: Total Income - Total Expenses for that week"""
-    
-    total_income = Transaction.objects.filter(
-        account__family=family,
-        account__account_type='income',
         week=current_week
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
+    
     total_expenses = Transaction.objects.filter(
         account__family=family,
         account__account_type='expense',
@@ -110,61 +88,6 @@ def calculate_weekly_balance(family, current_week):
         'total_income': total_income,
         'total_expenses': total_expenses,
         'net_balance': total_income - total_expenses,
-    }
-
-
-def get_selected_week(request, family):
-    """Get the selected week from session, or current week if none selected"""
-    selected_week_id = request.session.get('budget_selected_week_id')
-    
-    if selected_week_id:
-        try:
-            return WeeklyPeriod.objects.get(id=selected_week_id, family=family)
-        except WeeklyPeriod.DoesNotExist:
-            pass
-    
-    # Fall back to current week
-    from .utilities import get_current_week
-    return get_current_week(family)
-
-
-def get_week_navigation_context(family, current_week):
-    """Get previous and next weeks for navigation, creating them if needed"""
-    from .utilities import get_current_week
-    from datetime import timedelta
-    
-    # Calculate previous week (Monday to Sunday)
-    previous_week_start = current_week.start_date - timedelta(days=7)
-    previous_week_end = previous_week_start + timedelta(days=6)
-    
-    # Get or create previous week
-    previous_week, created = WeeklyPeriod.objects.get_or_create(
-        family=family,
-        start_date=previous_week_start,
-        defaults={
-            'end_date': previous_week_end,
-            'is_active': True
-        }
-    )
-    
-    # Calculate next week (Monday to Sunday)  
-    next_week_start = current_week.start_date + timedelta(days=7)
-    next_week_end = next_week_start + timedelta(days=6)
-    
-    # Get or create next week
-    next_week, created = WeeklyPeriod.objects.get_or_create(
-        family=family,
-        start_date=next_week_start,
-        defaults={
-            'end_date': next_week_end,
-            'is_active': True
-        }
-    )
-    
-    return {
-        'previous_week': previous_week,
-        'next_week': next_week,
-        'current_week': current_week,
     }
 
 
@@ -221,8 +144,7 @@ def dashboard(request):
         )
     
     # Calculate overall balance
-    balance_data = calculate_overall_balance(family, current_week)
-    overall_balance = balance_data['net_balance']
+    overall_balance = calculate_overall_balance(family, current_week)
     
     # Weekly summary
     week_allocations = Allocation.objects.filter(week=current_week)
@@ -241,9 +163,9 @@ def dashboard(request):
         'overall_balance': overall_balance,
         'week_summary': {
             'total_allocated': total_allocated,
-            'total_income': balance_data.get('total_income', 0),
-            'total_expenses': balance_data.get('total_expenses', 0),
-            'net_flow': balance_data.get('net_balance', 0),
+            'total_income': overall_balance.get('total_income', 0),
+            'total_expenses': overall_balance.get('total_expenses', 0),
+            'net_flow': overall_balance.get('net_balance', 0),
         },
         'active_loans': active_loans,
         'recent_transactions': week_transactions.order_by('-transaction_date', '-created_at')[:5],
@@ -267,10 +189,6 @@ def account_list(request):
     from .utils import ensure_default_accounts_exist
     ensure_default_accounts_exist(family)
     
-    # Get selected week (from session or current week)
-    current_week = get_selected_week(request, family)
-    week_navigation = get_week_navigation_context(family, current_week)
-    
     # Get accounts organized by type (same as dashboard)
     income_accounts = Account.objects.filter(
         family=family, 
@@ -284,9 +202,9 @@ def account_list(request):
         is_active=True
     ).select_related('parent').order_by('sort_order', 'name')
     
-    # Calculate weekly balance for selected week (not cumulative)
-    balance_data = calculate_weekly_balance(family, current_week)
-    overall_balance = balance_data['net_balance']
+    # Get current week and calculate overall balance (same as dashboard)
+    current_week = get_current_week(family)
+    overall_balance = calculate_overall_balance(family, current_week)
     
     context = {
         'title': 'Account Management',
@@ -294,7 +212,6 @@ def account_list(request):
         'expense_accounts': expense_accounts,
         'overall_balance': overall_balance,
         'current_week': current_week,
-        'week_navigation': week_navigation,
         'show_management_tools': True,  # Differentiate from dashboard
         'family': family,
     }
@@ -350,28 +267,28 @@ def account_create(request):
 
 @login_required
 @family_required
+@login_required
+@family_required
 @app_permission_required('budget_allocation')
 def account_detail(request, account_id):
     """Enhanced account detail view with comprehensive management features"""
     family = get_user_family(request.user)
     account = get_object_or_404(Account, id=account_id, family=family)
     
-    # Get selected week for balance calculations
-    current_week = get_selected_week(request, family)
-    week_navigation = get_week_navigation_context(family, current_week)
+    # Get current week for balance calculations
+    current_week = get_current_week(family)
     
     # Get child accounts with their balances
     child_accounts = account.children.filter(is_active=True).order_by('sort_order', 'name')
     
-    # Calculate account balance for the selected week only
-    from .utilities import get_account_weekly_balance_with_children
-    account_balance = get_account_weekly_balance_with_children(account, current_week)
+    # Calculate account balance including child accounts for parent display
+    account_balance = get_account_balance_with_children(account, current_week)
     
-    # Calculate child account balances for the selected week
+    # Calculate child account balances and create enriched data structure
     child_balances = {}
     enriched_child_accounts = []
     for child in child_accounts:
-        balance = get_account_weekly_balance_with_children(child, current_week)
+        balance = get_account_balance(child, current_week)
         child_balances[child.id] = balance
         # Create enriched data with balance included
         enriched_child_accounts.append({
@@ -379,11 +296,10 @@ def account_detail(request, account_id):
             'balance': balance
         })
     
-    # Get transactions for the selected week with pagination
+    # Get recent transactions with pagination
     transactions = Transaction.objects.filter(
         account=account,
-        family=family,
-        week=current_week
+        family=family
     ).order_by('-transaction_date', '-created_at')
     
     # Pagination for transactions
@@ -447,7 +363,6 @@ def account_detail(request, account_id):
         'history': history,
         'weekly_summary': weekly_summary,
         'current_week': current_week,
-        'week_navigation': week_navigation,
         'family': family,
     }
     return render(request, 'budget_allocation/account/detail.html', context)
@@ -796,23 +711,33 @@ def transaction_create(request):
             transaction = form.save(commit=False)
             transaction.family = family
             
-            # Auto-determine transaction type if not provided
-            if not transaction.transaction_type and transaction.account:
+            # Auto-determine transaction type if not provided and we have an account
+            if not transaction.transaction_type and initial_account:
                 # Default to expense for most account types, income for income accounts
-                if transaction.account.account_type == 'income':
+                if initial_account.account_type == 'income':
                     transaction.transaction_type = 'income'
                 else:
                     transaction.transaction_type = 'expense'
             
-            # Always auto-assign week based on transaction date and transaction type
-            if transaction.transaction_date and transaction.transaction_type:
-                from .utilities import get_week_for_transaction
-                transaction.week = get_week_for_transaction(
-                    family, 
-                    transaction.transaction_date, 
-                    transaction.transaction_type
+            # Auto-assign to week based on transaction date
+            if not transaction.week and transaction.transaction_date:
+                from datetime import timedelta
+                trans_date = transaction.transaction_date
+                # Find the week start (Monday)
+                week_start = trans_date - timedelta(days=trans_date.weekday())
+                week_end = week_start + timedelta(days=6)
+                
+                current_week, created = WeeklyPeriod.objects.get_or_create(
+                    start_date=week_start,
+                    end_date=week_end,
+                    family=family,
+                    defaults={
+                        'is_active': True,
+                        'week_number': 1 + (week_start - date(week_start.year, 1, 1)).days // 7,
+                        'year': week_start.year
+                    }
                 )
-                print(f"AUTO-ASSIGNED WEEK: {transaction.week.start_date} to {transaction.week.end_date} for {transaction.transaction_type} transaction on {transaction.transaction_date}")
+                transaction.week = current_week
             
             transaction.save()
             
@@ -836,38 +761,6 @@ def transaction_create(request):
         'initial_account': initial_account,
     }
     return render(request, 'budget_allocation/transaction/create.html', context)
-
-
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def transaction_delete(request, pk):
-    """Delete a transaction"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to delete transactions.")
-        return redirect('accounts:dashboard')
-    
-    transaction = get_object_or_404(Transaction, pk=pk, family=family)
-    
-    if request.method == 'POST':
-        account_id = transaction.account.id
-        transaction_desc = transaction.description or f"${transaction.amount} transaction"
-        transaction.delete()
-        
-        messages.success(request, f'Transaction "{transaction_desc}" deleted successfully.')
-        
-        # Redirect back to account detail if we have account info
-        if 'from_account' in request.GET:
-            return redirect('budget_allocation:account_detail', account_id=account_id)
-        return redirect('budget_allocation:transaction_list')
-    
-    context = {
-        'title': 'Delete Transaction',
-        'transaction': transaction,
-        'family': family,
-    }
-    return render(request, 'budget_allocation/transaction/delete.html', context)
 
 
 # Budget Template Views
@@ -1195,24 +1088,3 @@ def week_summary_api(request):
         'formatted_expenses': f"${total_expenses:,.2f}",
         'formatted_available': f"${available_money:,.2f}"
     })
-
-
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def set_active_week(request, week_id):
-    """Set the active week for balance calculations"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to set the active week.")
-        return redirect('accounts:dashboard')
-    
-    try:
-        week = WeeklyPeriod.objects.get(id=week_id, family=family)
-        request.session['budget_selected_week_id'] = week_id
-        messages.success(request, f'Now viewing balances for week of {week.start_date.strftime("%B %d, %Y")}')
-    except WeeklyPeriod.DoesNotExist:
-        messages.error(request, "Invalid week selected.")
-    
-    # Redirect to the previous page or account list if no referrer
-    return redirect(request.META.get('HTTP_REFERER', 'budget_allocation:account_list'))

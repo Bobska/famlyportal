@@ -763,6 +763,41 @@ def transaction_create(request):
     return render(request, 'budget_allocation/transaction/create.html', context)
 
 
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def transaction_delete(request, pk):
+    """Delete a transaction"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to delete transactions.")
+        return redirect('accounts:dashboard')
+    
+    # Get the transaction, ensuring it belongs to the user's family
+    transaction_obj = get_object_or_404(Transaction, pk=pk, family=family)
+    
+    if request.method == 'POST':
+        transaction_description = transaction_obj.description or "Transaction"
+        transaction_obj.delete()
+        messages.success(request, f'Transaction "{transaction_description}" has been deleted successfully.')
+        
+        # Check if we should redirect back to account detail
+        from_account = request.GET.get('from_account')
+        if from_account and transaction_obj.account:
+            return redirect('budget_allocation:account_detail', account_id=transaction_obj.account.pk)
+        
+        # Default redirect to transaction list
+        return redirect('budget_allocation:transaction_list')
+    
+    # For GET requests, render confirmation page
+    context = {
+        'title': 'Delete Transaction',
+        'transaction': transaction_obj,
+        'family': family,
+    }
+    return render(request, 'budget_allocation/transaction/delete.html', context)
+
+
 # Budget Template Views
 @login_required
 @family_required

@@ -205,6 +205,7 @@
                                     <th>Description</th>
                                     <th>Category</th>
                                     <th class="text-end">Amount</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -228,6 +229,13 @@
                                             <span class="{% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
                                                 {% if transaction.amount >= 0 %}+{% endif %}${{ transaction.amount|floatformat:2 }}
                                             </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{% url 'budget_allocation:transaction_delete' transaction.pk %}?from_account=1" 
+                                               class="btn btn-outline-danger btn-sm" 
+                                               title="Delete Transaction">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}

@@ -517,6 +517,10 @@ def edit_account(request, account_id):
         'is_edit': True,
     }
     
+    # Add parent_account to context when editing a child account
+    if account.parent:
+        context['parent_account'] = account.parent
+    
     template = 'budget_allocation/account/add_child.html' if account.parent else 'budget_allocation/account/edit.html'
     return render(request, template, context)
 

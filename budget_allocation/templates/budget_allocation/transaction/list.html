@@ -648,6 +648,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup account tree events
     setupAccountTreeEvents();
     
+    // Handle Create New Account button click to preserve transaction context
+    const createNewAccountBtn = document.getElementById('createNewAccountBtn');
+    if (createNewAccountBtn) {
+        createNewAccountBtn.addEventListener('click', function() {
+            // Get current transaction context
+            const currentTransactionType = document.getElementById('modalTransactionType').value;
+            const currentMerchantPayee = document.getElementById('modalMerchantPayee').value;
+            
+            // Store context for restoration after account creation
+            window.transactionContext = {
+                type: currentTransactionType,
+                merchantPayee: currentMerchantPayee
+            };
+            
+            console.log('Preserving transaction context:', window.transactionContext);
+        });
+    }
+    
     // Get all form fields
     const typeField = document.getElementById('modalTransactionType');
     const merchantPayeeField = document.getElementById('modalMerchantPayee');
@@ -709,6 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Filter and populate merchant/payee dropdown based on transaction type
+            const currentSelection = merchantPayeeField.value; // Save current selection
             merchantPayeeField.innerHTML = '<option value="">Choose ' + merchantPayeeLabel.textContent.toLowerCase() + '...</option>';
             
             if (selectedType) {
@@ -768,12 +787,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // Populate dropdown with filtered merchants
+                let currentSelectionStillValid = false;
                 filteredMerchants.forEach(merchant => {
                     const option = document.createElement('option');
                     option.value = merchant.id;
                     option.textContent = merchant.name;
                     merchantPayeeField.appendChild(option);
+                    
+                    // Check if the previous selection is still valid
+                    if (currentSelection === merchant.id.toString()) {
+                        currentSelectionStillValid = true;
+                    }
                 });
+                
+                // Restore previous selection if it's still valid for the new type
+                if (currentSelectionStillValid && currentSelection) {
+                    merchantPayeeField.value = currentSelection;
+                    console.log('Preserved merchant/payee selection:', currentSelection);
+                }
                 
                 // Show message if no merchants found
                 if (filteredMerchants.length === 0) {
@@ -940,29 +971,80 @@ document.addEventListener('DOMContentLoaded', function() {
                         account_type: data.account.account_type
                     });
                     
-                    // Add new option to merchant/payee dropdown
-                    const newOption = document.createElement('option');
-                    newOption.value = data.account.id;
-                    newOption.textContent = data.account.name;
-                    merchantPayeeField.appendChild(newOption);
+                    // Store the new account ID for selection after modal restoration
+                    window.newlyCreatedAccountId = data.account.id;
                     
-                    // Auto-select the new account
-                    merchantPayeeField.value = data.account.id;
+                    // Get the current transaction type to maintain context
+                    const currentTransactionType = document.getElementById('modalTransactionType').value;
                     
-                    // Trigger visual feedback
-                    merchantPayeeField.style.backgroundColor = '#e8f5e8';
-                    setTimeout(() => {
-                        merchantPayeeField.style.backgroundColor = '';
-                    }, 1500);
+                    // Add new option to merchant/payee dropdown only if it matches current transaction type
+                    if (data.account.account_type === currentTransactionType) {
+                        const newOption = document.createElement('option');
+                        newOption.value = data.account.id;
+                        newOption.textContent = data.account.name;
+                        merchantPayeeField.appendChild(newOption);
+                        
+                        // Auto-select the new account
+                        merchantPayeeField.value = data.account.id;
+                        
+                        // Trigger visual feedback
+                        merchantPayeeField.style.backgroundColor = '#e8f5e8';
+                        setTimeout(() => {
+                            merchantPayeeField.style.backgroundColor = '';
+                        }, 1500);
+                    }
                     
                     // Close the create account modal
                     const createAccountModal = bootstrap.Modal.getInstance(document.getElementById('createAccountModal'));
                     createAccountModal.hide();
                     
-                    // Show transaction modal after brief delay
+                    // Show transaction modal after brief delay and restore context
                     setTimeout(() => {
                         const transactionModal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
                         transactionModal.show();
+                        
+                        // Restore transaction context if it was preserved
+                        if (window.transactionContext) {
+                            console.log('Restoring transaction context:', window.transactionContext);
+                            
+                            // Restore transaction type
+                            if (window.transactionContext.type) {
+                                const typeField = document.getElementById('modalTransactionType');
+                                typeField.value = window.transactionContext.type;
+                                
+                                // Trigger the change event to repopulate merchant/payee dropdown
+                                typeField.dispatchEvent(new Event('change'));
+                                
+                                // Small delay to allow dropdown to repopulate, then prioritize new account
+                                setTimeout(() => {
+                                    const merchantPayeeField = document.getElementById('modalMerchantPayee');
+                                    
+                                    // Prioritize newly created account over restored selection
+                                    if (window.newlyCreatedAccountId) {
+                                        // Check if the new account is available in the dropdown
+                                        const newAccountOption = merchantPayeeField.querySelector(`option[value="${window.newlyCreatedAccountId}"]`);
+                                        if (newAccountOption) {
+                                            merchantPayeeField.value = window.newlyCreatedAccountId;
+                                            console.log('Selected newly created account:', window.newlyCreatedAccountId);
+                                            
+                                            // Visual feedback for the selection
+                                            merchantPayeeField.style.backgroundColor = '#e8f5e8';
+                                            setTimeout(() => {
+                                                merchantPayeeField.style.backgroundColor = '';
+                                            }, 1500);
+                                        }
+                                        // Clean up
+                                        delete window.newlyCreatedAccountId;
+                                    } else if (window.transactionContext.merchantPayee) {
+                                        // Fallback to restored selection if no new account
+                                        merchantPayeeField.value = window.transactionContext.merchantPayee;
+                                    }
+                                }, 100);
+                            }
+                            
+                            // Clear the stored context
+                            delete window.transactionContext;
+                        }
                     }, 300);
                     
                     // Show success message
@@ -1024,10 +1106,35 @@ document.addEventListener('DOMContentLoaded', function() {
             const createModal = bootstrap.Modal.getInstance(createAccountModal);
             createModal.hide();
             
-            // Show transaction modal after a brief delay
+            // Show transaction modal after a brief delay and restore context
             setTimeout(() => {
                 const transactionModal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
                 transactionModal.show();
+                
+                // Restore transaction context if it was preserved
+                if (window.transactionContext) {
+                    console.log('Restoring transaction context after cancel:', window.transactionContext);
+                    
+                    // Restore transaction type
+                    if (window.transactionContext.type) {
+                        const typeField = document.getElementById('modalTransactionType');
+                        typeField.value = window.transactionContext.type;
+                        
+                        // Trigger the change event to repopulate merchant/payee dropdown
+                        typeField.dispatchEvent(new Event('change'));
+                        
+                        // Small delay to allow dropdown to repopulate, then restore merchant/payee
+                        setTimeout(() => {
+                            if (window.transactionContext.merchantPayee) {
+                                const merchantPayeeField = document.getElementById('modalMerchantPayee');
+                                merchantPayeeField.value = window.transactionContext.merchantPayee;
+                            }
+                        }, 100);
+                    }
+                    
+                    // Clear the stored context
+                    delete window.transactionContext;
+                }
             }, 300);
         });
     }

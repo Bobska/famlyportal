@@ -1275,3 +1275,43 @@ def create_account_ajax(request):
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error creating account: {str(e)}'}, status=500)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def api_account_tree(request):
+    """API endpoint to get account tree data for hierarchy selection"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    try:
+        # Get account tree
+        account_tree = get_account_tree(family)
+        
+        # Serialize tree for JSON response - enhanced version for modal
+        def serialize_account_tree(tree_node):
+            if isinstance(tree_node, list):
+                return [serialize_account_tree(node) for node in tree_node]
+            return {
+                'account': {
+                    'id': tree_node['account'].id,
+                    'name': tree_node['account'].name,
+                    'account_type': tree_node['account'].account_type,
+                    'description': tree_node['account'].description or '',
+                    'is_active': tree_node['account'].is_active,
+                },
+                'level': tree_node['level'],
+                'children': serialize_account_tree(tree_node['children']) if tree_node['children'] else []
+            }
+        
+        serialized_tree = serialize_account_tree(account_tree)
+        
+        return JsonResponse({
+            'success': True,
+            'tree': serialized_tree
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error loading account tree: {str(e)}'}, status=500)

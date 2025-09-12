@@ -9,8 +9,11 @@
 
 {% block page_actions %}
 <div class="btn-group" role="group">
-    <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-primary">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
         <i class="fas fa-plus me-1"></i>Add Transaction
+    </button>
+    <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-outline-primary">
+        <i class="fas fa-external-link-alt me-1"></i>Full Form
     </a>
     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
         <i class="fas fa-filter me-1"></i>Filter
@@ -202,6 +205,140 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1" aria-labelledby="addTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTransactionModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Quick Add Transaction
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickTransactionForm" method="post" action="{% url 'budget_allocation:transaction_create' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <!-- Success/Error Messages -->
+                    <div id="modalMessages" class="d-none"></div>
+                    
+                    <div class="row">
+                        <!-- Account Selection -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalAccount" class="form-label fw-bold">
+                                    <i class="fas fa-university me-1"></i>Account *
+                                </label>
+                                <select class="form-select" id="modalAccount" name="account" required>
+                                    <option value="">Choose account...</option>
+                                    {% for account in accounts %}
+                                        <option value="{{ account.id }}">{{ account.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Transaction Type -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalTransactionType" class="form-label fw-bold">
+                                    <i class="fas fa-exchange-alt me-1"></i>Type *
+                                </label>
+                                <select class="form-select" id="modalTransactionType" name="transaction_type" required>
+                                    <option value="">Choose type...</option>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Amount -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalAmount" class="form-label fw-bold">
+                                    <i class="fas fa-dollar-sign me-1"></i>Amount *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="modalAmount" name="amount" 
+                                           step="0.01" min="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Transaction Date -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalTransactionDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-1"></i>Date *
+                                </label>
+                                <input type="date" class="form-control" id="modalTransactionDate" 
+                                       name="transaction_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Merchant/Payee Quick Select -->
+                    <div class="mb-3">
+                        <label for="modalMerchantPayee" class="form-label fw-bold">
+                            <i class="fas fa-store me-1"></i>Quick Select Merchant/Payee
+                        </label>
+                        <select class="form-select" id="modalMerchantPayee" name="merchant_payee">
+                            <option value="">Select a merchant/payee...</option>
+                            {% for merchant in merchant_accounts %}
+                                <option value="{{ merchant.id }}">{{ merchant.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Choose from saved merchants or enter manually below</div>
+                    </div>
+                    
+                    <!-- Manual Payee Entry -->
+                    <div class="mb-3">
+                        <label for="modalPayee" class="form-label">
+                            <i class="fas fa-user me-1"></i>Payee/Merchant (Manual Entry)
+                        </label>
+                        <input type="text" class="form-control" id="modalPayee" name="payee" 
+                               placeholder="Enter payee name...">
+                        <div class="form-text">This field will auto-fill when you select from the dropdown above</div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="modalDescription" class="form-label fw-bold">
+                            <i class="fas fa-pencil-alt me-1"></i>Description *
+                        </label>
+                        <input type="text" class="form-control" id="modalDescription" name="description" 
+                               placeholder="Describe this transaction..." required>
+                    </div>
+                    
+                    <!-- Reference (optional) -->
+                    <div class="mb-3">
+                        <label for="modalReference" class="form-label">
+                            <i class="fas fa-hashtag me-1"></i>Reference (Optional)
+                        </label>
+                        <input type="text" class="form-control" id="modalReference" name="reference" 
+                               placeholder="Check number, invoice number, etc.">
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Transaction
+                    </button>
+                    <a href="{% url 'budget_allocation:transaction_create' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-1"></i>Full Form
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block sidebar_extra %}
@@ -239,4 +376,164 @@
 
 {% block extra_js %}
 {{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default
+    const dateField = document.getElementById('modalTransactionDate');
+    if (dateField) {
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        dateField.value = formattedDate;
+    }
+    
+    // Merchant/Payee auto-fill functionality
+    const merchantPayeeField = document.getElementById('modalMerchantPayee');
+    const payeeField = document.getElementById('modalPayee');
+    
+    if (merchantPayeeField && payeeField) {
+        merchantPayeeField.addEventListener('change', function() {
+            if (this.value) {
+                // Get the selected option text (account name)
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.text !== "Select a merchant/payee...") {
+                    payeeField.value = selectedOption.text;
+                    // Add visual feedback
+                    payeeField.style.backgroundColor = '#e8f5e8';
+                    setTimeout(() => {
+                        payeeField.style.backgroundColor = '';
+                    }, 1500);
+                }
+            } else {
+                // Clear the payee field if no merchant is selected
+                payeeField.value = '';
+            }
+        });
+    }
+    
+    // Auto-format amount field
+    const amountField = document.getElementById('modalAmount');
+    if (amountField) {
+        amountField.addEventListener('blur', function() {
+            let value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toFixed(2);
+            }
+        });
+    }
+    
+    // Transaction type change handler for visual feedback
+    const typeField = document.getElementById('modalTransactionType');
+    if (typeField) {
+        typeField.addEventListener('change', function() {
+            const icon = this.closest('.mb-3').querySelector('.form-label i');
+            if (this.value === 'income') {
+                icon.className = 'fas fa-plus-circle me-1 text-success';
+            } else if (this.value === 'expense') {
+                icon.className = 'fas fa-minus-circle me-1 text-danger';
+            } else {
+                icon.className = 'fas fa-exchange-alt me-1';
+            }
+        });
+    }
+    
+    // Handle form submission via AJAX
+    const quickForm = document.getElementById('quickTransactionForm');
+    if (quickForm) {
+        quickForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+            submitBtn.disabled = true;
+            
+            // Clear previous messages
+            const messagesDiv = document.getElementById('modalMessages');
+            messagesDiv.innerHTML = '';
+            messagesDiv.classList.add('d-none');
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Success - close modal and reload page
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
+                    modal.hide();
+                    
+                    // Show success message and reload
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    alert.style.top = '20px';
+                    alert.style.right = '20px';
+                    alert.style.zIndex = '9999';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>Transaction added successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alert);
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    // Handle errors
+                    return response.text().then(text => {
+                        messagesDiv.innerHTML = `
+                            <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Error adding transaction. Please check your input and try again.
+                            </div>
+                        `;
+                        messagesDiv.classList.remove('d-none');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messagesDiv.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        An error occurred. Please try again.
+                    </div>
+                `;
+                messagesDiv.classList.remove('d-none');
+            })
+            .finally(() => {
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+    
+    // Reset form when modal is hidden
+    const modal = document.getElementById('addTransactionModal');
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', function() {
+            const form = this.querySelector('form');
+            if (form) {
+                form.reset();
+                // Reset date to today
+                if (dateField) {
+                    const today = new Date();
+                    const formattedDate = today.toISOString().split('T')[0];
+                    dateField.value = formattedDate;
+                }
+                // Clear messages
+                const messagesDiv = document.getElementById('modalMessages');
+                messagesDiv.innerHTML = '';
+                messagesDiv.classList.add('d-none');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

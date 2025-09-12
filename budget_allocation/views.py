@@ -678,10 +678,29 @@ def transaction_list(request):
     # Get accounts for filter dropdown
     accounts = Account.objects.filter(family=family, is_active=True).order_by('name')
     
+    # Get merchant/payee accounts for modal dropdown
+    merchant_accounts = Account.objects.filter(
+        family=family, 
+        is_merchant_payee=True,
+        is_active=True
+    ).order_by('name')
+    
+    # Calculate transaction summary for sidebar
+    from django.db.models import Sum
+    transaction_summary = {
+        'total_income': transactions.filter(transaction_type='income').aggregate(
+            total=Sum('amount'))['total'] or 0,
+        'total_expenses': transactions.filter(transaction_type='expense').aggregate(
+            total=Sum('amount'))['total'] or 0,
+    }
+    transaction_summary['net_flow'] = transaction_summary['total_income'] - transaction_summary['total_expenses']
+    
     context = {
         'title': 'Transaction History',
         'transactions': page_obj,
         'accounts': accounts,
+        'merchant_accounts': merchant_accounts,
+        'transaction_summary': transaction_summary,
         'family': family,
         'filters': {
             'account': account_filter,

@@ -29,6 +29,16 @@ def debug_accounts():
         parent_name = acc.parent.name if acc.parent else "None"
         print(f"  {acc.id}: {acc.name} (type: {acc.account_type}, parent: {parent_name})")
     
+    # Show accounts by type
+    print(f"\nIncome accounts: {accounts.filter(account_type='income').count()}")
+    print(f"Expense accounts: {accounts.filter(account_type='expense').count()}")
+    print(f"Root accounts: {accounts.filter(account_type='root').count()}")
+    
+    print("\nExpense accounts detail:")
+    for acc in accounts.filter(account_type='expense'):
+        parent_name = acc.parent.name if acc.parent else "None"
+        print(f"  {acc.id}: {acc.name} (parent: {parent_name}, active: {acc.is_active})")
+    
     # Show tree structure
     print("\nTree structure:")
     tree = get_account_tree(family)

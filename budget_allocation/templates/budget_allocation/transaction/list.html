@@ -290,7 +290,7 @@
                                 <label for="modalMerchantPayee" class="form-label fw-bold">
                                     <i class="fas fa-store me-1"></i><span id="merchantPayeeLabel">Merchant/Payee</span> *
                                 </label>
-                                <select class="form-select" id="modalMerchantPayee" name="merchant_payee" required disabled>
+                                <select class="form-select" id="modalMerchantPayee" name="account" required disabled>
                                     <option value="">First select a transaction type...</option>
                                 </select>
                                 <div class="mt-2">
@@ -394,17 +394,17 @@
                     </div>
                     
                     <!-- Parent Account Selection -->
-                    <div class="mb-3">
+                    <div class="mb-3" id="parentSelectionDiv">
                         <label for="newAccountParent" class="form-label fw-bold">
-                            <i class="fas fa-sitemap me-1"></i>Parent <span id="parentAccountTypeLabel">Account</span> *
+                            <i class="fas fa-sitemap me-1"></i>Parent <span id="parentAccountTypeLabel">Account</span>
                         </label>
                         <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa;">
-                            <div class="form-text mb-2">Select the account to add this new item under:</div>
+                            <div class="form-text mb-2" id="parentSelectionInstructions">Select the account to add this new item under:</div>
                             <div id="accountTreeSelector">
                                 <!-- Account tree will be populated here -->
                             </div>
                         </div>
-                        <input type="hidden" id="newAccountParent" name="parent" value="" required>
+                        <input type="hidden" id="newAccountParent" name="parent" value="">
                         <div class="mt-1">
                             <small class="text-muted">Selected: <span id="selectedParentName" class="fw-bold">None</span></small>
                         </div>
@@ -750,11 +750,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 const filteredTree = filterAccountTreeByType(accountTree, selectedType);
                 console.log('Filtered tree:', filteredTree);
                 
-                renderAccountTree(filteredTree, accountTreeSelector);
+                // Handle parent selection based on available accounts
+                const parentSelectionDiv = document.getElementById('parentSelectionDiv');
+                const parentSelectionInstructions = document.getElementById('parentSelectionInstructions');
+                
+                if (filteredTree.length === 0) {
+                    // No accounts available - will create under root account automatically
+                    accountTreeSelector.innerHTML = `
+                        <div class="text-muted text-center py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No existing ${selectedType} accounts found.<br>
+                            <small>Your new account will be created under the main ${selectedType} category.</small>
+                        </div>
+                    `;
+                    parentSelectionInstructions.textContent = `This will be created as a top-level ${selectedType} account:`;
+                    document.getElementById('selectedParentName').textContent = `Main ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Account`;
+                } else {
+                    // Accounts available - show tree for selection
+                    renderAccountTree(filteredTree, accountTreeSelector);
+                    parentSelectionInstructions.textContent = 'Select the account to add this new item under:';
+                }
                 
                 // Reset selection
                 document.getElementById('newAccountParent').value = '';
-                document.getElementById('selectedParentName').textContent = 'None';
+                if (filteredTree.length > 0) {
+                    document.getElementById('selectedParentName').textContent = 'None';
+                }
                 
                 // Update new account modal labels
                 const newAccountTypeLabel = document.getElementById('newAccountTypeLabel');
@@ -873,10 +894,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // Handle errors
                     return response.text().then(text => {
+                        console.log('Error response:', text); // Debug: Log the actual error
                         messagesDiv.innerHTML = `
                             <div class="alert alert-danger" role="alert">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 Error adding transaction. Please check your input and try again.
+                                <br><small>Debug: ${text.substring(0, 200)}</small>
                             </div>
                         `;
                         messagesDiv.classList.remove('d-none');

@@ -1215,20 +1215,32 @@ def create_account_ajax(request):
             return JsonResponse({'success': False, 'error': 'Valid account type is required'}, status=400)
             
         if not parent_id:
-            return JsonResponse({'success': False, 'error': 'Parent account is required'}, status=400)
-        
-        # Validate parent account exists and belongs to user's family
-        try:
-            parent_account = Account.objects.get(id=parent_id, family=family)
-            # Allow any account of the same type as parent (more flexible than just matching type)
-            # This allows creating child accounts under any account, not just root accounts
-            if parent_account.account_type != account_type:
+            # If no parent is selected, automatically use the root account of the matching type
+            try:
+                parent_account = Account.objects.get(
+                    family=family,
+                    account_type=account_type,
+                    parent__isnull=True  # Root account has no parent
+                )
+                print(f"Auto-selected root {account_type} account as parent: {parent_account.name}")
+            except Account.DoesNotExist:
                 return JsonResponse({
                     'success': False, 
-                    'error': f'Parent account must be of type {account_type}'
+                    'error': f'No root {account_type} account found. Please contact administrator.'
                 }, status=400)
-        except Account.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Invalid parent account'}, status=400)
+        else:
+            # Validate parent account exists and belongs to user's family
+            try:
+                parent_account = Account.objects.get(id=parent_id, family=family)
+                # Allow any account of the same type as parent (more flexible than just matching type)
+                # This allows creating child accounts under any account, not just root accounts
+                if parent_account.account_type != account_type:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'Parent account must be of type {account_type}'
+                    }, status=400)
+            except Account.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Invalid parent account'}, status=400)
         
         # Check if account with this name already exists under this parent
         if Account.objects.filter(family=family, name=name, parent=parent_account).exists():

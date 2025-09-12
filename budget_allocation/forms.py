@@ -437,8 +437,8 @@ class TransactionForm(forms.ModelForm):
             self.fields['transaction_type'].help_text = "Leave blank to auto-determine based on account type"
             self.fields['description'].help_text = "Optional description for this transaction"
         else:
-            # General transaction form behavior
-            self.fields['description'].required = True
+            # General transaction form behavior - description is optional
+            self.fields['description'].required = False
         
         # Make optional fields not required
         self.fields['payee'].required = False

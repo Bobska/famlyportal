@@ -224,22 +224,7 @@
                     <div id="modalMessages" class="d-none"></div>
                     
                     <div class="row">
-                        <!-- Account Selection -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modalAccount" class="form-label fw-bold">
-                                    <i class="fas fa-university me-1"></i>Account *
-                                </label>
-                                <select class="form-select" id="modalAccount" name="account" required>
-                                    <option value="">Choose account...</option>
-                                    {% for account in accounts %}
-                                        <option value="{{ account.id }}">{{ account.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <!-- Transaction Type -->
+                        <!-- Transaction Type - First Field -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="modalTransactionType" class="form-label fw-bold">
@@ -252,10 +237,36 @@
                                 </select>
                             </div>
                         </div>
+                        
+                        <!-- Merchant/Payee - Second Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalMerchantPayee" class="form-label fw-bold">
+                                    <i class="fas fa-store me-1"></i>Merchant/Payee *
+                                </label>
+                                <select class="form-select" id="modalMerchantPayee" name="merchant_payee" required>
+                                    <option value="">Select merchant/payee...</option>
+                                    {% for merchant in merchant_accounts %}
+                                        <option value="{{ merchant.id }}">{{ merchant.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="row">
-                        <!-- Amount -->
+                        <!-- Transaction Date - Third Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalTransactionDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-1"></i>Date *
+                                </label>
+                                <input type="date" class="form-control" id="modalTransactionDate" 
+                                       name="transaction_date" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Amount - Fourth Field -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="modalAmount" class="form-label fw-bold">
@@ -268,53 +279,31 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Transaction Date -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modalTransactionDate" class="form-label fw-bold">
-                                    <i class="fas fa-calendar me-1"></i>Date *
-                                </label>
-                                <input type="date" class="form-control" id="modalTransactionDate" 
-                                       name="transaction_date" required>
-                            </div>
-                        </div>
                     </div>
                     
-                    <!-- Merchant/Payee Quick Select -->
+                    <!-- Account Selection -->
                     <div class="mb-3">
-                        <label for="modalMerchantPayee" class="form-label fw-bold">
-                            <i class="fas fa-store me-1"></i>Quick Select Merchant/Payee
+                        <label for="modalAccount" class="form-label fw-bold">
+                            <i class="fas fa-university me-1"></i>Account *
                         </label>
-                        <select class="form-select" id="modalMerchantPayee" name="merchant_payee">
-                            <option value="">Select a merchant/payee...</option>
-                            {% for merchant in merchant_accounts %}
-                                <option value="{{ merchant.id }}">{{ merchant.name }}</option>
+                        <select class="form-select" id="modalAccount" name="account" required>
+                            <option value="">Choose account...</option>
+                            {% for account in accounts %}
+                                <option value="{{ account.id }}">{{ account.name }}</option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Choose from saved merchants or enter manually below</div>
                     </div>
                     
-                    <!-- Manual Payee Entry -->
+                    <!-- Description - Optional -->
                     <div class="mb-3">
-                        <label for="modalPayee" class="form-label">
-                            <i class="fas fa-user me-1"></i>Payee/Merchant (Manual Entry)
-                        </label>
-                        <input type="text" class="form-control" id="modalPayee" name="payee" 
-                               placeholder="Enter payee name...">
-                        <div class="form-text">This field will auto-fill when you select from the dropdown above</div>
-                    </div>
-                    
-                    <!-- Description -->
-                    <div class="mb-3">
-                        <label for="modalDescription" class="form-label fw-bold">
-                            <i class="fas fa-pencil-alt me-1"></i>Description *
+                        <label for="modalDescription" class="form-label">
+                            <i class="fas fa-pencil-alt me-1"></i>Description (Optional)
                         </label>
                         <input type="text" class="form-control" id="modalDescription" name="description" 
-                               placeholder="Describe this transaction..." required>
+                               placeholder="Describe this transaction...">
                     </div>
                     
-                    <!-- Reference (optional) -->
+                    <!-- Reference - Optional -->
                     <div class="mb-3">
                         <label for="modalReference" class="form-label">
                             <i class="fas fa-hashtag me-1"></i>Reference (Optional)
@@ -386,26 +375,17 @@ document.addEventListener('DOMContentLoaded', function() {
         dateField.value = formattedDate;
     }
     
-    // Merchant/Payee auto-fill functionality
+    // Merchant/Payee auto-fill functionality (simplified since manual entry is removed)
     const merchantPayeeField = document.getElementById('modalMerchantPayee');
-    const payeeField = document.getElementById('modalPayee');
     
-    if (merchantPayeeField && payeeField) {
+    if (merchantPayeeField) {
         merchantPayeeField.addEventListener('change', function() {
             if (this.value) {
-                // Get the selected option text (account name)
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption && selectedOption.text !== "Select a merchant/payee...") {
-                    payeeField.value = selectedOption.text;
-                    // Add visual feedback
-                    payeeField.style.backgroundColor = '#e8f5e8';
-                    setTimeout(() => {
-                        payeeField.style.backgroundColor = '';
-                    }, 1500);
-                }
-            } else {
-                // Clear the payee field if no merchant is selected
-                payeeField.value = '';
+                // Add visual feedback when merchant is selected
+                this.style.backgroundColor = '#e8f5e8';
+                setTimeout(() => {
+                    this.style.backgroundColor = '';
+                }, 1500);
             }
         });
     }

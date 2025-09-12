@@ -78,10 +78,10 @@
                         <i class="fas fa-plus me-1"></i>Add
                     </a>
                 {% endif %}
-                <button class="btn btn-outline-{% if account.is_active %}warning{% else %}success{% endif %} btn-sm" 
+                <button class="btn btn-outline-{% if account.is_active %}danger{% else %}success{% endif %} btn-sm" 
                         onclick="toggleAccountStatus('{{ account.id }}')" 
                         title="{% if account.is_active %}Deactivate{% else %}Activate{% endif %}">
-                    <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %} me-1"></i>
+                    <i class="fas fa-{% if account.is_active %}ban{% else %}play{% endif %} me-1"></i>
                     {% if account.is_active %}Disable{% else %}Enable{% endif %}
                 </button>
             </div>

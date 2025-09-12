@@ -24,6 +24,33 @@
     margin-bottom: 8px;
 }
 
+/* Add extra spacing for children when parent is expanded to prevent border overlap */
+.account-tree-item:has(.account-tree-selector.expanded[data-has-children="true"]) .account-children {
+    margin-top: 12px !important;
+    padding-top: 4px;
+}
+
+/* Fallback for browsers that don't support :has() - target children directly */
+.account-children {
+    margin-top: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    max-height: 2000px;
+    opacity: 1;
+}
+
+/* Add extra spacing for expanded children to prevent border overlap */
+.account-children:not(.collapsed) {
+    margin-top: 12px !important;
+    padding-top: 4px;
+}
+
+.account-children.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+}
+
 .account-tree-selector {
     transition: all 0.2s ease-in-out;
     background-color: #fff;
@@ -41,9 +68,16 @@
     box-shadow: 0 3px 12px rgba(13, 110, 253, 0.2);
 }
 
-/* Expanded state indicator */
-.account-tree-selector.expanded {
+/* Expanded state indicator - use same styling as focus for visual consistency */
+.account-tree-selector.expanded[data-has-children="true"] {
+    border: none !important;
     background-color: #e7f3ff !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3) !important;
+}
+
+/* For accounts without children that are somehow marked expanded */
+.account-tree-selector.expanded:not([data-has-children="true"]) {
+    background-color: #f8f9fa !important;
     border-left: 4px solid #0d6efd !important;
 }
 
@@ -61,26 +95,15 @@
     transform: rotate(-90deg);
 }
 
-.account-children {
-    overflow: hidden;
-    transition: all 0.3s ease-in-out;
-    max-height: 2000px;
-    opacity: 1;
-}
-
-.account-children.collapsed {
-    max-height: 0;
-    opacity: 0;
-    margin: 0;
-}
-
 .account-actions {
     opacity: 0.8;
     transition: opacity 0.2s ease;
+    transform: none !important;
 }
 
 .account-tree-selector:hover .account-actions {
     opacity: 1;
+    transform: none !important;
 }
 
 .btn-group .btn {
@@ -88,6 +111,13 @@
     padding: 0.4rem 0.8rem;
     border-width: 1px;
     white-space: nowrap;
+    transform: none !important;
+}
+
+.btn-group .btn:hover {
+    transform: none !important;
+    position: relative !important;
+    top: 0 !important;
 }
 
 .btn-group .btn-sm {
@@ -149,25 +179,12 @@
     transform: rotate(-90deg);
 }
 
-/* Enhanced focus states - no border for accounts with children */
+/* Remove all focus styles - no focus indication needed */
 .account-tree-selector:focus {
     outline: none !important;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25) !important;
 }
 
-/* Remove border entirely for focused accounts with children */
-.account-tree-selector[data-has-children="true"]:focus {
-    border: none !important;
-    background-color: #e7f3ff !important;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3) !important;
-}
-
-/* Accounts without children keep a subtle border when focused */
-.account-tree-selector:not([data-has-children="true"]):focus {
-    border-color: #0d6efd !important;
-}
-
-/* Prevent any inline styles from overriding focus */
+/* Prevent any inline styles from overriding */
 .account-tree-selector:focus[style] {
     outline: none !important;
 }

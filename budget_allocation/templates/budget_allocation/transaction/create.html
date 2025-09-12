@@ -211,6 +211,18 @@
                             {% endif %}
                             <div class="form-text">Briefly describe what this transaction was for</div>
                         </div>
+
+                        <!-- Merchant/Payee Selection Dropdown for General Transactions -->
+                        <div class="mb-3">
+                            <label for="{{ form.merchant_payee.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-store me-1"></i>Quick Select Merchant/Payee
+                            </label>
+                            {{ form.merchant_payee }}
+                            {% if form.merchant_payee.errors %}
+                                <div class="invalid-feedback d-block">{{ form.merchant_payee.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.merchant_payee.help_text }}</div>
+                        </div>
                     {% endif %}
 
                     <!-- Optional Details -->
@@ -227,13 +239,13 @@
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="{{ form.payee.id_for_label }}" class="form-label">
-                                                <i class="fas fa-user me-1"></i>Payee/Payer
+                                                <i class="fas fa-user me-1"></i>Payee/Payer (Manual Entry)
                                             </label>
                                             {{ form.payee }}
                                             {% if form.payee.errors %}
                                                 <div class="invalid-feedback d-block">{{ form.payee.errors.0 }}</div>
                                             {% endif %}
-                                            <div class="form-text">Who was this transaction with?</div>
+                                            <div class="form-text">Who was this transaction with? <em>This field will auto-fill when you select from the merchant/payee dropdown above.</em></div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">

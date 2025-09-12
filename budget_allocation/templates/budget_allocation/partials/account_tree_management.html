@@ -402,6 +402,34 @@ function toggleAccountStatus(accountId) {
     }
 }
 
+function deleteAccount(accountId) {
+    if (confirm('Are you sure you want to permanently delete this account? This action cannot be undone.')) {
+        // AJAX call to delete account
+        fetch(`/budget-allocation/api/account/${accountId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert(data.message);
+                // Refresh to show updated account list
+                location.reload();
+            } else {
+                alert('Error deleting account: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting account');
+        });
+    }
+}
+
 // Add keyboard and interaction support
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize all children as collapsed

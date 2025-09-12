@@ -10,6 +10,7 @@ urlpatterns = [
     
     # Account management
     path('accounts/', views.account_list, name='account_list'),
+    path('accounts/disabled/', views.disabled_accounts, name='disabled_accounts'),
     path('accounts/create/', views.account_create, name='account_create'),
     path('account/<int:account_id>/', views.account_detail, name='account_detail'),
     path('account/<int:account_id>/edit/', views.edit_account, name='edit_account'),
@@ -40,6 +41,7 @@ urlpatterns = [
     path('api/account-tree/', views.api_account_tree, name='api_account_tree'),
     path('api/account/<int:account_id>/balance/', views.account_balance_api, name='account_balance_api'),
     path('api/account/<int:account_id>/toggle-status/', views.toggle_account_status_api, name='toggle_account_status_api'),
+    path('api/account/<int:account_id>/delete/', views.delete_account_api, name='delete_account_api'),
     path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),
     path('api/week-summary/', views.week_summary_api, name='week_summary_api'),
 ]

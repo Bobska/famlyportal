@@ -12,34 +12,42 @@
 <!-- Tab Navigation -->
 <div class="card">
     <div class="card-header bg-white">
-        <ul class="nav nav-tabs card-header-tabs" id="accountTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active d-flex align-items-center" 
-                        id="income-tab" 
-                        data-bs-toggle="tab" 
-                        data-bs-target="#income-accounts" 
-                        type="button" 
-                        role="tab" 
-                        aria-controls="income-accounts" 
-                        aria-selected="true">
-                    <i class="fas fa-arrow-up text-success me-2"></i>
-                    <span class="fw-bold">Income Accounts</span>
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link d-flex align-items-center" 
-                        id="expense-tab" 
-                        data-bs-toggle="tab" 
-                        data-bs-target="#expense-accounts" 
-                        type="button" 
-                        role="tab" 
-                        aria-controls="expense-accounts" 
-                        aria-selected="false">
-                    <i class="fas fa-arrow-down text-danger me-2"></i>
-                    <span class="fw-bold">Expense Accounts</span>
-                </button>
-            </li>
-        </ul>
+        <div class="d-flex justify-content-between align-items-center">
+            <ul class="nav nav-tabs card-header-tabs mb-0" id="accountTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active d-flex align-items-center" 
+                            id="income-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#income-accounts" 
+                            type="button" 
+                            role="tab" 
+                            aria-controls="income-accounts" 
+                            aria-selected="true">
+                        <i class="fas fa-arrow-up text-success me-2"></i>
+                        <span class="fw-bold">Income Accounts</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link d-flex align-items-center" 
+                            id="expense-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#expense-accounts" 
+                            type="button" 
+                            role="tab" 
+                            aria-controls="expense-accounts" 
+                            aria-selected="false">
+                        <i class="fas fa-arrow-down text-danger me-2"></i>
+                        <span class="fw-bold">Expense Accounts</span>
+                    </button>
+                </li>
+            </ul>
+            <div>
+                <a href="{% url 'budget_allocation:disabled_accounts' %}" 
+                   class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-ban me-1"></i>Manage Disabled Accounts
+                </a>
+            </div>
+        </div>
     </div>
     
     <!-- Tab Content -->

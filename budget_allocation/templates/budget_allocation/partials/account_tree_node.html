@@ -84,12 +84,24 @@
                         <i class="fas fa-plus me-1"></i>Add
                     </a>
                 {% endif %}
-                <button class="btn btn-outline-{% if account.is_active %}danger{% else %}success{% endif %} btn-sm" 
-                        onclick="toggleAccountStatus('{{ account.id }}')" 
-                        title="{% if account.is_active %}Deactivate{% else %}Activate{% endif %}">
-                    <i class="fas fa-{% if account.is_active %}ban{% else %}play{% endif %} me-1"></i>
-                    {% if account.is_active %}Disable{% else %}Enable{% endif %}
-                </button>
+                {% if account.is_active %}
+                    <button class="btn btn-outline-danger btn-sm" 
+                            onclick="toggleAccountStatus('{{ account.id }}')" 
+                            title="Deactivate Account">
+                        <i class="fas fa-ban me-1"></i>Disable
+                    </button>
+                {% else %}
+                    <button class="btn btn-outline-success btn-sm" 
+                            onclick="toggleAccountStatus('{{ account.id }}')" 
+                            title="Reactivate Account">
+                        <i class="fas fa-play me-1"></i>Enable
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" 
+                            onclick="deleteAccount('{{ account.id }}')" 
+                            title="Permanently Delete Account">
+                        <i class="fas fa-trash me-1"></i>Delete
+                    </button>
+                {% endif %}
             </div>
         </div>
     </div>

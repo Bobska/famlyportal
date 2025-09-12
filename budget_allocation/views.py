@@ -240,6 +240,45 @@ def account_list(request):
 @login_required
 @family_required
 @app_permission_required('budget_allocation')
+def disabled_accounts(request):
+    """View for managing disabled accounts"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access accounts.")
+        return redirect('accounts:dashboard')
+    
+    # Get all disabled accounts for this family
+    disabled_accounts = Account.objects.filter(
+        family=family, 
+        is_active=False
+    ).exclude(
+        account_type='root'  # Exclude root accounts
+    ).select_related('parent').prefetch_related('children').annotate(
+        children_count=Count('children'),
+        transaction_count=Count('allocation_transactions')
+    ).order_by('account_type', 'name')
+    
+    # Check if accounts have transactions or other dependencies
+    for account in disabled_accounts:
+        account.has_transactions = account.allocation_transactions.exists()
+        account.has_allocations = (
+            account.allocations_from.exists() or 
+            account.allocations_to.exists()
+        )
+        account.has_children = account.children.filter(is_active=True).exists()
+        account.can_delete = not (account.has_transactions or account.has_allocations or account.has_children)
+    
+    context = {
+        'title': 'Disabled Accounts',
+        'disabled_accounts': disabled_accounts,
+        'family': family,
+    }
+    return render(request, 'budget_allocation/account/disabled_list.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
 def account_create(request):
     """Create a new account"""
     family = get_user_family(request.user)
@@ -1148,6 +1187,82 @@ def toggle_account_status_api(request, account_id):
             'success': True,
             'is_active': account.is_active,
             'message': f'Account {"activated" if account.is_active else "deactivated"} successfully'
+        })
+        
+    except Account.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Account not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def delete_account_api(request, account_id):
+    """Delete an account via AJAX with proper validation"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST method required'}, status=405)
+    
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    try:
+        account = Account.objects.get(pk=account_id, family=family)
+        
+        # Validation checks
+        if account.is_active:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Account must be disabled before it can be deleted'
+            }, status=400)
+        
+        if account.account_type == 'root':
+            return JsonResponse({
+                'success': False, 
+                'error': 'Root accounts cannot be deleted'
+            }, status=400)
+        
+        # Check for children
+        if account.children.exists():
+            return JsonResponse({
+                'success': False, 
+                'error': 'Account has child accounts. Please delete or move them first.'
+            }, status=400)
+        
+        # Check for transactions
+        if account.allocation_transactions.exists():
+            return JsonResponse({
+                'success': False, 
+                'error': 'Account has transactions. Cannot delete accounts with transaction history.'
+            }, status=400)
+        
+        # Check for allocations
+        if account.allocations_from.exists() or account.allocations_to.exists():
+            return JsonResponse({
+                'success': False, 
+                'error': 'Account has allocations. Cannot delete accounts with allocation history.'
+            }, status=400)
+        
+        # Store account info for history before deletion
+        account_name = account.name
+        account_type = account.account_type
+        
+        # Create history entry before deletion
+        AccountHistory.objects.create(
+            account=None,  # Will be null after deletion
+            family=family,
+            action='deleted',
+            old_value=account_name,
+            notes=f'Account "{account_name}" ({account_type}) deleted by {request.user.get_full_name() or request.user.username}'
+        )
+        
+        # Delete the account
+        account.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Account "{account_name}" deleted successfully'
         })
         
     except Account.DoesNotExist:

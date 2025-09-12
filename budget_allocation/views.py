@@ -190,17 +190,20 @@ def account_list(request):
     ensure_default_accounts_exist(family)
     
     # Get accounts organized by type (same as dashboard)
+    # Only get parent accounts (accounts with no parent)
     income_accounts = Account.objects.filter(
         family=family, 
         account_type='income',
-        is_active=True
-    ).select_related('parent').order_by('sort_order', 'name')
+        is_active=True,
+        parent__isnull=True  # Only parent accounts
+    ).select_related('parent').prefetch_related('children').order_by('sort_order', 'name')
     
     expense_accounts = Account.objects.filter(
         family=family, 
         account_type='expense',
-        is_active=True
-    ).select_related('parent').order_by('sort_order', 'name')
+        is_active=True,
+        parent__isnull=True  # Only parent accounts
+    ).select_related('parent').prefetch_related('children').order_by('sort_order', 'name')
     
     # Get current week and calculate overall balance (same as dashboard)
     current_week = get_current_week(family)

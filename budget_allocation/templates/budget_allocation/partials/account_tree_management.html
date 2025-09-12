@@ -1,126 +1,379 @@
 <!-- Account Tree with Management Tools -->
-<div class="list-group list-group-flush">
+<div class="list-group list-group-flush account-tree">
     {% for account in accounts %}
-        {% if account.parent is None %}
-            <!-- Parent Account -->
-            <div class="list-group-item p-0">
-                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3">
-                            {% if account.children.all %}
-                                <button class="btn btn-sm btn-link p-0 text-muted" onclick="toggleAccountChildren('{{ account.id }}')">
-                                    <i class="fas fa-chevron-down" id="chevron-{{ account.id }}"></i>
-                                </button>
-                            {% else %}
-                                <span class="text-muted ms-2">
-                                    <i class="fas fa-circle fa-xs"></i>
-                                </span>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <h6 class="mb-1">
-                                <a href="{% url 'budget_allocation:account_detail' account.id %}" class="text-decoration-none">
-                                    {{ account.name }}
-                                </a>
-                            </h6>
-                            {% if account.description %}
-                                <small class="text-muted">{{ account.description }}</small>
-                            {% endif %}
-                        </div>
+        <!-- Parent Account -->
+        <div class="list-group-item p-0 account-tree-item" data-account-id="{{ account.id }}">
+            <div class="account-tree-row d-flex justify-content-between align-items-center p-3 border-bottom" 
+                 data-account-id="{{ account.id }}" 
+                 {% if account.children.all %}data-has-children="true"{% endif %}
+                 onclick="toggleAccountRow(event, '{{ account.id }}')">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <div class="account-tree-toggle me-3">
+                        {% if account.children.all %}
+                            <i class="fas fa-chevron-down account-chevron" id="chevron-{{ account.id }}"></i>
+                        {% else %}
+                            <i class="fas fa-circle fa-xs text-muted"></i>
+                        {% endif %}
                     </div>
-                    <div class="text-end">
-                        <div class="mb-1">
-                            <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
-                                ${{ account.current_balance|floatformat:2 }}
-                            </span>
-                            {% if not account.is_active %}
-                                <span class="badge bg-secondary ms-1">Inactive</span>
-                            {% endif %}
-                        </div>
-                        <div class="btn-group">
-                            <a href="{% url 'budget_allocation:account_detail' account.id %}" class="btn btn-outline-primary btn-sm" title="View Details">
-                                <i class="fas fa-eye me-1"></i>View
+                    <div class="account-info">
+                        <h6 class="mb-1 account-name">
+                            <a href="{% url 'budget_allocation:account_detail' account.id %}" 
+                               class="text-decoration-none account-link"
+                               onclick="event.stopPropagation()">
+                                {{ account.name }}
                             </a>
-                            <a href="{% url 'budget_allocation:edit_account' account.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Account">
-                                <i class="fas fa-edit me-1"></i>Edit
-                            </a>
-                            {% if account.can_have_children %}
-                                <a href="{% url 'budget_allocation:add_child_account' account.id %}" class="btn btn-outline-info btn-sm" title="Add Child Account">
-                                    <i class="fas fa-plus me-1"></i>Add
-                                </a>
-                            {% endif %}
-                            <button class="btn btn-outline-danger btn-sm" onclick="toggleAccountStatus('{{ account.id }}')" title="{% if account.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %} me-1"></i>{% if account.is_active %}Deactivate{% else %}Activate{% endif %}
-                            </button>
-                        </div>
+                        </h6>
+                        {% if account.description %}
+                            <small class="text-muted account-description">{{ account.description }}</small>
+                        {% endif %}
                     </div>
                 </div>
+                <div class="account-actions d-flex align-items-center" onclick="event.stopPropagation()">
+                    <div class="account-balance me-3">
+                        <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
+                            ${{ account.current_balance|floatformat:2 }}
+                        </span>
+                        {% if not account.is_active %}
+                            <span class="badge bg-secondary ms-1">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'budget_allocation:account_detail' account.id %}" 
+                           class="btn btn-outline-primary btn-sm" 
+                           title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'budget_allocation:edit_account' account.id %}" 
+                           class="btn btn-outline-secondary btn-sm" 
+                           title="Edit Account">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% if account.can_have_children %}
+                            <a href="{% url 'budget_allocation:add_child_account' account.id %}" 
+                               class="btn btn-outline-info btn-sm" 
+                               title="Add Child Account">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                        {% endif %}
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="toggleAccountStatus('{{ account.id }}')" 
+                                title="{% if account.is_active %}Deactivate{% else %}Activate{% endif %}">
+                            <i class="fas fa-{% if account.is_active %}pause{% else %}play{% endif %}"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Child Accounts -->
-                {% if account.children.all %}
-                    <div id="children-{{ account.id }}" class="collapse show">
-                        {% for child in account.children.all %}
-                            <div class="list-group-item px-5 py-2 bg-light">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center">
-                                        <span class="text-muted me-3">
-                                            <i class="fas fa-level-up-alt fa-rotate-90"></i>
-                                        </span>
-                                        <div>
-                                            <h6 class="mb-1">
-                                                <a href="{% url 'budget_allocation:account_detail' child.id %}" class="text-decoration-none">
-                                                    {{ child.name }}
-                                                </a>
-                                            </h6>
-                                            {% if child.description %}
-                                                <small class="text-muted">{{ child.description }}</small>
-                                            {% endif %}
-                                        </div>
+            <!-- Child Accounts -->
+            {% if account.children.all %}
+                <div id="children-{{ account.id }}" class="account-children">
+                    {% for child in account.children.all %}
+                        {% if child.is_active %}
+                        <div class="list-group-item account-tree-child" data-child-of="{{ account.id }}">
+                            <div class="account-tree-row child-row d-flex justify-content-between align-items-center px-5 py-2 bg-light"
+                                 data-account-id="{{ child.id }}"
+                                 {% if child.children.all %}data-has-children="true"{% endif %}
+                                 onclick="toggleAccountRow(event, '{{ child.id }}')">
+                                <div class="d-flex align-items-center flex-grow-1">
+                                    <div class="account-tree-connector me-3">
+                                        {% if child.children.all %}
+                                            <i class="fas fa-chevron-down account-chevron" id="chevron-{{ child.id }}"></i>
+                                        {% else %}
+                                            <i class="fas fa-level-up-alt fa-rotate-90 text-muted"></i>
+                                        {% endif %}
                                     </div>
-                                    <div class="text-end">
-                                        <div class="mb-1">
-                                            <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
-                                                ${{ child.current_balance|floatformat:2 }}
-                                            </span>
-                                            {% if not child.is_active %}
-                                                <span class="badge bg-secondary ms-1">Inactive</span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="btn-group">
-                                            <a href="{% url 'budget_allocation:account_detail' child.id %}" class="btn btn-outline-primary btn-sm" title="View Details">
-                                                <i class="fas fa-eye me-1"></i>View
+                                    <div class="account-info">
+                                        <h6 class="mb-1 account-name">
+                                            <a href="{% url 'budget_allocation:account_detail' child.id %}" 
+                                               class="text-decoration-none account-link"
+                                               onclick="event.stopPropagation()">
+                                                {{ child.name }}
                                             </a>
-                                            <a href="{% url 'budget_allocation:edit_account' child.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Account">
-                                                <i class="fas fa-edit me-1"></i>Edit
+                                        </h6>
+                                        {% if child.description %}
+                                            <small class="text-muted account-description">{{ child.description }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="account-actions d-flex align-items-center" onclick="event.stopPropagation()">
+                                    <div class="account-balance me-3">
+                                        <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
+                                            ${{ child.current_balance|floatformat:2 }}
+                                        </span>
+                                        {% if not child.is_active %}
+                                            <span class="badge bg-secondary ms-1">Inactive</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'budget_allocation:account_detail' child.id %}" 
+                                           class="btn btn-outline-primary btn-sm" 
+                                           title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'budget_allocation:edit_account' child.id %}" 
+                                           class="btn btn-outline-secondary btn-sm" 
+                                           title="Edit Account">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if child.can_have_children %}
+                                            <a href="{% url 'budget_allocation:add_child_account' child.id %}" 
+                                               class="btn btn-outline-info btn-sm" 
+                                               title="Add Child Account">
+                                                <i class="fas fa-plus"></i>
                                             </a>
-                                            <button class="btn btn-outline-danger btn-sm" onclick="toggleAccountStatus('{{ child.id }}')" title="{% if child.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                                <i class="fas fa-{% if child.is_active %}pause{% else %}play{% endif %} me-1"></i>{% if child.is_active %}Deactivate{% else %}Activate{% endif %}
-                                            </button>
-                                        </div>
+                                        {% endif %}
+                                        <button class="btn btn-outline-danger btn-sm" 
+                                                onclick="toggleAccountStatus('{{ child.id }}')" 
+                                                title="{% if child.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                            <i class="fas fa-{% if child.is_active %}pause{% else %}play{% endif %}"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
+                            
+                            <!-- Grandchildren (nested children) -->
+                            {% if child.children.all %}
+                                <div id="children-{{ child.id }}" class="account-children">
+                                    {% for grandchild in child.children.all %}
+                                        {% if grandchild.is_active %}
+                                        <div class="list-group-item account-tree-grandchild" data-child-of="{{ child.id }}">
+                                            <div class="account-tree-row grandchild-row d-flex justify-content-between align-items-center px-6 py-2 bg-light"
+                                                 style="padding-left: 4.5rem !important;"
+                                                 onclick="event.stopPropagation()">
+                                                <div class="d-flex align-items-center flex-grow-1">
+                                                    <div class="account-tree-connector me-3">
+                                                        <i class="fas fa-corner-down-right text-muted"></i>
+                                                    </div>
+                                                    <div class="account-info">
+                                                        <h6 class="mb-1 account-name">
+                                                            <a href="{% url 'budget_allocation:account_detail' grandchild.id %}" 
+                                                               class="text-decoration-none account-link"
+                                                               onclick="event.stopPropagation()">
+                                                                {{ grandchild.name }}
+                                                            </a>
+                                                        </h6>
+                                                        {% if grandchild.description %}
+                                                            <small class="text-muted account-description">{{ grandchild.description }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="account-actions d-flex align-items-center" onclick="event.stopPropagation()">
+                                                    <div class="account-balance me-3">
+                                                        <span class="badge bg-{% if account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account_type == 'income' %}success{% else %}danger{% endif %}">
+                                                            ${{ grandchild.current_balance|floatformat:2 }}
+                                                        </span>
+                                                        {% if not grandchild.is_active %}
+                                                            <span class="badge bg-secondary ms-1">Inactive</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{% url 'budget_allocation:account_detail' grandchild.id %}" 
+                                                           class="btn btn-outline-primary btn-sm" 
+                                                           title="View Details">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{% url 'budget_allocation:edit_account' grandchild.id %}" 
+                                                           class="btn btn-outline-secondary btn-sm" 
+                                                           title="Edit Account">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button class="btn btn-outline-danger btn-sm" 
+                                                                onclick="toggleAccountStatus('{{ grandchild.id }}')" 
+                                                                title="{% if grandchild.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                                            <i class="fas fa-{% if grandchild.is_active %}pause{% else %}play{% endif %}"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
     {% endfor %}
 </div>
 
+<!-- Add CSS for account tree styling -->
+<style>
+.account-tree {
+    --tree-line-color: #dee2e6;
+    --tree-hover-bg: #f8f9fa;
+    --tree-active-bg: #e9ecef;
+}
+
+.account-tree-row {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+.account-tree-row:hover {
+    background-color: var(--tree-hover-bg) !important;
+    transform: translateX(2px);
+}
+
+.account-tree-row[data-has-children="true"]:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.account-tree-toggle {
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.account-chevron {
+    transition: transform 0.3s ease;
+    color: #6c757d;
+}
+
+.account-chevron.collapsed {
+    transform: rotate(-90deg);
+}
+
+.account-children {
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    max-height: 1000px;
+    opacity: 1;
+}
+
+.account-children.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+}
+
+.account-tree-child {
+    border-left: 2px solid var(--tree-line-color);
+    margin-left: 10px;
+    transition: all 0.2s ease;
+}
+
+.account-tree-grandchild {
+    border-left: 2px solid var(--tree-line-color);
+    margin-left: 20px;
+    transition: all 0.2s ease;
+}
+
+.child-row {
+    position: relative;
+    padding-left: 3rem !important;
+}
+
+.child-row:hover {
+    background-color: #f1f3f4 !important;
+}
+
+.grandchild-row {
+    position: relative;
+    background-color: #f8f9fa !important;
+}
+
+.grandchild-row:hover {
+    background-color: #e9ecef !important;
+}
+
+.account-tree-connector {
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.account-info {
+    flex-grow: 1;
+}
+
+.account-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.account-link {
+    color: inherit !important;
+}
+
+.account-link:hover {
+    color: #0d6efd !important;
+    text-decoration: underline !important;
+}
+
+.account-balance .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+}
+
+.account-actions {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.account-tree-row:hover .account-actions {
+    opacity: 1;
+}
+
+.account-tree-item {
+    border: none !important;
+    margin-bottom: 4px;
+}
+
+.account-tree-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .account-actions .btn-group {
+        flex-direction: column;
+    }
+    
+    .account-balance {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .child-row {
+        padding-left: 2rem !important;
+    }
+}
+</style>
+
 <script>
+// Enhanced tree functionality
+function toggleAccountRow(event, accountId) {
+    // Prevent default behavior
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Only toggle if the account has children
+    const accountRow = event.currentTarget;
+    if (accountRow.dataset.hasChildren === 'true') {
+        toggleAccountChildren(accountId);
+    }
+}
+
 function toggleAccountChildren(accountId) {
     const childrenContainer = document.getElementById('children-' + accountId);
     const chevron = document.getElementById('chevron-' + accountId);
     
-    if (childrenContainer.classList.contains('show')) {
-        childrenContainer.classList.remove('show');
-        chevron.classList.remove('fa-chevron-down');
-        chevron.classList.add('fa-chevron-right');
+    if (!childrenContainer || !chevron) return;
+    
+    if (childrenContainer.classList.contains('collapsed')) {
+        // Expand
+        childrenContainer.classList.remove('collapsed');
+        chevron.classList.remove('collapsed');
     } else {
-        childrenContainer.classList.add('show');
-        chevron.classList.remove('fa-chevron-right');
-        chevron.classList.add('fa-chevron-down');
+        // Collapse
+        childrenContainer.classList.add('collapsed');
+        chevron.classList.add('collapsed');
     }
 }
 
@@ -148,4 +401,31 @@ function toggleAccountStatus(accountId) {
         });
     }
 }
+
+// Add keyboard support
+document.addEventListener('DOMContentLoaded', function() {
+    // Add keyboard navigation support
+    document.querySelectorAll('.account-tree-row[data-has-children="true"]').forEach(row => {
+        row.setAttribute('tabindex', '0');
+        row.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                const accountId = this.dataset.accountId;
+                toggleAccountChildren(accountId);
+            }
+        });
+    });
+    
+    // Add visual feedback for focus
+    document.querySelectorAll('.account-tree-row').forEach(row => {
+        row.addEventListener('focus', function() {
+            this.style.outline = '2px solid #0d6efd';
+            this.style.outlineOffset = '2px';
+        });
+        
+        row.addEventListener('blur', function() {
+            this.style.outline = 'none';
+        });
+    });
+});
 </script>

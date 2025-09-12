@@ -685,6 +685,39 @@ def transaction_list(request):
         is_active=True
     ).order_by('name')
     
+    # Get parent accounts for new account creation (income and expense root accounts)
+    parent_income_accounts = Account.objects.filter(
+        family=family,
+        account_type='income',
+        parent__isnull=True,  # Root income accounts
+        is_active=True
+    ).order_by('name')
+    
+    parent_expense_accounts = Account.objects.filter(
+        family=family,
+        account_type='expense',
+        parent__isnull=True,  # Root expense accounts
+        is_active=True
+    ).order_by('name')
+    
+    # Get complete account tree for hierarchical parent selection
+    account_tree = get_account_tree(family)
+    
+    # Serialize account tree for JavaScript
+    import json
+    def serialize_tree(tree_node):
+        if isinstance(tree_node, list):
+            return [serialize_tree(node) for node in tree_node]
+        return {
+            'id': tree_node['account'].id,
+            'name': tree_node['account'].name,
+            'account_type': tree_node['account'].account_type,
+            'level': tree_node['level'],
+            'children': serialize_tree(tree_node['children']) if tree_node['children'] else []
+        }
+    
+    account_tree_json = json.dumps(serialize_tree(account_tree))
+    
     # Calculate transaction summary for sidebar
     from django.db.models import Sum
     transaction_summary = {
@@ -700,6 +733,10 @@ def transaction_list(request):
         'transactions': page_obj,
         'accounts': accounts,
         'merchant_accounts': merchant_accounts,
+        'parent_income_accounts': parent_income_accounts,
+        'parent_expense_accounts': parent_expense_accounts,
+        'account_tree': account_tree,
+        'account_tree_json': account_tree_json,
         'transaction_summary': transaction_summary,
         'family': family,
         'filters': {
@@ -1149,3 +1186,81 @@ def week_summary_api(request):
         'formatted_expenses': f"${total_expenses:,.2f}",
         'formatted_available': f"${available_money:,.2f}"
     })
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def create_account_ajax(request):
+    """Create a new account via AJAX for use in transaction modal"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    try:
+        # Get form data
+        name = request.POST.get('name', '').strip()
+        account_type = request.POST.get('account_type', '').strip()
+        description = request.POST.get('description', '').strip()
+        parent_id = request.POST.get('parent', '').strip()
+        
+        # Validate required fields
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Account name is required'}, status=400)
+        
+        if not account_type or account_type not in ['income', 'expense']:
+            return JsonResponse({'success': False, 'error': 'Valid account type is required'}, status=400)
+            
+        if not parent_id:
+            return JsonResponse({'success': False, 'error': 'Parent account is required'}, status=400)
+        
+        # Validate parent account exists and belongs to user's family
+        try:
+            parent_account = Account.objects.get(id=parent_id, family=family)
+            # Allow any account of the same type as parent (more flexible than just matching type)
+            # This allows creating child accounts under any account, not just root accounts
+            if parent_account.account_type != account_type:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Parent account must be of type {account_type}'
+                }, status=400)
+        except Account.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Invalid parent account'}, status=400)
+        
+        # Check if account with this name already exists under this parent
+        if Account.objects.filter(family=family, name=name, parent=parent_account).exists():
+            return JsonResponse({
+                'success': False, 
+                'error': f'An account with this name already exists under {parent_account.name}'
+            }, status=400)
+        
+        # Create the new account
+        with transaction.atomic():
+            new_account = Account.objects.create(
+                family=family,
+                name=name,
+                account_type=account_type,
+                parent=parent_account,
+                description=description,
+                balance=0,  # New accounts start with 0 balance
+                is_active=True,
+                is_merchant_payee=True  # Mark as merchant/payee since it's created for transactions
+            )
+            
+            # Return success with account data
+            return JsonResponse({
+                'success': True,
+                'account': {
+                    'id': new_account.id,
+                    'name': new_account.name,
+                    'account_type': new_account.account_type,
+                    'description': new_account.description
+                },
+                'message': f'{account_type.title()} account "{name}" created successfully'
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error creating account: {str(e)}'}, status=500)

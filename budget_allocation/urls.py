@@ -36,6 +36,7 @@ urlpatterns = [
     
     # API Endpoints
     path('api/accounts/', views.accounts_api, name='accounts_api'),
+    path('api/accounts/create/', views.create_account_ajax, name='create_account_ajax'),
     path('api/account/<int:account_id>/balance/', views.account_balance_api, name='account_balance_api'),
     path('api/account/<int:account_id>/toggle-status/', views.toggle_account_status_api, name='toggle_account_status_api'),
     path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),

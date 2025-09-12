@@ -1,6 +1,39 @@
 {% extends 'budget_allocation/base_with_sidebar.html' %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+.account-tree-item.selectable:hover {
+    background-color: #f8f9fa !important;
+    cursor: pointer;
+}
+
+.account-tree-item.non-selectable {
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+.account-tree-item.selectable {
+    border-radius: 4px;
+    padding: 2px 4px;
+    transition: background-color 0.2s;
+}
+
+.tree-toggle:hover {
+    color: #0d6efd;
+}
+
+.account-name {
+    font-weight: 500;
+}
+
+.account-tree-children {
+    border-left: 1px dashed #dee2e6;
+    margin-left: 10px;
+}
+</style>
+{% endblock %}
+
 {% block page_title %}Transactions{% endblock %}
 
 {% block breadcrumb_items %}
@@ -260,6 +293,12 @@
                                 <select class="form-select" id="modalMerchantPayee" name="merchant_payee" required disabled>
                                     <option value="">First select a transaction type...</option>
                                 </select>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="createNewAccountBtn" 
+                                            style="display: none;" data-bs-toggle="modal" data-bs-target="#createAccountModal">
+                                        <i class="fas fa-plus me-1"></i>Create New <span id="createNewAccountType">Account</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -327,6 +366,72 @@
         </div>
     </div>
 </div>
+
+<!-- Create New Account Modal -->
+<div class="modal fade" id="createAccountModal" tabindex="-1" aria-labelledby="createAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createAccountModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Create New <span id="newAccountTypeLabel">Account</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createAccountForm">
+                    {% csrf_token %}
+                    
+                    <!-- Messages for account creation -->
+                    <div id="createAccountMessages" class="d-none"></div>
+                    
+                    <!-- Account Name -->
+                    <div class="mb-3">
+                        <label for="newAccountName" class="form-label fw-bold">
+                            <i class="fas fa-tag me-1"></i><span id="newAccountNameLabel">Account Name</span> *
+                        </label>
+                        <input type="text" class="form-control" id="newAccountName" name="name" required
+                               placeholder="Enter account name...">
+                    </div>
+                    
+                    <!-- Parent Account Selection -->
+                    <div class="mb-3">
+                        <label for="newAccountParent" class="form-label fw-bold">
+                            <i class="fas fa-sitemap me-1"></i>Parent <span id="parentAccountTypeLabel">Account</span> *
+                        </label>
+                        <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa;">
+                            <div class="form-text mb-2">Select the account to add this new item under:</div>
+                            <div id="accountTreeSelector">
+                                <!-- Account tree will be populated here -->
+                            </div>
+                        </div>
+                        <input type="hidden" id="newAccountParent" name="parent" value="" required>
+                        <div class="mt-1">
+                            <small class="text-muted">Selected: <span id="selectedParentName" class="fw-bold">None</span></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Type (hidden - auto-set based on transaction type) -->
+                    <input type="hidden" id="newAccountType" name="account_type" value="">
+                    
+                    <!-- Optional Description -->
+                    <div class="mb-3">
+                        <label for="newAccountDescription" class="form-label text-muted">
+                            <i class="fas fa-info-circle me-1"></i>Description (Optional)
+                        </label>
+                        <textarea class="form-control" id="newAccountDescription" name="description" rows="2"
+                                  placeholder="Brief description of this account..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelCreateAccountBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNewAccountBtn">
+                    <i class="fas fa-save me-1"></i>Create <span id="saveAccountTypeLabel">Account</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block sidebar_extra %}
@@ -376,7 +481,173 @@ const merchantAccounts = [
     {% endfor %}
 ];
 
+// Parent accounts data for new account creation
+const parentIncomeAccounts = [
+    {% for account in parent_income_accounts %}
+    {
+        id: {{ account.id }},
+        name: "{{ account.name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+const parentExpenseAccounts = [
+    {% for account in parent_expense_accounts %}
+    {
+        id: {{ account.id }},
+        name: "{{ account.name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Complete account tree for hierarchical parent selection
+const accountTree = {{ account_tree_json|safe }};
+
+// Helper function to filter account tree by type
+function filterAccountTreeByType(tree, accountType) {
+    console.log(`Filtering tree for account type: ${accountType}`);
+    console.log('Original tree:', tree);
+    
+    let result = [];
+    
+    tree.forEach(node => {
+        // Recursively filter children first
+        const filteredChildren = filterAccountTreeByType(node.children, accountType);
+        
+        // If this is a root account of the matching type, return its children directly
+        // (don't include the root account itself, just flatten its children)
+        if (node.account_type === accountType && node.level === 0) {
+            console.log(`Found root account ${node.name} of type ${accountType}, returning its children`);
+            result = result.concat(filteredChildren);
+        }
+        // If this node matches the type and is not a root account, include it
+        else if (node.account_type === accountType) {
+            console.log(`Including matching child account: ${node.name}`);
+            result.push({
+                ...node,
+                children: filteredChildren
+            });
+        }
+        // If this node has matching children but doesn't match itself, include it as a parent
+        else if (filteredChildren.length > 0) {
+            console.log(`Including parent account ${node.name} because it has matching children`);
+            result.push({
+                ...node,
+                children: filteredChildren
+            });
+        }
+    });
+    
+    console.log('Filtered result:', result);
+    return result;
+}
+
+// Function to render account tree with expand/collapse functionality
+function renderAccountTree(tree, container, level = 0) {
+    tree.forEach(node => {
+        const nodeElement = document.createElement('div');
+        nodeElement.className = 'account-tree-node';
+        nodeElement.style.marginLeft = (level * 20) + 'px';
+        
+        const hasChildren = node.children && node.children.length > 0;
+        const selectedType = document.getElementById('newAccountType').value;
+        const canSelect = node.account_type === selectedType;
+        
+        // Log for debugging
+        console.log(`Rendering node: ${node.name}, type: ${node.account_type}, level: ${level}, canSelect: ${canSelect}, hasChildren: ${hasChildren}`);
+        
+        // All accounts at level 0 in our filtered tree should be expanded by default
+        // since they are the first level under the root category
+        const shouldAutoExpand = level === 0 && hasChildren;
+        
+        // Icon based on account type
+        let accountIcon = '';
+        if (node.account_type === 'income') {
+            accountIcon = hasChildren ? 
+                '<i class="fas fa-folder-open text-success me-2"></i>' : 
+                '<i class="fas fa-plus-circle text-success me-2"></i>';
+        } else if (node.account_type === 'expense') {
+            accountIcon = hasChildren ? 
+                '<i class="fas fa-folder-open text-danger me-2"></i>' : 
+                '<i class="fas fa-minus-circle text-danger me-2"></i>';
+        } else {
+            accountIcon = hasChildren ? 
+                '<i class="fas fa-folder text-primary me-2"></i>' : 
+                '<i class="fas fa-circle text-secondary me-2"></i>';
+        }
+        
+        nodeElement.innerHTML = `
+            <div class="d-flex align-items-center py-1 account-tree-item ${canSelect ? 'selectable' : 'non-selectable'}" 
+                 data-account-id="${node.id}" data-account-name="${node.name}" data-can-select="${canSelect}">
+                ${hasChildren ? 
+                    `<i class="fas fa-chevron-${shouldAutoExpand ? 'down' : 'right'} me-2 tree-toggle" style="cursor: pointer; font-size: 0.8em;"></i>` : 
+                    '<span class="me-2" style="width: 14px; display: inline-block;"></span>'
+                }
+                ${accountIcon}
+                <span class="account-name" style="cursor: ${canSelect ? 'pointer' : 'default'};">${node.name}</span>
+                ${canSelect ? '<i class="fas fa-check-circle ms-auto text-primary" style="display: none;"></i>' : ''}
+            </div>
+        `;
+        
+        // Add children container
+        if (hasChildren) {
+            const childContainer = document.createElement('div');
+            childContainer.className = 'account-tree-children';
+            // Auto-expand level 0 accounts (first level under the hidden root)
+            childContainer.style.display = shouldAutoExpand ? 'block' : 'none';
+            renderAccountTree(node.children, childContainer, level + 1);
+            nodeElement.appendChild(childContainer);
+        }
+        
+        container.appendChild(nodeElement);
+    });
+}
+
+// Function to handle account selection in tree
+function setupAccountTreeEvents() {
+    document.addEventListener('click', function(e) {
+        // Handle tree toggle
+        if (e.target.classList.contains('tree-toggle')) {
+            const childContainer = e.target.closest('.account-tree-node').querySelector('.account-tree-children');
+            if (childContainer) {
+                const isExpanded = childContainer.style.display !== 'none';
+                childContainer.style.display = isExpanded ? 'none' : 'block';
+                e.target.className = isExpanded ? 'fas fa-chevron-right me-2 tree-toggle' : 'fas fa-chevron-down me-2 tree-toggle';
+            }
+        }
+        
+        // Handle account selection
+        if (e.target.closest('.account-tree-item.selectable')) {
+            const item = e.target.closest('.account-tree-item');
+            const accountId = item.getAttribute('data-account-id');
+            const accountName = item.getAttribute('data-account-name');
+            
+            // Clear previous selections
+            document.querySelectorAll('.account-tree-item .fa-check-circle').forEach(icon => {
+                icon.style.display = 'none';
+            });
+            document.querySelectorAll('.account-tree-item').forEach(item => {
+                item.style.backgroundColor = '';
+            });
+            
+            // Mark as selected
+            item.style.backgroundColor = '#e8f5e8';
+            const checkIcon = item.querySelector('.fa-check-circle');
+            if (checkIcon) {
+                checkIcon.style.display = 'inline';
+            }
+            
+            // Update hidden input and display
+            document.getElementById('newAccountParent').value = accountId;
+            document.getElementById('selectedParentName').textContent = accountName;
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Setup account tree events
+    setupAccountTreeEvents();
+    
     // Get all form fields
     const typeField = document.getElementById('modalTransactionType');
     const merchantPayeeField = document.getElementById('modalMerchantPayee');
@@ -419,25 +690,70 @@ document.addEventListener('DOMContentLoaded', function() {
         typeField.addEventListener('change', function() {
             const selectedType = this.value;
             const icon = this.closest('.mb-3').querySelector('.form-label i');
+            const createNewBtn = document.getElementById('createNewAccountBtn');
+            const createNewTypeSpan = document.getElementById('createNewAccountType');
             
             // Update icon based on transaction type
             if (selectedType === 'income') {
                 icon.className = 'fas fa-plus-circle me-1 text-success';
                 merchantPayeeLabel.textContent = 'Payee';
+                createNewTypeSpan.textContent = 'Payee';
             } else if (selectedType === 'expense') {
                 icon.className = 'fas fa-minus-circle me-1 text-danger';
                 merchantPayeeLabel.textContent = 'Merchant';
+                createNewTypeSpan.textContent = 'Merchant';
             } else {
                 icon.className = 'fas fa-exchange-alt me-1';
                 merchantPayeeLabel.textContent = 'Merchant/Payee';
+                createNewTypeSpan.textContent = 'Account';
             }
             
             // Filter and populate merchant/payee dropdown based on transaction type
             merchantPayeeField.innerHTML = '<option value="">Choose ' + merchantPayeeLabel.textContent.toLowerCase() + '...</option>';
             
             if (selectedType) {
-                // Enable the field
+                // Enable the field and show create button
                 merchantPayeeField.disabled = false;
+                createNewBtn.style.display = 'inline-block';
+                
+                // Set account type for new account creation
+                document.getElementById('newAccountType').value = selectedType;
+                
+                // Populate account tree based on transaction type
+                const accountTreeSelector = document.getElementById('accountTreeSelector');
+                accountTreeSelector.innerHTML = '';
+                
+                // Debug: Log the original tree
+                console.log('Original account tree:', accountTree);
+                console.log('Selected type:', selectedType);
+                
+                // Filter accounts by type and render tree
+                const filteredTree = filterAccountTreeByType(accountTree, selectedType);
+                console.log('Filtered tree:', filteredTree);
+                
+                renderAccountTree(filteredTree, accountTreeSelector);
+                
+                // Reset selection
+                document.getElementById('newAccountParent').value = '';
+                document.getElementById('selectedParentName').textContent = 'None';
+                
+                // Update new account modal labels
+                const newAccountTypeLabel = document.getElementById('newAccountTypeLabel');
+                const newAccountNameLabel = document.getElementById('newAccountNameLabel');
+                const saveAccountTypeLabel = document.getElementById('saveAccountTypeLabel');
+                const parentAccountTypeLabel = document.getElementById('parentAccountTypeLabel');
+                
+                if (selectedType === 'income') {
+                    newAccountTypeLabel.textContent = 'Payee';
+                    newAccountNameLabel.textContent = 'Payee Name';
+                    saveAccountTypeLabel.textContent = 'Payee';
+                    parentAccountTypeLabel.textContent = 'Income Account';
+                } else {
+                    newAccountTypeLabel.textContent = 'Merchant';
+                    newAccountNameLabel.textContent = 'Merchant Name';
+                    saveAccountTypeLabel.textContent = 'Merchant';
+                    parentAccountTypeLabel.textContent = 'Expense Account';
+                }
                 
                 // Filter merchants based on transaction type
                 const filteredMerchants = merchantAccounts.filter(merchant => {
@@ -468,9 +784,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     merchantPayeeField.appendChild(option);
                 }
             } else {
-                // Disable the field if no transaction type selected
+                // Disable the field and hide create button if no transaction type selected
                 merchantPayeeField.disabled = true;
                 merchantPayeeField.innerHTML = '<option value="">First select a transaction type...</option>';
+                createNewBtn.style.display = 'none';
             }
         });
     }
@@ -578,7 +895,149 @@ document.addEventListener('DOMContentLoaded', function() {
                 const messagesDiv = document.getElementById('modalMessages');
                 messagesDiv.innerHTML = '';
                 messagesDiv.classList.add('d-none');
+                
+                // Hide create new button and reset account type
+                const createNewBtn = document.getElementById('createNewAccountBtn');
+                if (createNewBtn) {
+                    createNewBtn.style.display = 'none';
+                }
             }
+        });
+    }
+    
+    // Handle new account creation via AJAX
+    const saveNewAccountBtn = document.getElementById('saveNewAccountBtn');
+    const createAccountForm = document.getElementById('createAccountForm');
+    
+    if (saveNewAccountBtn && createAccountForm) {
+        saveNewAccountBtn.addEventListener('click', function() {
+            const formData = new FormData(createAccountForm);
+            const originalText = this.innerHTML;
+            
+            // Show loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+            this.disabled = true;
+            
+            // Clear previous messages
+            const messagesDiv = document.getElementById('createAccountMessages');
+            messagesDiv.innerHTML = '';
+            messagesDiv.classList.add('d-none');
+            
+            fetch("{% url 'budget_allocation:create_account_ajax' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new account to merchant accounts array
+                    merchantAccounts.push({
+                        id: data.account.id,
+                        name: data.account.name,
+                        account_type: data.account.account_type
+                    });
+                    
+                    // Add new option to merchant/payee dropdown
+                    const newOption = document.createElement('option');
+                    newOption.value = data.account.id;
+                    newOption.textContent = data.account.name;
+                    merchantPayeeField.appendChild(newOption);
+                    
+                    // Auto-select the new account
+                    merchantPayeeField.value = data.account.id;
+                    
+                    // Trigger visual feedback
+                    merchantPayeeField.style.backgroundColor = '#e8f5e8';
+                    setTimeout(() => {
+                        merchantPayeeField.style.backgroundColor = '';
+                    }, 1500);
+                    
+                    // Close the create account modal
+                    const createAccountModal = bootstrap.Modal.getInstance(document.getElementById('createAccountModal'));
+                    createAccountModal.hide();
+                    
+                    // Show transaction modal after brief delay
+                    setTimeout(() => {
+                        const transactionModal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+                        transactionModal.show();
+                    }, 300);
+                    
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    alert.style.top = '20px';
+                    alert.style.right = '20px';
+                    alert.style.zIndex = '9999';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alert);
+                    
+                    // Auto-dismiss after 3 seconds
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 3000);
+                    
+                } else {
+                    // Show error message
+                    messagesDiv.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${data.error}
+                        </div>
+                    `;
+                    messagesDiv.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messagesDiv.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        An error occurred while creating the account. Please try again.
+                    </div>
+                `;
+                messagesDiv.classList.remove('d-none');
+            })
+            .finally(() => {
+                // Reset button state
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+        });
+    }
+    
+    // Reset create account form when modal is closed
+    const createAccountModal = document.getElementById('createAccountModal');
+    const cancelCreateAccountBtn = document.getElementById('cancelCreateAccountBtn');
+    
+    // Handle cancel button - return to transaction modal
+    if (cancelCreateAccountBtn) {
+        cancelCreateAccountBtn.addEventListener('click', function() {
+            // Close create account modal
+            const createModal = bootstrap.Modal.getInstance(createAccountModal);
+            createModal.hide();
+            
+            // Show transaction modal after a brief delay
+            setTimeout(() => {
+                const transactionModal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+                transactionModal.show();
+            }, 300);
+        });
+    }
+    
+    if (createAccountModal) {
+        createAccountModal.addEventListener('hidden.bs.modal', function() {
+            createAccountForm.reset();
+            const messagesDiv = document.getElementById('createAccountMessages');
+            messagesDiv.innerHTML = '';
+            messagesDiv.classList.add('d-none');
         });
     }
 });

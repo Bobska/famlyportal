@@ -1245,7 +1245,6 @@ def create_account_ajax(request):
                 account_type=account_type,
                 parent=parent_account,
                 description=description,
-                balance=0,  # New accounts start with 0 balance
                 is_active=True,
                 is_merchant_payee=True  # Mark as merchant/payee since it's created for transactions
             )

@@ -3,6 +3,8 @@
 
 {% block page_title %}Account Management{% endblock %}
 
+{% block breadcrumb_items %}{% endblock %}
+
 {% block page_content %}
 <!-- Week Selector -->
 {% include 'budget_allocation/partials/week_selector.html' %}
@@ -122,7 +124,7 @@
 
 <!-- Quick Create Account Modal -->
 <div class="modal fade" id="createAccountModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create New Account</h5>
@@ -137,11 +139,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Parent Account</label>
-                        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        <div class="border rounded p-3">
                             <div class="mb-2">
                                 <small class="text-muted">Select which account this new account should be created under:</small>
                             </div>
-                            <div id="accountHierarchyTree">
+                            <div id="accountHierarchyTree" class="account-tree-container">
                                 <!-- Account tree will be populated here -->
                             </div>
                         </div>
@@ -489,12 +491,38 @@ document.addEventListener('DOMContentLoaded', function() {
     border-top: 1px solid #dee2e6;
 }
 
+/* Account tree container - base styles */
 .account-tree-container {
-    max-height: 600px;
-    overflow-y: auto;
     border: 1px solid #e9ecef;
     border-radius: 0.375rem;
     background-color: #fff;
+}
+
+/* For tab content (main account pages) */
+.tab-pane .account-tree-container {
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+}
+
+/* For modal - increased height */
+.modal .account-tree-container {
+    max-height: 450px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+}
+
+/* Ensure modal body doesn't add another scrollbar */
+#createAccountModal .modal-body {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Remove any conflicting styles from the tree management partial */
+.modal .account-tree-container > div[style*="padding"] {
+    padding: 0 !important;
 }
 
 /* Smooth transitions for tab content */

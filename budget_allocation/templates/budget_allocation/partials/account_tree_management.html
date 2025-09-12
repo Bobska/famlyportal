@@ -1,5 +1,5 @@
 <!-- Account Tree with Management Tools -->
-<div class="list-group list-group-flush account-tree">
+<div class="account-tree-content">
     {% for account in accounts %}
         {% include 'budget_allocation/partials/account_tree_node.html' with account=account level=0 account_type=account_type %}
     {% endfor %}
@@ -7,33 +7,49 @@
 
 <!-- Add CSS for account tree styling -->
 <style>
-.account-tree {
-    --tree-line-color: #dee2e6;
-    --tree-hover-bg: #f8f9fa;
-    --tree-active-bg: #e9ecef;
+/* Base container styles */
+.account-tree-content {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1rem;
 }
 
-.account-tree-row {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 4px;
-    margin: 2px;
+/* Modal specific styling */
+.modal .account-tree-content {
+    padding: 0.5rem;
+    background-color: transparent;
 }
 
-.account-tree-row:hover {
-    background-color: var(--tree-hover-bg) !important;
-    transform: translateX(2px);
+.account-tree-item {
+    margin-bottom: 8px;
 }
 
-.account-tree-row[data-has-children="true"]:hover {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.account-tree-selector {
+    transition: all 0.2s ease-in-out;
+    background-color: #fff;
+    border: 2px solid #dee2e6 !important;
+    border-radius: 8px !important;
 }
 
-.account-tree-toggle {
-    width: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.account-tree-selector:hover {
+    background-color: #f8f9fa !important;
+    border-color: #0d6efd !important;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+}
+
+.account-tree-selector[data-has-children="true"]:hover {
+    box-shadow: 0 3px 12px rgba(13, 110, 253, 0.2);
+}
+
+/* Expanded state indicator */
+.account-tree-selector.expanded {
+    background-color: #e7f3ff !important;
+    border-left: 4px solid #0d6efd !important;
+}
+
+.account-tree-selector.expanded .account-chevron {
+    color: #0d6efd;
+    font-weight: bold;
 }
 
 .account-chevron {
@@ -48,106 +64,174 @@
 .account-children {
     overflow: hidden;
     transition: all 0.3s ease-in-out;
-    max-height: 1000px;
+    max-height: 2000px;
     opacity: 1;
 }
 
 .account-children.collapsed {
     max-height: 0;
     opacity: 0;
-    padding: 0;
-}
-
-.account-tree-child {
-    border-left: 2px solid var(--tree-line-color);
-    margin-left: 10px;
-    transition: all 0.2s ease;
-}
-
-.account-tree-grandchild {
-    border-left: 2px solid var(--tree-line-color);
-    margin-left: 20px;
-    transition: all 0.2s ease;
-}
-
-.child-row {
-    position: relative;
-    padding-left: 3rem !important;
-}
-
-.child-row:hover {
-    background-color: #f1f3f4 !important;
-}
-
-.grandchild-row {
-    position: relative;
-    background-color: #f8f9fa !important;
-}
-
-.grandchild-row:hover {
-    background-color: #e9ecef !important;
-}
-
-.account-tree-connector {
-    width: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.account-info {
-    flex-grow: 1;
-}
-
-.account-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-}
-
-.account-link {
-    color: inherit !important;
-}
-
-.account-link:hover {
-    color: #0d6efd !important;
-    text-decoration: underline !important;
-}
-
-.account-balance .badge {
-    font-size: 0.75rem;
-    padding: 0.375rem 0.5rem;
+    margin: 0;
 }
 
 .account-actions {
-    opacity: 0.7;
+    opacity: 0.8;
     transition: opacity 0.2s ease;
 }
 
-.account-tree-row:hover .account-actions {
+.account-tree-selector:hover .account-actions {
     opacity: 1;
 }
 
-.account-tree-item {
-    border: none !important;
-    margin-bottom: 4px;
+.btn-group .btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    border-width: 1px;
+    white-space: nowrap;
 }
 
-.account-tree-item:last-child {
-    margin-bottom: 0;
+.btn-group .btn-sm {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+}
+
+/* Badge styling */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Level indicator styling */
+.level-indicator {
+    display: flex;
+    align-items: center;
+}
+
+.level-bar {
+    border-radius: 2px;
+}
+
+/* Remove old connection line styles */
+.account-tree-item[style*="margin-left"]:before,
+.account-tree-item[style*="margin-left"]:after {
+    display: none;
+}
+
+/* Account expanded/collapsed states */
+.account-tree-selector.expanded {
+    background-color: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+}
+
+/* Children container collapsed state */
+.account-children.collapsed {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin-top: 0;
+}
+
+.account-children {
+    max-height: 2000px;
+    opacity: 1;
+    overflow: visible;
+    margin-top: 8px;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Chevron rotation */
+.account-chevron {
+    transition: transform 0.3s ease;
+    color: #6c757d;
+}
+
+.account-chevron.collapsed {
+    transform: rotate(-90deg);
+}
+
+/* Enhanced focus states - no border for accounts with children */
+.account-tree-selector:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25) !important;
+}
+
+/* Remove border entirely for focused accounts with children */
+.account-tree-selector[data-has-children="true"]:focus {
+    border: none !important;
+    background-color: #e7f3ff !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3) !important;
+}
+
+/* Accounts without children keep a subtle border when focused */
+.account-tree-selector:not([data-has-children="true"]):focus {
+    border-color: #0d6efd !important;
+}
+
+/* Prevent any inline styles from overriding focus */
+.account-tree-selector:focus[style] {
+    outline: none !important;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
+    .account-tree-content {
+        padding: 12px;
+    }
+    
     .account-actions .btn-group {
         flex-direction: column;
     }
     
-    .account-balance {
-        margin-bottom: 0.5rem !important;
+    .account-actions .btn-group .btn {
+        margin-bottom: 2px;
+        border-radius: 4px !important;
     }
     
-    .child-row {
-        padding-left: 2rem !important;
+    .account-tree-selector {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .account-actions {
+        margin-top: 0.5rem;
+        margin-left: 0 !important;
+        width: 100%;
+    }
+    
+    .account-actions .btn-group {
+        width: 100%;
+    }
+    
+    .account-actions .btn {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .level-indicator {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Smooth animations for expand/collapse */
+@keyframes expandChildren {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 2000px;
+        opacity: 1;
+    }
+}
+
+@keyframes collapseChildren {
+    from {
+        max-height: 2000px;
+        opacity: 1;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
     }
 }
 </style>
@@ -169,17 +253,20 @@ function toggleAccountRow(event, accountId) {
 function toggleAccountChildren(accountId) {
     const childrenContainer = document.getElementById('children-' + accountId);
     const chevron = document.getElementById('chevron-' + accountId);
+    const accountRow = document.querySelector(`[data-account-id="${accountId}"]`);
     
-    if (!childrenContainer || !chevron) return;
+    if (!childrenContainer || !chevron || !accountRow) return;
     
     if (childrenContainer.classList.contains('collapsed')) {
         // Expand
         childrenContainer.classList.remove('collapsed');
         chevron.classList.remove('collapsed');
+        accountRow.classList.add('expanded');
     } else {
         // Collapse
         childrenContainer.classList.add('collapsed');
         chevron.classList.add('collapsed');
+        accountRow.classList.remove('expanded');
     }
 }
 
@@ -208,10 +295,20 @@ function toggleAccountStatus(accountId) {
     }
 }
 
-// Add keyboard support
+// Add keyboard and interaction support
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all children as collapsed
+    document.querySelectorAll('.account-children').forEach(container => {
+        container.classList.add('collapsed');
+    });
+    
+    // Initialize all chevrons as collapsed
+    document.querySelectorAll('.account-chevron').forEach(chevron => {
+        chevron.classList.add('collapsed');
+    });
+    
     // Add keyboard navigation support
-    document.querySelectorAll('.account-tree-row[data-has-children="true"]').forEach(row => {
+    document.querySelectorAll('.account-tree-selector[data-has-children="true"]').forEach(row => {
         row.setAttribute('tabindex', '0');
         row.addEventListener('keydown', function(event) {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -222,16 +319,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Add visual feedback for focus
-    document.querySelectorAll('.account-tree-row').forEach(row => {
-        row.addEventListener('focus', function() {
-            this.style.outline = '2px solid #0d6efd';
-            this.style.outlineOffset = '2px';
-        });
-        
-        row.addEventListener('blur', function() {
-            this.style.outline = 'none';
-        });
-    });
+    // Focus/blur handled by CSS now - no inline styles needed
 });
 </script>

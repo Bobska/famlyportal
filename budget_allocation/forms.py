@@ -472,10 +472,16 @@ class TransactionForm(forms.ModelForm):
         if self.initial_account:
             cleaned_data['account'] = self.initial_account
         
-        # Handle merchant_payee selection - auto-populate payee field
+        # Handle merchant_payee selection - auto-populate payee field and account
         merchant_payee = cleaned_data.get('merchant_payee')
-        if merchant_payee and not cleaned_data.get('payee'):
-            cleaned_data['payee'] = merchant_payee.name
+        if merchant_payee:
+            # Set the payee name from the merchant account
+            if not cleaned_data.get('payee'):
+                cleaned_data['payee'] = merchant_payee.name
+            
+            # Set the account to be the merchant/payee account
+            if not cleaned_data.get('account'):
+                cleaned_data['account'] = merchant_payee
             
         return cleaned_data
     

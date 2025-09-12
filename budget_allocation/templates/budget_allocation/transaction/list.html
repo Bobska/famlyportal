@@ -224,7 +224,18 @@
                     <div id="modalMessages" class="d-none"></div>
                     
                     <div class="row">
-                        <!-- Transaction Type - First Field -->
+                        <!-- Transaction Date - First Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalTransactionDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-1"></i>Date *
+                                </label>
+                                <input type="date" class="form-control" id="modalTransactionDate" 
+                                       name="transaction_date" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Transaction Type - Second Field -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="modalTransactionType" class="form-label fw-bold">
@@ -237,32 +248,18 @@
                                 </select>
                             </div>
                         </div>
-                        
-                        <!-- Merchant/Payee - Second Field -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modalMerchantPayee" class="form-label fw-bold">
-                                    <i class="fas fa-store me-1"></i>Merchant/Payee *
-                                </label>
-                                <select class="form-select" id="modalMerchantPayee" name="merchant_payee" required>
-                                    <option value="">Select merchant/payee...</option>
-                                    {% for merchant in merchant_accounts %}
-                                        <option value="{{ merchant.id }}">{{ merchant.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
                     </div>
                     
                     <div class="row">
-                        <!-- Transaction Date - Third Field -->
+                        <!-- Merchant/Payee - Third Field -->
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="modalTransactionDate" class="form-label fw-bold">
-                                    <i class="fas fa-calendar me-1"></i>Date *
+                                <label for="modalMerchantPayee" class="form-label fw-bold">
+                                    <i class="fas fa-store me-1"></i><span id="merchantPayeeLabel">Merchant/Payee</span> *
                                 </label>
-                                <input type="date" class="form-control" id="modalTransactionDate" 
-                                       name="transaction_date" required>
+                                <select class="form-select" id="modalMerchantPayee" name="merchant_payee" required disabled>
+                                    <option value="">First select a transaction type...</option>
+                                </select>
                             </div>
                         </div>
                         
@@ -281,35 +278,37 @@
                         </div>
                     </div>
                     
-                    <!-- Account Selection -->
-                    <div class="mb-3">
-                        <label for="modalAccount" class="form-label fw-bold">
-                            <i class="fas fa-university me-1"></i>Account *
-                        </label>
-                        <select class="form-select" id="modalAccount" name="account" required>
-                            <option value="">Choose account...</option>
-                            {% for account in accounts %}
-                                <option value="{{ account.id }}">{{ account.name }}</option>
-                            {% endfor %}
-                        </select>
+                    <!-- Visual Separator for Optional Fields -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <hr class="mb-3" style="border-top: 2px dashed #dee2e6;">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Optional Details
+                            </h6>
+                        </div>
                     </div>
                     
-                    <!-- Description - Optional -->
-                    <div class="mb-3">
-                        <label for="modalDescription" class="form-label">
-                            <i class="fas fa-pencil-alt me-1"></i>Description (Optional)
-                        </label>
-                        <input type="text" class="form-control" id="modalDescription" name="description" 
-                               placeholder="Describe this transaction...">
-                    </div>
-                    
-                    <!-- Reference - Optional -->
-                    <div class="mb-3">
-                        <label for="modalReference" class="form-label">
-                            <i class="fas fa-hashtag me-1"></i>Reference (Optional)
-                        </label>
-                        <input type="text" class="form-control" id="modalReference" name="reference" 
-                               placeholder="Check number, invoice number, etc.">
+                    <!-- Description and Reference on same line - Optional Fields -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalDescription" class="form-label text-muted">
+                                    <i class="fas fa-pencil-alt me-1"></i>Description
+                                </label>
+                                <input type="text" class="form-control" id="modalDescription" name="description" 
+                                       placeholder="Describe this transaction...">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalReference" class="form-label text-muted">
+                                    <i class="fas fa-hashtag me-1"></i>Reference
+                                </label>
+                                <input type="text" class="form-control" id="modalReference" name="reference" 
+                                       placeholder="Check number, invoice number, etc.">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -366,18 +365,33 @@
 {% block extra_js %}
 {{ block.super }}
 <script>
+// Make merchant accounts available to JavaScript
+const merchantAccounts = [
+    {% for merchant in merchant_accounts %}
+    {
+        id: {{ merchant.id }},
+        name: "{{ merchant.name|escapejs }}",
+        account_type: "{{ merchant.account_type }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Set today's date as default
+    // Get all form fields
+    const typeField = document.getElementById('modalTransactionType');
+    const merchantPayeeField = document.getElementById('modalMerchantPayee');
+    const merchantPayeeLabel = document.getElementById('merchantPayeeLabel');
     const dateField = document.getElementById('modalTransactionDate');
+    const amountField = document.getElementById('modalAmount');
+    
+    // Set today's date as default
     if (dateField) {
         const today = new Date();
         const formattedDate = today.toISOString().split('T')[0];
         dateField.value = formattedDate;
     }
     
-    // Merchant/Payee auto-fill functionality (simplified since manual entry is removed)
-    const merchantPayeeField = document.getElementById('modalMerchantPayee');
-    
+    // Merchant/Payee selection feedback (simplified since filtering is handled above)
     if (merchantPayeeField) {
         merchantPayeeField.addEventListener('change', function() {
             if (this.value) {
@@ -391,7 +405,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Auto-format amount field
-    const amountField = document.getElementById('modalAmount');
     if (amountField) {
         amountField.addEventListener('blur', function() {
             let value = parseFloat(this.value);
@@ -401,17 +414,63 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Transaction type change handler for visual feedback
-    const typeField = document.getElementById('modalTransactionType');
-    if (typeField) {
+    // Transaction type change handler for visual feedback and merchant filtering
+    if (typeField && merchantPayeeField && merchantPayeeLabel) {
         typeField.addEventListener('change', function() {
+            const selectedType = this.value;
             const icon = this.closest('.mb-3').querySelector('.form-label i');
-            if (this.value === 'income') {
+            
+            // Update icon based on transaction type
+            if (selectedType === 'income') {
                 icon.className = 'fas fa-plus-circle me-1 text-success';
-            } else if (this.value === 'expense') {
+                merchantPayeeLabel.textContent = 'Payee';
+            } else if (selectedType === 'expense') {
                 icon.className = 'fas fa-minus-circle me-1 text-danger';
+                merchantPayeeLabel.textContent = 'Merchant';
             } else {
                 icon.className = 'fas fa-exchange-alt me-1';
+                merchantPayeeLabel.textContent = 'Merchant/Payee';
+            }
+            
+            // Filter and populate merchant/payee dropdown based on transaction type
+            merchantPayeeField.innerHTML = '<option value="">Choose ' + merchantPayeeLabel.textContent.toLowerCase() + '...</option>';
+            
+            if (selectedType) {
+                // Enable the field
+                merchantPayeeField.disabled = false;
+                
+                // Filter merchants based on transaction type
+                const filteredMerchants = merchantAccounts.filter(merchant => {
+                    if (selectedType === 'income') {
+                        // For income, show income accounts (payees)
+                        return merchant.account_type === 'income';
+                    } else if (selectedType === 'expense') {
+                        // For expense, show expense accounts (merchants)
+                        return merchant.account_type === 'expense';
+                    }
+                    return false;
+                });
+                
+                // Populate dropdown with filtered merchants
+                filteredMerchants.forEach(merchant => {
+                    const option = document.createElement('option');
+                    option.value = merchant.id;
+                    option.textContent = merchant.name;
+                    merchantPayeeField.appendChild(option);
+                });
+                
+                // Show message if no merchants found
+                if (filteredMerchants.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = `No ${merchantPayeeLabel.textContent.toLowerCase()}s available`;
+                    option.disabled = true;
+                    merchantPayeeField.appendChild(option);
+                }
+            } else {
+                // Disable the field if no transaction type selected
+                merchantPayeeField.disabled = true;
+                merchantPayeeField.innerHTML = '<option value="">First select a transaction type...</option>';
             }
         });
     }
@@ -506,6 +565,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     const today = new Date();
                     const formattedDate = today.toISOString().split('T')[0];
                     dateField.value = formattedDate;
+                }
+                // Reset merchant/payee field and label
+                if (merchantPayeeField) {
+                    merchantPayeeField.disabled = true;
+                    merchantPayeeField.innerHTML = '<option value="">First select a transaction type...</option>';
+                }
+                if (merchantPayeeLabel) {
+                    merchantPayeeLabel.textContent = 'Merchant/Payee';
                 }
                 // Clear messages
                 const messagesDiv = document.getElementById('modalMessages');

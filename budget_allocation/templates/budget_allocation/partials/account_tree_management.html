@@ -11,12 +11,12 @@
 .account-tree-content {
     background-color: #fff;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 1rem 2rem 1rem 1rem;
 }
 
 /* Modal specific styling */
 .modal .account-tree-content {
-    padding: 0.5rem;
+    padding: 0.75rem 1.5rem 0.75rem 0.5rem;
     background-color: transparent;
 }
 
@@ -68,11 +68,11 @@
     box-shadow: 0 3px 12px rgba(13, 110, 253, 0.2);
 }
 
-/* Expanded state indicator - use same styling as focus for visual consistency */
+/* Expanded state indicator - use inset shadow to avoid clipping */
 .account-tree-selector.expanded[data-has-children="true"] {
-    border: none !important;
     background-color: #e7f3ff !important;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3) !important;
+    border: 2px solid #0d6efd !important;
+    box-shadow: inset 0 0 8px rgba(13, 110, 253, 0.15) !important;
 }
 
 /* For accounts without children that are somehow marked expanded */
@@ -275,16 +275,69 @@ function toggleAccountChildren(accountId) {
     if (!childrenContainer || !chevron || !accountRow) return;
     
     if (childrenContainer.classList.contains('collapsed')) {
-        // Expand
+        // Before expanding this account, collapse all sibling accounts
+        collapseSiblingAccounts(accountId);
+        
+        // Expand this account
         childrenContainer.classList.remove('collapsed');
         chevron.classList.remove('collapsed');
         accountRow.classList.add('expanded');
     } else {
-        // Collapse
-        childrenContainer.classList.add('collapsed');
-        chevron.classList.add('collapsed');
-        accountRow.classList.remove('expanded');
+        // Collapse this account and all its children recursively
+        collapseAccountAndChildren(accountId);
     }
+}
+
+function collapseSiblingAccounts(accountId) {
+    // Find the current account's parent container
+    const currentAccount = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!currentAccount) return;
+    
+    // Find the parent container of this account
+    const parentContainer = currentAccount.closest('.account-children') || 
+                           currentAccount.closest('.account-tree-content');
+    
+    if (parentContainer) {
+        // Find all sibling accounts with children in the same container
+        const siblingAccounts = parentContainer.querySelectorAll(':scope > .account-tree-item [data-has-children="true"]');
+        
+        siblingAccounts.forEach(siblingRow => {
+            const siblingAccountId = siblingRow.dataset.accountId;
+            
+            // Skip the current account
+            if (siblingAccountId !== accountId) {
+                const siblingChildren = document.getElementById('children-' + siblingAccountId);
+                const siblingChevron = document.getElementById('chevron-' + siblingAccountId);
+                
+                if (siblingChildren && siblingChevron && !siblingChildren.classList.contains('collapsed')) {
+                    // Collapse the sibling and all its children
+                    collapseAccountAndChildren(siblingAccountId);
+                }
+            }
+        });
+    }
+}
+
+function collapseAccountAndChildren(accountId) {
+    const childrenContainer = document.getElementById('children-' + accountId);
+    const chevron = document.getElementById('chevron-' + accountId);
+    const accountRow = document.querySelector(`[data-account-id="${accountId}"]`);
+    
+    if (!childrenContainer || !chevron || !accountRow) return;
+    
+    // Collapse this account
+    childrenContainer.classList.add('collapsed');
+    chevron.classList.add('collapsed');
+    accountRow.classList.remove('expanded');
+    
+    // Recursively collapse all child accounts
+    const childAccounts = childrenContainer.querySelectorAll('[data-has-children="true"]');
+    childAccounts.forEach(childRow => {
+        const childAccountId = childRow.dataset.accountId;
+        if (childAccountId) {
+            collapseAccountAndChildren(childAccountId);
+        }
+    });
 }
 
 function toggleAccountStatus(accountId) {

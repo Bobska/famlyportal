@@ -21,14 +21,19 @@
                 
                 <!-- Expand/Collapse Toggle -->
                 {% if account.children.exists %}
-                    <i class="fas fa-chevron-down account-chevron me-3" 
-                       id="chevron-{{ account.id }}" 
-                       style="transition: transform 0.3s ease; color: #0d6efd; font-weight: bold;"></i>
+                    <div class="parent-account-indicator me-3 d-flex align-items-center">
+                        <i class="fas fa-chevron-down account-chevron me-2" 
+                           id="chevron-{{ account.id }}" 
+                           style="transition: transform 0.3s ease; color: #0d6efd; font-weight: bold; font-size: 1.1em;"></i>
+                        <span class="badge bg-primary children-count" style="font-size: 0.7em; min-width: 20px;">
+                            {{ account.children.count }}
+                        </span>
+                    </div>
                 {% else %}
                     {% if level > 0 %}
-                        <i class="fas fa-file-alt text-muted me-3" style="opacity: 0.5;"></i>
+                        <i class="fas fa-circle text-muted me-3" style="opacity: 0.3; font-size: 0.5em;"></i>
                     {% else %}
-                        <i class="fas fa-folder text-muted me-3"></i>
+                        <i class="fas fa-folder-open text-muted me-3" style="opacity: 0.6;"></i>
                     {% endif %}
                 {% endif %}
                 

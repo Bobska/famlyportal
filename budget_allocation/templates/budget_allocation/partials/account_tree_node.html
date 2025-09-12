@@ -1,5 +1,6 @@
 <!-- Recursive Account Tree Node -->
 {% load static %}
+{% load budget_filters %}
 
 <div class="account-tree-item" style="margin-left: {{ level|add:0|floatformat:0 }}0px; margin-bottom: 8px;">
     <div class="d-flex align-items-center py-3 px-3 border rounded account-tree-selector" 
@@ -96,10 +97,8 @@
     <!-- Child Accounts (Recursive) -->
     {% if account.children.exists %}
         <div id="children-{{ account.id }}" class="account-children" style="overflow: hidden; transition: all 0.3s ease-in-out; margin-top: 8px;">
-            {% for child in account.children.all %}
-                {% if child.is_active %}
-                    {% include 'budget_allocation/partials/account_tree_node.html' with account=child level=level|add:1 account_type=account_type %}
-                {% endif %}
+            {% for child in account|active_children_ordered %}
+                {% include 'budget_allocation/partials/account_tree_node.html' with account=child level=level|add:1 account_type=account_type %}
             {% endfor %}
         </div>
     {% endif %}

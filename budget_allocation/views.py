@@ -204,17 +204,22 @@ def account_list(request):
     ).first()
     
     # Get children of root accounts instead of root accounts themselves
+    # Order by number of children (descending), then by name
     income_accounts = Account.objects.filter(
         family=family, 
         parent=root_income,
         is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').order_by('sort_order', 'name') if root_income else Account.objects.none()
+    ).select_related('parent').prefetch_related('children__children__children').annotate(
+        children_count=Count('children', filter=Q(children__is_active=True))
+    ).order_by('-children_count', 'name') if root_income else Account.objects.none()
     
     expense_accounts = Account.objects.filter(
         family=family, 
         parent=root_expense,
         is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').order_by('sort_order', 'name') if root_expense else Account.objects.none()
+    ).select_related('parent').prefetch_related('children__children__children').annotate(
+        children_count=Count('children', filter=Q(children__is_active=True))
+    ).order_by('-children_count', 'name') if root_expense else Account.objects.none()
     
     # Get current week and calculate overall balance (same as dashboard)
     current_week = get_current_week(family)

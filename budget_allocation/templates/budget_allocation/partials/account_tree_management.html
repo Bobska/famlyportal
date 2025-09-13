@@ -1,7 +1,7 @@
 <!-- Account Tree with Management Tools -->
 <div class="account-tree-content">
     {% for account in accounts %}
-        {% include 'budget_allocation/partials/account_tree_node.html' with account=account level=0 account_type=account_type %}
+        {% include 'budget_allocation/partials/account_tree_node.html' with account=account level=0 account_type=account_type week=week weekly_expense_only=weekly_expense_only %}
     {% endfor %}
 </div>
 

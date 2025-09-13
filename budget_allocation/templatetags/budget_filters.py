@@ -1,4 +1,11 @@
 from django import template
+from decimal import Decimal
+from ..utilities import (
+    get_account_weekly_balance_with_children,
+    get_current_week,
+    get_account_balance_with_children,
+)
+from ..models import Transaction
 
 register = template.Library()
 
@@ -44,3 +51,51 @@ def active_children_exist(account):
     Return True if the account has any active children.
     """
     return account.children.filter(is_active=True).exists()
+
+@register.filter
+def weekly_balance_with_children(account, week):
+    """Return weekly balance including children for a given week."""
+    try:
+        return get_account_weekly_balance_with_children(account, week)
+    except Exception:
+        return Decimal('0.00')
+
+@register.filter
+def current_balance_with_children(account):
+    """Return current balance including children using current week context."""
+    try:
+        week = get_current_week(account.family)
+        return get_account_balance_with_children(account, week)
+    except Exception:
+        return Decimal('0.00')
+
+
+@register.simple_tag
+def recent_transactions_for_account(account, limit=5):
+    """Return recent transactions for an account including its active descendants.
+
+    Args:
+        account: Account instance to fetch transactions for.
+        limit: Max number of transactions to return.
+    Returns:
+        Queryset/list of Transaction objects ordered by most recent.
+    """
+    try:
+        # Collect account and all active descendant account IDs
+        def collect_descendant_ids(acc):
+            ids = [acc.id]
+            for child in acc.children.filter(is_active=True):
+                ids.extend(collect_descendant_ids(child))
+            return ids
+
+        account_ids = collect_descendant_ids(account)
+
+        qs = (
+            Transaction.objects.filter(
+                family=account.family, account_id__in=account_ids
+            )
+            .order_by("-transaction_date", "-created_at")
+        )
+        return list(qs[: int(limit) if limit else 5])
+    except Exception:
+        return []

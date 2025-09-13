@@ -51,7 +51,7 @@
       <div class="card-body">
         {% if income_accounts %}
         <div class="account-tree-container">
-          {% include 'budget_allocation/partials/account_tree_management.html' with accounts=income_accounts account_type='income' %}
+          {% include 'budget_allocation/partials/account_tree_management.html' with accounts=income_accounts account_type='income' week=current_week weekly_expense_only=True %}
         </div>
         {% else %}
         <div class="text-center py-5">
@@ -64,7 +64,7 @@
       <div class="card-body">
         {% if expense_accounts %}
         <div class="account-tree-container">
-          {% include 'budget_allocation/partials/account_tree_management.html' with accounts=expense_accounts account_type='expense' %}
+          {% include 'budget_allocation/partials/account_tree_management.html' with accounts=expense_accounts account_type='expense' week=current_week weekly_expense_only=True %}
         </div>
         {% else %}
         <div class="text-center py-5">

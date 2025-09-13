@@ -44,15 +44,16 @@
                 <!-- Account Type Icon -->
                 <i class="fas fa-{% if account.account_type == 'income' %}arrow-up text-success{% else %}arrow-down text-danger{% endif %} me-2"></i>
                 
-                <!-- Account Name and Badge -->
+                <!-- Account Name and Balance (no Income/Expense label) -->
                 <span class="fw-medium me-2 account-name">{{ account.name }}</span>
-                <span class="badge bg-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} ms-2">
-                    {% if account.account_type == 'income' %}Income{% else %}Expense{% endif %}
-                </span>
-                
-                <!-- Balance Badge -->
+
+                <!-- Balance Badge: in weekly mode, show weekly amount for expenses; otherwise show current balance -->
                 <span class="badge bg-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} ms-2">
-                    ${{ account.current_balance|floatformat:2 }}
+                    {% if weekly_expense_only and week and account.account_type == 'expense' %}
+                        ${{ account|weekly_balance_with_children:week|floatformat:2 }}
+                    {% else %}
+                        ${{ account|current_balance_with_children|floatformat:2 }}
+                    {% endif %}
                 </span>
                 
                 {% if not account.is_active %}
@@ -113,8 +114,30 @@
     {% if account|active_children_exist %}
         <div id="children-{{ account.id }}" class="account-children" style="overflow: hidden; transition: all 0.3s ease-in-out; margin-top: 8px;">
             {% for child in account|active_children_ordered %}
-                {% include 'budget_allocation/partials/account_tree_node.html' with account=child level=level|add:1 account_type=account_type %}
+                {% include 'budget_allocation/partials/account_tree_node.html' with account=child level=level|add:1 account_type=account_type week=week weekly_expense_only=weekly_expense_only %}
             {% endfor %}
         </div>
+    {% else %}
+        {% if not week %}
+            <!-- Recent transactions for leaf accounts (All Accounts view) -->
+            {% recent_transactions_for_account account 3 as recent_txns %}
+            {% if recent_txns %}
+                <div class="mt-2 ms-5">
+                    <div class="small text-muted mb-1"><i class="fas fa-receipt me-1"></i>Recent transactions</div>
+                    <ul class="list-unstyled mb-0">
+                        {% for t in recent_txns %}
+                            <li class="d-flex justify-content-between align-items-center py-1 border-top">
+                                <span class="text-truncate" title="{{ t.description|default:t.payee }}">
+                                    {{ t.transaction_date }} · {{ t.description|default:t.payee|truncatechars:40 }}
+                                </span>
+                                <span class="ms-2 {% if t.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ t.amount|floatformat:2 }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endif %}
     {% endif %}
 </div>

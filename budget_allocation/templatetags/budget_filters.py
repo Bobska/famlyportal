@@ -29,3 +29,18 @@ def active_children_ordered(account):
     """
     active_children = account.children.filter(is_active=True)
     return order_by_children_count(active_children)
+
+# New filters for template logic
+@register.filter
+def active_children_count(account):
+    """
+    Return the count of active children for an account.
+    """
+    return account.children.filter(is_active=True).count()
+
+@register.filter
+def active_children_exist(account):
+    """
+    Return True if the account has any active children.
+    """
+    return account.children.filter(is_active=True).exists()

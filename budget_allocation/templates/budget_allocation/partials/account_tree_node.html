@@ -5,6 +5,7 @@
 <div class="account-tree-item" style="margin-left: {{ level|add:0|floatformat:0 }}0px; margin-bottom: 8px;">
     <div class="d-flex align-items-center py-3 px-3 border rounded account-tree-selector" 
          data-account-id="{{ account.id }}" 
+         {% if account.parent %}data-parent-id="{{ account.parent.id }}"{% endif %}
          {% if account.children.exists %}data-has-children="true"{% endif %}
          style="cursor: pointer;"
          onclick="toggleAccountRow(event, '{{ account.id }}')">
@@ -20,14 +21,16 @@
                     </div>
                 {% endif %}
                 
-                <!-- Expand/Collapse Toggle -->
-                {% if account.children.exists %}
+                <!-- Expand/Collapse Toggle (only if there are ACTIVE children) -->
+                {% if account|active_children_exist %}
                     <div class="parent-account-indicator me-3 d-flex align-items-center">
                         <i class="fas fa-chevron-down account-chevron me-2" 
                            id="chevron-{{ account.id }}" 
                            style="transition: transform 0.3s ease; color: #0d6efd; font-weight: bold; font-size: 1.1em;"></i>
-                        <span class="badge bg-primary children-count" style="font-size: 0.7em; min-width: 20px;">
-                            {{ account.children.count }}
+                        <span class="badge bg-primary children-count" 
+                              style="font-size: 0.7em; min-width: 20px;"
+                              data-parent-account-id="{{ account.id }}">
+                            {{ account|active_children_count }}
                         </span>
                     </div>
                 {% else %}
@@ -42,7 +45,7 @@
                 <i class="fas fa-{% if account.account_type == 'income' %}arrow-up text-success{% else %}arrow-down text-danger{% endif %} me-2"></i>
                 
                 <!-- Account Name and Badge -->
-                <span class="fw-medium me-2">{{ account.name }}</span>
+                <span class="fw-medium me-2 account-name">{{ account.name }}</span>
                 <span class="badge bg-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} ms-2">
                     {% if account.account_type == 'income' %}Income{% else %}Expense{% endif %}
                 </span>
@@ -66,7 +69,7 @@
         
         <!-- Action Buttons -->
         <div class="account-actions d-flex align-items-center ms-3" onclick="event.stopPropagation()">
-            <div class="btn-group">
+            <div class="btn-group account-management-buttons">
                 <a href="{% url 'budget_allocation:account_detail' account.id %}" 
                    class="btn btn-outline-primary btn-sm" 
                    title="View Details">
@@ -86,18 +89,18 @@
                 {% endif %}
                 {% if account.is_active %}
                     <button class="btn btn-outline-danger btn-sm" 
-                            onclick="toggleAccountStatus('{{ account.id }}')" 
+                            onclick="showDisableAccountModal('{{ account.id }}')" 
                             title="Deactivate Account">
                         <i class="fas fa-ban me-1"></i>Disable
                     </button>
                 {% else %}
                     <button class="btn btn-outline-success btn-sm" 
-                            onclick="toggleAccountStatus('{{ account.id }}')" 
+                            onclick="showEnableAccountModal('{{ account.id }}')" 
                             title="Reactivate Account">
                         <i class="fas fa-play me-1"></i>Enable
                     </button>
                     <button class="btn btn-outline-danger btn-sm" 
-                            onclick="deleteAccount('{{ account.id }}')" 
+                            onclick="showDeleteAccountModal('{{ account.id }}')" 
                             title="Permanently Delete Account">
                         <i class="fas fa-trash me-1"></i>Delete
                     </button>
@@ -106,8 +109,8 @@
         </div>
     </div>
 
-    <!-- Child Accounts (Recursive) -->
-    {% if account.children.exists %}
+    <!-- Child Accounts (Recursive, only ACTIVE children) -->
+    {% if account|active_children_exist %}
         <div id="children-{{ account.id }}" class="account-children" style="overflow: hidden; transition: all 0.3s ease-in-out; margin-top: 8px;">
             {% for child in account|active_children_ordered %}
                 {% include 'budget_allocation/partials/account_tree_node.html' with account=child level=level|add:1 account_type=account_type %}

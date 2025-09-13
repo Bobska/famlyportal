@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import datetime, date, timedelta
 from decimal import Decimal
+import logging
 
 from accounts.decorators import family_required
 from accounts.models import Family, FamilyMember
@@ -27,6 +28,9 @@ from .utilities import (
     get_current_week, get_available_money, transfer_money,
     get_account_balance, get_account_balance_with_children, get_account_tree
 )
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 def app_permission_required(app_name):
@@ -1186,6 +1190,9 @@ def toggle_account_status_api(request, account_id):
         return JsonResponse({
             'success': True,
             'is_active': account.is_active,
+            'account_type': account.account_type,
+            'parent_id': account.parent_id,
+            'account_id': account.id,
             'message': f'Account {"activated" if account.is_active else "deactivated"} successfully'
         })
         
@@ -1244,21 +1251,20 @@ def delete_account_api(request, account_id):
                 'error': 'Account has allocations. Cannot delete accounts with allocation history.'
             }, status=400)
         
-        # Store account info for history before deletion
+        # Store account info for logging
         account_name = account.name
         account_type = account.account_type
         
-        # Create history entry before deletion
-        AccountHistory.objects.create(
-            account=None,  # Will be null after deletion
-            family=family,
-            action='deleted',
-            old_value=account_name,
-            notes=f'Account "{account_name}" ({account_type}) deleted by {request.user.get_full_name() or request.user.username}'
-        )
+        # Use atomic transaction to ensure clean deletion
+        with transaction.atomic():
+            # Explicitly delete related AccountHistory records first
+            AccountHistory.objects.filter(account=account).delete()
+            
+            # Now delete the account itself
+            account.delete()
         
-        # Delete the account
-        account.delete()
+        # Log the deletion for debugging/audit purposes
+        logger.info(f'Account "{account_name}" ({account_type}) deleted by {request.user.get_full_name() or request.user.username} from family {family.name}')
         
         return JsonResponse({
             'success': True,

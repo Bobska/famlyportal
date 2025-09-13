@@ -6,6 +6,7 @@
 {% block breadcrumb_items %}{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
@@ -148,18 +149,172 @@
     </div>
 </div>
 
+<!-- Enable Account Confirmation Modal -->
+<div class="modal fade" id="enableAccountModal" tabindex="-1" aria-labelledby="enableAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="enableAccountModalLabel">
+                    <i class="fas fa-play text-success me-2"></i>Enable Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-question-circle fa-2x text-warning me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Are you sure you want to enable this account?</h6>
+                        <small class="text-muted">This will make the account active and available for transactions.</small>
+                    </div>
+                </div>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Account:</strong> <span id="enableAccountName"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="confirmEnableBtn">
+                    <i class="fas fa-play me-1"></i>Enable Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAccountModalLabel">
+                    <i class="fas fa-trash text-danger me-2"></i>Delete Account Permanently
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Are you sure you want to permanently delete this account?</h6>
+                        <small class="text-muted">This action cannot be undone and will remove all account data.</small>
+                    </div>
+                </div>
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-warning me-2"></i>
+                    <strong>Account:</strong> <span id="deleteAccountName"></span><br>
+                    <small>All account history and data will be permanently removed.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash me-1"></i>Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+let currentAccountId = null;
+let currentAccountName = null;
+
 function reactivateAccount(accountId) {
-    if (confirm('Are you sure you want to reactivate this account?')) {
-        // Use the existing toggle function
-        toggleAccountStatus(accountId);
-    }
+    // Get account name from the table row
+    const row = document.querySelector(`button[onclick="reactivateAccount('${accountId}')"]`).closest('tr');
+    const accountName = row.querySelector('td:first-child .fw-medium').textContent.trim();
+    
+    // Set modal data
+    currentAccountId = accountId;
+    currentAccountName = accountName;
+    document.getElementById('enableAccountName').textContent = accountName;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('enableAccountModal'));
+    modal.show();
 }
 
 function deleteAccountFromDisabled(accountId) {
-    if (confirm('Are you sure you want to permanently delete this account? This action cannot be undone.')) {
-        deleteAccount(accountId);
+    // Get account name from the table row
+    const row = document.querySelector(`button[onclick="deleteAccountFromDisabled('${accountId}')"]`).closest('tr');
+    const accountName = row.querySelector('td:first-child .fw-medium').textContent.trim();
+    
+    // Set modal data
+    currentAccountId = accountId;
+    currentAccountName = accountName;
+    document.getElementById('deleteAccountName').textContent = accountName;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
+    modal.show();
+}
+
+// Handle enable confirmation
+document.getElementById('confirmEnableBtn').addEventListener('click', function() {
+    if (currentAccountId) {
+        toggleAccountStatus(currentAccountId);
+        bootstrap.Modal.getInstance(document.getElementById('enableAccountModal')).hide();
     }
+});
+
+// Handle delete confirmation
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (currentAccountId) {
+        deleteAccount(currentAccountId);
+        bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal')).hide();
+    }
+});
+
+function toggleAccountStatus(accountId) {
+    fetch(`{% url 'budget_allocation:toggle_account_status_api' 0 %}`.replace('0', accountId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to show updated status
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to toggle account status'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the account status.');
+    });
+}
+
+function deleteAccount(accountId) {
+    fetch(`{% url 'budget_allocation:delete_account_api' 0 %}`.replace('0', accountId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to show updated list
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete account'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting the account.');
+    });
 }
 </script>
 {% endblock %}

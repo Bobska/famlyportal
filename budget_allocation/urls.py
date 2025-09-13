@@ -10,6 +10,7 @@ urlpatterns = [
     
     # Account management
     path('accounts/', views.account_list, name='account_list'),
+    path('accounts/weekly/', views.account_list_weekly, name='account_list_weekly'),
     path('accounts/disabled/', views.disabled_accounts, name='disabled_accounts'),
     path('accounts/create/', views.account_create, name='account_create'),
     path('account/<int:account_id>/', views.account_detail, name='account_detail'),

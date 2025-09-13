@@ -47,12 +47,14 @@
                 <!-- Account Name and Balance (no Income/Expense label) -->
                 <span class="fw-medium me-2 account-name">{{ account.name }}</span>
 
-                <!-- Balance Badge: in weekly mode, show weekly amount for expenses; otherwise show current balance -->
+                <!-- Amount Badge:
+                     - Weekly view: show weekly amount for expenses
+                     - All Accounts: show sum of transactions (income or expense) including children -->
                 <span class="badge bg-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} bg-opacity-25 text-{% if account.account_type == 'income' %}success{% else %}danger{% endif %} ms-2">
                     {% if weekly_expense_only and week and account.account_type == 'expense' %}
                         ${{ account|weekly_balance_with_children:week|floatformat:2 }}
                     {% else %}
-                        ${{ account|current_balance_with_children|floatformat:2 }}
+                        ${{ account|total_transactions_with_children|floatformat:2 }}
                     {% endif %}
                 </span>
                 

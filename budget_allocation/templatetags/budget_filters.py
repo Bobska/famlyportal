@@ -6,6 +6,7 @@ from ..utilities import (
     get_account_balance_with_children,
 )
 from ..models import Transaction
+from django.db.models import Sum
 
 register = template.Library()
 
@@ -99,3 +100,41 @@ def recent_transactions_for_account(account, limit=5):
         return list(qs[: int(limit) if limit else 5])
     except Exception:
         return []
+
+
+@register.filter
+def total_transactions_with_children(account):
+    """Sum transactions for an account (and active descendants) across all time.
+
+    Logic:
+    - For income accounts: sum only income transactions
+    - For expense accounts: sum only expense transactions
+    - For other types: return 0.00
+    """
+    try:
+        # Collect account and all active descendant account IDs
+        def collect_descendant_ids(acc):
+            ids = [acc.id]
+            for child in acc.children.filter(is_active=True):
+                ids.extend(collect_descendant_ids(child))
+            return ids
+
+        account_ids = collect_descendant_ids(account)
+
+        tx_type = 'income' if account.account_type == 'income' else (
+            'expense' if account.account_type == 'expense' else None
+        )
+        if not tx_type:
+            return Decimal('0.00')
+
+        total = (
+            Transaction.objects.filter(
+                family=account.family,
+                account_id__in=account_ids,
+                transaction_type=tx_type,
+            ).aggregate(total=Sum('amount'))['total']
+            or Decimal('0.00')
+        )
+        return total
+    except Exception:
+        return Decimal('0.00')

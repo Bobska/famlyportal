@@ -453,8 +453,38 @@ def account_detail(request, account_id):
     # Calculate child account balances and create enriched data structure
     child_balances = {}
     enriched_child_accounts = []
+    
+    def get_recursive_account_balance(account, show_week_selector, current_week, family):
+        """Calculate account balance including all descendants recursively"""
+        if show_week_selector:
+            # For weekly view, use week-specific balance for this account
+            account_balance = get_account_balance(account, current_week)
+        else:
+            # For regular view, get total balance across all transactions and allocations
+            transactions_total = Transaction.objects.filter(
+                account=account,
+                family=family
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            
+            allocations_total = Allocation.objects.filter(
+                to_account=account,
+                week__family=family
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            
+            account_balance = allocations_total + transactions_total
+        
+        # Add balances from all children recursively
+        children = account.children.filter(is_active=True)
+        for child in children:
+            child_balance = get_recursive_account_balance(child, show_week_selector, current_week, family)
+            account_balance += child_balance
+            
+        return account_balance
+    
     for child in child_accounts:
-        balance = get_account_balance(child, current_week)
+        # Get the recursive balance that includes all descendants
+        balance = get_recursive_account_balance(child, show_week_selector, current_week, family)
+        
         child_balances[child.id] = balance
         # Create enriched data with balance included
         enriched_child_accounts.append({
@@ -463,15 +493,60 @@ def account_detail(request, account_id):
         })
     
     # Get recent transactions with pagination
-    transactions = Transaction.objects.filter(
-        account=account,
-        family=family
-    ).order_by('-transaction_date', '-created_at')
+    if show_week_selector:
+        # For weekly view, filter transactions by week
+        transactions = Transaction.objects.filter(
+            account=account,
+            family=family,
+            week=current_week
+        ).order_by('-transaction_date', '-created_at')
+    else:
+        # For regular view, show all transactions
+        transactions = Transaction.objects.filter(
+            account=account,
+            family=family
+        ).order_by('-transaction_date', '-created_at')
     
     # Pagination for transactions
     paginator = Paginator(transactions, 25)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
+    
+    # Calculate total of ALL transactions for this account (not just paginated ones)
+    if show_week_selector:
+        # For weekly view, sum transactions for the current week
+        visible_transactions_total = Transaction.objects.filter(
+            account=account,
+            family=family,
+            week=current_week
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        # Add allocations to this account for the week
+        visible_allocations_total = Allocation.objects.filter(
+            to_account=account,
+            week=current_week
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    else:
+        # For regular view, sum all transactions
+        visible_transactions_total = Transaction.objects.filter(
+            account=account,
+            family=family
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        # Add all allocations to this account
+        visible_allocations_total = Allocation.objects.filter(
+            to_account=account,
+            week__family=family
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    # Total for this account includes both transactions and allocations
+    account_total = visible_transactions_total + visible_allocations_total
+    
+    # Calculate total of all child account balances
+    child_accounts_total = sum(child_balances.values())
+    
+    # Calculate combined total (account balance + child balances)
+    combined_total = account_total + child_accounts_total
     
     # Recent allocations involving this account
     recent_allocations_in = Allocation.objects.filter(
@@ -523,6 +598,11 @@ def account_detail(request, account_id):
         'child_balances': child_balances,
         'account_balance': account_balance,
         'transactions': page_obj,
+        'visible_transactions_total': visible_transactions_total,
+        'visible_allocations_total': visible_allocations_total,
+        'account_total': account_total,
+        'child_accounts_total': child_accounts_total,
+        'combined_total': combined_total,
         'recent_allocations_in': recent_allocations_in,
         'recent_allocations_out': recent_allocations_out,
         'can_add_children': account.can_have_children,

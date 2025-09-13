@@ -1,9 +1,10 @@
 {% extends 'budget_allocation/base_with_sidebar.html' %}
 {% load static %}
 
-{% block title %}{{ account.name }} - Account Details{% endblock %}
+{% block title %}{{ account.name }}{% endblock %}
 
-{% block page_title %}{{ account.name }} - Account Details{% endblock %}
+{% block page_title %}{% endblock %}
+{% block page_description %}{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item">
@@ -33,236 +34,184 @@
 {% endblock %}
 
 {% block page_content %}
-<!-- Week Selector -->
-{% if show_week_selector %}
-{% include 'budget_allocation/partials/week_selector.html' %}
-{% endif %}
-
-<!-- Account Header Card -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm" style="border-left: 6px solid {{ account.color }};">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="account-color-circle me-3" style="background-color: {{ account.color }};"></div>
-                            <div>
-                                <h1 class="h3 mb-1">{{ account.name }}</h1>
-                                {% if account.description %}
-                                    <p class="text-muted mb-0">{{ account.description }}</p>
-                                {% endif %}
-                            </div>
+<div class="container-fluid px-0">
+    {% if show_week_selector %}
+        <div class="mb-3">
+            {% include 'budget_allocation/partials/week_selector.html' %}
+        </div>
+    {% endif %}
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10 col-12">
+            <!-- Account Header Card -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body pb-2 pt-4 px-4">
+                    <!-- Account Name Header - Centered and Prominent -->
+                    <div class="text-center mb-4">
+                        <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                            <div style="width: 45px; height: 45px; border-radius: 50%; background: {{ account.color }}; border: 2px solid #e9ecef;"></div>
+                            <h2 class="mb-0 fw-bold text-dark">{{ account.name }}</h2>
                         </div>
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <small class="text-muted">Account Type:</small>
-                                <div class="fw-bold">{{ account.get_account_type_display }}</div>
-                            </div>
-                            <div class="col-sm-6">
-                                <small class="text-muted">Category:</small>
-                                <div class="fw-bold">{{ account.get_category_display }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <div class="mb-2">
-                            <small class="text-muted">Current Balance</small>
-                        </div>
-                        <div class="account-balance h2 mb-2 {% if account_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                            ${{ account_balance|floatformat:2 }}
-                        </div>
-                        <div class="d-flex gap-2 justify-content-end">
-                            <span class="badge {% if account.is_active %}bg-success{% else %}bg-secondary{% endif %}">
-                                {{ account.is_active|yesno:"Active,Inactive" }}
-                            </span>
-                            {% if account.parent %}
-                                <span class="badge bg-info">Child Account</span>
+                        {% if account.description %}
+                            <p class="text-muted mb-3">{{ account.description }}</p>
+                        {% endif %}
+                        <div class="mb-3">
+                            <span class="fs-4 fw-bold text-primary">Total: ${{ combined_total|floatformat:2 }}</span>
+                            {% if enriched_child_accounts and enriched_child_accounts|length > 0 %}
+                                <div class="text-muted mt-2">
+                                    Account: ${{ account_total|floatformat:2 }} + Children: ${{ child_accounts_total|floatformat:2 }}
+                                </div>
+                            {% elif account_total != combined_total %}
+                                <div class="text-muted mt-2">
+                                    Transactions: ${{ visible_transactions_total|floatformat:2 }} + Allocations: ${{ visible_allocations_total|floatformat:2 }}
+                                </div>
                             {% endif %}
                         </div>
-                        <!-- Quick Actions -->
-                        <div class="mt-3 d-flex gap-2 justify-content-end">
-                            <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}"
-                               class="btn btn-primary btn-sm">
-                                <i class="fas fa-plus me-1"></i>Add Transaction
-                            </a>
+                    </div>
+                    
+                    <!-- Action Buttons and Status -->
+                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                        <div class="d-flex gap-2">
                             <a href="{% url 'budget_allocation:edit_account' account.pk %}"
-                               class="btn btn-outline-secondary btn-sm">
+                               class="btn btn-outline-secondary btn-sm px-3">
                                 <i class="fas fa-edit me-1"></i>Edit
                             </a>
                             {% if account.can_have_children %}
                             <a href="{% url 'budget_allocation:account_create' %}?parent={{ account.pk }}"
-                               class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-plus me-1"></i>Add Child
+                               class="btn btn-outline-success btn-sm px-3">
+                                <i class="fas fa-plus me-1"></i>Child
                             </a>
                             {% endif %}
                         </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge {% if account.is_active %}bg-success{% else %}bg-secondary{% endif %} px-3 py-2">
+                                {{ account.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                            </div>
+                        </div>
                     </div>
+                    <div class="row mt-3">
+                        <div class="col-12 col-md-6 mb-3 mb-md-0">
+                            <div class="border rounded p-2 bg-light">
+                                <div class="small text-muted mb-1">Parent Account</div>
+                                {% if account.parent %}
+                                    <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}" class="fw-semibold text-decoration-underline">{{ account.parent.name }}</a>
+                                {% else %}
+                                    <span class="text-muted">None</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="border rounded p-2 bg-light">
+                                <div class="small text-muted mb-1">Child Accounts</div>
+                                {% if enriched_child_accounts and enriched_child_accounts|length > 0 %}
+                                    <ul class="list-unstyled mb-0">
+                                    {% for child_data in enriched_child_accounts %}
+                                        <li class="mb-1">
+                                            <a href="{% url 'budget_allocation:account_detail' child_data.account.pk %}" class="fw-semibold text-decoration-underline me-2">{{ child_data.account.name }}</a>
+                                            <span class="badge bg-secondary ms-1">${{ child_data.balance|floatformat:2 }}</span>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span class="text-muted">None</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body px-4 pt-3 pb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0 fw-semibold"><i class="fas fa-list me-2"></i>Transactions</h5>
+                        <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}"
+                           class="btn btn-primary btn-sm px-3">
+                            <i class="fas fa-plus me-1"></i>New Transaction
+                        </a>
+                    </div>
+                    
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                        <tr>
+                                            <td>{{ transaction.transaction_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="fw-semibold">{{ transaction.description }}</span>
+                                                {% if transaction.notes %}
+                                                    <div class="small text-muted">{{ transaction.notes|truncatewords:10 }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="{% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if transaction.amount >= 0 %}+{% endif %}${{ transaction.amount|floatformat:2 }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{% url 'budget_allocation:transaction_delete' transaction.pk %}?from_account=1" 
+                                                   class="btn btn-danger btn-sm px-3 d-inline-flex align-items-center gap-1" 
+                                                   title="Delete Transaction">
+                                                    <i class="fas fa-trash me-1"></i> Delete
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% if transactions.has_other_pages %}
+                            <nav aria-label="Transactions pagination">
+                                <ul class="pagination justify-content-center mt-3">
+                                    {% if transactions.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">First</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.previous_page_number }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}
+                                        </span>
+                                    </li>
+                                    {% if transactions.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.next_page_number }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Next</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.paginator.num_pages }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Last</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No transactions found</h6>
+                            <p class="text-muted mb-3">Start tracking your account activity by adding your first transaction.</p>
+                            <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add First Transaction
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Child Accounts Section -->
-{% if enriched_child_accounts %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-code-branch me-2"></i>Child Accounts ({{ enriched_child_accounts|length }})
-                </h5>
-            </div>
-            {% block page_content %}
-            <div class="container-fluid px-0">
-                {% if show_week_selector %}
-                    <div class="mb-3">
-                        {% include 'budget_allocation/partials/week_selector.html' %}
-                    </div>
-                {% endif %}
-                <div class="row justify-content-center">
-                    <div class="col-lg-8 col-md-10 col-12">
-                        <div class="card shadow-sm border-0 mb-4">
-                            <div class="card-body pb-2 pt-4 px-4">
-                                <div class="d-flex align-items-center justify-content-between flex-wrap">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div style="width: 38px; height: 38px; border-radius: 50%; background: {{ account.color }}; border: 2px solid #e9ecef;"></div>
-                                        <div>
-                                            <h2 class="mb-0 fw-semibold">{{ account.name }}</h2>
-                                            {% if account.description %}
-                                                <div class="text-muted small">{{ account.description }}</div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="d-flex flex-column align-items-end gap-2 mt-3 mt-md-0">
-                                        <span class="fs-4 fw-bold {% if account_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                            ${{ account_balance|floatformat:2 }}
-                                        </span>
-                                        <span class="badge {% if account.is_active %}bg-success{% else %}bg-secondary{% endif %}">
-                                            {{ account.is_active|yesno:"Active,Inactive" }}
-                                        </span>
-                                        <div class="d-flex gap-2 mt-2">
-                                            <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}"
-                                               class="btn btn-primary btn-sm px-3">
-                                                <i class="fas fa-plus me-1"></i>Transaction
-                                            </a>
-                                            <a href="{% url 'budget_allocation:edit_account' account.pk %}"
-                                               class="btn btn-outline-secondary btn-sm px-3">
-                                                <i class="fas fa-edit me-1"></i>Edit
-                                            </a>
-                                            {% if account.can_have_children %}
-                                            <a href="{% url 'budget_allocation:account_create' %}?parent={{ account.pk }}"
-                                               class="btn btn-outline-success btn-sm px-3">
-                                                <i class="fas fa-plus me-1"></i>Child
-                                            </a>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row mt-3">
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">Type</div>
-                                        <div class="fw-semibold">{{ account.get_account_type_display }}</div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">Category</div>
-                                        <div class="fw-semibold">{{ account.get_category_display }}</div>
-                                    </div>
-                                    <div class="col-12 col-md-4 mt-2 mt-md-0">
-                                        <div class="small text-muted">Last Updated</div>
-                                        <div class="fw-semibold">{{ account.updated_at|date:"M d, Y" }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card border-0 shadow-sm mb-4">
-                            <div class="card-body px-4 pt-3 pb-2">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 class="mb-0 fw-semibold"><i class="fas fa-list me-2"></i>Transactions</h5>
-                                    <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}"
-                                       class="btn btn-primary btn-sm px-3">
-                                        <i class="fas fa-plus me-1"></i>New
-                                    </a>
-                                </div>
-                                {% if transactions %}
-                                    <div class="table-responsive">
-                                        <table class="table table-sm align-middle mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Description</th>
-                                                    <th class="text-end">Amount</th>
-                                                    <th class="text-center">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for transaction in transactions %}
-                                                    <tr>
-                                                        <td>{{ transaction.transaction_date|date:"M d, Y" }}</td>
-                                                        <td>
-                                                            <span class="fw-semibold">{{ transaction.description }}</span>
-                                                            {% if transaction.notes %}
-                                                                <div class="small text-muted">{{ transaction.notes|truncatewords:10 }}</div>
-                                                            {% endif %}
-                                                        </td>
-                                                        <td class="text-end">
-                                                            <span class="{% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                                                {% if transaction.amount >= 0 %}+{% endif %}${{ transaction.amount|floatformat:2 }}
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <a href="{% url 'budget_allocation:transaction_delete' transaction.pk %}?from_account=1" 
-                                                               class="btn btn-outline-danger btn-sm" 
-                                                               title="Delete Transaction">
-                                                                <i class="fas fa-trash"></i>
-                                                            </a>
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    {% if transactions.has_other_pages %}
-                                        <nav aria-label="Transactions pagination">
-                                            <ul class="pagination justify-content-center mt-3">
-                                                {% if transactions.has_previous %}
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="?page=1{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">First</a>
-                                                    </li>
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="?page={{ transactions.previous_page_number }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Previous</a>
-                                                    </li>
-                                                {% endif %}
-                                                <li class="page-item active">
-                                                    <span class="page-link">
-                                                        Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}
-                                                    </span>
-                                                </li>
-                                                {% if transactions.has_next %}
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="?page={{ transactions.next_page_number }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Next</a>
-                                                    </li>
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="?page={{ transactions.paginator.num_pages }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Last</a>
-                                                    </li>
-                                                {% endif %}
-                                            </ul>
-                                        </nav>
-                                    {% endif %}
-                                {% else %}
-                                    <div class="text-center py-4">
-                                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                                        <h6 class="text-muted">No transactions found</h6>
-                                        <p class="text-muted mb-3">Start tracking your account activity by adding your first transaction.</p>
-                                        <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}" class="btn btn-primary">
-                                            <i class="fas fa-plus me-1"></i>Add First Transaction
-                                        </a>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-                                    <li class="page-item">
+{% endblock %}

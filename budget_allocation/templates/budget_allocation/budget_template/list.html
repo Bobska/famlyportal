@@ -13,9 +13,9 @@
     <h4>
         <i class="fas fa-template me-2"></i>Budget Templates
     </h4>
-    <a href="{% url 'budget_allocation:budget_template_create' %}" class="btn btn-primary">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBudgetTemplateModal">
         <i class="fas fa-plus me-2"></i>Create Template
-    </a>
+    </button>
 </div>
 
 {% if templates %}
@@ -83,9 +83,191 @@
         <i class="fas fa-template fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No Budget Templates Yet</h5>
         <p class="text-muted mb-4">Budget templates help automate your weekly allocations.</p>
-        <a href="{% url 'budget_allocation:budget_template_create' %}" class="btn btn-primary">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBudgetTemplateModal">
             <i class="fas fa-plus me-2"></i>Create Your First Template
-        </a>
+        </button>
     </div>
 {% endif %}
+<!-- Create Budget Template Modal -->
+<div class="modal fade" id="createBudgetTemplateModal" tabindex="-1" aria-labelledby="createBudgetTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createBudgetTemplateModalLabel">
+                    <i class="fas fa-plus me-2"></i>Create Budget Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="template-form">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.account.id_for_label }}" class="form-label">Account *</label>
+                                {{ form.account }}
+                                {% if form.account.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.account.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.allocation_type.id_for_label }}" class="form-label">Allocation Type *</label>
+                                {{ form.allocation_type }}
+                                {% if form.allocation_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.allocation_type.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.priority.id_for_label }}" class="form-label">Priority *</label>
+                                {{ form.priority }}
+                                {% if form.priority.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.priority.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Lower numbers = higher priority</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch mt-4">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Active Template
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Fixed Amount Fields -->
+                    <div id="fixed-fields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.weekly_amount.id_for_label }}" class="form-label">Weekly Amount</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.weekly_amount }}
+                                    </div>
+                                    {% if form.weekly_amount.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.weekly_amount.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Percentage Fields -->
+                    <div id="percentage-fields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.percentage.id_for_label }}" class="form-label">Percentage</label>
+                                    <div class="input-group">
+                                        {{ form.percentage }}
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    {% if form.percentage.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.percentage.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Range Fields -->
+                    <div id="range-fields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.min_amount.id_for_label }}" class="form-label">Minimum Amount</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.min_amount }}
+                                    </div>
+                                    {% if form.min_amount.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.min_amount.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.max_amount.id_for_label }}" class="form-label">Maximum Amount</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.max_amount }}
+                                    </div>
+                                    {% if form.max_amount.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.max_amount.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notes.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Create Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+        const allocationTypeField = document.getElementById('{{ form.allocation_type.id_for_label }}');
+        const fixedFields = document.getElementById('fixed-fields');
+        const percentageFields = document.getElementById('percentage-fields');
+        const rangeFields = document.getElementById('range-fields');
+        function toggleFields() {
+                const selectedType = allocationTypeField.value;
+                fixedFields.style.display = 'none';
+                percentageFields.style.display = 'none';
+                rangeFields.style.display = 'none';
+                if (selectedType === 'fixed') {
+                        fixedFields.style.display = 'block';
+                } else if (selectedType === 'percentage') {
+                        percentageFields.style.display = 'block';
+                } else if (selectedType === 'range') {
+                        rangeFields.style.display = 'block';
+                }
+        }
+        toggleFields();
+        allocationTypeField.addEventListener('change', toggleFields);
+});
+</script>
 {% endblock %}

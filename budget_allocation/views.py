@@ -925,52 +925,36 @@ def transaction_delete(request, pk):
 @family_required
 @app_permission_required('budget_allocation')
 def budget_template_list(request):
-    """List and manage budget templates"""
+    """List and manage budget templates, handle create via modal"""
     family = get_user_family(request.user)
     if not family:
         messages.error(request, "You must be part of a family to access budget templates.")
         return redirect('accounts:dashboard')
-    
+
     templates = BudgetTemplate.objects.filter(
         family=family
     ).order_by('priority', 'account__name')
-    
-    context = {
-        'title': 'Budget Templates',
-        'templates': templates,
-        'family': family,
-    }
-    return render(request, 'budget_allocation/budget_template/list.html', context)
 
-
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def budget_template_create(request):
-    """Create budget template"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to create budget templates.")
-        return redirect('accounts:dashboard')
-    
+    form = BudgetTemplateForm(family=family)
     if request.method == 'POST':
         form = BudgetTemplateForm(request.POST, family=family)
         if form.is_valid():
             template = form.save(commit=False)
             template.family = family
             template.save()
-            
             messages.success(request, f'Budget template for "{template.account.name}" created successfully.')
             return redirect('budget_allocation:budget_template_list')
-    else:
-        form = BudgetTemplateForm(family=family)
-    
+
     context = {
-        'title': 'Create Budget Template',
+        'title': 'Budget Templates',
+        'templates': templates,
         'form': form,
         'family': family,
     }
-    return render(request, 'budget_allocation/budget_template/create.html', context)
+    return render(request, 'budget_allocation/budget_template/list.html', context)
+
+
+
 
 
 # Loan Views

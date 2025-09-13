@@ -403,11 +403,12 @@ class TransactionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         if self.family:
-            # Filter accounts to family accounts
+            # Only show Expense accounts for budgeting
             self.fields['account'].queryset = Account.objects.filter(
                 family=self.family,
-                is_active=True
-            ).order_by('account_type', 'name')
+                is_active=True,
+                account_type='expense'
+            ).order_by('name')
             
             # Filter weeks to family weeks
             self.fields['week'].queryset = self.family.weeklyperiod_set.order_by('-start_date')

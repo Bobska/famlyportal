@@ -30,7 +30,6 @@ urlpatterns = [
     
     # Budget template management
     path('budget-templates/', views.budget_template_list, name='budget_template_list'),
-    path('budget-templates/create/', views.budget_template_create, name='budget_template_create'),
     
     # Settings
     path('settings/', views.family_settings, name='family_settings'),

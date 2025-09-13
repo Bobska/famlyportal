@@ -597,6 +597,33 @@ def allocation_dashboard(request):
     if not family:
         messages.error(request, "You must be part of a family to access allocations.")
         return redirect('accounts:dashboard')
+
+    # Handle allocation creation via modal
+    if request.method == 'POST':
+        form = AllocationForm(request.POST, family=family)
+        if form.is_valid():
+            allocation = form.save(commit=False)
+            allocation.family = family
+            
+            # Auto-assign to current week if not specified
+            if not allocation.week:
+                today = date.today()
+                week_start = today - timedelta(days=today.weekday())
+                week_end = week_start + timedelta(days=6)
+                
+                current_week, created = WeeklyPeriod.objects.get_or_create(
+                    start_date=week_start,
+                    end_date=week_end,
+                    family=family,
+                    defaults={'is_active': True}
+                )
+                allocation.week = current_week
+            
+            allocation.save()
+            messages.success(request, f"Allocation created: ${allocation.amount} from {allocation.from_account.name} to {allocation.to_account.name}")
+            return redirect('budget_allocation:allocation_dashboard')
+    else:
+        form = AllocationForm(family=family)
     
     # Get or create current week
     today = date.today()
@@ -650,53 +677,9 @@ def allocation_dashboard(request):
         'total_allocated': total_allocated,
         'available_income': available_income,
         'remaining_to_allocate': available_income - total_allocated,
+        'form': form,  # Add form to context for modal
     }
     return render(request, 'budget_allocation/allocation/dashboard.html', context)
-
-
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def create_allocation(request):
-    """Create manual allocation"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to create allocations.")
-        return redirect('accounts:dashboard')
-    
-    if request.method == 'POST':
-        form = AllocationForm(request.POST, family=family)
-        if form.is_valid():
-            allocation = form.save(commit=False)
-            allocation.family = family
-            
-            # Auto-assign to current week if not specified
-            if not allocation.week:
-                today = date.today()
-                week_start = today - timedelta(days=today.weekday())
-                week_end = week_start + timedelta(days=6)
-                
-                current_week, created = WeeklyPeriod.objects.get_or_create(
-                    start_date=week_start,
-                    end_date=week_end,
-                    family=family,
-                    defaults={'is_active': True}
-                )
-                allocation.week = current_week
-            
-            allocation.save()
-            
-            messages.success(request, f'Allocation of ${allocation.amount} created successfully.')
-            return redirect('budget_allocation:allocation_dashboard')
-    else:
-        form = AllocationForm(family=family)
-    
-    context = {
-        'title': 'Create Allocation',
-        'form': form,
-        'family': family,
-    }
-    return render(request, 'budget_allocation/allocation/create.html', context)
 
 
 # Transaction Views

@@ -19,7 +19,6 @@ urlpatterns = [
     
     # Allocation management
     path('allocation/', views.allocation_dashboard, name='allocation_dashboard'),
-    path('allocation/create/', views.create_allocation, name='create_allocation'),
     
     # Transaction management
     path('transactions/', views.transaction_list, name='transaction_list'),

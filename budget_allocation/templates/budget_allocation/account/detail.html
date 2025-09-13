@@ -80,6 +80,23 @@
                                 <span class="badge bg-info">Child Account</span>
                             {% endif %}
                         </div>
+                        <!-- Quick Actions -->
+                        <div class="mt-3 d-flex gap-2 justify-content-end">
+                            <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}"
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>Add Transaction
+                            </a>
+                            <a href="{% url 'budget_allocation:edit_account' account.pk %}"
+                               class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                            {% if account.can_have_children %}
+                            <a href="{% url 'budget_allocation:account_create' %}?parent={{ account.pk }}"
+                               class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-plus me-1"></i>Add Child
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -133,32 +150,9 @@
 </div>
 {% endif %}
 
-<!-- Activity Summary -->
+<!-- Account Info -->
 <div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-line me-2"></i>Recent Activity
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if history %}
-                    {% for entry in history %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <small class="text-muted">{{ entry.timestamp|date:"M d, Y H:i" }}</small>
-                                <div class="small">{{ entry.get_action_display }}</div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-muted mb-0">No activity history</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -199,7 +193,7 @@
                 <h5 class="card-title mb-0">
                     <i class="fas fa-list me-2"></i>Recent Transactions
                 </h5>
-                <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}" class="btn btn-primary btn-sm">
+                <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i>Add Transaction
                 </a>
             </div>
@@ -286,31 +280,12 @@
                         <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
                         <h6 class="text-muted">No transactions found</h6>
                         <p class="text-muted mb-3">Start tracking your account activity by adding your first transaction.</p>
-                        <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}" class="btn btn-primary">
+                        <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}{% if show_week_selector %}&return_week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}" class="btn btn-primary">
                             <i class="fas fa-plus me-1"></i>Add First Transaction
                         </a>
                     </div>
                 {% endif %}
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Action Buttons -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="d-flex gap-2 justify-content-start">
-            <a href="{% url 'budget_allocation:edit_account' account.pk %}" class="btn btn-outline-primary">
-                <i class="fas fa-edit me-1"></i>Edit Account
-            </a>
-            <a href="{% url 'budget_allocation:transaction_create' %}?account={{ account.pk }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i>Add Transaction
-            </a>
-            {% if account.can_have_children %}
-                <a href="{% url 'budget_allocation:account_create' %}?parent={{ account.pk }}" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>Add Child Account
-                </a>
-            {% endif %}
         </div>
     </div>
 </div>

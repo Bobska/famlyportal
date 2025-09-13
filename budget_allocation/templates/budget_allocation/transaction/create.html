@@ -18,7 +18,7 @@
 </li>
 {% if initial_account %}
     <li class="breadcrumb-item">
-        <a href="{% url 'budget_allocation:account_detail' initial_account.pk %}">
+        <a href="{% url 'budget_allocation:account_detail' initial_account.pk %}{% if return_week %}?week={{ return_week }}{% endif %}">
             {{ initial_account.name }}
         </a>
     </li>
@@ -32,7 +32,7 @@
         <i class="fas fa-list me-1"></i>All Transactions
     </a>
     {% if initial_account %}
-        <a href="{% url 'budget_allocation:account_detail' initial_account.pk %}" class="btn btn-outline-secondary">
+        <a href="{% url 'budget_allocation:account_detail' initial_account.pk %}{% if return_week %}?week={{ return_week }}{% endif %}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i>Back to {{ initial_account.name }}
         </a>
     {% endif %}
@@ -60,6 +60,9 @@
                 
                 <form method="post" class="needs-validation" novalidate>
                     {% csrf_token %}
+                    {% if return_week %}
+                        <input type="hidden" name="return_week" value="{{ return_week }}">
+                    {% endif %}
                     
                     <!-- Transaction Basic Info -->
                     {% if initial_account %}
@@ -290,7 +293,7 @@
                                 <i class="fas fa-save me-2"></i>Record Transaction
                             </button>
                             {% if initial_account %}
-                                <a href="{% url 'budget_allocation:account_detail' initial_account.pk %}" class="btn btn-secondary ms-2">
+                                <a href="{% url 'budget_allocation:account_detail' initial_account.pk %}{% if return_week %}?week={{ return_week }}{% endif %}" class="btn btn-secondary ms-2">
                                     <i class="fas fa-times me-1"></i>Cancel
                                 </a>
                             {% else %}

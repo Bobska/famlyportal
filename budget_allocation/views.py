@@ -911,6 +911,8 @@ def transaction_create(request):
     # Get the account parameter if passed (from account detail page)
     account_id = request.GET.get('account')
     initial_account = None
+    # Preserve optional week for return navigation
+    return_week = request.GET.get('return_week')
     if account_id:
         try:
             initial_account = Account.objects.get(id=account_id, family=family, is_active=True)
@@ -918,6 +920,8 @@ def transaction_create(request):
             pass
     
     if request.method == 'POST':
+        # Preserve optional week to return to account detail with same context
+        return_week = request.GET.get('return_week') or request.POST.get('return_week') or return_week
         form = TransactionForm(request.POST, family=family, initial_account=initial_account)
         if form.is_valid():
             transaction = form.save(commit=False)
@@ -957,6 +961,10 @@ def transaction_create(request):
             
             # Redirect back to account detail if we came from there
             if initial_account:
+                if return_week:
+                    # Build URL with week query parameter
+                    detail_url = reverse('budget_allocation:account_detail', kwargs={'account_id': initial_account.pk})
+                    return redirect(f"{detail_url}?week={return_week}")
                 return redirect('budget_allocation:account_detail', account_id=initial_account.pk)
             return redirect('budget_allocation:transaction_list')
     else:
@@ -971,6 +979,7 @@ def transaction_create(request):
         'form': form,
         'family': family,
         'initial_account': initial_account,
+        'return_week': return_week,
     }
     return render(request, 'budget_allocation/transaction/create.html', context)
 

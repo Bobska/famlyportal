@@ -415,8 +415,34 @@ def account_detail(request, account_id):
     family = get_user_family(request.user)
     account = get_object_or_404(Account, id=account_id, family=family)
     
-    # Get current week for balance calculations
-    current_week = get_current_week(family)
+    # Determine week context (optional ?week=YYYY-MM-DD)
+    week_param = request.GET.get('week')
+    show_week_selector = False
+    if week_param:
+        try:
+            parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+        except ValueError:
+            parsed_date = date.today()
+        # Use manager helper if available
+        try:
+            current_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=parsed_date)
+        except Exception:
+            current_week = get_current_week(family)
+        # Compute prev/next for template week selector
+        prev_start = current_week.start_date - timedelta(days=7)
+        next_start = current_week.start_date + timedelta(days=7)
+        try:
+            prev_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=prev_start)
+            next_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=next_start)
+        except Exception:
+            prev_week = None
+            next_week = None
+        show_week_selector = True
+    else:
+        # Default to the family's current week to compute balances (no selector shown)
+        current_week = get_current_week(family)
+        prev_week = None
+        next_week = None
     
     # Get child accounts with their balances
     child_accounts = account.children.filter(is_active=True).order_by('sort_order', 'name')
@@ -503,6 +529,9 @@ def account_detail(request, account_id):
         'history': history,
         'weekly_summary': weekly_summary,
         'current_week': current_week,
+        'prev_week': prev_week,
+        'next_week': next_week,
+        'show_week_selector': show_week_selector,
         'family': family,
     }
     return render(request, 'budget_allocation/account/detail.html', context)

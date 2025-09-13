@@ -12,13 +12,19 @@
     </a>
 </li>
 <li class="breadcrumb-item">
-    <a href="{% url 'budget_allocation:account_list' %}">
-        <i class="fas fa-sitemap"></i> Accounts
-    </a>
+    {% if show_week_selector %}
+        <a href="{% url 'budget_allocation:account_list_weekly' %}?week={{ current_week.start_date|date:'Y-m-d' }}">
+            <i class="fas fa-sitemap"></i> Weekly Accounts
+        </a>
+    {% else %}
+        <a href="{% url 'budget_allocation:account_list' %}">
+            <i class="fas fa-sitemap"></i> Accounts
+        </a>
+    {% endif %}
 </li>
 {% if account.parent %}
     <li class="breadcrumb-item">
-        <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}">
+        <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}{% if show_week_selector %}?week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">
             {{ account.parent.name }}
         </a>
     </li>
@@ -28,7 +34,9 @@
 
 {% block page_content %}
 <!-- Week Selector -->
+{% if show_week_selector %}
 {% include 'budget_allocation/partials/week_selector.html' %}
+{% endif %}
 
 <!-- Account Header Card -->
 <div class="row mb-4">
@@ -98,7 +106,7 @@
                                     <div class="me-3" style="width: 15px; height: 15px; background-color: {{ child_data.account.color }}; border-radius: 3px;"></div>
                                     <div>
                                         <h6 class="mb-1">
-                                            <a href="{% url 'budget_allocation:account_detail' child_data.account.pk %}" class="text-decoration-none">
+                                            <a href="{% url 'budget_allocation:account_detail' child_data.account.pk %}{% if show_week_selector %}?week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}" class="text-decoration-none">
                                                 {{ child_data.account.name }}
                                             </a>
                                         </h6>
@@ -172,7 +180,7 @@
                     <div class="mt-2">
                         <small class="text-muted">Parent Account</small>
                         <div class="fw-bold">
-                            <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}" class="text-decoration-none">
+                            <a href="{% url 'budget_allocation:account_detail' account.parent.pk %}{% if show_week_selector %}?week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}" class="text-decoration-none">
                                 {{ account.parent.name }}
                             </a>
                         </div>
@@ -249,10 +257,10 @@
                             <ul class="pagination justify-content-center">
                                 {% if transactions.has_previous %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page=1">First</a>
+                                        <a class="page-link" href="?page=1{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">First</a>
                                     </li>
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ transactions.previous_page_number }}">Previous</a>
+                                        <a class="page-link" href="?page={{ transactions.previous_page_number }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Previous</a>
                                     </li>
                                 {% endif %}
                                 
@@ -264,10 +272,10 @@
                                 
                                 {% if transactions.has_next %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ transactions.next_page_number }}">Next</a>
+                                        <a class="page-link" href="?page={{ transactions.next_page_number }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Next</a>
                                     </li>
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ transactions.paginator.num_pages }}">Last</a>
+                                        <a class="page-link" href="?page={{ transactions.paginator.num_pages }}{% if show_week_selector %}&week={{ current_week.start_date|date:'Y-m-d' }}{% endif %}">Last</a>
                                     </li>
                                 {% endif %}
                             </ul>

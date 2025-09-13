@@ -74,7 +74,7 @@
         <!-- Action Buttons -->
         <div class="account-actions d-flex align-items-center ms-3" onclick="event.stopPropagation()">
             <div class="btn-group account-management-buttons">
-                <a href="{% url 'budget_allocation:account_detail' account.id %}" 
+                <a href="{% url 'budget_allocation:account_detail' account.id %}{% if week %}?week={{ week.start_date|date:'Y-m-d' }}{% endif %}" 
                    class="btn btn-outline-primary btn-sm" 
                    title="View Details">
                     <i class="fas fa-eye me-1"></i>View

@@ -138,3 +138,37 @@ def total_transactions_with_children(account):
         return total
     except Exception:
         return Decimal('0.00')
+
+
+@register.simple_tag
+def weekly_transactions_with_children(account, week):
+    """Sum transactions for an account (and active descendants) for a specific week.
+
+    Uses account type to decide whether to sum income or expense transactions.
+    """
+    try:
+        def collect_descendant_ids(acc):
+            ids = [acc.id]
+            for child in acc.children.filter(is_active=True):
+                ids.extend(collect_descendant_ids(child))
+            return ids
+
+        account_ids = collect_descendant_ids(account)
+        tx_type = 'income' if account.account_type == 'income' else (
+            'expense' if account.account_type == 'expense' else None
+        )
+        if not tx_type:
+            return Decimal('0.00')
+
+        total = (
+            Transaction.objects.filter(
+                family=account.family,
+                account_id__in=account_ids,
+                week=week,
+                transaction_type=tx_type,
+            ).aggregate(total=Sum('amount'))['total']
+            or Decimal('0.00')
+        )
+        return total
+    except Exception:
+        return Decimal('0.00')

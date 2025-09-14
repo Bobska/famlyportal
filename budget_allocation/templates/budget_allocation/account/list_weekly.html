@@ -164,157 +164,601 @@
  </div>
 {% endblock %}
 
+<style>
+/* Custom tab styling */
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 12px 20px;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: transparent;
+    border-color: transparent;
+    border-bottom-color: var(--bs-primary);
+    color: #212529;
+    font-weight: 600;
+}
+
+.nav-tabs .nav-link.active#income-tab {
+    border-bottom-color: #198754 !important;
+    color: #198754;
+}
+
+.nav-tabs .nav-link.active#expense-tab {
+    border-bottom-color: #dc3545 !important;
+    color: #dc3545;
+}
+
+.nav-tabs .nav-link .badge {
+    font-size: 0.7em;
+    font-weight: 600;
+}
+
+.tab-content {
+    border-top: 1px solid #dee2e6;
+}
+
+/* Account tree container - base styles */
+.account-tree-container {
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    background-color: #fff;
+}
+
+/* For tab content (main account pages) */
+.tab-pane .account-tree-container {
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Account tree selector styling */
+.account-tree-selector {
+    transition: all 0.2s ease;
+    border-radius: 0.375rem;
+    margin-bottom: 2px;
+}
+
+.account-tree-selector:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.account-tree-selector.expanded {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+/* Children container styling */
+.account-children {
+    transition: all 0.3s ease;
+    overflow: hidden;
+    border-left: 2px solid #e9ecef;
+    margin-left: 20px;
+    padding-left: 10px;
+}
+
+.account-children.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+/* Chevron rotation animation */
+.expand-chevron {
+    transition: transform 0.3s ease;
+}
+
+/* Modal tree container specific styles */
+.modal .account-tree-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+}
+
+/* Account tree animation */
+.account-tree-item {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
 {% block extra_js %}
 <script>
 function showCreateAccountModal(accountType = '') {
-  const modal = new bootstrap.Modal(document.getElementById('createAccountModal'));
-  resetModalState();
-  loadAccountHierarchy(accountType);
-  modal.show();
+    const modal = new bootstrap.Modal(document.getElementById('createAccountModal'));
+    
+    // Reset modal state
+    resetModalState();
+    
+    // Load the account hierarchy tree
+    loadAccountHierarchy(accountType);
+    
+    modal.show();
 }
 
 function resetModalState() {
-  document.getElementById('quickCreateAccountForm').reset();
-  document.getElementById('selectedParentId').value = '';
-  document.getElementById('selectedAccountType').value = '';
-  const createBtn = document.getElementById('createAccountBtn');
-  createBtn.disabled = true;
-  createBtn.textContent = 'Create Account';
-  document.querySelector('#createAccountModal .modal-title').textContent = 'Create New Account';
-  document.querySelectorAll('.error-message').forEach(el => el.remove());
-  document.getElementById('accountHierarchyTree').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading accounts...</div>';
+    // Reset form
+    document.getElementById('quickCreateAccountForm').reset();
+    
+    // Reset hidden fields
+    document.getElementById('selectedParentId').value = '';
+    document.getElementById('selectedAccountType').value = '';
+    
+    // Reset button state
+    const createBtn = document.getElementById('createAccountBtn');
+    createBtn.disabled = true;
+    createBtn.textContent = 'Create Account';
+    
+    // Reset modal title
+    document.querySelector('#createAccountModal .modal-title').textContent = 'Create New Account';
+    
+    // Clear any error messages
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+    
+    // Clear tree container
+    document.getElementById('accountHierarchyTree').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading accounts...</div>';
 }
 
 function loadAccountHierarchy(filterType = '') {
-  fetch('/budget-allocation/api/account-tree/')
-    .then(response => response.json())
-    .then(data => {
-      const treeContainer = document.getElementById('accountHierarchyTree');
-      if (data.success) {
-        const treeHtml = buildAccountTreeHtml(data.tree, filterType);
-        treeContainer.innerHTML = treeHtml;
-        addAccountSelectionHandlers();
-      } else {
-        treeContainer.innerHTML = '<div class="text-danger">Error loading accounts</div>';
-      }
-    })
-    .catch(error => {
-      console.error('Error loading account tree:', error);
-      document.getElementById('accountHierarchyTree').innerHTML = '<div class="text-danger">Error loading accounts</div>';
-    });
+    fetch('/budget-allocation/api/account-tree/')
+        .then(response => response.json())
+        .then(data => {
+            const treeContainer = document.getElementById('accountHierarchyTree');
+            
+            if (data.success) {
+                const treeHtml = buildAccountTreeHtml(data.tree, filterType);
+                treeContainer.innerHTML = treeHtml;
+                
+                // Add click handlers to account items
+                addAccountSelectionHandlers();
+            } else {
+                treeContainer.innerHTML = '<div class="text-danger">Error loading accounts</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading account tree:', error);
+            document.getElementById('accountHierarchyTree').innerHTML = 
+                '<div class="text-danger">Error loading accounts</div>';
+        });
 }
 
 function buildAccountTreeHtml(accounts, filterType = '', level = 0) {
-  let html = '';
-  accounts.forEach(item => {
-    const account = item.account;
-    const children = item.children || [];
-    const indent = 20 * level;
-
-    if (filterType && account.account_type !== filterType) {
-      if (children.length > 0) {
-        html += buildAccountTreeHtml(children, filterType, level);
-      }
-      return;
-    }
-
-    html += `
-      <div class="account-tree-item" style="margin-left: ${indent}px;">
-        <div class="d-flex align-items-center py-2 px-3 border rounded mb-1 account-selector" 
-             data-account-id="${account.id}" 
-             data-account-type="${account.account_type}"
-             data-account-name="${account.name}"
-             style="cursor: pointer; border: 1px solid #dee2e6;">
-          <div class="flex-grow-1">
-            <div class="d-flex align-items-center">
-              ${level > 0 ? '<i class="fas fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : ''}
-              <i class="fas fa-${account.account_type === 'income' ? 'arrow-up text-success' : 'arrow-down text-danger'} me-2"></i>
-              <span class="fw-medium">${account.name}</span>
-              ${account.account_type === 'income' ? '<span class="badge bg-success ms-2">Income</span>' : '<span class="badge bg-danger ms-2">Expense</span>'}
-            </div>
-            ${account.description ? `<small class="text-muted">${account.description}</small>` : ''}
-          </div>
-        </div>
-    `;
-
-    if (children.length > 0) {
-      html += buildAccountTreeHtml(children, filterType, level + 1);
-    }
-
-    html += '</div>';
-  });
-  return html;
+    let html = '';
+    
+    accounts.forEach(item => {
+        const account = item.account;
+        const children = item.children || [];
+        const indent = 20 * level;
+        
+        // Skip accounts that don't match the filter type (if specified)
+        if (filterType && account.account_type !== filterType) {
+            // But still show children if they match
+            if (children.length > 0) {
+                html += buildAccountTreeHtml(children, filterType, level);
+            }
+            return;
+        }
+        
+        // Account item
+        html += `
+            <div class="account-tree-item" style="margin-left: ${indent}px;">
+                <div class="d-flex align-items-center py-2 px-3 border rounded mb-1 account-selector" 
+                     data-account-id="${account.id}" 
+                     data-account-type="${account.account_type}"
+                     data-account-name="${account.name}"
+                     style="cursor: pointer; border: 1px solid #dee2e6;">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center">
+                            ${level > 0 ? '<i class="fas fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : ''}
+                            <i class="fas fa-${account.account_type === 'income' ? 'arrow-up text-success' : 'arrow-down text-danger'} me-2"></i>
+                            <span class="fw-medium">${account.name}</span>
+                            ${account.account_type === 'income' ? '<span class="badge bg-success ms-2">Income</span>' : '<span class="badge bg-danger ms-2">Expense</span>'}
+                        </div>
+                        ${account.description ? `<small class="text-muted">${account.description}</small>` : ''}
+                    </div>
+                </div>
+        `;
+        
+        // Add children recursively
+        if (children.length > 0) {
+            html += buildAccountTreeHtml(children, filterType, level + 1);
+        }
+        
+        html += '</div>';
+    });
+    
+    return html;
 }
 
 function addAccountSelectionHandlers() {
-  document.querySelectorAll('.account-selector').forEach(item => {
-    item.addEventListener('click', function() {
-      document.querySelectorAll('.account-selector').forEach(el => {
-        el.classList.remove('border-primary', 'bg-light');
-        el.style.borderColor = '#dee2e6';
-      });
-
-      this.classList.add('border-primary', 'bg-light');
-      this.style.borderColor = '#0d6efd';
-
-      const accountId = this.dataset.accountId;
-      const accountType = this.dataset.accountType;
-      const accountName = this.dataset.accountName;
-
-      document.getElementById('selectedParentId').value = accountId;
-      document.getElementById('selectedAccountType').value = accountType;
-
-      document.getElementById('createAccountBtn').disabled = false;
-      document.getElementById('createAccountBtn').textContent = `Create ${accountType.charAt(0).toUpperCase() + accountType.slice(1)} Account`;
-
-      document.querySelector('#createAccountModal .modal-title').textContent = `Create New ${accountType.charAt(0).toUpperCase() + accountType.slice(1)} Account under "${accountName}"`;
+    document.querySelectorAll('.account-selector').forEach(item => {
+        item.addEventListener('click', function() {
+            // Remove previous selection
+            document.querySelectorAll('.account-selector').forEach(el => {
+                el.classList.remove('border-primary', 'bg-light');
+                el.style.borderColor = '#dee2e6';
+            });
+            
+            // Highlight selected item
+            this.classList.add('border-primary', 'bg-light');
+            this.style.borderColor = '#0d6efd';
+            
+            // Set hidden form values
+            const accountId = this.dataset.accountId;
+            const accountType = this.dataset.accountType;
+            const accountName = this.dataset.accountName;
+            
+            document.getElementById('selectedParentId').value = accountId;
+            document.getElementById('selectedAccountType').value = accountType;
+            
+            // Enable create button
+            document.getElementById('createAccountBtn').disabled = false;
+            document.getElementById('createAccountBtn').textContent = `Create ${accountType.charAt(0).toUpperCase() + accountType.slice(1)} Account`;
+            
+            // Update modal title
+            document.querySelector('#createAccountModal .modal-title').textContent = 
+                `Create New ${accountType.charAt(0).toUpperCase() + accountType.slice(1)} Account under "${accountName}"`;
+        });
     });
-  });
 }
 
 function submitCreateAccount() {
-  const form = document.getElementById('quickCreateAccountForm');
-  const formData = new FormData(form);
-  const createBtn = document.getElementById('createAccountBtn');
-  createBtn.disabled = true;
-  createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
-  document.querySelectorAll('.error-message').forEach(el => el.remove());
-
-  fetch('/budget-allocation/api/accounts/create/', {
-    method: 'POST',
-    body: formData,
-    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      const modal = bootstrap.Modal.getInstance(document.getElementById('createAccountModal'));
-      modal.hide();
-      const alertHtml = `
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          <i class="fas fa-check-circle me-2"></i>${data.message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
-      document.querySelector('.tab-content').insertAdjacentHTML('beforebegin', alertHtml);
-      setTimeout(() => { window.location.reload(); }, 1500);
-    } else {
-      createBtn.disabled = false;
-      createBtn.textContent = 'Create Account';
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'error-message text-danger mt-2';
-      errorDiv.textContent = data.error || 'Error creating account';
-      form.appendChild(errorDiv);
-    }
-  })
-  .catch(error => {
-    console.error('Error creating account:', error);
-    createBtn.disabled = false;
-    createBtn.textContent = 'Create Account';
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message text-danger mt-2';
-    errorDiv.textContent = 'Error creating account';
-    form.appendChild(errorDiv);
-  });
+    const form = document.getElementById('quickCreateAccountForm');
+    const formData = new FormData(form);
+    const createBtn = document.getElementById('createAccountBtn');
+    
+    // Disable button and show loading state
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+    
+    // Clear any previous error messages
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+    
+    fetch('/budget-allocation/api/accounts/create/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createAccountModal'));
+            modal.hide();
+            
+            // Show success message
+            const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.querySelector('.tab-content').insertAdjacentHTML('beforebegin', alertHtml);
+            
+            // Reload the page to show the new account
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+            
+        } else {
+            // Show error message
+            const errorHtml = `
+                <div class="alert alert-danger error-message mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>${data.error}
+                </div>
+            `;
+            document.querySelector('#createAccountModal .modal-body').insertAdjacentHTML('beforeend', errorHtml);
+            
+            // Reset button
+            createBtn.disabled = false;
+            createBtn.textContent = 'Create Account';
+        }
+    })
+    .catch(error => {
+        console.error('Error creating account:', error);
+        
+        // Show error message
+        const errorHtml = `
+            <div class="alert alert-danger error-message mt-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>Error creating account. Please try again.
+            </div>
+        `;
+        document.querySelector('#createAccountModal .modal-body').insertAdjacentHTML('beforeend', errorHtml);
+        
+        // Reset button
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create Account';
+    });
 }
+
+// Enhanced tab functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabTriggers = document.querySelectorAll('#accountTabs button[data-bs-toggle="tab"]');
+    
+    // Add smooth transition animation
+    tabTriggers.forEach(trigger => {
+        trigger.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            const targetPane = document.querySelector(targetId);
+            
+            // Add a subtle fade-in animation
+            if (targetPane) {
+                targetPane.style.opacity = '0';
+                targetPane.style.transform = 'translateY(10px)';
+                
+                // Animate in
+                setTimeout(() => {
+                    targetPane.style.transition = 'all 0.3s ease-in-out';
+                    targetPane.style.opacity = '1';
+                    targetPane.style.transform = 'translateY(0)';
+                }, 10);
+            }
+        });
+        
+        // Add active state styling
+        trigger.addEventListener('click', function() {
+            // Remove active styling from all tabs
+            tabTriggers.forEach(tab => {
+                tab.classList.remove('active');
+                tab.style.borderBottomColor = 'transparent';
+            });
+            
+            // Add active styling to clicked tab
+            this.classList.add('active');
+            if (this.id === 'income-tab') {
+                this.style.borderBottomColor = '#198754'; // Success green
+            } else if (this.id === 'expense-tab') {
+                this.style.borderBottomColor = '#dc3545'; // Danger red
+            }
+        });
+    });
+    
+    // Remember last active tab (but only for income/expense)
+    const lastActiveTab = localStorage.getItem('activeAccountTab');
+    if (lastActiveTab && (lastActiveTab === 'income-tab' || lastActiveTab === 'expense-tab')) {
+        const savedTab = document.querySelector(`#${lastActiveTab}`);
+        if (savedTab) {
+            const tab = new bootstrap.Tab(savedTab);
+            tab.show();
+        }
+    }
+    
+    // Save active tab to localStorage
+    tabTriggers.forEach(trigger => {
+        trigger.addEventListener('shown.bs.tab', function(event) {
+            // Only save income/expense tab states for weekly view
+            if (event.target.id === 'income-tab' || event.target.id === 'expense-tab') {
+                localStorage.setItem('activeAccountTab', event.target.id);
+                
+                // Clear state restore permission when switching tabs to ensure collapsed state
+                sessionStorage.removeItem('allowStateRestore');
+                
+                // Apply collapsed state immediately
+                setTimeout(() => {
+                    document.querySelectorAll('.account-tree-selector').forEach(selector => {
+                        selector.classList.remove('expanded');
+                    });
+                    
+                    document.querySelectorAll('[id^="children-"]').forEach(childrenDiv => {
+                        childrenDiv.classList.add('collapsed');
+                    });
+                    
+                    document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+                        chevron.style.transform = 'rotate(0deg)';
+                    });
+                }, 50);
+            }
+        });
+    });
+    
+    // Functions to save and restore account tree state
+    function saveAccountTreeState() {
+        const expandedAccounts = [];
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(selector => {
+            const accountId = selector.getAttribute('data-account-id');
+            if (accountId) {
+                expandedAccounts.push(accountId);
+            }
+        });
+        localStorage.setItem('expandedAccountIds', JSON.stringify(expandedAccounts));
+    }
+    
+    function restoreAccountTreeState() {
+        // Only restore expanded state if user is navigating within the same session
+        // and not when switching tabs or refreshing
+        const shouldRestoreState = sessionStorage.getItem('allowStateRestore') === 'true';
+        
+        if (shouldRestoreState) {
+            const expandedAccountIds = JSON.parse(localStorage.getItem('expandedAccountIds') || '[]');
+            expandedAccountIds.forEach(accountId => {
+                const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+                const childrenDiv = document.getElementById(`children-${accountId}`);
+                const chevron = document.getElementById(`chevron-${accountId}`);
+                
+                if (selector && childrenDiv) {
+                    // Expand the account
+                    selector.classList.add('expanded');
+                    childrenDiv.classList.remove('collapsed');
+                    if (chevron) {
+                        chevron.style.transform = 'rotate(180deg)';
+                    }
+                }
+            });
+        } else {
+            // Default state: all accounts collapsed
+            document.querySelectorAll('.account-tree-selector').forEach(selector => {
+                selector.classList.remove('expanded');
+            });
+            
+            document.querySelectorAll('[id^="children-"]').forEach(childrenDiv => {
+                childrenDiv.classList.add('collapsed');
+            });
+            
+            document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+                chevron.style.transform = 'rotate(0deg)';
+            });
+        }
+        
+        // Allow state restore for subsequent navigation within the session
+        sessionStorage.setItem('allowStateRestore', 'true');
+    }
+    
+    // Save state when accounts are expanded/collapsed
+    window.toggleAccountRow = function(event, accountId) {
+        // Prevent event bubbling
+        event.stopPropagation();
+        
+        const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+        const childrenDiv = document.getElementById(`children-${accountId}`);
+        const chevron = document.getElementById(`chevron-${accountId}`);
+        
+        if (!childrenDiv || !selector) return;
+        
+        // Toggle expanded state
+        const isExpanded = selector.classList.contains('expanded');
+        
+        if (isExpanded) {
+            // Collapse
+            selector.classList.remove('expanded');
+            childrenDiv.classList.add('collapsed');
+            if (chevron) {
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        } else {
+            // Expand - but first collapse all siblings for accordion behavior
+            const parentId = selector.getAttribute('data-parent-id');
+            
+            // Find all siblings (accounts with the same parent)
+            let siblings;
+            if (parentId) {
+                // Has a parent - find all accounts with the same parent
+                siblings = document.querySelectorAll(`[data-parent-id="${parentId}"]`);
+            } else {
+                // Root level account - find all other root level accounts of the same type
+                const accountType = selector.closest('.tab-pane').id.replace('-accounts', '');
+                const tabPane = document.getElementById(`${accountType}-accounts`);
+                if (tabPane) {
+                    siblings = tabPane.querySelectorAll('.account-tree-selector[data-parent-id=""]');
+                }
+            }
+            
+            // Collapse all siblings
+            if (siblings) {
+                siblings.forEach(sibling => {
+                    if (sibling !== selector) {
+                        const siblingAccountId = sibling.getAttribute('data-account-id');
+                        const siblingChildrenDiv = document.getElementById(`children-${siblingAccountId}`);
+                        const siblingChevron = document.getElementById(`chevron-${siblingAccountId}`);
+                        
+                        if (siblingChildrenDiv) {
+                            sibling.classList.remove('expanded');
+                            siblingChildrenDiv.classList.add('collapsed');
+                            if (siblingChevron) {
+                                siblingChevron.style.transform = 'rotate(0deg)';
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Now expand this account
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) {
+                chevron.style.transform = 'rotate(180deg)';
+            }
+        }
+        
+        // Save the updated state
+        saveAccountTreeState();
+    };
+    
+    // Initialize account tree state
+    restoreAccountTreeState();
+    
+    // Account management functions
+    window.toggleAccountStatus = function(accountId, currentStatus) {
+        const action = currentStatus ? 'disable' : 'enable';
+        const confirmation = confirm(`Are you sure you want to ${action} this account?`);
+        
+        if (confirmation) {
+            fetch(`/budget-allocation/api/account/${accountId}/toggle-status/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to reflect changes
+                    window.location.reload();
+                } else {
+                    alert('Error updating account status: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating account status');
+            });
+        }
+    };
+    
+    window.deleteAccount = function(accountId, accountName) {
+        const confirmation = confirm(`Are you absolutely sure you want to permanently delete "${accountName}"?\n\nThis action cannot be undone and will remove all account data.`);
+        
+        if (confirmation) {
+            fetch(`/budget-allocation/api/account/${accountId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message and reload
+                    alert('Account deleted successfully');
+                    window.location.reload();
+                } else {
+                    alert('Error deleting account: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting account');
+            });
+        }
+    };
+});
 </script>
 {% endblock %}

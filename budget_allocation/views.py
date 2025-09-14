@@ -869,6 +869,41 @@ def allocation_dashboard(request):
     return render(request, 'budget_allocation/allocation/dashboard.html', context)
 
 
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def allocation_create(request):
+    """Create a new allocation"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access allocations.")
+        return redirect('accounts:dashboard')
+
+    if request.method == 'POST':
+        form = AllocationForm(request.POST, family=family)
+        if form.is_valid():
+            allocation = form.save(commit=False)
+            allocation.family = family
+            
+            # Auto-assign to current week if not specified
+            if not allocation.week:
+                current_week = get_current_week(family)
+                allocation.week = current_week
+            
+            allocation.save()
+            messages.success(request, f"Allocation created: ${allocation.amount} from {allocation.from_account.name} to {allocation.to_account.name}")
+            return redirect('budget_allocation:allocation_dashboard')
+    else:
+        form = AllocationForm(family=family)
+
+    context = {
+        'title': 'Create Allocation',
+        'form': form,
+        'family': family,
+    }
+    return render(request, 'budget_allocation/allocation/create.html', context)
+
+
 # Transaction Views
 @login_required
 @family_required

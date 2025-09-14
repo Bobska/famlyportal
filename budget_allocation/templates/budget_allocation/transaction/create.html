@@ -438,6 +438,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Auto-set transaction type based on selected account
+    const accountField = document.getElementById('{{ form.account.id_for_label }}');
+    const transactionTypeField = document.getElementById('{{ form.transaction_type.id_for_label }}');
+    
+    if (accountField && transactionTypeField) {
+        // Create account type mapping from form data
+        const accountTypes = {
+            {% for account in form.fields.account.queryset %}
+                '{{ account.pk }}': '{{ account.account_type }}',
+            {% endfor %}
+        };
+        
+        accountField.addEventListener('change', function() {
+            const accountId = this.value;
+            if (accountId && accountTypes[accountId]) {
+                const accountType = accountTypes[accountId];
+                if (accountType === 'income') {
+                    transactionTypeField.value = 'income';
+                } else if (accountType === 'expense') {
+                    transactionTypeField.value = 'expense';
+                }
+                
+                // Trigger the change event to update the icon
+                transactionTypeField.dispatchEvent(new Event('change'));
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

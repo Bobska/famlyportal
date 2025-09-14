@@ -403,12 +403,21 @@ class TransactionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         if self.family:
-            # Only show Expense accounts for budgeting
-            self.fields['account'].queryset = Account.objects.filter(
+            # Show both income and expense accounts for transactions
+            account_queryset = Account.objects.filter(
                 family=self.family,
                 is_active=True,
-                account_type='expense'
-            ).order_by('name')
+                account_type__in=['income', 'expense']
+            ).order_by('account_type', 'name')
+            self.fields['account'].queryset = account_queryset
+            
+            # Add account type data to account field widget for JavaScript access
+            account_choices = []
+            for account in account_queryset:
+                account_choices.append((account.pk, account.name, account.account_type))
+            
+            # Store account type mapping for JavaScript
+            self.account_types = {str(account.pk): account.account_type for account in account_queryset}
             
             # Filter weeks to family weeks
             self.fields['week'].queryset = self.family.weeklyperiod_set.order_by('-start_date')
@@ -492,15 +501,7 @@ class TransactionForm(forms.ModelForm):
         
         if self.family:
             transaction.family = self.family
-            
-            # If no week specified, assign to current week
-            if not hasattr(transaction, 'week') or transaction.week is None:
-                from .models import WeeklyPeriod
-                current_week = WeeklyPeriod.objects.filter(
-                    family=self.family
-                ).order_by('-start_date').first()
-                if current_week:
-                    transaction.week = current_week
+            # Note: Week assignment is handled in the view based on transaction_date
             
         if commit:
             transaction.save()

@@ -244,6 +244,61 @@ def account_list(request):
 @login_required
 @family_required
 @app_permission_required('budget_allocation')
+def account_list_all(request):
+    """Duplicated All Accounts view for Budget Allocation"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access accounts.")
+        return redirect('accounts:dashboard')
+
+    from .utils import ensure_default_accounts_exist
+    ensure_default_accounts_exist(family)
+
+    root_income = Account.objects.filter(
+        family=family,
+        account_type='income',
+        parent__isnull=True
+    ).first()
+    root_expense = Account.objects.filter(
+        family=family,
+        account_type='expense',
+        parent__isnull=True
+    ).first()
+
+    income_accounts = Account.objects.filter(
+        family=family,
+        parent=root_income,
+        is_active=True
+    ).select_related('parent').prefetch_related('children__children__children').annotate(
+        children_count=Count('children', filter=Q(children__is_active=True))
+    ).order_by('-children_count', 'name') if root_income else Account.objects.none()
+
+    expense_accounts = Account.objects.filter(
+        family=family,
+        parent=root_expense,
+        is_active=True
+    ).select_related('parent').prefetch_related('children__children__children').annotate(
+        children_count=Count('children', filter=Q(children__is_active=True))
+    ).order_by('-children_count', 'name') if root_expense else Account.objects.none()
+
+    current_week = get_current_week(family)
+    overall_balance = calculate_overall_balance(family, current_week)
+
+    context = {
+        'title': 'All Accounts (Duplicate)',
+        'income_accounts': income_accounts,
+        'expense_accounts': expense_accounts,
+        'overall_balance': overall_balance,
+        'current_week': current_week,
+        'show_management_tools': True,
+        'family': family,
+    }
+    return render(request, 'budget_allocation/account/list_all_accounts.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
 def account_list_weekly(request):
     """Weekly view of All Accounts with week navigation"""
     family = get_user_family(request.user)

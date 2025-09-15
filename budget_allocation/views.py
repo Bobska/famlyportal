@@ -1705,3 +1705,187 @@ def api_account_tree(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error loading account tree: {str(e)}'}, status=500)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def accounts_master_detail(request):
+    """Master-detail view for animated account management"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access accounts.")
+        return redirect('accounts:dashboard')
+    
+    # Get account tree with enhanced data for master-detail view
+    account_tree = get_account_tree(family)
+    
+    # Flatten tree for master list with hierarchy indicators
+    def flatten_tree_for_master(tree_node, master_list=None, level=0):
+        if master_list is None:
+            master_list = []
+            
+        if isinstance(tree_node, list):
+            for node in tree_node:
+                flatten_tree_for_master(node, master_list, level)
+        else:
+            account = tree_node['account']
+            # Add computed fields for master list display
+            master_list.append({
+                'id': account.id,
+                'name': account.name,
+                'account_type': account.account_type,
+                'description': account.description or '',
+                'is_active': account.is_active,
+                'level': level,
+                'has_children': bool(tree_node['children']),
+                'parent_name': account.parent.name if account.parent else None,
+                'full_path': get_account_full_path(account),
+                'children_count': len(tree_node['children']) if tree_node['children'] else 0
+            })
+            
+            # Recursively add children
+            if tree_node['children']:
+                flatten_tree_for_master(tree_node['children'], master_list, level + 1)
+                
+        return master_list
+    
+    flattened_accounts = flatten_tree_for_master(account_tree)
+    
+    # Get first account for default detail panel (if any)
+    selected_account = None
+    account_id = request.GET.get('account_id')
+    if account_id:
+        try:
+            selected_account = Account.objects.get(id=account_id, family=family)
+        except Account.DoesNotExist:
+            pass
+    elif flattened_accounts:
+        # Default to first account
+        try:
+            selected_account = Account.objects.get(id=flattened_accounts[0]['id'], family=family)
+        except Account.DoesNotExist:
+            pass
+    
+    context = {
+        'title': 'Master-Detail Account View',
+        'accounts': flattened_accounts,
+        'selected_account': selected_account,
+        'family': family,
+        'total_accounts': len(flattened_accounts),
+        'active_accounts': len([a for a in flattened_accounts if a['is_active']]),
+    }
+    
+    return render(request, 'budget_allocation/account/accounts_master_detail.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def account_detail_api(request, account_id):
+    """API endpoint for loading account details in master-detail view"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    try:
+        # Get account with all related data for detail panel
+        account = Account.objects.select_related('parent').prefetch_related(
+            'children',
+            'allocation_transactions',
+            'allocations_to'
+        ).get(id=account_id, family=family)
+        
+        # Get recent transactions (last 10)
+        recent_transactions = Transaction.objects.filter(
+            account=account
+        ).select_related('account', 'week').order_by('-transaction_date')[:10]
+        
+        # Get account balance (current week)
+        current_week = get_current_week(family)
+        account_balance = get_account_balance(account, current_week)
+        
+        # Get account children for hierarchy display
+        children = list(account.children.filter(is_active=True).values(
+            'id', 'name', 'account_type', 'description', 'is_active'
+        ))
+        
+        # Build breadcrumb path
+        breadcrumb = []
+        current = account
+        while current:
+            breadcrumb.insert(0, {
+                'id': current.id,
+                'name': current.name,
+                'account_type': current.account_type
+            })
+            current = current.parent
+        
+        # Serialize transaction data
+        transaction_data = []
+        for transaction in recent_transactions:
+            transaction_data.append({
+                'id': transaction.id,
+                'amount': float(transaction.amount),
+                'description': transaction.description,
+                'date': transaction.transaction_date.strftime('%Y-%m-%d'),
+                'transaction_type': transaction.transaction_type,
+                'payee': transaction.payee,
+                'week': transaction.week.start_date.strftime('%Y-%m-%d') if transaction.week else None
+            })
+        
+        # Get recent allocations
+        recent_allocations = Allocation.objects.filter(
+            to_account=account
+        ).select_related('to_account', 'week').order_by('-id')[:5]
+        
+        allocation_data = []
+        for allocation in recent_allocations:
+            allocation_data.append({
+                'id': allocation.id,
+                'amount': float(allocation.amount),
+                'notes': allocation.notes,
+                'date': allocation.created_at.strftime('%Y-%m-%d %H:%M') if hasattr(allocation, 'created_at') else 'N/A',
+                'week': allocation.week.start_date.strftime('%Y-%m-%d') if allocation.week else None
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'account': {
+                'id': account.id,
+                'name': account.name,
+                'account_type': account.account_type,
+                'description': account.description or '',
+                'is_active': account.is_active,
+                'is_merchant_payee': getattr(account, 'is_merchant_payee', False),
+                'color': account.color,
+                'full_path': get_account_full_path(account),
+                'parent': {
+                    'id': account.parent.id,
+                    'name': account.parent.name
+                } if account.parent else None,
+                'balance': float(account_balance),
+                'children': children,
+                'children_count': len(children),
+                'breadcrumb': breadcrumb,
+                'recent_transactions': transaction_data,
+                'recent_allocations': allocation_data,
+                'transaction_count': Transaction.objects.filter(account=account).count(),
+                'allocation_count': Allocation.objects.filter(to_account=account).count()
+            }
+        })
+        
+    except Account.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Account not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error loading account details: {str(e)}'}, status=500)
+
+
+def get_account_full_path(account):
+    """Helper function to get full hierarchical path of an account"""
+    path_parts = []
+    current = account
+    while current:
+        path_parts.insert(0, current.name)
+        current = current.parent
+    return ' → '.join(path_parts)

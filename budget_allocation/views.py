@@ -32,6 +32,14 @@ from .utilities import (
 # Initialize logger
 logger = logging.getLogger(__name__)
 
+# Test/development toggle: allow bypassing weekly allocation locks
+try:
+    from django.conf import settings
+    ALLOCATION_LOCKS_ENABLED = getattr(settings, 'ALLOCATION_LOCKS_ENABLED', True)
+except Exception:
+    # Default to enabled if settings unavailable
+    ALLOCATION_LOCKS_ENABLED = True
+
 
 def app_permission_required(app_name):
     """Temporary decorator for app permissions - just checks family membership for now"""
@@ -883,6 +891,13 @@ def allocation_dashboard(request):
                 )
                 allocation.week = current_week
             
+            # Enforce business rule: only allow allocations TO expense accounts
+            if allocation.to_account and getattr(allocation.to_account, 'account_type', '').lower() != 'expense':
+                if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': 'Allocations can only be made to Expense accounts.'}, status=400)
+                messages.error(request, 'Allocations can only be made to Expense accounts.')
+                return redirect('budget_allocation:allocation_create')
+
             allocation.save()
             messages.success(request, f"Allocation created: ${allocation.amount} from {allocation.from_account.name} to {allocation.to_account.name}")
             return redirect('budget_allocation:allocation_dashboard')
@@ -957,19 +972,110 @@ def allocation_create(request):
         return redirect('accounts:dashboard')
 
     if request.method == 'POST':
-        form = AllocationForm(request.POST, family=family)
+        # Support auto-from-income pool: if flag present, inject from_account as family's root Income account
+        post_data = request.POST.copy()
+        auto_from_income = post_data.get('auto_from_income') == '1'
+        if auto_from_income:
+            root_income = Account.objects.filter(family=family, account_type='income', parent__isnull=True).first()
+            if not root_income:
+                err_msg = 'Income pool not configured for this family.'
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('budget_allocation:allocation_dashboard')
+            post_data['from_account'] = str(root_income.id)
+        form = AllocationForm(post_data, family=family)
         if form.is_valid():
             allocation = form.save(commit=False)
             allocation.family = family
-            
+
+            # If week_start is provided (from modal), resolve to WeeklyPeriod
+            week_start_str = post_data.get('week_start')
+            if week_start_str:
+                try:
+                    parsed_date = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+                    resolve_week = get_or_create_week_for_date(family, parsed_date)
+                    allocation.week = resolve_week
+                except Exception:
+                    pass
+
             # Auto-assign to current week if not specified
             if not allocation.week:
                 current_week = get_current_week(family)
                 allocation.week = current_week
-            
+
+            # Enforce that allocations go only to Expense accounts
+            try:
+                if allocation.to_account and allocation.to_account.account_type != 'expense':
+                    raise ValidationError('Allocations can only be made to Expense accounts.')
+            except Exception as e:
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': str(e)}, status=400)
+                messages.error(request, str(e))
+                return redirect('budget_allocation:allocation_dashboard')
+
+            # Prevent creating allocations for a locked week (can be bypassed for testing)
+            if ALLOCATION_LOCKS_ENABLED and allocation.week and allocation.week.allocation_locked:
+                err = 'Allocations are locked for this week.'
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('budget_allocation:allocation_dashboard')
+
+            # Enforce available pool (carry-forward): sum of all prior weeks' income minus allocations through current week
+            current_week = allocation.week
+            from decimal import Decimal
+            incomes_to_prev = Transaction.objects.filter(
+                family=family,
+                transaction_type='income',
+                week__start_date__lt=current_week.start_date
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            allocations_to_current = Allocation.objects.filter(
+                family=family,
+                week__start_date__lte=current_week.start_date
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            available = (incomes_to_prev or Decimal('0')) - (allocations_to_current or Decimal('0'))
+            if allocation.amount and allocation.amount > available:
+                err = f"Insufficient available funds to allocate. Available (carry-forward): ${available:.2f}."
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': err, 'available_current': float(available)}, status=400)
+                messages.error(request, err)
+                return redirect('budget_allocation:allocation_dashboard')
+
             allocation.save()
+
+            # Week locking semantics (can be disabled for testing)
+            if allocation.week and not allocation.week.allocation_locked:
+                today = date.today()
+                if ALLOCATION_LOCKS_ENABLED and today >= allocation.week.start_date:
+                    allocation.week.allocation_locked = True
+                    allocation.week.is_allocated = True
+                    allocation.week.save(update_fields=['allocation_locked', 'is_allocated'])
+                else:
+                    # If allocating before week starts or locks disabled, mark is_allocated True but keep unlocked
+                    allocation.week.is_allocated = True
+                    allocation.week.save(update_fields=['is_allocated'])
+
+            # If ajax, return JSON
+            if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'id': allocation.id,
+                    'amount': float(allocation.amount),
+                    'to_account_id': allocation.to_account_id,
+                    'from_account_id': allocation.from_account_id,
+                    'week_start': allocation.week.start_date.strftime('%Y-%m-%d') if allocation.week else None,
+                    'locked': allocation.week.allocation_locked if allocation.week else False,
+                    'message': 'Allocation created successfully'
+                })
+
             messages.success(request, f"Allocation created: ${allocation.amount} from {allocation.from_account.name} to {allocation.to_account.name}")
             return redirect('budget_allocation:allocation_dashboard')
+        else:
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                # Return first error message
+                err = next(iter(form.errors.values()))[0] if form.errors else 'Invalid data'
+                return JsonResponse({'success': False, 'error': str(err)}, status=400)
     else:
         form = AllocationForm(family=family)
 
@@ -1114,27 +1220,33 @@ def transaction_create(request):
     if request.method == 'POST':
         # Preserve optional week to return to account detail with same context
         return_week = request.GET.get('return_week') or request.POST.get('return_week') or return_week
+        # If initial_account not set via GET, try POST
+        if not initial_account:
+            post_account_id = request.POST.get('account')
+            if post_account_id:
+                try:
+                    initial_account = Account.objects.get(id=post_account_id, family=family, is_active=True)
+                except Account.DoesNotExist:
+                    initial_account = None
         form = TransactionForm(request.POST, family=family, initial_account=initial_account)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.family = family
-            
+
             # Auto-determine transaction type if not provided and we have an account
             if not transaction.transaction_type and initial_account:
-                # Default to expense for most account types, income for income accounts
                 if initial_account.account_type == 'income':
                     transaction.transaction_type = 'income'
                 else:
                     transaction.transaction_type = 'expense'
-            
+
             # Auto-assign to week based on transaction date
             if not transaction.week and transaction.transaction_date:
                 from datetime import timedelta
                 trans_date = transaction.transaction_date
-                # Find the week start (Monday)
                 week_start = trans_date - timedelta(days=trans_date.weekday())
                 week_end = week_start + timedelta(days=6)
-                
+
                 current_week, created = WeeklyPeriod.objects.get_or_create(
                     start_date=week_start,
                     end_date=week_end,
@@ -1146,19 +1258,38 @@ def transaction_create(request):
                     }
                 )
                 transaction.week = current_week
-            
+
+            # Ensure account is set (in case disabled field scenario)
+            if not transaction.account_id and initial_account:
+                transaction.account = initial_account
+
             transaction.save()
-            
+
+            # If ajax, return JSON
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'id': transaction.id,
+                    'amount': float(transaction.amount),
+                    'account_id': transaction.account_id,
+                    'transaction_date': transaction.transaction_date.strftime('%Y-%m-%d') if transaction.transaction_date else None,
+                    'week_start': transaction.week.start_date.strftime('%Y-%m-%d') if transaction.week else None,
+                    'message': 'Transaction recorded successfully'
+                })
+
             messages.success(request, f'Transaction "{transaction.description or "Transaction"}" recorded successfully.')
-            
+
             # Redirect back to account detail if we came from there
             if initial_account:
                 if return_week:
-                    # Build URL with week query parameter
                     detail_url = reverse('budget_allocation:account_detail', kwargs={'account_id': initial_account.pk})
                     return redirect(f"{detail_url}?week={return_week}")
                 return redirect('budget_allocation:account_detail', account_id=initial_account.pk)
             return redirect('budget_allocation:transaction_list')
+        else:
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                err = next(iter(form.errors.values()))[0] if form.errors else 'Invalid data'
+                return JsonResponse({'success': False, 'error': str(err)}, status=400)
     else:
         # Initialize form with account if specified
         initial = {}
@@ -1992,6 +2123,26 @@ def account_detail_api(request, account_id):
                 'week': allocation.week.start_date.strftime('%Y-%m-%d') if allocation.week else None
             })
         
+        # Family-level weekly income context for header cards
+        # income_current = income in current_week
+        # available_current (carry-forward) = sum(income for weeks before current) - sum(allocations through current)
+        income_current = Transaction.objects.filter(
+            family=family,
+            transaction_type='income',
+            week=current_week
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        incomes_to_prev = Transaction.objects.filter(
+            family=family,
+            transaction_type='income',
+            week__start_date__lt=current_week.start_date
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        allocated_through_current = Allocation.objects.filter(
+            family=family,
+            week__start_date__lte=current_week.start_date
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        available_current = (incomes_to_prev or Decimal('0')) - (allocated_through_current or Decimal('0'))
+
         return JsonResponse({
             'success': True,
             'account': {
@@ -2021,7 +2172,16 @@ def account_detail_api(request, account_id):
                 'recent_transactions': transaction_data,
                 'recent_allocations': allocation_data,
                 'transaction_count': Transaction.objects.filter(account=account).count(),
-                'allocation_count': Allocation.objects.filter(to_account=account).count()
+                'allocation_count': Allocation.objects.filter(to_account=account).count(),
+                'family_week': {
+                    'week_start': current_week.start_date.strftime('%Y-%m-%d') if current_week else None,
+                    'income_current': float(income_current or 0),
+                    # For compatibility, keep keys but note semantics changed: available_current is carry-forward
+                    'income_prev': 0.0,
+                    'allocated_current': float(Allocation.objects.filter(week=current_week, family=family).aggregate(total=Sum('amount'))['total'] or 0),
+                    'available_current': float(available_current or 0),
+                    'locks_enabled': ALLOCATION_LOCKS_ENABLED
+                }
             }
         })
         

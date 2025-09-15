@@ -56,95 +56,6 @@
     margin-bottom: 2px;
 }
 
-.account-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #f0f0f0;
-    cursor: pointer;
-    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: background-color, transform;
-    border-radius: 4px;
-    margin-bottom: 2px;
-}
-
-.account-item:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-    transform: translateX(2px);
-}
-
-.account-item.selected {
-    background-color: rgba(0, 123, 255, 0.1);
-    border-left: 4px solid #007bff;
-    font-weight: 500;
-}
-
-.expand-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    cursor: pointer;
-    z-index: 1;
-}
-
-.expand-toggle:hover {
-    opacity: 0.7;
-}
-
-.children-container {
-    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: max-height, opacity;
-}
-
-.children-container.collapsed {
-    max-height: 0 !important;
-    opacity: 0;
-    overflow: hidden;
-}
-
-.children-container.expanded {
-    max-height: 2000px !important;
-    opacity: 1;
-    overflow: visible;
-}
-
-.children-count {
-    margin-left: auto;
-    margin-right: 8px;
-}
-
-/* Match All Accounts behavior for children visibility */
-.account-children {
-    margin-top: 8px;
-    overflow: hidden;
-    transition: all 0.3s ease-in-out;
-    max-height: 2000px;
-    opacity: 1;
-    /* Tree-like connector line */
-    border-left: 1px solid #9ca3af;
-    margin-left: 16px; /* indent per depth */
-    padding-left: 12px; /* spacing between line and content */
-}
-
-.account-children.collapsed {
-    max-height: 0;
-    opacity: 0;
-    margin-top: 0;
-    border-left-color: transparent;
-}
-
-/* Mask vertical line past the last child */
-.account-children > .account-tree-item { position: relative; }
-        border-left: 1px solid #9ca3af;
-    content: "";
-    position: absolute;
-    left: -12px; /* align with connector */
-    top: calc(50% + 1px);
-    bottom: -8px;
-    width: 1px;
-    background: #fff; /* container background */
-}
 
 /* Account List Items */
 .account-item {
@@ -184,6 +95,17 @@
 .account-item.selected.hover-lineage {
     border-left-color: #007bff;
     background-color: rgba(0, 123, 255, 0.12);
+}
+
+/* Children container: indentation and collapse behavior */
+.account-children {
+    margin-left: 12px;           /* visually nest under parent */
+    padding-left: 12px;          /* space for connector line */
+    border-left: 1px solid #e5e7eb; /* subtle vertical connector */
+}
+
+.account-children.collapsed {
+    display: none;               /* hide when collapsed */
 }
 
 /* Draw horizontal connector from item to vertical line of parent */
@@ -517,6 +439,86 @@
         <kbd>/</kbd> Focus search
     </small>
 </div>
+<!-- Modals -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transactionForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="ajax" value="1" />
+                    <input type="hidden" name="return_week" id="tx_return_week" />
+                    <input type="hidden" name="account" id="tx_account_id" />
+                    <div class="mb-3">
+                        <label for="tx_transaction_date" class="form-label">Date</label>
+                        <input type="date" class="form-control" name="transaction_date" id="tx_transaction_date" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_amount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" name="amount" id="tx_amount" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_description" class="form-label">Description</label>
+                        <input type="text" class="form-control" name="description" id="tx_description" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_payee" class="form-label">Payee</label>
+                        <input type="text" class="form-control" name="payee" id="tx_payee" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_reference" class="form-label">Reference</label>
+                        <input type="text" class="form-control" name="reference" id="tx_reference" />
+                    </div>
+                </form>
+                <div id="tx_error" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="tx_submit_btn">Save Transaction</button>
+            </div>
+        </div>
+    </div>
+ </div>
+
+<div class="modal fade" id="allocationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Allocate Funds</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="allocationForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="ajax" value="1" />
+                    <input type="hidden" name="to_account" id="alloc_to_account_id" />
+                    <input type="hidden" name="week_start" id="alloc_week_start" />
+                    <input type="hidden" name="auto_from_income" value="1" />
+                    <div class="mb-3">
+                        <label for="alloc_amount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" name="amount" id="alloc_amount" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="alloc_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" rows="3" name="notes" id="alloc_notes" placeholder="Optional"></textarea>
+                    </div>
+                    <div class="alert alert-info" id="alloc_info_box">
+                        Available from last week: <strong id="alloc_available_text">$0.00</strong>
+                    </div>
+                </form>
+                <div id="alloc_error" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="alloc_submit_btn">Allocate</button>
+            </div>
+        </div>
+    </div>
+ </div>
 {% endblock %}
 
 {% block extra_js %}
@@ -1054,19 +1056,14 @@ class MasterDetailController {
             this.detailBreadcrumb.innerHTML = '';
         }
         
-        // Prepare weekly summary values for header cards
+    // Prepare weekly summary values for header cards
         const ws = account.weekly_summary || { income_total: 0, expense_total: 0, allocation_total: 0, transactions_total: 0 };
         const acctType = (account.account_type || '').toLowerCase();
         const showExpenses = acctType === 'expense' || acctType === 'expenses';
-        const inOutLabel = showExpenses ? 'Expenses (Week)' : 'Income (Week)';
+        const inOutLabel = showExpenses ? 'Expenses' : 'Income';
         const inOutValue = showExpenses ? ws.expense_total : ws.income_total;
-        const delta = ws.delta || { income_delta: null, expense_delta: null, allocation_delta: null, transactions_delta: null };
-        const formatDelta = (d) => {
-            if (d === null || d === undefined) return '';
-            const sign = d > 0 ? '+' : '';
-            const cls = d > 0 ? 'text-success' : (d < 0 ? 'text-danger' : 'text-muted');
-            return `<small class="ms-2 ${cls}">${sign}$${Math.abs(d).toFixed(2)}</small>`;
-        };
+    const familyWeek = account.family_week || { income_current: 0, income_prev: 0, allocated_current: 0, available_current: 0 };
+        // Deltas removed per request
 
         // Render detail content
         const content = `
@@ -1080,36 +1077,55 @@ class MasterDetailController {
                                     <h6 class="card-title mb-1">Account Balance</h6>
                                     <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
                                 </div>
+                                <div class="d-flex" style="gap: 8px;">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTransaction">Add Transaction</button>
+                                    ${showExpenses ? `<button type="button" class="btn btn-sm btn-primary" id="btnAllocateFunds">Allocate Funds</button>` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="card border-0 bg-light">
                             <div class="card-body">
                                 <h6 class="card-title mb-1">Allocation</h6>
-                                <h5 class="text-success mb-0">$${(ws.allocation_total || 0).toFixed(2)}${formatDelta(delta.allocation_delta)}</h5>
+                                <h5 class="text-success mb-0">$${(ws.allocation_total || 0).toFixed(2)}</h5>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="card border-0 bg-light">
                             <div class="card-body">
-                                <h6 class="card-title mb-1">${showExpenses ? 'Expenses' : 'Income'}</h6>
-                                <h5 class="mb-0 ${showExpenses ? 'text-danger' : 'text-success'}">$${(inOutValue || 0).toFixed(2)}${formatDelta(showExpenses ? delta.expense_delta : delta.income_delta)}</h5>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title mb-1">Transactions</h6>
-                                <h5 class="mb-0 text-muted">$${(ws.transactions_total || 0).toFixed(2)}${formatDelta(delta.transactions_delta)}</h5>
+                                <h6 class="card-title mb-1">${inOutLabel}</h6>
+                                <h5 class="mb-0 ${showExpenses ? 'text-danger' : 'text-success'}">$${(inOutValue || 0).toFixed(2)}</h5>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title mb-1">Family Income (This Week)</h6>
+                                <h5 class="mb-0 text-success">$${(familyWeek.income_current || 0).toFixed(2)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title mb-1">Available to Allocate (carry-forward)</h6>
+                                <h5 class="mb-0 ${familyWeek.available_current >= 0 ? 'text-success' : 'text-danger'}">$${(familyWeek.available_current || 0).toFixed(2)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${familyWeek && familyWeek.locks_enabled === false ? `
+                <div class="alert alert-warning py-2 mb-4" role="alert">
+                    <strong>Test mode:</strong> Weekly allocation locks are disabled. You can allocate into any week.
+                </div>
+                `: ''}
                 
                 <!-- Account Details -->
                 <div class="mb-4">
@@ -1194,6 +1210,16 @@ class MasterDetailController {
                 this.selectAccount(e.target.dataset.accountId, true);
             }
         });
+
+        // Wire action buttons to open modals
+        const txBtn = document.getElementById('btnAddTransaction');
+        if (txBtn) {
+            txBtn.addEventListener('click', () => this.openTransactionModal(account));
+        }
+        const allocBtn = document.getElementById('btnAllocateFunds');
+        if (allocBtn) {
+            allocBtn.addEventListener('click', () => this.openAllocationModal(account));
+        }
     }
     
     renderError(message) {
@@ -1429,5 +1455,165 @@ class MasterDetailController {
         window.history.replaceState({}, '', url.toString());
     }
 }
+
+// Modal helpers and submissions
+MasterDetailController.prototype.openTransactionModal = function(account) {
+    // Prefill hidden inputs and date
+    const weekStart = this.weekStart;
+    const txAccount = document.getElementById('tx_account_id');
+    const txWeek = document.getElementById('tx_return_week');
+    const txDate = document.getElementById('tx_transaction_date');
+    const txAmount = document.getElementById('tx_amount');
+    const txDesc = document.getElementById('tx_description');
+    const txPayee = document.getElementById('tx_payee');
+    const txRef = document.getElementById('tx_reference');
+    const txError = document.getElementById('tx_error');
+    if (txError) { txError.classList.add('d-none'); txError.textContent = ''; }
+    if (txAccount) txAccount.value = account.id;
+    if (txWeek) txWeek.value = weekStart || '';
+    if (txAmount) txAmount.value = '';
+    if (txDesc) txDesc.value = '';
+    if (txPayee) txPayee.value = account.name || '';
+    if (txRef) txRef.value = '';
+    if (txDate) {
+        // Default to weekStart or today if missing
+        let dateStr = '';
+        if (weekStart) {
+            dateStr = weekStart;
+        } else {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            dateStr = `${yyyy}-${mm}-${dd}`;
+        }
+        txDate.value = dateStr;
+    }
+    const modalEl = document.getElementById('transactionModal');
+    if (modalEl && window.bootstrap) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+    // Bind submit button
+    const submitBtn = document.getElementById('tx_submit_btn');
+    if (submitBtn) {
+        submitBtn.onclick = () => this.submitTransactionForm();
+    }
+};
+
+MasterDetailController.prototype.submitTransactionForm = async function() {
+    const form = document.getElementById('transactionForm');
+    const errorBox = document.getElementById('tx_error');
+    const submitBtn = document.getElementById('tx_submit_btn');
+    if (!form) return;
+    const formData = new FormData(form);
+    formData.set('ajax', '1');
+    formData.set('return_week', this.weekStart || '');
+    try {
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...'; }
+        const resp = await fetch('/budget-allocation/transactions/create/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+            body: formData
+        });
+        const data = await resp.json();
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('transactionModal'));
+            if (modal) modal.hide();
+            // If server returns week_start, sync and reload selected account
+            if (data.week_start) {
+                this.weekStart = data.week_start;
+                this.updateWeekHeader();
+            }
+            if (this.selectedAccountId) {
+                await this.loadAccountData(this.selectedAccountId);
+            }
+        } else {
+            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = data.error || 'Failed to save transaction.'; }
+        }
+    } catch (e) {
+        if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Network error. Please try again.'; }
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Transaction'; }
+    }
+};
+
+MasterDetailController.prototype.openAllocationModal = function(account) {
+    // Prefill TO account and week; allocation uses last week's income pool (no manual from_account)
+    const toInput = document.getElementById('alloc_to_account_id');
+    const weekInput = document.getElementById('alloc_week_start');
+    const amountInput = document.getElementById('alloc_amount');
+    const notesInput = document.getElementById('alloc_notes');
+    const errorBox = document.getElementById('alloc_error');
+    const availableText = document.getElementById('alloc_available_text');
+    if (errorBox) { errorBox.classList.add('d-none'); errorBox.textContent = ''; }
+    if (toInput) toInput.value = account.id;
+    if (weekInput) weekInput.value = this.weekStart || '';
+    if (amountInput) amountInput.value = '';
+    if (notesInput) notesInput.value = '';
+    // Set available and client-side max from account.family_week.available_current
+    const famWeek = account.family_week || {};
+    const available = typeof famWeek.available_current === 'number' ? famWeek.available_current : 0;
+    if (availableText) {
+        availableText.textContent = `$${(available || 0).toFixed(2)}`;
+    }
+    if (amountInput) {
+        amountInput.max = available > 0 ? String(available) : '';
+    }
+
+    const modalEl = document.getElementById('allocationModal');
+    if (modalEl && window.bootstrap) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+    const submitBtn = document.getElementById('alloc_submit_btn');
+    if (submitBtn) submitBtn.onclick = () => this.submitAllocationForm();
+};
+
+MasterDetailController.prototype.submitAllocationForm = async function() {
+    const form = document.getElementById('allocationForm');
+    const errorBox = document.getElementById('alloc_error');
+    const submitBtn = document.getElementById('alloc_submit_btn');
+    const amountInput = document.getElementById('alloc_amount');
+    const availableText = document.getElementById('alloc_available_text');
+    if (!form) return;
+    const formData = new FormData(form);
+    formData.set('ajax', '1');
+    // Server view currently expects 'week' (model) not 'week_start'; we'll pass week_start for backend to resolve
+    try {
+        // Lightweight client-side check for over-allocation
+        const available = availableText ? parseFloat((availableText.textContent || '').replace(/[^0-9.-]/g, '')) : NaN;
+        const amount = amountInput ? parseFloat(amountInput.value || '0') : 0;
+        if (!isNaN(available) && amount > available + 1e-6) {
+            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Amount exceeds available to allocate from last week.'; }
+            return;
+        }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Allocating...'; }
+        const resp = await fetch('/budget-allocation/allocation/create/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+            body: formData
+        });
+        const data = await resp.json();
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('allocationModal'));
+            if (modal) modal.hide();
+            if (data.week_start) {
+                this.weekStart = data.week_start;
+                this.updateWeekHeader();
+            }
+            if (this.selectedAccountId) {
+                await this.loadAccountData(this.selectedAccountId);
+            }
+        } else {
+            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = data.error || 'Failed to allocate funds.'; }
+        }
+    } catch (e) {
+        if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Network error. Please try again.'; }
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Allocate'; }
+    }
+};
 </script>
 {% endblock %}

@@ -51,6 +51,84 @@
     padding: 0;
 }
 
+/* Account Tree Structure */
+.account-tree-item {
+    margin-bottom: 2px;
+}
+
+.account-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: background-color, transform;
+    border-radius: 4px;
+    margin-bottom: 2px;
+}
+
+.account-item:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    transform: translateX(2px);
+}
+
+.account-item.selected {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-left: 4px solid #007bff;
+    font-weight: 500;
+}
+
+.expand-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.expand-toggle:hover {
+    opacity: 0.7;
+}
+
+.children-container {
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: max-height, opacity;
+}
+
+.children-container.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.children-container.expanded {
+    max-height: 2000px !important;
+    opacity: 1;
+    overflow: visible;
+}
+
+.children-count {
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+/* Match All Accounts behavior for children visibility */
+.account-children {
+    margin-top: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    max-height: 2000px;
+    opacity: 1;
+}
+
+.account-children.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
 /* Account List Items */
 .account-item {
     display: flex;
@@ -72,6 +150,13 @@
     border-left: 4px solid #007bff;
     font-weight: 500;
 }
+
+.account-item.faded {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+
+/* Selection fading is controlled via .faded class in JS for fine-grained control */
 
 .account-item.level-0 { padding-left: 1.5rem; }
 .account-item.level-1 { padding-left: 2.5rem; }
@@ -300,15 +385,12 @@
 
 {% block page_content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h3 mb-1">Master-Detail Account View</h1>
-        <p class="text-muted mb-0">Explore account hierarchy with smooth animations</p>
-    </div>
+    <div></div>
     <div class="d-flex align-items-center gap-2">
         <span class="badge bg-primary">{{ total_accounts }} Total</span>
         <span class="badge bg-success">{{ active_accounts }} Active</span>
     </div>
-</div>
+    </div>
 
 <div class="master-detail-container">
     <div class="master-detail-layout" id="masterDetailLayout">
@@ -326,44 +408,8 @@
             </div>
             
             <div class="master-content" id="masterContent">
-                {% for account in accounts %}
-                <div class="account-item level-{{ account.level }}" 
-                     data-account-id="{{ account.id }}"
-                     data-account-name="{{ account.name }}"
-                     data-account-type="{{ account.account_type }}"
-                     {% if selected_account and account.id == selected_account.id %}data-selected="true"{% endif %}>
-                    
-                    <div class="account-icon account-type-{{ account.account_type }}">
-                        {% if account.account_type == 'income' %}
-                            <i class="fas fa-arrow-up"></i>
-                        {% elif account.account_type == 'expense' %}
-                            <i class="fas fa-arrow-down"></i>
-                        {% else %}
-                            <i class="fas fa-folder"></i>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="account-info">
-                        <div class="account-name">{{ account.name }}</div>
-                        <div class="account-meta">
-                            {% if account.parent_name %}
-                                <span>{{ account.parent_name }}</span>
-                                <span>→</span>
-                            {% endif %}
-                            <span class="account-badge">{{ account.account_type|title }}</span>
-                            {% if account.children_count > 0 %}
-                                <span class="account-badge">{{ account.children_count }} children</span>
-                            {% endif %}
-                            {% if not account.is_active %}
-                                <span class="account-badge text-warning">Inactive</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    {% if account.has_children %}
-                        <i class="fas fa-chevron-right text-muted"></i>
-                    {% endif %}
-                </div>
+                {% for tree_node in account_tree %}
+                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=tree_node level=0 %}
                 {% empty %}
                 <div class="text-center text-muted py-5">
                     <i class="fas fa-folder-open fa-2x mb-3"></i>
@@ -384,7 +430,7 @@
                 <p class="text-muted mb-0" id="detailSubtitle">Choose an account from the list to view details</p>
             </div>
             
-            <div class="detail-content" id="detailContent">
+            <div class="detail-content fade-content" id="detailContent">
                 <div class="p-4 text-center text-muted">
                     <i class="fas fa-hand-point-left fa-2x mb-3"></i>
                     <p>Select an account from the master list to view detailed information</p>
@@ -413,12 +459,87 @@
 
 {% block extra_js %}
 <script>
+// Global function for account expansion (called from tree node template)
+// All Accounts-style expand/collapse for master-detail
+window.toggleAccountRow = function(event, accountId) {
+    event.stopPropagation();
+    const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+    const childrenDiv = document.getElementById(`children-${accountId}`);
+    const chevron = document.getElementById(`chevron-${accountId}`);
+    if (!selector) return;
+    // Leaf nodes: no children container; still select to show detail
+    if (!childrenDiv) {
+        if (window.masterDetailController) {
+            // Toggle leaf pivot: first click fades siblings (self), second click unfades siblings (parent)
+            const ctrl = window.masterDetailController;
+            if (ctrl.selectedAccountId === accountId) {
+                ctrl.leafPivot = ctrl.leafPivot === 'self' ? 'parent' : 'self';
+            } else {
+                ctrl.leafPivot = 'self';
+            }
+            ctrl.selectAccount(accountId, true);
+        }
+        return;
+    }
+    const isExpanded = selector.classList.contains('expanded');
+    const isCurrentlySelected = selector.classList.contains('selected') || (window.masterDetailController && window.masterDetailController.selectedAccountId === accountId);
+
+    if (isExpanded && isCurrentlySelected) {
+        // Collapse and clear selection/fading
+        selector.classList.remove('expanded');
+        childrenDiv.classList.add('collapsed');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (window.masterDetailController) {
+            // Keep current selection, but update fading as if parent (or root) is selected
+            const parentId = selector.getAttribute('data-parent-id');
+            if (parentId) {
+                window.masterDetailController.applyFadingWithPivot(selector.dataset.accountId, parentId);
+            } else {
+                window.masterDetailController.applyRootPivotFading(selector.dataset.accountId);
+            }
+        }
+        return;
+    }
+
+    if (isExpanded && !isCurrentlySelected) {
+        // Collapse the clicked expanded node but keep it selected; fade with itself as pivot
+        selector.classList.remove('expanded');
+        childrenDiv.classList.add('collapsed');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (window.masterDetailController) {
+            window.masterDetailController.selectedAccountId = accountId;
+            window.masterDetailController.applyFadingWithPivot(accountId, accountId);
+        }
+        return;
+    }
+
+    // Delegate selection to controller for unified expand/collapse across all branches
+    if (window.masterDetailController) {
+        window.masterDetailController.selectAccount(accountId, true);
+    }
+};
+
+// Collapse all children and remove expanded class on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.account-children').forEach(function(child) {
+        child.classList.add('collapsed');
+    });
+    document.querySelectorAll('.account-tree-selector.expanded').forEach(function(sel) {
+        sel.classList.remove('expanded');
+    });
+    document.querySelectorAll('.account-chevron').forEach(function(chevron) {
+        chevron.style.transform = 'rotate(0deg)';
+    });
+});
+
+
 // Initialize Master-Detail Controller after DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     const controller = new MasterDetailController({
-        apiEndpoint: '{% url "budget_allocation:account_detail_api" 0 %}'.replace('0', '{id}'),
-        selectedAccountId: {% if selected_account %}{{ selected_account.id }}{% else %}null{% endif %}
+        apiEndpoint: '/budget-allocation/api/account/{id}/',
+        selectedAccountId: null
     });
+    window.masterDetailController = controller;
 });
 
 // Master-Detail Animation Controller
@@ -428,6 +549,7 @@ class MasterDetailController {
         this.selectedAccountId = options.selectedAccountId;
         this.isDetailVisible = false;
         this.isMobile = window.innerWidth <= 768;
+        this.leafPivot = 'self'; // 'self' fades siblings on first click; 'parent' unfades siblings on second click
         
         this.initializeElements();
         this.bindEvents();
@@ -452,11 +574,21 @@ class MasterDetailController {
         this.collapseAllBtn = document.getElementById('collapseAllBtn');
         
         this.accountItems = document.querySelectorAll('.account-item');
+        
+        // Initialize all children containers as collapsed
+        this.initializeCollapsedState();
+    }
+    
+    initializeCollapsedState() {
+        document.querySelectorAll('.account-children').forEach(container => {
+            container.classList.add('collapsed');
+        });
     }
     
     bindEvents() {
-        // Account item clicks
+        // Account item clicks (skip ones handled via inline onclick)
         this.accountItems.forEach(item => {
+            if (item.hasAttribute('onclick')) return;
             item.addEventListener('click', (e) => {
                 const accountId = item.dataset.accountId;
                 this.selectAccount(accountId, true);
@@ -477,14 +609,28 @@ class MasterDetailController {
         
         // Collapse all button
         this.collapseAllBtn.addEventListener('click', this.collapseAll.bind(this));
+
+        // Click on master panel whitespace: unselect and collapse all (like Collapse button)
+        this.masterPanel.addEventListener('click', (e) => {
+            const withinItem = e.target.closest('.account-item');
+            const withinControl = e.target.closest('input,button,select,textarea,a,label');
+            if (!withinItem && !withinControl) {
+                this.collapseAll();
+            }
+        });
     }
     
     async selectAccount(accountId, animate = true) {
         if (this.selectedAccountId === accountId && this.isDetailVisible) {
-            return; // Already selected
+            // Already selected: still ensure the tree expands the selected path
+            this.updateSelection(accountId);
+            return;
         }
         
         // Update UI selection
+        if (this.selectedAccountId !== accountId) {
+            this.leafPivot = 'self'; // reset leaf pivot mode on new selection
+        }
         this.updateSelection(accountId);
         this.selectedAccountId = accountId;
         
@@ -502,22 +648,156 @@ class MasterDetailController {
     }
     
     updateSelection(accountId) {
-        // Remove previous selection
+        // Clear previous selection and fading
         this.accountItems.forEach(item => {
             item.classList.remove('selected');
+            item.classList.remove('faded');
         });
-        
-        // Add selection to current item
+
+        if (!accountId) {
+            return;
+        }
+
         const selectedItem = document.querySelector(`[data-account-id="${accountId}"]`);
-        if (selectedItem) {
-            selectedItem.classList.add('selected');
-            
-            // Scroll into view if needed
-            selectedItem.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest'
+        if (!selectedItem) return;
+
+        // Mark selected
+        selectedItem.classList.add('selected');
+
+        // Compute ancestors and descendants
+        const ancestorIds = this.getAncestorIds(accountId);
+        const descendantIds = this.getDescendantIds(accountId);
+
+        // Collapse all branches first for global accordion (across all branches)
+        this.collapseAllBranches();
+
+        // Ensure the path is visible: expand ancestors and the selected node
+        ancestorIds.forEach(id => {
+            this.expandNode(id);
+        });
+        this.expandNode(accountId);
+
+        // If the selection is a leaf, optionally fade as if parent is selected so siblings are not faded (when leafPivot='parent')
+        const childrenDiv = document.getElementById(`children-${accountId}`);
+        if (!childrenDiv) {
+            const pivotParentId = selectedItem.dataset.parentId || '';
+            if (this.leafPivot === 'parent') {
+                if (pivotParentId) {
+                    this.applyFadingWithPivot(accountId, pivotParentId);
+                } else {
+                    // Root leaf with no parent: keep root level unfaded, others faded
+                    const rootSelectors = Array.from(document.querySelectorAll('.account-tree-item > .account-tree-selector:not([data-parent-id])'));
+                    const keepRoot = new Set(rootSelectors.map(el => el.dataset.accountId));
+                    keepRoot.add(accountId);
+                    this.accountItems.forEach(item => {
+                        const id = item.dataset.accountId;
+                        const isRoot = !item.dataset.parentId;
+                        if (!(keepRoot.has(id) || isRoot)) item.classList.add('faded');
+                    });
+                }
+            } else {
+                // Default fading: leaf as pivot
+                const keepVisible = new Set([accountId, ...ancestorIds, ...descendantIds]);
+                this.accountItems.forEach(item => {
+                    const id = item.dataset.accountId;
+                    if (!keepVisible.has(id)) item.classList.add('faded');
+                });
+            }
+        } else {
+            // Non-leaf: default fading based on selected node
+            const keepVisible = new Set([accountId, ...ancestorIds, ...descendantIds]);
+            this.accountItems.forEach(item => {
+                const id = item.dataset.accountId;
+                if (!keepVisible.has(id)) item.classList.add('faded');
             });
         }
+
+        // Scroll selected into view if needed
+        selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Keep selectedId as the selected row, but compute fading with respect to pivotId
+    applyFadingWithPivot(selectedId, pivotId) {
+        // Clear all fading first
+        this.accountItems.forEach(item => item.classList.remove('faded'));
+
+        // Maintain selection highlight on selectedId
+        this.accountItems.forEach(item => item.classList.remove('selected'));
+        const selectedItem = document.querySelector(`[data-account-id="${selectedId}"]`);
+        if (selectedItem) selectedItem.classList.add('selected');
+
+        if (!pivotId) return; // no fading if no pivot
+
+        const ancestorIds = this.getAncestorIds(pivotId);
+        const descendantIds = this.getDescendantIds(pivotId);
+        const keepVisible = new Set([pivotId, ...ancestorIds, ...descendantIds, selectedId]);
+
+        // Apply fading to everything else
+        this.accountItems.forEach(item => {
+            const id = item.dataset.accountId;
+            if (!keepVisible.has(id)) item.classList.add('faded');
+        });
+    }
+
+    applyRootPivotFading(selectedId) {
+        // Clear all fading first
+        this.accountItems.forEach(item => item.classList.remove('faded'));
+
+        // Maintain selection highlight on selectedId
+        this.accountItems.forEach(item => item.classList.remove('selected'));
+        const selectedItem = document.querySelector(`[data-account-id="${selectedId}"]`);
+        if (selectedItem) selectedItem.classList.add('selected');
+
+        // Keep all root items unfaded (siblings at level 0), and the selected root itself
+        const rootSelectors = Array.from(document.querySelectorAll('.account-tree-item > .account-tree-selector:not([data-parent-id])'));
+        const keepVisible = new Set(rootSelectors.map(el => el.dataset.accountId));
+        keepVisible.add(selectedId);
+
+        this.accountItems.forEach(item => {
+            const id = item.dataset.accountId;
+            const isRoot = !item.dataset.parentId;
+            if (!(keepVisible.has(id) || isRoot)) item.classList.add('faded');
+        });
+    }
+
+    getAncestorIds(accountId) {
+        const ids = [];
+        let current = document.querySelector(`[data-account-id="${accountId}"]`);
+        let parentId = current ? (current.dataset.parentId || '') : '';
+        while (parentId) {
+            ids.push(parentId);
+            const parentEl = document.querySelector(`[data-account-id="${parentId}"]`);
+            if (!parentEl) break;
+            parentId = parentEl.dataset.parentId || '';
+        }
+        return ids;
+    }
+
+    getDescendantIds(accountId) {
+        const container = document.getElementById(`children-${accountId}`);
+        if (!container) return [];
+        const ids = [];
+        container.querySelectorAll('.account-item').forEach(item => ids.push(item.dataset.accountId));
+        return ids;
+    }
+
+    expandNode(accountId) {
+        const childrenDiv = document.getElementById(`children-${accountId}`);
+        const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+        const chevron = document.getElementById(`chevron-${accountId}`);
+        if (childrenDiv && selector) {
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    collapseSiblings(accountId) { /* no-op: using global collapse now */ }
+
+    collapseAllBranches() {
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(sel => sel.classList.remove('expanded'));
+        document.querySelectorAll('.account-children').forEach(container => container.classList.add('collapsed'));
+        document.querySelectorAll('.account-chevron').forEach(chev => chev.style.transform = 'rotate(0deg)');
     }
     
     showDetailPanel() {
@@ -556,6 +836,8 @@ class MasterDetailController {
     
     async loadAccountData(accountId) {
         try {
+            // Add fade-out effect to current content
+            this.detailContent.classList.add('loading');
             this.showLoading();
             
             const url = this.apiEndpoint.replace('{id}', accountId);
@@ -563,6 +845,8 @@ class MasterDetailController {
             const data = await response.json();
             
             if (data.success) {
+                // Small delay to ensure fade-out is visible
+                await new Promise(resolve => setTimeout(resolve, 150));
                 this.renderAccountDetail(data.account);
             } else {
                 this.renderError(data.error || 'Failed to load account data');
@@ -572,6 +856,10 @@ class MasterDetailController {
             this.renderError('Network error occurred');
         } finally {
             this.hideLoading();
+            // Remove loading class to fade content back in
+            setTimeout(() => {
+                this.detailContent.classList.remove('loading');
+            }, 50);
         }
     }
     
@@ -709,6 +997,42 @@ class MasterDetailController {
             </div>
         `;
     }
+
+    restoreDetailPlaceholder() {
+        this.detailTitle.textContent = 'Select an account';
+        this.detailSubtitle.textContent = 'Choose an account from the list to view details';
+        this.detailBreadcrumb.innerHTML = '';
+        this.detailContent.innerHTML = `
+            <div class="p-4 text-center text-muted">
+                <i class="fas fa-hand-point-left fa-2x mb-3"></i>
+                <p>Select an account from the master list to view detailed information</p>
+            </div>
+        `;
+    }
+
+    renderSearchResultsDetail(matches, query) {
+        // Compact multi-result view; show a few key fields
+        const items = matches.map(item => {
+            const id = item.dataset.accountId;
+            const name = item.dataset.accountName;
+            const type = item.dataset.accountType;
+            return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span>${name}</span>
+                        <span class="badge bg-light text-dark">${type}</span>
+                        <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${id}', true)">View</button>
+                    </div>`;
+        }).join('');
+        this.detailTitle.textContent = `Search: ${query}`;
+        this.detailSubtitle.textContent = `${matches.length} result${matches.length === 1 ? '' : 's'}`;
+        this.detailBreadcrumb.innerHTML = '';
+        this.detailContent.innerHTML = `
+            <div class="p-3">
+                ${items || '<div class="text-muted">No results</div>'}
+            </div>
+        `;
+        // Ensure detail panel is visible in split view
+        if (!this.isDetailVisible) this.showDetailPanel();
+    }
     
     showLoading() {
         this.detailLoading.classList.add('visible');
@@ -723,13 +1047,72 @@ class MasterDetailController {
     handleSearch(e) {
         const query = e.target.value.toLowerCase();
         
+        if (query === '') {
+            // Reset: show all, collapse, clear fading, and restore detail view
+            document.querySelectorAll('.account-tree-item').forEach(item => item.style.display = 'block');
+            this.initializeCollapsedState();
+            this.accountItems.forEach(item => item.classList.remove('faded'));
+            // If multiple-results view is shown, clear it
+            this.restoreDetailPlaceholder();
+            return;
+        }
+
+    // Show everything
+    document.querySelectorAll('.account-tree-item').forEach(item => item.style.display = 'block');
+    // We'll collapse selectively after identifying matches
+
+        // Determine matches
+        const matches = [];
         this.accountItems.forEach(item => {
-            const name = item.dataset.accountName.toLowerCase();
-            const type = item.dataset.accountType.toLowerCase();
-            const matches = name.includes(query) || type.includes(query);
-            
-            item.style.display = matches ? 'flex' : 'none';
+            const name = (item.dataset.accountName || '').toLowerCase();
+            const type = (item.dataset.accountType || '').toLowerCase();
+            if (name.includes(query) || type.includes(query)) matches.push(item);
         });
+
+        // If we have matches: expand their ancestor path and unfade them; fade others
+        const matchedIds = new Set();
+        matches.forEach(item => {
+            matchedIds.add(item.dataset.accountId);
+            // Unfade this item and expand its path
+            let current = item;
+            while (current) {
+                const currentTree = current.closest('.account-tree-item');
+                if (currentTree) currentTree.style.display = 'block';
+                const parentId = current.dataset.parentId || '';
+                if (!parentId) break;
+                const parentSelector = document.querySelector(`[data-account-id="${parentId}"]`);
+                const parentChildren = document.getElementById(`children-${parentId}`);
+                if (parentChildren) parentChildren.classList.remove('collapsed');
+                if (parentSelector) parentSelector.classList.add('expanded');
+                current = parentSelector;
+            }
+        });
+
+        // Fade all non-matches
+        const ancestorIds = new Set();
+        matchedIds.forEach(id => this.getAncestorIds(id).forEach(a => ancestorIds.add(a)));
+        const keepVisible = !this.selectedAccountId
+            ? new Set([...matchedIds]) // only results are unfaded until an account is selected
+            : new Set([...matchedIds, ...ancestorIds]); // if an account is selected, keep ancestors unfaded for context
+        this.accountItems.forEach(item => {
+            const id = item.dataset.accountId;
+            if (!keepVisible.has(id)) item.classList.add('faded'); else item.classList.remove('faded');
+        });
+
+        // Collapse nodes that aren't in keepVisible and have no matching descendants
+        document.querySelectorAll('.account-tree-selector').forEach(sel => {
+            const id = sel.dataset.accountId;
+            const children = document.getElementById(`children-${id}`);
+            if (!children) return;
+            const hasMatchDesc = !!children.querySelector('.account-tree-selector:not(.faded)');
+            if (!keepVisible.has(id) && !hasMatchDesc) {
+                sel.classList.remove('expanded');
+                children.classList.add('collapsed');
+            }
+        });
+
+        // Show a brief multi-result view in detail panel
+        this.renderSearchResultsDetail(matches, query);
     }
     
     handleKeyboard(e) {
@@ -800,6 +1183,26 @@ class MasterDetailController {
         if (this.isDetailVisible) {
             this.hideDetailPanel();
         }
+        
+        // Collapse all expanded tree nodes
+        document.querySelectorAll('.account-children').forEach(container => {
+            container.classList.add('collapsed');
+        });
+        // Remove expanded state from all selectors
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(sel => sel.classList.remove('expanded'));
+        
+        // Reset all chevrons
+        document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+            chevron.style.transform = 'rotate(0deg)';
+        });
+
+        // Clear selection and fading
+        this.selectedAccountId = null;
+        this.leafPivot = 'self';
+        this.accountItems.forEach(item => {
+            item.classList.remove('selected');
+            item.classList.remove('faded');
+        });
     }
 }
 </script>

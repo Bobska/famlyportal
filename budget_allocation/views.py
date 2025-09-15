@@ -1720,37 +1720,50 @@ def accounts_master_detail(request):
     # Get account tree with enhanced data for master-detail view
     account_tree = get_account_tree(family)
     
-    # Flatten tree for master list with hierarchy indicators
-    def flatten_tree_for_master(tree_node, master_list=None, level=0):
-        if master_list is None:
-            master_list = []
-            
+    # Convert tree to a format suitable for collapsible display
+    def enhance_tree_for_display(tree_node):
         if isinstance(tree_node, list):
-            for node in tree_node:
-                flatten_tree_for_master(node, master_list, level)
+            return [enhance_tree_for_display(node) for node in tree_node]
         else:
             account = tree_node['account']
-            # Add computed fields for master list display
-            master_list.append({
-                'id': account.id,
-                'name': account.name,
-                'account_type': account.account_type,
-                'description': account.description or '',
-                'is_active': account.is_active,
-                'level': level,
+            enhanced = {
+                'account': {
+                    'id': account.id,
+                    'name': account.name,
+                    'account_type': account.account_type,
+                    'description': account.description or '',
+                    'is_active': account.is_active,
+                    'parent_name': account.parent.name if account.parent else None,
+                    'parent_id': account.parent.id if account.parent else None,
+                    'full_path': get_account_full_path(account),
+                },
+                'level': tree_node['level'],
+                'children': enhance_tree_for_display(tree_node['children']) if tree_node['children'] else [],
                 'has_children': bool(tree_node['children']),
-                'parent_name': account.parent.name if account.parent else None,
-                'full_path': get_account_full_path(account),
                 'children_count': len(tree_node['children']) if tree_node['children'] else 0
-            })
-            
-            # Recursively add children
-            if tree_node['children']:
-                flatten_tree_for_master(tree_node['children'], master_list, level + 1)
-                
-        return master_list
+            }
+            return enhanced
     
-    flattened_accounts = flatten_tree_for_master(account_tree)
+    enhanced_tree = enhance_tree_for_display(account_tree)
+    
+    # Also create a flattened list for search purposes and total counts
+    def count_all_accounts(tree_node, counter=None):
+        if counter is None:
+            counter = {'total': 0, 'active': 0}
+        
+        if isinstance(tree_node, list):
+            for node in tree_node:
+                count_all_accounts(node, counter)
+        else:
+            counter['total'] += 1
+            if tree_node['account']['is_active']:
+                counter['active'] += 1
+            if tree_node['children']:
+                count_all_accounts(tree_node['children'], counter)
+        
+        return counter
+    
+    account_counts = count_all_accounts(enhanced_tree)
     
     # Get first account for default detail panel (if any)
     selected_account = None
@@ -1760,20 +1773,15 @@ def accounts_master_detail(request):
             selected_account = Account.objects.get(id=account_id, family=family)
         except Account.DoesNotExist:
             pass
-    elif flattened_accounts:
-        # Default to first account
-        try:
-            selected_account = Account.objects.get(id=flattened_accounts[0]['id'], family=family)
-        except Account.DoesNotExist:
-            pass
+    # Note: Don't auto-select first account - start with detail panel hidden
     
     context = {
         'title': 'Master-Detail Account View',
-        'accounts': flattened_accounts,
+        'account_tree': enhanced_tree,
         'selected_account': selected_account,
         'family': family,
-        'total_accounts': len(flattened_accounts),
-        'active_accounts': len([a for a in flattened_accounts if a['is_active']]),
+        'total_accounts': account_counts['total'],
+        'active_accounts': account_counts['active'],
     }
     
     return render(request, 'budget_allocation/account/accounts_master_detail.html', context)

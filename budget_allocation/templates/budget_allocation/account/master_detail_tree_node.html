@@ -8,58 +8,27 @@
          data-has-children="{{ node.has_children|yesno:'true,false' }}"
          style="cursor: pointer;"
          onclick="toggleAccountRow(event, '{{ node.account.id }}')">
-        
-        <!-- Expand/Collapse Indicator -->
-        {% if node.has_children %}
-            <div class="parent-account-indicator me-3 d-flex align-items-center">
-                <i class="fas fa-chevron-down account-chevron me-2" 
-                   id="chevron-{{ node.account.id }}" 
-                   style="transition: transform 0.3s ease; color: #0d6efd; font-weight: bold; font-size: 1.1em;"></i>
-                <span class="badge bg-primary children-count" 
-                      style="font-size: 0.7em; min-width: 20px;"
-                      data-parent-account-id="{{ node.account.id }}">
-                    {{ node.children_count }}
-                </span>
-            </div>
-        {% else %}
-            <div class="expand-toggle" style="width: 20px; margin-right: 8px;">
-                {% if level > 0 %}
-                    <i class="fas fa-circle text-muted" style="opacity: 0.3; font-size: 0.5em;"></i>
-                {% endif %}
-            </div>
-        {% endif %}
-        
-        <!-- Account Icon -->
-        <div class="account-icon account-type-{{ node.account.account_type }}">
-            {% if node.account.account_type == 'income' %}
-                <i class="fas fa-arrow-up"></i>
-            {% elif node.account.account_type == 'expense' %}
-                <i class="fas fa-arrow-down"></i>
+        <!-- Chevron, tiny folder/file icon, and dominant name -->
+        <div class="d-flex align-items-center" style="gap: 8px;">
+            <span class="tree-toggle">
+            {% if node.has_children %}
+                <i class="fas fa-chevron-right account-chevron" id="chevron-{{ node.account.id }}" style="transition: transform 0.2s ease; color: #6b7280;"></i>
             {% else %}
-                <i class="fas fa-folder"></i>
+                <!-- spacer to align with siblings having chevrons -->
+                <span style="display:inline-block;width:12px;"></span>
             {% endif %}
-        </div>
-        
-        <!-- Account Info -->
-        <div class="account-info">
-            <div class="account-name">{{ node.account.name }}</div>
-            <div class="account-meta">
-                <span class="account-badge">{{ node.account.account_type|title }}</span>
-                {% if node.children_count > 0 %}
-                    <span class="account-badge">{{ node.children_count }} children</span>
+            </span>
+            <span class="tree-icon">
+                {% if node.has_children %}
+                    <i class="fas fa-folder"></i>
+                {% else %}
+                    <i class="fas fa-file"></i>
                 {% endif %}
-                {% if not node.account.is_active %}
-                    <span class="account-badge text-warning">Inactive</span>
-                {% endif %}
+            </span>
+            <div class="account-info">
+                <div class="account-name">{{ node.account.name }}</div>
             </div>
         </div>
-        
-        <!-- Children Count Badge -->
-        {% if node.has_children %}
-            <span class="badge bg-primary children-count" style="font-size: 0.7em; min-width: 20px;">
-                {{ node.children_count }}
-            </span>
-        {% endif %}
     </div>
     
     <!-- Children Container (recursive, only if has children) -->

@@ -95,6 +95,28 @@ def calculate_overall_balance(family, current_week=None):
     }
 
 
+def get_or_create_week_for_date(family, target_date):
+    """Resolve the WeeklyPeriod containing target_date using Monday-Sunday weeks.
+    Falls back to simple computation without relying on custom manager methods.
+    """
+    # Find Monday of the week
+    week_start = target_date - timedelta(days=target_date.weekday())
+    week_end = week_start + timedelta(days=6)
+    week, _ = WeeklyPeriod.objects.get_or_create(
+        family=family,
+        start_date=week_start,
+        defaults={
+            'end_date': week_end,
+            'is_active': True,
+        }
+    )
+    # Ensure end_date is correct if record existed with different value
+    if week.end_date != week_end:
+        week.end_date = week_end
+        week.save(update_fields=['end_date'])
+    return week
+
+
 # Dashboard View
 @login_required
 @family_required
@@ -320,13 +342,13 @@ def account_list_weekly(request):
     else:
         parsed_date = date.today()
 
-    current_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=parsed_date)
+    current_week = get_or_create_week_for_date(family, parsed_date)
 
     # Compute previous and next weeks
     prev_start = current_week.start_date - timedelta(days=7)
     next_start = current_week.start_date + timedelta(days=7)
-    prev_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=prev_start)
-    next_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=next_start)
+    prev_week = get_or_create_week_for_date(family, prev_start)
+    next_week = get_or_create_week_for_date(family, next_start)
 
     # Same account trees as regular list (children of root accounts)
     root_income = Account.objects.filter(
@@ -480,15 +502,15 @@ def account_detail(request, account_id):
             parsed_date = date.today()
         # Use manager helper if available
         try:
-            current_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=parsed_date)
+            current_week = get_or_create_week_for_date(family, parsed_date)
         except Exception:
             current_week = get_current_week(family)
         # Compute prev/next for template week selector
         prev_start = current_week.start_date - timedelta(days=7)
         next_start = current_week.start_date + timedelta(days=7)
         try:
-            prev_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=prev_start)
-            next_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=next_start)
+            prev_week = get_or_create_week_for_date(family, prev_start)
+            next_week = get_or_create_week_for_date(family, next_start)
         except Exception:
             prev_week = None
             next_week = None
@@ -1717,6 +1739,22 @@ def accounts_master_detail(request):
         messages.error(request, "You must be part of a family to access accounts.")
         return redirect('accounts:dashboard')
     
+    # Determine current week (optional ?week=YYYY-MM-DD) similar to weekly view
+    week_param = request.GET.get('week')
+    if week_param:
+        try:
+            parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+        except ValueError:
+            parsed_date = timezone.now().date()
+    else:
+        parsed_date = timezone.now().date()
+
+    current_week = get_or_create_week_for_date(family, parsed_date)
+    prev_start = current_week.start_date - timedelta(days=7)
+    next_start = current_week.start_date + timedelta(days=7)
+    prev_week = get_or_create_week_for_date(family, prev_start)
+    next_week = get_or_create_week_for_date(family, next_start)
+
     # Get account tree with enhanced data for master-detail view
     account_tree = get_account_tree(family)
     
@@ -1782,6 +1820,9 @@ def accounts_master_detail(request):
         'family': family,
         'total_accounts': account_counts['total'],
         'active_accounts': account_counts['active'],
+        'current_week': current_week,
+        'prev_week': prev_week,
+        'next_week': next_week,
     }
     
     return render(request, 'budget_allocation/account/accounts_master_detail.html', context)
@@ -1804,13 +1845,24 @@ def account_detail_api(request, account_id):
             'allocations_to'
         ).get(id=account_id, family=family)
         
-        # Get recent transactions (last 10)
-        recent_transactions = Transaction.objects.filter(
-            account=account
-        ).select_related('account', 'week').order_by('-transaction_date')[:10]
+        # Resolve optional week context from query param (?week=YYYY-MM-DD)
+        week_param = request.GET.get('week')
+        if week_param:
+            try:
+                parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+            except ValueError:
+                parsed_date = date.today()
+            current_week = get_or_create_week_for_date(family, parsed_date)
+        else:
+            current_week = get_current_week(family)
+
+        # Get recent transactions (last 10) - scoped to week when provided
+        tx_qs = Transaction.objects.filter(account=account).select_related('account', 'week')
+        if week_param:
+            tx_qs = tx_qs.filter(week=current_week)
+        recent_transactions = tx_qs.order_by('-transaction_date')[:10]
         
-        # Get account balance (current week)
-        current_week = get_current_week(family)
+        # Get account balance for the resolved week
         account_balance = get_account_balance(account, current_week)
         
         # Get account children for hierarchy display
@@ -1843,9 +1895,10 @@ def account_detail_api(request, account_id):
             })
         
         # Get recent allocations
-        recent_allocations = Allocation.objects.filter(
-            to_account=account
-        ).select_related('to_account', 'week').order_by('-id')[:5]
+        alloc_qs = Allocation.objects.filter(to_account=account).select_related('to_account', 'week')
+        if week_param:
+            alloc_qs = alloc_qs.filter(week=current_week)
+        recent_allocations = alloc_qs.order_by('-id')[:5]
         
         allocation_data = []
         for allocation in recent_allocations:

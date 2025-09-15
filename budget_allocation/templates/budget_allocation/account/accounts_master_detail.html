@@ -183,8 +183,15 @@
     left: -12px;
     top: 50%;
     width: 12px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #9ca3af ;
 }
+
+/* Ensure small folder/file icons are visible */
+.tree-icon i { font-size: 12px; opacity: 0.9; }
+/* Support inline SVG icons if Font Awesome isn’t available */
+.tree-toggle svg { width: 16px; height: 12px; display: block; color: #6b7280; }
+.tree-icon svg { width: 14px; height: 14px; display: block; color: #9ca3af; }
+.account-chevron { transition: transform 0.2s ease; }
 
 /* Toggle and icon spacers for alignment */
 .tree-toggle { width: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -527,8 +534,14 @@ window.toggleAccountRow = function(event, accountId) {
         childrenDiv.classList.add('collapsed');
         if (chevron) chevron.style.transform = 'rotate(0deg)';
         if (window.masterDetailController) {
+            // Pivot to the parent so siblings are unfaded when collapsing this node
+            const parentId = selector.getAttribute('data-parent-id');
             window.masterDetailController.selectedAccountId = accountId;
-            window.masterDetailController.applyFadingWithPivot(accountId, accountId);
+            if (parentId) {
+                window.masterDetailController.applyFadingWithPivot(accountId, parentId);
+            } else {
+                window.masterDetailController.applyRootPivotFading(accountId);
+            }
         }
         return;
     }
@@ -808,7 +821,7 @@ class MasterDetailController {
         if (childrenDiv && selector) {
             selector.classList.add('expanded');
             childrenDiv.classList.remove('collapsed');
-            if (chevron) chevron.style.transform = 'rotate(180deg)';
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
         }
     }
 

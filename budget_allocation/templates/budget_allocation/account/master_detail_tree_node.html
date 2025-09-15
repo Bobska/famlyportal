@@ -12,7 +12,10 @@
         <div class="d-flex align-items-center" style="gap: 8px;">
             <span class="tree-toggle">
             {% if node.has_children %}
-                <i class="fas fa-chevron-right account-chevron" id="chevron-{{ node.account.id }}" style="transition: transform 0.2s ease; color: #6b7280;"></i>
+                <!-- inline SVG chevron (right) -->
+                <svg id="chevron-{{ node.account.id }}" class="account-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707A1 1 0 118.707 5.293l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
             {% else %}
                 <!-- spacer to align with siblings having chevrons -->
                 <span style="display:inline-block;width:12px;"></span>
@@ -20,9 +23,15 @@
             </span>
             <span class="tree-icon">
                 {% if node.has_children %}
-                    <i class="fas fa-folder"></i>
+                <!-- inline SVG folder icon -->
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M2 6a2 2 0 012-2h3l2 2h7a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                </svg>
                 {% else %}
-                    <i class="fas fa-file"></i>
+                <!-- inline SVG file icon -->
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M4 3a2 2 0 012-2h4l4 4v11a2 2 0 01-2 2H6a2 2 0 01-2-2V3z" />
+                </svg>
                 {% endif %}
             </span>
             <div class="account-info">

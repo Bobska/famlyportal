@@ -42,6 +42,7 @@ urlpatterns = [
     path('api/accounts/create/', views.create_account_ajax, name='create_account_ajax'),
     path('api/account-tree/', views.api_account_tree, name='api_account_tree'),
     path('api/account/<int:account_id>/', views.account_detail_api, name='account_detail_api'),
+    path('api/account/move/', views.account_move_api, name='account_move_api'),
     path('api/account/<int:account_id>/balance/', views.account_balance_api, name='account_balance_api'),
     path('api/account/<int:account_id>/toggle-status/', views.toggle_account_status_api, name='toggle_account_status_api'),
     path('api/account/<int:account_id>/delete/', views.delete_account_api, name='delete_account_api'),

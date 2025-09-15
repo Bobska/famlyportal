@@ -1,10 +1,12 @@
 <!-- Master-Detail Tree Node Template -->
 <div class="account-tree-item" style="margin-bottom: 4px;">
-    <div class="account-item level-{{ level }} account-tree-selector"
+    <div class="account-item level-{{ level }} account-tree-selector {% if node.account.is_merchant_payee %}merchant-payee{% endif %}"
         data-account-id="{{ node.account.id }}"
         {% if node.account.parent_id %}data-parent-id="{{ node.account.parent_id }}"{% endif %}
         data-account-name="{{ node.account.name }}"
         data-account-type="{{ node.account.account_type }}"
+        data-level="{{ level }}"
+        draggable="true"
          data-has-children="{{ node.has_children|yesno:'true,false' }}"
          style="cursor: pointer;"
          onclick="toggleAccountRow(event, '{{ node.account.id }}')">
@@ -35,7 +37,12 @@
                 {% endif %}
             </span>
             <div class="account-info">
-                <div class="account-name">{{ node.account.name }}</div>
+                <div class="account-name">
+                    {{ node.account.name }}
+                    {% if node.account.is_merchant_payee %}
+                    <span class="badge bg-light text-primary ms-2 merchant-payee-badge">{% if node.account.account_type == 'income' %}Payee{% else %}Merchant{% endif %}</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

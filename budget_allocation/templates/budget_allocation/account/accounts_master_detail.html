@@ -97,6 +97,28 @@
     background-color: rgba(0, 123, 255, 0.12);
 }
 
+/* Merchant/Payee visual indicator */
+.account-item.merchant-payee {
+    border-left: 4px solid #6f42c1; /* purple accent */
+    background-image: linear-gradient(90deg, rgba(111,66,193,0.06), rgba(111,66,193,0));
+}
+.account-item.merchant-payee.selected {
+    border-left-color: #6f42c1;
+    background-color: rgba(111,66,193,0.12);
+}
+.merchant-payee-badge {
+    border: 1px solid #6f42c1;
+}
+
+/* Drag-and-drop visuals */
+.account-item.dragging {
+    opacity: 0.5;
+}
+.account-item.drop-target {
+    outline: 2px dashed #0d6efd;
+    background-color: rgba(13,110,253,0.06);
+}
+
 /* Children container: indentation and collapse behavior */
 .account-children {
     margin-left: 12px;           /* visually nest under parent */
@@ -664,6 +686,43 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.account-chevron').forEach(function(chevron) {
         chevron.style.transform = 'rotate(0deg)';
     });
+
+    // Drag-and-drop handlers for reordering/restructuring
+    let dragSrcId = null;
+    const addDnDHandlers = () => {
+        document.querySelectorAll('.account-item.account-tree-selector').forEach(function(item){
+            item.addEventListener('dragstart', function(e){
+                dragSrcId = this.dataset.accountId;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', dragSrcId);
+                this.classList.add('dragging');
+            });
+            item.addEventListener('dragend', function(){
+                this.classList.remove('dragging');
+                document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+            });
+            item.addEventListener('dragover', function(e){
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drop-target');
+            });
+            item.addEventListener('dragleave', function(){
+                this.classList.remove('drop-target');
+            });
+            item.addEventListener('drop', async function(e){
+                e.preventDefault();
+                this.classList.remove('drop-target');
+                const srcId = dragSrcId || e.dataTransfer.getData('text/plain');
+                const targetId = this.dataset.accountId;
+                if (!srcId || !targetId || srcId === targetId) return;
+                // Determine move intent: if dropped on a node with children and modifier key held, insert inside; otherwise same-parent reorder as after target
+                const targetHasChildren = this.getAttribute('data-has-children') === 'true';
+                const moveMode = (e.ctrlKey || e.metaKey) && targetHasChildren ? 'inside' : 'after';
+                await window.masterDetailController?.performAccountMove({ sourceId: srcId, targetId, mode: moveMode });
+            });
+        });
+    };
+    addDnDHandlers();
 });
 
 
@@ -1547,6 +1606,31 @@ class MasterDetailController {
 }
 
 // Modal helpers and submissions
+MasterDetailController.prototype.performAccountMove = async function({ sourceId, targetId, mode }){
+    try {
+        const resp = await fetch('/budget-allocation/api/account/move/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify({ source_id: sourceId, target_id: targetId, mode })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+            alert(data.error || 'Failed to move account');
+            return;
+        }
+        // After a move, reload current selection to reflect new structure and recalculated roll-ups
+        if (this.selectedAccountId) {
+            await this.loadAccountData(this.selectedAccountId);
+        }
+        // Optionally, refresh the page or re-render tree; simplest is to reload
+        window.location.reload();
+    } catch (e) {
+        alert('Network error while moving account.');
+    }
+};
 MasterDetailController.prototype.openTransactionModal = function(account) {
     // Prefill hidden inputs and date
     const weekStart = this.weekStart;

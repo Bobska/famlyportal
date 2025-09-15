@@ -4,12 +4,14 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.utils.decorators import method_decorator
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, Max
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+import json
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 import logging
@@ -63,6 +65,13 @@ def get_family_queryset(request, model_class):
     if not family:
         return model_class.objects.none()
     return model_class.objects.filter(family=family)
+
+
+def get_account_subtree(account):
+    """Yield account and all descendants (DFS)."""
+    yield account
+    for child in account.children.all():
+        yield from get_account_subtree(child)
 
 
 def calculate_overall_balance(family, current_week=None):
@@ -402,6 +411,138 @@ def account_list_weekly(request):
         'family': family,
     }
     return render(request, 'budget_allocation/account/list_weekly.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+@require_POST
+def account_move_api(request):
+    """Move/reparent/reorder an account in the hierarchy.
+    Body JSON: { source_id, target_id, mode: 'after' | 'before' | 'inside' }
+    Rules:
+      - Families must match, and source != target
+      - Cannot move a node under itself or into its own subtree
+      - If moving across account_type roots (income vs expense), propagate type to entire subtree
+      - Adjust sort_order within the new parent; for 'after'/'before', parent is target.parent; for 'inside', parent is target
+    Recalculations:
+      - Roll-ups are computed on the fly in existing APIs; moving updates parent linkage so they reflect new lineage
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        source_id = int(payload.get('source_id'))
+        target_id = int(payload.get('target_id'))
+        mode = (payload.get('mode') or 'after').lower()
+        if mode not in ('after', 'before', 'inside'):
+            return JsonResponse({'success': False, 'error': 'Invalid mode'}, status=400)
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid payload'}, status=400)
+
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'No family found'}, status=403)
+
+    source = get_object_or_404(Account, pk=source_id, family=family)
+    target = get_object_or_404(Account, pk=target_id, family=family)
+
+    if source.pk == target.pk:
+        return JsonResponse({'success': False, 'error': 'Cannot move onto itself'}, status=400)
+
+    # Prevent cycles: target cannot be inside source subtree
+    def is_descendant(a, potential_ancestor):
+        cur = a.parent
+        while cur is not None:
+            if cur.pk == potential_ancestor.pk:
+                return True
+            cur = cur.parent
+        return False
+
+    if is_descendant(target, source):
+        return JsonResponse({'success': False, 'error': 'Cannot move a node into its own subtree'}, status=400)
+
+    with transaction.atomic():
+        # Determine new parent and sort order intent
+        if mode == 'inside':
+            # Only allowed if target can have children; otherwise treat as 'after'
+            if hasattr(target, 'can_have_children') and target.can_have_children:
+                new_parent = target
+                siblings = Account.objects.filter(family=family, parent=new_parent).order_by('sort_order', 'name')
+                new_sort = (siblings.aggregate(max_s=Max('sort_order'))['max_s'] or 0) + 1
+            else:
+                mode = 'after'
+                new_parent = target.parent
+                siblings = Account.objects.filter(family=family, parent=new_parent).order_by('sort_order', 'name')
+                ordered_ids = [s.pk for s in siblings]
+                try:
+                    idx = ordered_ids.index(target.pk)
+                except ValueError:
+                    idx = len(ordered_ids) - 1
+                insert_pos = idx + 1
+                for i, s in enumerate(siblings):
+                    s.sort_order = i + (1 if i >= insert_pos else 0)
+                    s.save(update_fields=['sort_order'])
+                new_sort = insert_pos
+        else:
+            # before/after => same parent as target
+            new_parent = target.parent
+            if new_parent is None:
+                # Disallow moving to root unless types are root-compatible; we keep non-root accounts under Income/Expenses
+                # Place under the appropriate root (Income/Expenses) implicitly
+                new_parent = target  # fallback to inside
+                mode = 'inside'
+            siblings = Account.objects.filter(family=family, parent=new_parent).order_by('sort_order', 'name')
+            # Determine position relative to target
+            ordered_ids = [s.pk for s in siblings]
+            try:
+                idx = ordered_ids.index(target.pk)
+            except ValueError:
+                idx = len(ordered_ids) - 1
+            insert_pos = idx + (1 if mode == 'after' else 0)
+            # Reassign sort_orders to make room
+            for i, s in enumerate(siblings):
+                s.sort_order = i + (1 if i >= insert_pos else 0)
+                s.save(update_fields=['sort_order'])
+            new_sort = insert_pos
+
+        old_parent_id = source.parent_id
+        old_type = source.account_type
+
+        # Validate parent can accept children
+        if new_parent and hasattr(new_parent, 'can_have_children') and not new_parent.can_have_children:
+            return JsonResponse({'success': False, 'error': 'Target cannot have children'}, status=400)
+
+        # Update parent and sort_order
+        source.parent = new_parent
+        source.sort_order = new_sort
+        source.save(update_fields=['parent', 'sort_order'])
+
+        # Resequence siblings in the old parent to fill gaps
+        if old_parent_id != (new_parent.pk if new_parent else None):
+            old_siblings = Account.objects.filter(family=family, parent_id=old_parent_id).order_by('sort_order', 'name')
+            for i, s in enumerate(old_siblings):
+                if s.sort_order != i:
+                    s.sort_order = i
+                    s.save(update_fields=['sort_order'])
+
+        # If account types differ between new lineage and source, propagate
+        new_lineage_type = new_parent.account_type if new_parent else source.account_type
+        if new_lineage_type in ('income', 'expense') and new_lineage_type != old_type:
+            for node in get_account_subtree(source):
+                if node.account_type != new_lineage_type:
+                    node.account_type = new_lineage_type
+                    node.save(update_fields=['account_type'])
+
+        # Log history
+        AccountHistory.objects.create(
+            family=family,
+            account=source,
+            action='moved',
+            old_value=f"parent={old_parent_id}, type={old_type}",
+            new_value=f"parent={source.parent_id}, type={source.account_type}",
+            notes=f"Moved {mode} target {target.pk}"
+        )
+
+    return JsonResponse({'success': True})
 
 
 @login_required

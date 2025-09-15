@@ -453,14 +453,7 @@
                     <input type="hidden" name="ajax" value="1" />
                     <input type="hidden" name="return_week" id="tx_return_week" />
                     <input type="hidden" name="account" id="tx_account_id" />
-                    <div class="mb-3">
-                        <label class="form-label">Account</label>
-                        <div class="border rounded p-2" style="max-height: 220px; overflow:auto;" id="tx_account_tree"></div>
-                        <div class="mt-2 d-flex justify-content-between">
-                            <small class="text-muted" id="tx_account_selected_label">Selected: none</small>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="tx_open_create_account">Create Account</button>
-                        </div>
-                    </div>
+                    <!-- Account is still selected by detail account; Payee/Merchant handled by dedicated modal -->
                     <div class="mb-3">
                         <label for="tx_transaction_date" class="form-label">Date</label>
                         <input type="date" class="form-control" name="transaction_date" id="tx_transaction_date" required />
@@ -474,8 +467,14 @@
                         <input type="text" class="form-control" name="description" id="tx_description" />
                     </div>
                     <div class="mb-3">
-                        <label for="tx_payee" class="form-label">Payee</label>
-                        <input type="text" class="form-control" name="payee" id="tx_payee" />
+                        <label for="tx_payee" class="form-label">Merchant/Payee</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="payee" id="tx_payee" />
+                            <button type="button" class="btn btn-outline-secondary" id="tx_open_payee_modal">
+                                <i class="fas fa-plus me-1"></i>New
+                            </button>
+                        </div>
+                        <div class="form-text">Use New to create a Merchant/Payee with an expandable account tree.</div>
                     </div>
                     <div class="mb-3">
                         <label for="tx_reference" class="form-label">Reference</label>
@@ -530,43 +529,7 @@
     </div>
 </div>
 
-<!-- Nested: Create Account from Transaction Modal -->
-<div class="modal fade" id="transactionCreateAccountModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Account</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="tx_create_account_form">
-                    {% csrf_token %}
-                    <input type="hidden" id="tx_ca_parent" name="parent" />
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-control" id="tx_ca_name" name="name" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Type</label>
-                        <select class="form-select" id="tx_ca_type" name="account_type" required>
-                            <option value="income">Income</option>
-                            <option value="expense">Expense</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" id="tx_ca_desc" name="description" rows="2"></textarea>
-                    </div>
-                </form>
-                <div id="tx_ca_error" class="alert alert-danger d-none"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="tx_ca_submit_btn">Create</button>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'budget_allocation/partials/create_account_modal.html' %}
 
 <div class="modal fade" id="allocationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -1621,16 +1584,26 @@ MasterDetailController.prototype.openTransactionModal = function(account) {
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
     }
-    // Load account tree with current account preselected
-    this.loadTransactionAccountTree(account.id);
     // Bind submit button
     const submitBtn = document.getElementById('tx_submit_btn');
     if (submitBtn) {
         submitBtn.onclick = () => this.submitTransactionForm();
     }
-    const openCreateBtn = document.getElementById('tx_open_create_account');
-    if (openCreateBtn) {
-        openCreateBtn.onclick = () => this.openTxCreateAccountModal();
+    const openPayeeBtn = document.getElementById('tx_open_payee_modal');
+    if (openPayeeBtn) {
+        openPayeeBtn.onclick = () => {
+            // Determine type based on selected account type in detail
+            const type = (account.account_type || 'expense').toLowerCase();
+            window.initCreateAccountModal({
+                accountType: type,
+                onSuccess: (acct) => {
+                    // Set payee field and keep modal open
+                    const payee = document.getElementById('tx_payee');
+                    if (payee) payee.value = acct.name || '';
+                },
+                onCancel: () => {}
+            });
+        };
     }
 };
 
@@ -1672,109 +1645,6 @@ MasterDetailController.prototype.submitTransactionForm = async function() {
     }
 };
 
-// Transaction modal: account tree selector
-MasterDetailController.prototype.loadTransactionAccountTree = async function(preselectId) {
-    const container = document.getElementById('tx_account_tree');
-    const hiddenInput = document.getElementById('tx_account_id');
-    const selectedLabel = document.getElementById('tx_account_selected_label');
-    if (!container) return;
-    container.innerHTML = '<div class="text-muted small">Loading accounts…</div>';
-    try {
-        const resp = await fetch('/budget-allocation/api/account-tree/');
-        const data = await resp.json();
-        if (!data.success) throw new Error(data.error || 'Failed to load');
-        container.innerHTML = '';
-        const buildNode = (node) => {
-            const acct = node.account;
-            const wrapper = document.createElement('div');
-            wrapper.className = 'mb-1';
-            const row = document.createElement('div');
-            row.className = 'd-flex align-items-center py-1 px-1 rounded hover-bg';
-            row.style.cursor = 'pointer';
-            const label = document.createElement('span');
-            label.textContent = acct.name;
-            const badge = document.createElement('span');
-            badge.className = 'badge bg-light text-dark ms-2';
-            badge.textContent = acct.account_type;
-            row.appendChild(label);
-            row.appendChild(badge);
-            if (preselectId && String(preselectId) === String(acct.id)) {
-                row.classList.add('bg-light');
-                if (hiddenInput) hiddenInput.value = acct.id;
-                if (selectedLabel) selectedLabel.textContent = `Selected: ${acct.name}`;
-            }
-            row.addEventListener('click', () => {
-                // Clear previous selection styles
-                container.querySelectorAll('.bg-light').forEach(el => el.classList.remove('bg-light'));
-                row.classList.add('bg-light');
-                if (hiddenInput) hiddenInput.value = acct.id;
-                if (selectedLabel) selectedLabel.textContent = `Selected: ${acct.name}`;
-            });
-            wrapper.appendChild(row);
-            if (node.children && node.children.length) {
-                const kids = document.createElement('div');
-                kids.className = 'ms-3 border-start ps-2';
-                node.children.forEach(ch => kids.appendChild(buildNode(ch)));
-                wrapper.appendChild(kids);
-            }
-            return wrapper;
-        };
-        (data.tree || []).forEach(n => container.appendChild(buildNode(n)));
-        // Fallback if nothing selected yet
-        if (!hiddenInput.value && preselectId) hiddenInput.value = preselectId;
-    } catch (e) {
-        container.innerHTML = '<div class="text-danger small">Error loading accounts. Please try again.</div>';
-    }
-};
-
-// Open nested create-account modal from transaction modal
-MasterDetailController.prototype.openTxCreateAccountModal = function() {
-    // Try to use currently selected in tree as parent, or current detail account
-    const hiddenInput = document.getElementById('tx_account_id');
-    const parentId = hiddenInput && hiddenInput.value ? hiddenInput.value : (this.selectedAccountId || '');
-    const parentField = document.getElementById('tx_ca_parent');
-    const errorBox = document.getElementById('tx_ca_error');
-    if (errorBox) { errorBox.classList.add('d-none'); errorBox.textContent = ''; }
-    if (parentField) parentField.value = parentId;
-    const modalEl = document.getElementById('transactionCreateAccountModal');
-    if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
-    const submitBtn = document.getElementById('tx_ca_submit_btn');
-    if (submitBtn) submitBtn.onclick = () => this.submitTxCreateAccount();
-};
-
-MasterDetailController.prototype.submitTxCreateAccount = async function() {
-    const form = document.getElementById('tx_create_account_form');
-    const errorBox = document.getElementById('tx_ca_error');
-    const submitBtn = document.getElementById('tx_ca_submit_btn');
-    if (!form) return;
-    const formData = new FormData(form);
-    try {
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...'; }
-        const resp = await fetch('/budget-allocation/api/accounts/create/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
-            body: formData
-        });
-        const data = await resp.json();
-        if (data.success) {
-            // Close nested modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('transactionCreateAccountModal'));
-            if (modal) modal.hide();
-            // Refresh account tree and select new account
-            await this.loadTransactionAccountTree(data.account.id);
-            const hiddenInput = document.getElementById('tx_account_id');
-            if (hiddenInput) hiddenInput.value = data.account.id;
-            const selectedLabel = document.getElementById('tx_account_selected_label');
-            if (selectedLabel) selectedLabel.textContent = `Selected: ${data.account.name}`;
-        } else {
-            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = data.error || 'Failed to create account.'; }
-        }
-    } catch (e) {
-        if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Network error. Please try again.'; }
-    } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Create'; }
-    }
-};
 
 MasterDetailController.prototype.openAllocationModal = function(account) {
     // Prefill TO account and week; allocation uses last week's income pool (no manual from_account)

@@ -410,6 +410,9 @@
                         <i class="fas fa-compress-alt"></i> Collapse
                     </button>
                 </div>
+                <div class="text-muted small">
+                    Drag to move inside. Hold <kbd>Ctrl/Cmd</kbd> to place after, hold <kbd>Shift</kbd> to place before.
+                </div>
                 <input type="text" class="search-box w-100" id="accountSearch" placeholder="Search accounts...">
             </div>
             
@@ -448,6 +451,21 @@
             </div>
         </div>
         
+    </div>
+</div>
+<!-- Toast container -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+    <div id="globalToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="globalToastBody">Action completed.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    <div id="globalToastError" class="toast align-items-center text-bg-danger border-0 mt-2" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="globalToastErrorBody">An error occurred.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
     </div>
 </div>
 
@@ -715,10 +733,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const srcId = dragSrcId || e.dataTransfer.getData('text/plain');
                 const targetId = this.dataset.accountId;
                 if (!srcId || !targetId || srcId === targetId) return;
-                // Determine move intent: if dropped on a node with children and modifier key held, insert inside; otherwise same-parent reorder as after target
-                const targetHasChildren = this.getAttribute('data-has-children') === 'true';
-                const moveMode = (e.ctrlKey || e.metaKey) && targetHasChildren ? 'inside' : 'after';
-                await window.masterDetailController?.performAccountMove({ sourceId: srcId, targetId, mode: moveMode });
+                // Default: move inside target; modifiers: Ctrl/Cmd -> after, Shift -> before
+                const moveMode = e.shiftKey ? 'before' : ((e.ctrlKey || e.metaKey) ? 'after' : 'inside');
+                const ok = await window.masterDetailController?.performAccountMove({ sourceId: srcId, targetId, mode: moveMode });
+                if (ok) {
+                    window.masterDetailController?.applyLocalMove(srcId, targetId, moveMode);
+                }
             });
         });
     };
@@ -1187,6 +1207,7 @@ class MasterDetailController {
                                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTransaction">Add Transaction</button>
                                     ${showExpenses ? `<button type="button" class="btn btn-sm btn-primary" id="btnAllocateFunds">Allocate Funds</button>` : ''}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCreateChildAccount">Create Child</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnEditAccount">Edit</button>
                                 </div>
                             </div>
                         </div>
@@ -1249,6 +1270,12 @@ class MasterDetailController {
                             <span class="badge ${account.is_active ? 'bg-success' : 'bg-warning'}">${account.is_active ? 'Active' : 'Inactive'}</span>
                         </div>
                     </div>
+                    <div class="row mt-2">
+                        <div class="col-sm-3"><strong>Merchant/Payee:</strong></div>
+                        <div class="col-sm-9">
+                            ${account.is_merchant_payee ? `<span class="badge ${acctType==='income' ? 'bg-success' : 'bg-primary'}">${acctType==='income' ? 'Payee' : 'Merchant'}</span>` : '<span class="text-muted">No</span>'}
+                        </div>
+                    </div>
                     ${account.parent ? `
                     <div class="row mt-2">
                         <div class="col-sm-3"><strong>Parent:</strong></div>
@@ -1297,6 +1324,41 @@ class MasterDetailController {
                             <div>
                                 <div class="fw-medium">${allocation.notes || 'Allocation'}</div>
                                 <small class="text-muted">${allocation.date}</small>
+
+                            <!-- Edit Account Modal -->
+                            <div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Account</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form id="editAccountForm">
+                                                {% csrf_token %}
+                                                <input type="hidden" id="ea_account_id" name="account_id" />
+                                                <div class="mb-3">
+                                                    <label class="form-label">Name</label>
+                                                    <input type="text" class="form-control" id="ea_name" name="name" required />
+                                                </div>
+                                                <div class="mb-3">
+                                                                <label class="form-label">Description</label>
+                                                    <textarea class="form-control" id="ea_desc" name="description" rows="2"></textarea>
+                                                </div>
+                                                <div class="form-check form-switch mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="ea_is_mp" name="is_merchant_payee">
+                                                                <label class="form-check-label" for="ea_is_mp">Mark as <span id="ea_is_mp_role">Merchant/Payee</span></label>
+                                                </div>
+                                            </form>
+                                            <div id="ea_error" class="alert alert-danger d-none"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="button" class="btn btn-primary" id="ea_submit_btn">Save</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
                             </div>
                             <div class="transaction-amount positive">
                                 +$${allocation.amount.toFixed(2)}
@@ -1365,6 +1427,58 @@ class MasterDetailController {
                         if (errBox) { errBox.classList.remove('d-none'); errBox.textContent = 'Network error. Please try again.'; }
                     } finally {
                         submitBtn.disabled = false; submitBtn.textContent = 'Create';
+                    }
+                };
+            });
+        }
+        const editBtn = document.getElementById('btnEditAccount');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                const idEl = document.getElementById('ea_account_id');
+                const nameEl = document.getElementById('ea_name');
+                const descEl = document.getElementById('ea_desc');
+                const mpEl = document.getElementById('ea_is_mp');
+                const err = document.getElementById('ea_error');
+                if (err) { err.classList.add('d-none'); err.textContent=''; }
+                if (idEl) idEl.value = account.id || '';
+                if (nameEl) nameEl.value = account.name || '';
+                if (descEl) descEl.value = account.description || '';
+                if (mpEl) mpEl.checked = !!account.is_merchant_payee;
+                const mpRole = document.getElementById('ea_is_mp_role');
+                if (mpRole) mpRole.textContent = (account.account_type || '').toLowerCase() === 'income' ? 'Payee' : 'Merchant';
+                const modalEl = document.getElementById('editAccountModal');
+                if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
+                const save = document.getElementById('ea_submit_btn');
+                if (save) save.onclick = async () => {
+                    const form = document.getElementById('editAccountForm');
+                    const btn = save;
+                    try {
+                        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+                        const resp = await fetch('/budget-allocation/api/account/update/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+                            body: JSON.stringify({
+                                account_id: idEl.value,
+                                name: nameEl.value,
+                                description: descEl.value,
+                                is_merchant_payee: mpEl.checked
+                            })
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            const m = bootstrap.Modal.getInstance(modalEl);
+                            if (m) m.hide();
+                            window.masterDetailController?.showToast('Account updated');
+                            if (this.selectedAccountId) await this.loadAccountData(this.selectedAccountId);
+                        } else {
+                            if (err) { err.classList.remove('d-none'); err.textContent = data.error || 'Failed to update account.'; }
+                            window.masterDetailController?.showToast(data.error || 'Failed to update account', true);
+                        }
+                    } catch (e) {
+                        if (err) { err.classList.remove('d-none'); err.textContent = 'Network error. Please try again.'; }
+                        window.masterDetailController?.showToast('Network error updating account', true);
+                    } finally {
+                        btn.disabled = false; btn.textContent = 'Save';
                     }
                 };
             });
@@ -1604,6 +1718,17 @@ class MasterDetailController {
         window.history.replaceState({}, '', url.toString());
     }
 }
+// Toast helpers
+MasterDetailController.prototype.showToast = function(message, isError=false) {
+    const id = isError ? 'globalToastError' : 'globalToast';
+    const bodyId = isError ? 'globalToastErrorBody' : 'globalToastBody';
+    const el = document.getElementById(id);
+    const body = document.getElementById(bodyId);
+    if (!el || !body) return;
+    body.textContent = message;
+    const t = new bootstrap.Toast(el, { delay: 2500 });
+    t.show();
+};
 
 // Modal helpers and submissions
 MasterDetailController.prototype.performAccountMove = async function({ sourceId, targetId, mode }){
@@ -1618,18 +1743,80 @@ MasterDetailController.prototype.performAccountMove = async function({ sourceId,
         });
         const data = await resp.json();
         if (!data.success) {
-            alert(data.error || 'Failed to move account');
-            return;
+            this.showToast(data.error || 'Failed to move account', true);
+            return false;
         }
-        // After a move, reload current selection to reflect new structure and recalculated roll-ups
-        if (this.selectedAccountId) {
-            await this.loadAccountData(this.selectedAccountId);
-        }
-        // Optionally, refresh the page or re-render tree; simplest is to reload
-        window.location.reload();
+        // Refresh selected account detail (roll-ups) without full page reload
+        if (this.selectedAccountId) await this.loadAccountData(this.selectedAccountId);
+        this.showToast('Account moved');
+        return true;
     } catch (e) {
-        alert('Network error while moving account.');
+        this.showToast('Network error while moving account', true);
+        return false;
     }
+};
+
+// Update DOM tree locally after move
+MasterDetailController.prototype.applyLocalMove = function(sourceId, targetId, mode) {
+    const srcSel = document.querySelector(`[data-account-id="${sourceId}"]`);
+    const tgtSel = document.querySelector(`[data-account-id="${targetId}"]`);
+    if (!srcSel || !tgtSel) return;
+    const srcBlock = srcSel.closest('.account-tree-item');
+    const tgtBlock = tgtSel.closest('.account-tree-item');
+    if (!srcBlock || !tgtBlock) return;
+
+    // Helper to ensure target has a children container and chevron
+    const ensureChildrenContainer = (targetId) => {
+        let kids = document.getElementById(`children-${targetId}`);
+        if (!kids) {
+            kids = document.createElement('div');
+            kids.id = `children-${targetId}`;
+            kids.className = 'account-children';
+            kids.style.overflow = 'hidden';
+            kids.style.transition = 'all 0.3s ease-in-out';
+            kids.style.marginTop = '8px';
+            tgtBlock.appendChild(kids);
+            // Add chevron and data flag if missing
+            const chev = tgtSel.querySelector('.account-chevron');
+            if (!chev) {
+                const toggleSpan = tgtSel.querySelector('.tree-toggle');
+                if (toggleSpan) {
+                    toggleSpan.innerHTML = `<svg id="chevron-${targetId}" class="account-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707A1 1 0 118.707 5.293l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
+                }
+                tgtSel.setAttribute('data-has-children', 'true');
+            }
+        }
+        // Expand target to show moved node
+        tgtSel.classList.add('expanded');
+        const chevron = document.getElementById(`chevron-${targetId}`);
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
+        kids.classList.remove('collapsed');
+        return kids;
+    };
+
+    // Remove from old location
+    const oldParentId = srcSel.getAttribute('data-parent-id') || '';
+    const oldBlockParent = srcBlock.parentElement;
+    srcBlock.remove();
+
+    if (mode === 'inside') {
+        const kids = ensureChildrenContainer(targetId);
+        kids.appendChild(srcBlock);
+        srcSel.setAttribute('data-parent-id', String(targetId));
+    } else {
+        // Sibling positioning before/after the target block
+        if (mode === 'before') {
+            tgtBlock.parentElement.insertBefore(srcBlock, tgtBlock);
+        } else {
+            tgtBlock.parentElement.insertBefore(srcBlock, tgtBlock.nextSibling);
+        }
+        // Inherit target's parent-id
+        const newParentId = tgtSel.getAttribute('data-parent-id') || '';
+        if (newParentId) srcSel.setAttribute('data-parent-id', newParentId);
+        else srcSel.removeAttribute('data-parent-id');
+    }
+
+    // If old parent container becomes empty, optionally collapse visuals (left as-is for simplicity)
 };
 MasterDetailController.prototype.openTransactionModal = function(account) {
     // Prefill hidden inputs and date

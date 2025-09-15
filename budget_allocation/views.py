@@ -548,6 +548,52 @@ def account_move_api(request):
 @login_required
 @family_required
 @app_permission_required('budget_allocation')
+@require_POST
+def account_update_api(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid payload'}, status=400)
+
+    account_id = payload.get('account_id')
+    name = (payload.get('name') or '').strip()
+    description = (payload.get('description') or '').strip()
+    is_mp = bool(payload.get('is_merchant_payee'))
+
+    if not account_id:
+        return JsonResponse({'success': False, 'error': 'Missing account_id'}, status=400)
+
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'No family found'}, status=403)
+
+    account = get_object_or_404(Account, pk=account_id, family=family)
+
+    if name:
+        account.name = name
+    account.description = description
+    account.is_merchant_payee = is_mp
+    try:
+        account.full_clean()
+    except ValidationError as e:
+        return JsonResponse({'success': False, 'error': '; '.join(sum((v for v in e.message_dict.values()), []))}, status=400)
+    account.save(update_fields=['name', 'description', 'is_merchant_payee'])
+
+    AccountHistory.objects.create(
+        family=family,
+        account=account,
+        action='renamed',
+        old_value='',
+        new_value=f"name={account.name}, is_mp={account.is_merchant_payee}",
+        notes='Updated via API'
+    )
+
+    return JsonResponse({'success': True})
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
 def disabled_accounts(request):
     """View for managing disabled accounts"""
     family = get_user_family(request.user)

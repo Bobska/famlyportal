@@ -122,7 +122,7 @@
     max-height: 2000px;
     opacity: 1;
     /* Tree-like connector line */
-    border-left: 1px solid #e5e7eb;
+    border-left: 1px solid #9ca3af;
     margin-left: 16px; /* indent per depth */
     padding-left: 12px; /* spacing between line and content */
 }
@@ -136,7 +136,7 @@
 
 /* Mask vertical line past the last child */
 .account-children > .account-tree-item { position: relative; }
-.account-children > .account-tree-item:last-child::after {
+        border-left: 1px solid #9ca3af;
     content: "";
     position: absolute;
     left: -12px; /* align with connector */
@@ -176,6 +176,16 @@
 
 /* Selection fading is controlled via .faded class in JS for fine-grained control */
 
+/* Hover lineage highlighting for ancestors */
+.account-item.hover-lineage {
+    background-color: rgba(13, 110, 253, 0.06);
+    border-left: 3px solid rgba(13, 110, 253, 0.35);
+}
+.account-item.selected.hover-lineage {
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.12);
+}
+
 /* Draw horizontal connector from item to vertical line of parent */
 .account-children .account-item::before {
     content: "";
@@ -187,11 +197,21 @@
 }
 
 /* Ensure small folder/file icons are visible */
-.tree-icon i { font-size: 12px; opacity: 0.9; }
-/* Support inline SVG icons if Font Awesome isn’t available */
-.tree-toggle svg { width: 16px; height: 12px; display: block; color: #6b7280; }
-.tree-icon svg { width: 14px; height: 14px; display: block; color: #9ca3af; }
+.tree-icon i { font-size: 16px; opacity: 0.95; }
+/* Inline SVG icon sizing */
+.tree-toggle svg { width: 14px; height: 14px; display: block; color: #6b7280; }
+.tree-icon svg { width: 16px; height: 16px; display: block; color: #6b7280; }
 .account-chevron { transition: transform 0.2s ease; }
+
+/* Hover lineage highlighting for ancestors */
+.account-item.hover-lineage {
+    background-color: rgba(13, 110, 253, 0.06);
+    border-left: 3px solid rgba(13, 110, 253, 0.35);
+}
+.account-item.selected.hover-lineage {
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.12);
+}
 
 /* Toggle and icon spacers for alignment */
 .tree-toggle { width: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -626,6 +646,14 @@ class MasterDetailController {
                 const accountId = item.dataset.accountId;
                 this.selectAccount(accountId, true);
             });
+            // Hover lineage highlighting
+            item.addEventListener('mouseenter', () => {
+                const id = item.dataset.accountId;
+                this.applyHoverLineage(id);
+            });
+            item.addEventListener('mouseleave', () => {
+                this.clearHoverLineage();
+            });
         });
         
         // Search functionality
@@ -651,6 +679,21 @@ class MasterDetailController {
                 this.collapseAll();
             }
         });
+    }
+
+    applyHoverLineage(accountId) {
+        // Clear existing first
+        this.clearHoverLineage();
+        if (!accountId) return;
+        const ids = [accountId, ...this.getAncestorIds(accountId)];
+        ids.forEach(id => {
+            const el = document.querySelector(`[data-account-id="${id}"]`);
+            if (el) el.classList.add('hover-lineage');
+        });
+    }
+
+    clearHoverLineage() {
+        document.querySelectorAll('.account-item.hover-lineage').forEach(el => el.classList.remove('hover-lineage'));
     }
     
     async selectAccount(accountId, animate = true) {

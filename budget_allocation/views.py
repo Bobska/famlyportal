@@ -1861,9 +1861,91 @@ def account_detail_api(request, account_id):
         if week_param:
             tx_qs = tx_qs.filter(week=current_week)
         recent_transactions = tx_qs.order_by('-transaction_date')[:10]
-        
-        # Get account balance for the resolved week
-        account_balance = get_account_balance(account, current_week)
+
+        # Get account balance for the resolved week, including all descendants (roll-up)
+        account_balance = get_account_balance_with_children(account, current_week)
+
+        # Compute weekly totals: allocations to this account (and descendants) and transactions (income/expenses)
+        # Roll up descendants for a true parent summary
+        def get_descendant_ids(acc):
+            ids = [acc.id]
+            for child in acc.children.all():
+                ids.extend(get_descendant_ids(child))
+            return ids
+
+        account_ids = get_descendant_ids(account)
+
+        weekly_tx = Transaction.objects.filter(account_id__in=account_ids)
+        if week_param:
+            weekly_tx = weekly_tx.filter(week=current_week)
+
+        # If transaction types exist (e.g., 'income'/'expense'), split by type; otherwise sign-based categorization
+        income_total = Decimal('0')
+        expense_total = Decimal('0')
+        total_transactions_amount = Decimal('0')
+        for t in weekly_tx:
+            amt = t.amount
+            total_transactions_amount += amt
+            try:
+                ttype = getattr(t, 'transaction_type', None)
+                if ttype == 'income':
+                    income_total += amt
+                elif ttype == 'expense':
+                    expense_total += abs(amt)
+                else:
+                    # Fallback by sign
+                    if amt >= 0:
+                        income_total += amt
+                    else:
+                        expense_total += abs(amt)
+            except Exception:
+                if amt >= 0:
+                    income_total += amt
+                else:
+                    expense_total += abs(amt)
+
+        weekly_alloc = Allocation.objects.filter(to_account_id__in=account_ids)
+        if week_param:
+            weekly_alloc = weekly_alloc.filter(week=current_week)
+        allocation_total = weekly_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        # Previous week deltas (optional, only if week is provided)
+        delta = {
+            'income_delta': None,
+            'expense_delta': None,
+            'allocation_delta': None,
+            'transactions_delta': None,
+        }
+        if week_param and current_week:
+            prev_start = current_week.start_date - timedelta(days=7)
+            prev_week = get_or_create_week_for_date(family, prev_start)
+
+            prev_tx = Transaction.objects.filter(account_id__in=account_ids, week=prev_week)
+            prev_income = Decimal('0')
+            prev_expense = Decimal('0')
+            prev_total = Decimal('0')
+            for t in prev_tx:
+                amt = t.amount
+                prev_total += amt
+                ttype = getattr(t, 'transaction_type', None)
+                if ttype == 'income':
+                    prev_income += amt
+                elif ttype == 'expense':
+                    prev_expense += abs(amt)
+                else:
+                    if amt >= 0:
+                        prev_income += amt
+                    else:
+                        prev_expense += abs(amt)
+
+            prev_alloc_total = Allocation.objects.filter(to_account_id__in=account_ids, week=prev_week).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+            delta = {
+                'income_delta': float(income_total - prev_income),
+                'expense_delta': float(expense_total - prev_expense),
+                'allocation_delta': float(allocation_total - prev_alloc_total),
+                'transactions_delta': float(total_transactions_amount - prev_total),
+            }
         
         # Get account children for hierarchy display
         children = list(account.children.filter(is_active=True).values(
@@ -1926,6 +2008,13 @@ def account_detail_api(request, account_id):
                     'name': account.parent.name
                 } if account.parent else None,
                 'balance': float(account_balance),
+                'weekly_summary': {
+                    'income_total': float(income_total),
+                    'expense_total': float(expense_total),
+                    'allocation_total': float(allocation_total),
+                    'transactions_total': float(total_transactions_amount),
+                    'delta': delta,
+                },
                 'children': children,
                 'children_count': len(children),
                 'breadcrumb': breadcrumb,

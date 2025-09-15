@@ -543,45 +543,62 @@ window.toggleAccountRow = function(event, accountId) {
         }
         return;
     }
+    // Determine if the click originated from the chevron area (expand/collapse only)
+    const clickedChevron = event.target && (
+        event.target.closest(`#chevron-${accountId}`) ||
+        event.target.closest('.account-chevron') ||
+        event.target.closest('.tree-toggle')
+    );
     const isExpanded = selector.classList.contains('expanded');
     const isCurrentlySelected = selector.classList.contains('selected') || (window.masterDetailController && window.masterDetailController.selectedAccountId === accountId);
 
-    if (isExpanded && isCurrentlySelected) {
-        // Collapse and clear selection/fading
-        selector.classList.remove('expanded');
-        childrenDiv.classList.add('collapsed');
-        if (chevron) chevron.style.transform = 'rotate(0deg)';
-        if (window.masterDetailController) {
-            // Keep current selection, but update fading as if parent (or root) is selected
-            const parentId = selector.getAttribute('data-parent-id');
-            if (parentId) {
-                window.masterDetailController.applyFadingWithPivot(selector.dataset.accountId, parentId);
-            } else {
-                window.masterDetailController.applyRootPivotFading(selector.dataset.accountId);
+    if (clickedChevron) {
+        // Chevron click: toggle expand/collapse without changing selection
+        if (isExpanded) {
+            selector.classList.remove('expanded');
+            childrenDiv.classList.add('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            // Update fading pivot to parent/root if this node was selected
+            if (window.masterDetailController && isCurrentlySelected) {
+                const parentId = selector.getAttribute('data-parent-id');
+                if (parentId) {
+                    window.masterDetailController.applyFadingWithPivot(selector.dataset.accountId, parentId);
+                } else {
+                    window.masterDetailController.applyRootPivotFading(selector.dataset.accountId);
+                }
             }
+        } else {
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
         }
         return;
     }
 
-    if (isExpanded && !isCurrentlySelected) {
-        // Collapse the clicked expanded node but keep it selected; fade with itself as pivot
-        selector.classList.remove('expanded');
-        childrenDiv.classList.add('collapsed');
-        if (chevron) chevron.style.transform = 'rotate(0deg)';
-        if (window.masterDetailController) {
-            // Pivot to the parent so siblings are unfaded when collapsing this node
-            const parentId = selector.getAttribute('data-parent-id');
-            window.masterDetailController.selectedAccountId = accountId;
-            if (parentId) {
-                window.masterDetailController.applyFadingWithPivot(accountId, parentId);
-            } else {
-                window.masterDetailController.applyRootPivotFading(accountId);
+    // Row click (not chevron)
+    if (childrenDiv && isCurrentlySelected) {
+        // Toggle expand/collapse on selected row
+        if (isExpanded) {
+            selector.classList.remove('expanded');
+            childrenDiv.classList.add('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            if (window.masterDetailController) {
+                const parentId = selector.getAttribute('data-parent-id');
+                if (parentId) {
+                    window.masterDetailController.applyFadingWithPivot(selector.dataset.accountId, parentId);
+                } else {
+                    window.masterDetailController.applyRootPivotFading(selector.dataset.accountId);
+                }
             }
+        } else {
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
         }
         return;
     }
 
-    // Delegate selection to controller for unified expand/collapse across all branches
+    // Otherwise, delegate selection to controller
     if (window.masterDetailController) {
         window.masterDetailController.selectAccount(accountId, true);
     }
@@ -1037,24 +1054,58 @@ class MasterDetailController {
             this.detailBreadcrumb.innerHTML = '';
         }
         
+        // Prepare weekly summary values for header cards
+        const ws = account.weekly_summary || { income_total: 0, expense_total: 0, allocation_total: 0, transactions_total: 0 };
+        const acctType = (account.account_type || '').toLowerCase();
+        const showExpenses = acctType === 'expense' || acctType === 'expenses';
+        const inOutLabel = showExpenses ? 'Expenses (Week)' : 'Income (Week)';
+        const inOutValue = showExpenses ? ws.expense_total : ws.income_total;
+        const delta = ws.delta || { income_delta: null, expense_delta: null, allocation_delta: null, transactions_delta: null };
+        const formatDelta = (d) => {
+            if (d === null || d === undefined) return '';
+            const sign = d > 0 ? '+' : '';
+            const cls = d > 0 ? 'text-success' : (d < 0 ? 'text-danger' : 'text-muted');
+            return `<small class="ms-2 ${cls}">${sign}$${Math.abs(d).toFixed(2)}</small>`;
+        };
+
         // Render detail content
         const content = `
             <div class="p-3">
                 <!-- Account Summary -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
+                <div class="row mb-3">
+                    <div class="col-12">
                         <div class="card border-0 bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title">Account Balance</h6>
-                                <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
+                            <div class="card-body d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">Account Balance</h6>
+                                    <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-4">
                         <div class="card border-0 bg-light">
                             <div class="card-body">
-                                <h6 class="card-title">Children</h6>
-                                <h4 class="text-info mb-0">${account.children_count}</h4>
+                                <h6 class="card-title mb-1">Allocation</h6>
+                                <h5 class="text-success mb-0">$${(ws.allocation_total || 0).toFixed(2)}${formatDelta(delta.allocation_delta)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title mb-1">${showExpenses ? 'Expenses' : 'Income'}</h6>
+                                <h5 class="mb-0 ${showExpenses ? 'text-danger' : 'text-success'}">$${(inOutValue || 0).toFixed(2)}${formatDelta(showExpenses ? delta.expense_delta : delta.income_delta)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title mb-1">Transactions</h6>
+                                <h5 class="mb-0 text-muted">$${(ws.transactions_total || 0).toFixed(2)}${formatDelta(delta.transactions_delta)}</h5>
                             </div>
                         </div>
                     </div>

@@ -2129,8 +2129,8 @@ def accounts_master_detail(request):
     weeks_with_data = WeeklyPeriod.objects.filter(
         family=family
     ).filter(
-        Q(transaction_weeks__isnull=False) | 
-        Q(allocation_weeks__isnull=False)
+        Q(allocation_transactions__isnull=False) | 
+        Q(allocations__isnull=False)
     ).distinct().order_by('start_date')
     
     if week_param:

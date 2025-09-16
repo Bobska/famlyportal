@@ -48,7 +48,13 @@ body {
 }
 
 .budget-sidebar.collapsed {
-    margin-left: -100%;
+    width: 60px; /* Icon-only collapsed state: keep sidebar in flow, narrow width */
+}
+
+/* When sidebar is collapsed, expand the main content column to fill remaining space */
+.budget-sidebar.collapsed + .budget-main-content {
+    flex: 1 1 calc(100% - 60px) !important;
+    max-width: calc(100% - 60px) !important;
 }
 
 .sidebar-toggle {
@@ -117,6 +123,22 @@ body {
     width: 20px;
     margin-right: 0.75rem;
     text-align: center;
+
+/* Hide labels when collapsed and center icons */
+.budget-sidebar.collapsed .sidebar-header,
+.budget-sidebar.collapsed .sidebar-section {
+    display: none;
+}
+.budget-sidebar.collapsed .sidebar-nav-link {
+    justify-content: center;
+    padding: 0.875rem 0.5rem;
+}
+.budget-sidebar.collapsed .sidebar-nav-link i {
+    margin-right: 0;
+}
+.budget-sidebar.collapsed .sidebar-nav-link span {
+    display: none;
+}
 }
 
 .sidebar-header {
@@ -257,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:dashboard' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                         <i class="fas fa-home"></i>
-                        Dashboard
+                        <span>Dashboard</span>
                     </a>
                 </li>
             </ul>
@@ -268,25 +290,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:account_list' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'account_list' %}active{% endif %}">
                         <i class="fas fa-folder"></i>
-                        All Accounts
+                        <span>All Accounts</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:accounts_master_detail' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'accounts_master_detail' %}active{% endif %}">
                         <i class="fas fa-columns"></i>
-                        Master-Detail View
+                        <span>Master-Detail View</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:account_list_all' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'account_list_all' %}active{% endif %}">
                         <i class="fas fa-copy"></i>
-                        All Accounts (Duplicate)
+                        <span>All Accounts (Duplicate)</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:account_list_weekly' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'account_list_weekly' %}active{% endif %}">
                         <i class="fas fa-calendar-week"></i>
-                        Weekly Accounts
+                        <span>Weekly Accounts</span>
                     </a>
                 </li>
             </ul>
@@ -297,13 +319,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:transaction_list' %}" class="sidebar-nav-link {% if 'transaction' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-list"></i>
-                        All Transactions
+                        <span>All Transactions</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:transaction_create' %}" class="sidebar-nav-link {% if 'transaction' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-plus-circle"></i>
-                        Record Transaction
+                        <span>Record Transaction</span>
                     </a>
                 </li>
             </ul>
@@ -314,13 +336,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:allocation_dashboard' %}" class="sidebar-nav-link {% if 'allocation' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-exchange-alt"></i>
-                        Weekly Allocations
+                        <span>Weekly Allocations</span>
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:budget_template_list' %}" class="sidebar-nav-link {% if 'template' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-clipboard-list"></i>
-                        Budget Templates
+                        <span>Budget Templates</span>
                     </a>
                 </li>
             </ul>
@@ -331,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:family_settings' %}" class="sidebar-nav-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-cog"></i>
-                        Settings
+                        <span>Settings</span>
                     </a>
                 </li>
             </ul>

@@ -775,6 +775,26 @@
     padding-right: 40%;
 }
 
+/* Transactions tab specific panel (outer list) */
+.outer-transactions-container {
+    position: relative;
+}
+.outer-transaction-details-panel {
+    position: absolute;
+    top: 0;
+    right: -40%;
+    width: 40%;
+    height: 100%;
+    background: white;
+    border-left: 1px solid #dee2e6;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+}
+.outer-transaction-details-panel.active { right: 0; }
+.outer-transactions-squished { padding-right: 40%; transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
 .transaction-details-header {
     padding: 20px;
     border-bottom: 1px solid #e9ecef;
@@ -1126,10 +1146,39 @@
                         </div>
                     </div>
                 </div>
-                <div id="outerTransactionsList" class="transaction-list">
-                    <div class="text-center text-muted p-3">
-                        <i class="fas fa-spinner fa-spin me-2"></i>
-                        Loading transactions...
+                <div class="outer-transactions-container" id="outerTransactionsContainer">
+                    <div id="outerTransactionsList" class="transaction-list">
+                        <div class="text-center text-muted p-3">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Loading transactions...
+                        </div>
+                    </div>
+                    <!-- Transactions tab details panel -->
+                    <div id="outer-transaction-details-panel" class="outer-transaction-details-panel">
+                        <div class="transaction-details-header">
+                            <h5 class="transaction-details-title">Transaction Details</h5>
+                            <button type="button" class="btn-close outer-transaction-details-close" aria-label="Close"></button>
+                        </div>
+                        <div class="transaction-details-content">
+                            <div class="transaction-basic-info">
+                                <div class="transaction-amount-display">
+                                    <span class="amount-value" id="outer-detail-amount">$0.00</span>
+                                    <span class="amount-type" id="outer-detail-type">Debit</span>
+                                </div>
+                                <div class="transaction-date" id="outer-detail-date">Select a transaction</div>
+                            </div>
+                            <div class="transaction-meta">
+                                <div class="meta-item"><label>Account:</label> <span id="outer-detail-account">-</span></div>
+                                <div class="meta-item"><label>Category:</label> <span id="outer-detail-category">-</span></div>
+                                <div class="meta-item"><label>Description:</label> <span id="outer-detail-description">-</span></div>
+                                <div class="meta-item"><label>Reference:</label> <span id="outer-detail-reference">-</span></div>
+                                <div class="meta-item"><label>Week:</label> <span id="outer-detail-week">-</span></div>
+                            </div>
+                            <div class="transaction-actions">
+                                <button type="button" class="btn btn-primary btn-sm" id="outer-edit-transaction-btn"><i class="fas fa-edit"></i> Edit Transaction</button>
+                                <button type="button" class="btn btn-danger btn-sm" id="outer-delete-transaction-btn"><i class="fas fa-trash"></i> Delete Transaction</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3321,147 +3370,138 @@ MasterDetailController.prototype.initializeElements = function() {
 
 // Transaction Details Panel Management
 document.addEventListener('DOMContentLoaded', function() {
-    const detailsPanel = document.getElementById('transaction-details-panel');
-    const closeBtn = document.querySelector('.transaction-details-close');
-    
-    // Close panel functionality
-    function closeTransactionPanel() {
-        detailsPanel.classList.remove('active');
-        // Remove squishing effect from detail panel
-        const detailPanelElement = document.getElementById('detailPanel');
-        if (detailPanelElement) {
-            detailPanelElement.classList.remove('panel-squished');
+    // Panels and containers
+    const detailTabPanel = document.getElementById('transaction-details-panel');
+    const detailPanelContainer = document.getElementById('detailPanel');
+    const outerTabPanel = document.getElementById('outer-transaction-details-panel');
+    const outerContainer = document.getElementById('outerTransactionsContainer');
+
+    const closeDetailBtn = document.querySelector('.transaction-details-close');
+    const closeOuterBtn = document.querySelector('.outer-transaction-details-close');
+
+    // Helpers to open/close specific panel
+    function closePanel(context) {
+        if (context === 'outer') {
+            outerTabPanel?.classList.remove('active');
+            outerContainer?.classList.remove('outer-transactions-squished');
+        } else {
+            detailTabPanel?.classList.remove('active');
+            detailPanelContainer?.classList.remove('panel-squished');
         }
-        // Clear transaction selection when panel closes
-        document.querySelectorAll('.transaction-item.selected').forEach(item => {
-            item.classList.remove('selected');
-        });
+        // Clear selected state
+        document.querySelectorAll('.transaction-item.selected').forEach(el => el.classList.remove('selected'));
     }
-    
-    // Open panel with transaction data
-    function openTransactionPanel(transactionData) {
-        // Populate panel with transaction data
-        document.getElementById('detail-amount').textContent = transactionData.amount || '$0.00';
-        document.getElementById('detail-type').textContent = transactionData.type || 'Transaction';
-        document.getElementById('detail-date').textContent = transactionData.date || 'No date';
-        document.getElementById('detail-account').textContent = transactionData.account || '-';
-        document.getElementById('detail-category').textContent = transactionData.category || '-';
-        document.getElementById('detail-description').textContent = transactionData.description || '-';
-        document.getElementById('detail-reference').textContent = transactionData.reference || '-';
-        document.getElementById('detail-week').textContent = transactionData.week || '-';
-        
-        // Store transaction ID for edit/delete operations
-        detailsPanel.dataset.transactionId = transactionData.id || '';
-        
-        // Add squishing effect to detail panel
-        const detailPanelElement = document.getElementById('detailPanel');
-        if (detailPanelElement) {
-            detailPanelElement.classList.add('panel-squished');
+
+    function populatePanel(context, data) {
+        if (context === 'outer') {
+            document.getElementById('outer-detail-amount').textContent = data.amount || '$0.00';
+            document.getElementById('outer-detail-type').textContent = data.type || 'Transaction';
+            document.getElementById('outer-detail-date').textContent = data.date || 'No date';
+            document.getElementById('outer-detail-account').textContent = data.account || '-';
+            document.getElementById('outer-detail-category').textContent = data.category || '-';
+            document.getElementById('outer-detail-description').textContent = data.description || '-';
+            document.getElementById('outer-detail-reference').textContent = data.reference || '-';
+            document.getElementById('outer-detail-week').textContent = data.week || '-';
+            outerTabPanel.dataset.transactionId = data.id || '';
+        } else {
+            document.getElementById('detail-amount').textContent = data.amount || '$0.00';
+            document.getElementById('detail-type').textContent = data.type || 'Transaction';
+            document.getElementById('detail-date').textContent = data.date || 'No date';
+            document.getElementById('detail-account').textContent = data.account || '-';
+            document.getElementById('detail-category').textContent = data.category || '-';
+            document.getElementById('detail-description').textContent = data.description || '-';
+            document.getElementById('detail-reference').textContent = data.reference || '-';
+            document.getElementById('detail-week').textContent = data.week || '-';
+            detailTabPanel.dataset.transactionId = data.id || '';
         }
-        
-        // Show panel
-        detailsPanel.classList.add('active');
     }
-    
-    // Event listeners
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeTransactionPanel);
+
+    function openPanel(context, data) {
+        populatePanel(context, data);
+        if (context === 'outer') {
+            outerContainer?.classList.add('outer-transactions-squished');
+            outerTabPanel?.classList.add('active');
+        } else {
+            detailPanelContainer?.classList.add('panel-squished');
+            detailTabPanel?.classList.add('active');
+        }
     }
-    
-    // Close panel when clicking outside
+
+    closeDetailBtn?.addEventListener('click', () => closePanel('detail'));
+    closeOuterBtn?.addEventListener('click', () => closePanel('outer'));
+
+    // Click-outside handling
     document.addEventListener('click', function(event) {
-        if (detailsPanel.classList.contains('active') && 
-            !detailsPanel.contains(event.target) && 
-            !event.target.closest('.transaction-item')) {
-            closeTransactionPanel();
+        // Outer panel
+        if (outerTabPanel?.classList.contains('active')) {
+            const inside = outerTabPanel.contains(event.target) || event.target.closest('#outerTransactionsList');
+            if (!inside) closePanel('outer');
+        }
+        // Detail panel
+        if (detailTabPanel?.classList.contains('active')) {
+            const inside = detailTabPanel.contains(event.target) || event.target.closest('#transactionsList');
+            if (!inside) closePanel('detail');
         }
     });
-    
-    // Escape key to close panel
+
+    // ESC closes whichever is open
     document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && detailsPanel.classList.contains('active')) {
-            closeTransactionPanel();
+        if (event.key === 'Escape') {
+            if (outerTabPanel?.classList.contains('active')) closePanel('outer');
+            if (detailTabPanel?.classList.contains('active')) closePanel('detail');
         }
     });
-    
-    // Add click handlers to transaction items
+
+    // Attach click handlers to transactions in both contexts
     function attachTransactionClickHandlers() {
-        const transactionItems = document.querySelectorAll('.transaction-item');
-        transactionItems.forEach(item => {
-            if (!item.dataset.clickHandlerAttached) {
-                item.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    // Remove selected class from all other transaction items
-                    document.querySelectorAll('.transaction-item.selected').forEach(item => {
-                        item.classList.remove('selected');
-                    });
-                    
-                    // Add selected class to clicked item immediately
-                    item.classList.add('selected');
-                    
-                    // Extract transaction data from the item
-                    const transactionData = {
-                        id: item.dataset.transactionId || '',
-                        amount: item.querySelector('.amount')?.textContent || '$0.00',
-                        type: item.querySelector('.transaction-type')?.textContent || 'Transaction',
-                        date: item.querySelector('.transaction-date')?.textContent || 'No date',
-                        account: item.querySelector('.account-name')?.textContent || '-',
-                        category: item.querySelector('.category')?.textContent || '-',
-                        description: item.querySelector('.description')?.textContent || '-',
-                        reference: item.querySelector('.reference')?.textContent || '-',
-                        week: item.closest('.week-section')?.querySelector('.week-header')?.textContent || '-'
-                    };
-                    
-                    openTransactionPanel(transactionData);
-                });
-                item.dataset.clickHandlerAttached = 'true';
-            }
+        const items = document.querySelectorAll('#transactionsList .transaction-item, #outerTransactionsList .transaction-item');
+        items.forEach(item => {
+            if (item.dataset.clickHandlerAttached) return;
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                document.querySelectorAll('.transaction-item.selected').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                const data = {
+                    id: item.dataset.transactionId || '',
+                    amount: item.querySelector('.amount')?.textContent || '$0.00',
+                    type: item.querySelector('.transaction-type')?.textContent || 'Transaction',
+                    date: item.querySelector('.transaction-date')?.textContent || 'No date',
+                    account: item.querySelector('.account-name')?.textContent || '-',
+                    category: item.querySelector('.category')?.textContent || '-',
+                    description: item.querySelector('.description')?.textContent || '-',
+                    reference: item.querySelector('.reference')?.textContent || '-',
+                    week: item.closest('.week-section')?.querySelector('.week-header')?.textContent || '-'
+                };
+                const context = item.closest('#outerTransactionsList') ? 'outer' : 'detail';
+                openPanel(context, data);
+            });
+            item.dataset.clickHandlerAttached = 'true';
         });
     }
-    
-    // Attach handlers initially and after content updates
+
     attachTransactionClickHandlers();
-    
-    // Re-attach handlers when new content is loaded (for dynamic updates)
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList') {
-                attachTransactionClickHandlers();
-            }
-        });
-    });
-    
-    const transactionContainer = document.querySelector('.detail-content');
-    if (transactionContainer) {
-        observer.observe(transactionContainer, {
-            childList: true,
-            subtree: true
-        });
-    }
-    
-    // Edit transaction functionality
+
+    const observer = new MutationObserver(() => attachTransactionClickHandlers());
+    const containers = [document.getElementById('transactionsList'), document.getElementById('outerTransactionsList')];
+    containers.forEach(c => c && observer.observe(c, { childList: true, subtree: true }));
+
+    // Wire placeholder edit/delete to correct panel dataset
     document.getElementById('edit-transaction-btn')?.addEventListener('click', function() {
-        const transactionId = detailsPanel.dataset.transactionId;
-        if (transactionId) {
-            // TODO: Implement edit modal
-            console.log('Edit transaction:', transactionId);
-            alert('Edit functionality coming soon!');
-        }
+        const id = detailTabPanel?.dataset.transactionId;
+        if (id) { console.log('Edit (detail) transaction:', id); alert('Edit functionality coming soon!'); }
     });
-    
-    // Delete transaction functionality
     document.getElementById('delete-transaction-btn')?.addEventListener('click', function() {
-        const transactionId = detailsPanel.dataset.transactionId;
-        if (transactionId) {
-            if (confirm('Are you sure you want to delete this transaction?')) {
-                // TODO: Implement delete functionality
-                console.log('Delete transaction:', transactionId);
-                alert('Delete functionality coming soon!');
-                closeTransactionPanel();
-            }
-        }
+        const id = detailTabPanel?.dataset.transactionId;
+        if (id && confirm('Are you sure you want to delete this transaction?')) { console.log('Delete (detail) transaction:', id); alert('Delete functionality coming soon!'); closePanel('detail'); }
+    });
+    document.getElementById('outer-edit-transaction-btn')?.addEventListener('click', function() {
+        const id = outerTabPanel?.dataset.transactionId;
+        if (id) { console.log('Edit (outer) transaction:', id); alert('Edit functionality coming soon!'); }
+    });
+    document.getElementById('outer-delete-transaction-btn')?.addEventListener('click', function() {
+        const id = outerTabPanel?.dataset.transactionId;
+        if (id && confirm('Are you sure you want to delete this transaction?')) { console.log('Delete (outer) transaction:', id); alert('Delete functionality coming soon!'); closePanel('outer'); }
     });
 });
 

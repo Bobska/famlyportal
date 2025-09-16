@@ -4,12 +4,14 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.utils.decorators import method_decorator
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, Max
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+import json
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 import logging
@@ -31,6 +33,14 @@ from .utilities import (
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
+# Test/development toggle: allow bypassing weekly allocation locks
+try:
+    from django.conf import settings
+    ALLOCATION_LOCKS_ENABLED = getattr(settings, 'ALLOCATION_LOCKS_ENABLED', True)
+except Exception:
+    # Default to enabled if settings unavailable
+    ALLOCATION_LOCKS_ENABLED = True
 
 
 def app_permission_required(app_name):
@@ -55,6 +65,13 @@ def get_family_queryset(request, model_class):
     if not family:
         return model_class.objects.none()
     return model_class.objects.filter(family=family)
+
+
+def get_account_subtree(account):
+    """Yield account and all descendants (DFS)."""
+    yield account
+    for child in account.children.all():
+        yield from get_account_subtree(child)
 
 
 def calculate_overall_balance(family, current_week=None):
@@ -93,6 +110,28 @@ def calculate_overall_balance(family, current_week=None):
         'total_expenses': total_expenses,
         'net_balance': total_income - total_expenses,
     }
+
+
+def get_or_create_week_for_date(family, target_date):
+    """Resolve the WeeklyPeriod containing target_date using Monday-Sunday weeks.
+    Falls back to simple computation without relying on custom manager methods.
+    """
+    # Find Monday of the week
+    week_start = target_date - timedelta(days=target_date.weekday())
+    week_end = week_start + timedelta(days=6)
+    week, _ = WeeklyPeriod.objects.get_or_create(
+        family=family,
+        start_date=week_start,
+        defaults={
+            'end_date': week_end,
+            'is_active': True,
+        }
+    )
+    # Ensure end_date is correct if record existed with different value
+    if week.end_date != week_end:
+        week.end_date = week_end
+        week.save(update_fields=['end_date'])
+    return week
 
 
 # Dashboard View
@@ -320,13 +359,13 @@ def account_list_weekly(request):
     else:
         parsed_date = date.today()
 
-    current_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=parsed_date)
+    current_week = get_or_create_week_for_date(family, parsed_date)
 
     # Compute previous and next weeks
     prev_start = current_week.start_date - timedelta(days=7)
     next_start = current_week.start_date + timedelta(days=7)
-    prev_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=prev_start)
-    next_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=next_start)
+    prev_week = get_or_create_week_for_date(family, prev_start)
+    next_week = get_or_create_week_for_date(family, next_start)
 
     # Same account trees as regular list (children of root accounts)
     root_income = Account.objects.filter(
@@ -372,6 +411,184 @@ def account_list_weekly(request):
         'family': family,
     }
     return render(request, 'budget_allocation/account/list_weekly.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+@require_POST
+def account_move_api(request):
+    """Move/reparent/reorder an account in the hierarchy.
+    Body JSON: { source_id, target_id, mode: 'after' | 'before' | 'inside' }
+    Rules:
+      - Families must match, and source != target
+      - Cannot move a node under itself or into its own subtree
+      - If moving across account_type roots (income vs expense), propagate type to entire subtree
+      - Adjust sort_order within the new parent; for 'after'/'before', parent is target.parent; for 'inside', parent is target
+    Recalculations:
+      - Roll-ups are computed on the fly in existing APIs; moving updates parent linkage so they reflect new lineage
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        source_id = int(payload.get('source_id'))
+        target_id = int(payload.get('target_id'))
+        mode = (payload.get('mode') or 'after').lower()
+        if mode not in ('after', 'before', 'inside'):
+            return JsonResponse({'success': False, 'error': 'Invalid mode'}, status=400)
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid payload'}, status=400)
+
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'No family found'}, status=403)
+
+    source = get_object_or_404(Account, pk=source_id, family=family)
+    target = get_object_or_404(Account, pk=target_id, family=family)
+
+    if source.pk == target.pk:
+        return JsonResponse({'success': False, 'error': 'Cannot move onto itself'}, status=400)
+
+    # Prevent cycles: target cannot be inside source subtree
+    def is_descendant(a, potential_ancestor):
+        cur = a.parent
+        while cur is not None:
+            if cur.pk == potential_ancestor.pk:
+                return True
+            cur = cur.parent
+        return False
+
+    if is_descendant(target, source):
+        return JsonResponse({'success': False, 'error': 'Cannot move a node into its own subtree'}, status=400)
+
+    with transaction.atomic():
+        # Determine new parent and sort order intent
+        if mode == 'inside':
+            # Only allowed if target can have children; otherwise treat as 'after'
+            if hasattr(target, 'can_have_children') and target.can_have_children:
+                new_parent = target
+                siblings = Account.objects.filter(family=family, parent=new_parent).order_by('sort_order', 'name')
+                new_sort = (siblings.aggregate(max_s=Max('sort_order'))['max_s'] or 0) + 1
+            else:
+                mode = 'after'
+                new_parent = target.parent
+                siblings = Account.objects.filter(family=family, parent=new_parent).order_by('sort_order', 'name')
+                ordered_ids = [s.pk for s in siblings]
+                try:
+                    idx = ordered_ids.index(target.pk)
+                except ValueError:
+                    idx = len(ordered_ids) - 1
+                insert_pos = idx + 1
+                for i, s in enumerate(siblings):
+                    s.sort_order = i + (1 if i >= insert_pos else 0)
+                    s.save(update_fields=['sort_order'])
+                new_sort = insert_pos
+        else:
+            # before/after => same parent as target
+            new_parent = target.parent
+            if new_parent is None:
+                # Disallow moving to root unless types are root-compatible; we keep non-root accounts under Income/Expenses
+                # Place under the appropriate root (Income/Expenses) implicitly
+                new_parent = target  # fallback to inside
+                mode = 'inside'
+            siblings = Account.objects.filter(family=family, parent=new_parent).order_by('sort_order', 'name')
+            # Determine position relative to target
+            ordered_ids = [s.pk for s in siblings]
+            try:
+                idx = ordered_ids.index(target.pk)
+            except ValueError:
+                idx = len(ordered_ids) - 1
+            insert_pos = idx + (1 if mode == 'after' else 0)
+            # Reassign sort_orders to make room
+            for i, s in enumerate(siblings):
+                s.sort_order = i + (1 if i >= insert_pos else 0)
+                s.save(update_fields=['sort_order'])
+            new_sort = insert_pos
+
+        old_parent_id = source.parent_id
+        old_type = source.account_type
+
+        # Validate parent can accept children
+        if new_parent and hasattr(new_parent, 'can_have_children') and not new_parent.can_have_children:
+            return JsonResponse({'success': False, 'error': 'Target cannot have children'}, status=400)
+
+        # Update parent and sort_order
+        source.parent = new_parent
+        source.sort_order = new_sort
+        source.save(update_fields=['parent', 'sort_order'])
+
+        # Resequence siblings in the old parent to fill gaps
+        if old_parent_id != (new_parent.pk if new_parent else None):
+            old_siblings = Account.objects.filter(family=family, parent_id=old_parent_id).order_by('sort_order', 'name')
+            for i, s in enumerate(old_siblings):
+                if s.sort_order != i:
+                    s.sort_order = i
+                    s.save(update_fields=['sort_order'])
+
+        # If account types differ between new lineage and source, propagate
+        new_lineage_type = new_parent.account_type if new_parent else source.account_type
+        if new_lineage_type in ('income', 'expense') and new_lineage_type != old_type:
+            for node in get_account_subtree(source):
+                if node.account_type != new_lineage_type:
+                    node.account_type = new_lineage_type
+                    node.save(update_fields=['account_type'])
+
+        # Log history
+        AccountHistory.objects.create(
+            family=family,
+            account=source,
+            action='moved',
+            old_value=f"parent={old_parent_id}, type={old_type}",
+            new_value=f"parent={source.parent_id}, type={source.account_type}",
+            notes=f"Moved {mode} target {target.pk}"
+        )
+
+    return JsonResponse({'success': True})
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+@require_POST
+def account_update_api(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid payload'}, status=400)
+
+    account_id = payload.get('account_id')
+    name = (payload.get('name') or '').strip()
+    description = (payload.get('description') or '').strip()
+    is_mp = bool(payload.get('is_merchant_payee'))
+
+    if not account_id:
+        return JsonResponse({'success': False, 'error': 'Missing account_id'}, status=400)
+
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'No family found'}, status=403)
+
+    account = get_object_or_404(Account, pk=account_id, family=family)
+
+    if name:
+        account.name = name
+    account.description = description
+    account.is_merchant_payee = is_mp
+    try:
+        account.full_clean()
+    except ValidationError as e:
+        return JsonResponse({'success': False, 'error': '; '.join(sum((v for v in e.message_dict.values()), []))}, status=400)
+    account.save(update_fields=['name', 'description', 'is_merchant_payee'])
+
+    AccountHistory.objects.create(
+        family=family,
+        account=account,
+        action='renamed',
+        old_value='',
+        new_value=f"name={account.name}, is_mp={account.is_merchant_payee}",
+        notes='Updated via API'
+    )
+
+    return JsonResponse({'success': True})
 
 
 @login_required
@@ -480,15 +697,15 @@ def account_detail(request, account_id):
             parsed_date = date.today()
         # Use manager helper if available
         try:
-            current_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=parsed_date)
+            current_week = get_or_create_week_for_date(family, parsed_date)
         except Exception:
             current_week = get_current_week(family)
         # Compute prev/next for template week selector
         prev_start = current_week.start_date - timedelta(days=7)
         next_start = current_week.start_date + timedelta(days=7)
         try:
-            prev_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=prev_start)
-            next_week, _ = WeeklyPeriod.objects.get_or_create_week(family, start_date=next_start)
+            prev_week = get_or_create_week_for_date(family, prev_start)
+            next_week = get_or_create_week_for_date(family, next_start)
         except Exception:
             prev_week = None
             next_week = None
@@ -861,6 +1078,13 @@ def allocation_dashboard(request):
                 )
                 allocation.week = current_week
             
+            # Enforce business rule: only allow allocations TO expense accounts
+            if allocation.to_account and getattr(allocation.to_account, 'account_type', '').lower() != 'expense':
+                if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': 'Allocations can only be made to Expense accounts.'}, status=400)
+                messages.error(request, 'Allocations can only be made to Expense accounts.')
+                return redirect('budget_allocation:allocation_create')
+
             allocation.save()
             messages.success(request, f"Allocation created: ${allocation.amount} from {allocation.from_account.name} to {allocation.to_account.name}")
             return redirect('budget_allocation:allocation_dashboard')
@@ -935,19 +1159,173 @@ def allocation_create(request):
         return redirect('accounts:dashboard')
 
     if request.method == 'POST':
-        form = AllocationForm(request.POST, family=family)
+        # Support auto-from-income pool: if flag present, inject from_account as family's root Income account
+        post_data = request.POST.copy()
+        auto_from_income = post_data.get('auto_from_income') == '1'
+        if auto_from_income:
+            root_income = Account.objects.filter(family=family, account_type='income', parent__isnull=True).first()
+            if not root_income:
+                err_msg = 'Income pool not configured for this family.'
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('budget_allocation:allocation_dashboard')
+            post_data['from_account'] = str(root_income.id)
+        else:
+            # If not drawing from income and no explicit from_account provided, default to the parent's account
+            if not post_data.get('from_account') and post_data.get('to_account'):
+                try:
+                    to_acc_id = int(post_data.get('to_account'))
+                    to_acc = Account.objects.get(id=to_acc_id, family=family)
+                    if to_acc.parent_id:
+                        post_data['from_account'] = str(to_acc.parent_id)
+                except Exception:
+                    pass
+        form = AllocationForm(post_data, family=family)
         if form.is_valid():
             allocation = form.save(commit=False)
             allocation.family = family
-            
+
+            # If week_start is provided (from modal), resolve to WeeklyPeriod
+            week_start_str = post_data.get('week_start')
+            if week_start_str:
+                try:
+                    parsed_date = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+                    resolve_week = get_or_create_week_for_date(family, parsed_date)
+                    allocation.week = resolve_week
+                except Exception:
+                    pass
+
             # Auto-assign to current week if not specified
             if not allocation.week:
                 current_week = get_current_week(family)
                 allocation.week = current_week
-            
+
+            # Enforce that allocations go only to Expense accounts
+            try:
+                if allocation.to_account and allocation.to_account.account_type != 'expense':
+                    raise ValidationError('Allocations can only be made to Expense accounts.')
+            except Exception as e:
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': str(e)}, status=400)
+                messages.error(request, str(e))
+                return redirect('budget_allocation:allocation_dashboard')
+
+            # Prevent creating allocations for a locked week (can be bypassed for testing)
+            if ALLOCATION_LOCKS_ENABLED and allocation.week and allocation.week.allocation_locked:
+                err = 'Allocations are locked for this week.'
+                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('budget_allocation:allocation_dashboard')
+
+            # Enforce cascading parent pools (top-down): a child’s allocation cannot exceed
+            # the parent's remaining direct allocation for the week after accounting for:
+            # - allocations to other sibling branches, and
+            # - allocations already made to this subtree
+            try:
+                from decimal import Decimal
+                to_acc = allocation.to_account
+                if to_acc and to_acc.parent_id:
+                    parent = to_acc.parent
+                    # Parent's direct allocation for the week
+                    p_direct = Allocation.objects.filter(to_account=parent, week=allocation.week).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                    # Collect this subtree ids
+                    subtree_ids = []
+                    def collect_ids(acc):
+                        subtree_ids.append(acc.id)
+                        for c in acc.children.all():
+                            collect_ids(c)
+                    collect_ids(to_acc)
+                    # Collect full parent subtree ids
+                    parent_subtree_ids = []
+                    def collect_parent_ids(acc):
+                        parent_subtree_ids.append(acc.id)
+                        for c in acc.children.all():
+                            collect_parent_ids(c)
+                    collect_parent_ids(parent)
+                    # Sibling-and-other ids = parent subtree minus this subtree and minus the parent itself
+                    siblings_and_other_ids = [i for i in parent_subtree_ids if i not in subtree_ids and i != parent.id]
+                    siblings_and_other = Allocation.objects.filter(
+                        to_account_id__in=siblings_and_other_ids,
+                        week=allocation.week
+                    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                    # Already used within this subtree (excluding parent)
+                    this_subtree_used = Allocation.objects.filter(
+                        to_account_id__in=subtree_ids,
+                        week=allocation.week
+                    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                    remaining_for_subtree = p_direct - siblings_and_other - this_subtree_used
+                    if remaining_for_subtree < 0:
+                        remaining_for_subtree = Decimal('0')
+                    if allocation.amount and allocation.amount > remaining_for_subtree:
+                        err = f"Insufficient parent pool. Available from parent: ${remaining_for_subtree:.2f}."
+                        if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                            return JsonResponse({'success': False, 'error': err, 'available_from_parent': float(remaining_for_subtree)}, status=400)
+                        messages.error(request, err)
+                        return redirect('budget_allocation:allocation_dashboard')
+            except Exception:
+                # Fallback silently if hierarchy traversal fails; carry-forward guard still applies below
+                pass
+
+            # Enforce available pool (carry-forward) ONLY when consuming from the family income pool
+            # i.e., allocations where from_account is an Income account. Redistributing within Expenses is allowed
+            # as long as the parent's pool enforcement above passes.
+            current_week = allocation.week
+            if allocation.from_account and getattr(allocation.from_account, 'account_type', '').lower() == 'income':
+                from decimal import Decimal
+                incomes_to_prev = Transaction.objects.filter(
+                    family=family,
+                    transaction_type='income',
+                    week__start_date__lt=current_week.start_date
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                allocations_to_current = Allocation.objects.filter(
+                    family=family,
+                    week__start_date__lte=current_week.start_date,
+                    from_account__account_type='income'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                available = (incomes_to_prev or Decimal('0')) - (allocations_to_current or Decimal('0'))
+                if allocation.amount and allocation.amount > available:
+                    err = f"Insufficient available funds to allocate. Available (carry-forward): ${available:.2f}."
+                    if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'error': err, 'available_current': float(available)}, status=400)
+                    messages.error(request, err)
+                    return redirect('budget_allocation:allocation_dashboard')
+
             allocation.save()
+
+            # Week locking semantics (can be disabled for testing)
+            if allocation.week and not allocation.week.allocation_locked:
+                today = date.today()
+                if ALLOCATION_LOCKS_ENABLED and today >= allocation.week.start_date:
+                    allocation.week.allocation_locked = True
+                    allocation.week.is_allocated = True
+                    allocation.week.save(update_fields=['allocation_locked', 'is_allocated'])
+                else:
+                    # If allocating before week starts or locks disabled, mark is_allocated True but keep unlocked
+                    allocation.week.is_allocated = True
+                    allocation.week.save(update_fields=['is_allocated'])
+
+            # If ajax, return JSON
+            if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'id': allocation.id,
+                    'amount': float(allocation.amount),
+                    'to_account_id': allocation.to_account_id,
+                    'from_account_id': allocation.from_account_id,
+                    'week_start': allocation.week.start_date.strftime('%Y-%m-%d') if allocation.week else None,
+                    'locked': allocation.week.allocation_locked if allocation.week else False,
+                    'message': 'Allocation created successfully'
+                })
+
             messages.success(request, f"Allocation created: ${allocation.amount} from {allocation.from_account.name} to {allocation.to_account.name}")
             return redirect('budget_allocation:allocation_dashboard')
+        else:
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                # Return first error message
+                err = next(iter(form.errors.values()))[0] if form.errors else 'Invalid data'
+                return JsonResponse({'success': False, 'error': str(err)}, status=400)
     else:
         form = AllocationForm(family=family)
 
@@ -1092,27 +1470,33 @@ def transaction_create(request):
     if request.method == 'POST':
         # Preserve optional week to return to account detail with same context
         return_week = request.GET.get('return_week') or request.POST.get('return_week') or return_week
+        # If initial_account not set via GET, try POST
+        if not initial_account:
+            post_account_id = request.POST.get('account')
+            if post_account_id:
+                try:
+                    initial_account = Account.objects.get(id=post_account_id, family=family, is_active=True)
+                except Account.DoesNotExist:
+                    initial_account = None
         form = TransactionForm(request.POST, family=family, initial_account=initial_account)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.family = family
-            
+
             # Auto-determine transaction type if not provided and we have an account
             if not transaction.transaction_type and initial_account:
-                # Default to expense for most account types, income for income accounts
                 if initial_account.account_type == 'income':
                     transaction.transaction_type = 'income'
                 else:
                     transaction.transaction_type = 'expense'
-            
+
             # Auto-assign to week based on transaction date
             if not transaction.week and transaction.transaction_date:
                 from datetime import timedelta
                 trans_date = transaction.transaction_date
-                # Find the week start (Monday)
                 week_start = trans_date - timedelta(days=trans_date.weekday())
                 week_end = week_start + timedelta(days=6)
-                
+
                 current_week, created = WeeklyPeriod.objects.get_or_create(
                     start_date=week_start,
                     end_date=week_end,
@@ -1124,19 +1508,38 @@ def transaction_create(request):
                     }
                 )
                 transaction.week = current_week
-            
+
+            # Ensure account is set (in case disabled field scenario)
+            if not transaction.account_id and initial_account:
+                transaction.account = initial_account
+
             transaction.save()
-            
+
+            # If ajax, return JSON
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'id': transaction.id,
+                    'amount': float(transaction.amount),
+                    'account_id': transaction.account_id,
+                    'transaction_date': transaction.transaction_date.strftime('%Y-%m-%d') if transaction.transaction_date else None,
+                    'week_start': transaction.week.start_date.strftime('%Y-%m-%d') if transaction.week else None,
+                    'message': 'Transaction recorded successfully'
+                })
+
             messages.success(request, f'Transaction "{transaction.description or "Transaction"}" recorded successfully.')
-            
+
             # Redirect back to account detail if we came from there
             if initial_account:
                 if return_week:
-                    # Build URL with week query parameter
                     detail_url = reverse('budget_allocation:account_detail', kwargs={'account_id': initial_account.pk})
                     return redirect(f"{detail_url}?week={return_week}")
                 return redirect('budget_allocation:account_detail', account_id=initial_account.pk)
             return redirect('budget_allocation:transaction_list')
+        else:
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                err = next(iter(form.errors.values()))[0] if form.errors else 'Invalid data'
+                return JsonResponse({'success': False, 'error': str(err)}, status=400)
     else:
         # Initialize form with account if specified
         initial = {}
@@ -1601,7 +2004,8 @@ def create_account_ajax(request):
         if not name:
             return JsonResponse({'success': False, 'error': 'Account name is required'}, status=400)
         
-        if not account_type or account_type not in ['income', 'expense']:
+        # account_type may be omitted when parent is provided; we'll infer from parent then
+        if not account_type and not parent_id:
             return JsonResponse({'success': False, 'error': 'Valid account type is required'}, status=400)
             
         if not parent_id:
@@ -1622,12 +2026,13 @@ def create_account_ajax(request):
             # Validate parent account exists and belongs to user's family
             try:
                 parent_account = Account.objects.get(id=parent_id, family=family)
-                # Allow any account of the same type as parent (more flexible than just matching type)
-                # This allows creating child accounts under any account, not just root accounts
-                if parent_account.account_type != account_type:
+                # If type not provided, derive from parent; if provided, enforce match
+                if not account_type:
+                    account_type = parent_account.account_type
+                elif parent_account.account_type != account_type:
                     return JsonResponse({
-                        'success': False, 
-                        'error': f'Parent account must be of type {account_type}'
+                        'success': False,
+                        'error': f'Parent account is {parent_account.account_type}; type must match'
                     }, status=400)
             except Account.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Invalid parent account'}, status=400)
@@ -1705,3 +2110,456 @@ def api_account_tree(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error loading account tree: {str(e)}'}, status=500)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def accounts_master_detail(request):
+    """Master-detail view for animated account management"""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access accounts.")
+        return redirect('accounts:dashboard')
+    
+    # Determine current week (optional ?week=YYYY-MM-DD) similar to weekly view
+    week_param = request.GET.get('week')
+    if week_param:
+        try:
+            parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+        except ValueError:
+            parsed_date = timezone.now().date()
+    else:
+        parsed_date = timezone.now().date()
+
+    current_week = get_or_create_week_for_date(family, parsed_date)
+    prev_start = current_week.start_date - timedelta(days=7)
+    next_start = current_week.start_date + timedelta(days=7)
+    prev_week = get_or_create_week_for_date(family, prev_start)
+    next_week = get_or_create_week_for_date(family, next_start)
+
+    # Get account tree with enhanced data for master-detail view
+    account_tree = get_account_tree(family)
+    
+    # Convert tree to a format suitable for collapsible display
+    def enhance_tree_for_display(tree_node):
+        if isinstance(tree_node, list):
+            return [enhance_tree_for_display(node) for node in tree_node]
+        else:
+            account = tree_node['account']
+            enhanced = {
+                'account': {
+                    'id': account.id,
+                    'name': account.name,
+                    'account_type': account.account_type,
+                    'description': account.description or '',
+                    'is_active': account.is_active,
+                    'parent_name': account.parent.name if account.parent else None,
+                    'parent_id': account.parent.id if account.parent else None,
+                    'full_path': get_account_full_path(account),
+                },
+                'level': tree_node['level'],
+                'children': enhance_tree_for_display(tree_node['children']) if tree_node['children'] else [],
+                'has_children': bool(tree_node['children']),
+                'children_count': len(tree_node['children']) if tree_node['children'] else 0
+            }
+            return enhanced
+    
+    enhanced_tree = enhance_tree_for_display(account_tree)
+    
+    # Also create a flattened list for search purposes and total counts
+    def count_all_accounts(tree_node, counter=None):
+        if counter is None:
+            counter = {'total': 0, 'active': 0}
+        
+        if isinstance(tree_node, list):
+            for node in tree_node:
+                count_all_accounts(node, counter)
+        else:
+            counter['total'] += 1
+            if tree_node['account']['is_active']:
+                counter['active'] += 1
+            if tree_node['children']:
+                count_all_accounts(tree_node['children'], counter)
+        
+        return counter
+    
+    account_counts = count_all_accounts(enhanced_tree)
+    
+    # Get first account for default detail panel (if any)
+    selected_account = None
+    account_id = request.GET.get('account_id')
+    if account_id:
+        try:
+            selected_account = Account.objects.get(id=account_id, family=family)
+        except Account.DoesNotExist:
+            pass
+    # Note: Don't auto-select first account - start with detail panel hidden
+    
+    context = {
+        'title': 'Master-Detail Account View',
+        'account_tree': enhanced_tree,
+        'selected_account': selected_account,
+        'family': family,
+        'total_accounts': account_counts['total'],
+        'active_accounts': account_counts['active'],
+        'current_week': current_week,
+        'prev_week': prev_week,
+        'next_week': next_week,
+    }
+    
+    return render(request, 'budget_allocation/account/accounts_master_detail.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def account_detail_api(request, account_id):
+    """API endpoint for loading account details in master-detail view"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    try:
+        # Get account with all related data for detail panel
+        account = Account.objects.select_related('parent').prefetch_related(
+            'children',
+            'allocation_transactions',
+            'allocations_to'
+        ).get(id=account_id, family=family)
+        
+        # Resolve optional week context from query param (?week=YYYY-MM-DD)
+        week_param = request.GET.get('week')
+        if week_param:
+            try:
+                parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+            except ValueError:
+                parsed_date = date.today()
+            current_week = get_or_create_week_for_date(family, parsed_date)
+        else:
+            current_week = get_current_week(family)
+
+        # Get recent transactions (last 10) - scoped to week when provided
+        tx_qs = Transaction.objects.filter(account=account).select_related('account', 'week')
+        if week_param:
+            tx_qs = tx_qs.filter(week=current_week)
+        recent_transactions = tx_qs.order_by('-transaction_date')[:10]
+
+    # Get account balance for the resolved week, including all descendants (roll-up)
+        account_balance = get_account_balance_with_children(account, current_week)
+
+        # Compute weekly totals: allocations to this account (and descendants) and transactions (income/expenses)
+        # Roll up descendants for a true parent summary
+        def get_descendant_ids(acc):
+            ids = [acc.id]
+            for child in acc.children.all():
+                ids.extend(get_descendant_ids(child))
+            return ids
+
+        account_ids = get_descendant_ids(account)
+
+        weekly_tx = Transaction.objects.filter(account_id__in=account_ids)
+        if week_param:
+            weekly_tx = weekly_tx.filter(week=current_week)
+
+        # If transaction types exist (e.g., 'income'/'expense'), split by type; otherwise sign-based categorization
+        income_total = Decimal('0')
+        expense_total = Decimal('0')
+        total_transactions_amount = Decimal('0')
+        for t in weekly_tx:
+            amt = t.amount
+            total_transactions_amount += amt
+            try:
+                ttype = getattr(t, 'transaction_type', None)
+                if ttype == 'income':
+                    income_total += amt
+                elif ttype == 'expense':
+                    expense_total += abs(amt)
+                else:
+                    # Fallback by sign
+                    if amt >= 0:
+                        income_total += amt
+                    else:
+                        expense_total += abs(amt)
+            except Exception:
+                if amt >= 0:
+                    income_total += amt
+                else:
+                    expense_total += abs(amt)
+
+        weekly_alloc = Allocation.objects.filter(to_account_id__in=account_ids)
+        if week_param:
+            weekly_alloc = weekly_alloc.filter(week=current_week)
+        allocation_total = weekly_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        # Allocation trickle-down metrics
+        # 1) available_to_children at this node: direct allocation to this node that hasn't been consumed by descendants
+        direct_alloc = Allocation.objects.filter(to_account=account)
+        if week_param:
+            direct_alloc = direct_alloc.filter(week=current_week)
+        direct_alloc_total = direct_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        # Total allocations to descendants (exclude this account)
+        descendants_only_ids = [i for i in account_ids if i != account.id]
+        descendants_alloc = Allocation.objects.filter(to_account_id__in=descendants_only_ids)
+        if week_param:
+            descendants_alloc = descendants_alloc.filter(week=current_week)
+        descendants_alloc_total = descendants_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        # Available to allocate at this node = allocation_total (self + descendants) - descendants_alloc
+        # which simplifies to direct_alloc_total. Keep both forms for clarity.
+        available_to_children = (allocation_total or Decimal('0')) - (descendants_alloc_total or Decimal('0'))
+        available_to_children = available_to_children if available_to_children >= 0 else Decimal('0')
+
+        # 2) available_from_parent: if the node has a parent, how much of parent's direct allocation remains after siblings
+        available_from_parent = None
+        if account.parent_id:
+            parent = account.parent
+            # Parent scope
+            p_ids = []
+            def collect_ids(acc):
+                p_ids.append(acc.id)
+                for c in acc.children.all():
+                    collect_ids(c)
+            collect_ids(parent)
+            # Parent totals
+            p_alloc = Allocation.objects.filter(to_account_id__in=p_ids)
+            if week_param:
+                p_alloc = p_alloc.filter(week=current_week)
+            p_total = p_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            # Exclude parent descendants allocations to compute parent's direct alloc share
+            p_direct = Allocation.objects.filter(to_account=parent)
+            if week_param:
+                p_direct = p_direct.filter(week=current_week)
+            p_direct_total = p_direct.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            # Siblings (descendants excluding this account subtree)
+            this_subtree_ids = account_ids
+            siblings_and_other = [i for i in p_ids if i not in this_subtree_ids and i != parent.id]
+            sib_alloc = Allocation.objects.filter(to_account_id__in=siblings_and_other)
+            if week_param:
+                sib_alloc = sib_alloc.filter(week=current_week)
+            sib_total = sib_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            # Remaining from parent that could still flow into this subtree this week
+            available_from_parent = p_direct_total - sib_total
+            if available_from_parent < 0:
+                available_from_parent = Decimal('0')
+
+        # Previous week deltas (optional, only if week is provided)
+        delta = {
+            'income_delta': None,
+            'expense_delta': None,
+            'allocation_delta': None,
+            'transactions_delta': None,
+        }
+        if week_param and current_week:
+            prev_start = current_week.start_date - timedelta(days=7)
+            prev_week = get_or_create_week_for_date(family, prev_start)
+
+            prev_tx = Transaction.objects.filter(account_id__in=account_ids, week=prev_week)
+            prev_income = Decimal('0')
+            prev_expense = Decimal('0')
+            prev_total = Decimal('0')
+            for t in prev_tx:
+                amt = t.amount
+                prev_total += amt
+                ttype = getattr(t, 'transaction_type', None)
+                if ttype == 'income':
+                    prev_income += amt
+                elif ttype == 'expense':
+                    prev_expense += abs(amt)
+                else:
+                    if amt >= 0:
+                        prev_income += amt
+                    else:
+                        prev_expense += abs(amt)
+
+            prev_alloc_total = Allocation.objects.filter(to_account_id__in=account_ids, week=prev_week).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+            delta = {
+                'income_delta': float(income_total - prev_income),
+                'expense_delta': float(expense_total - prev_expense),
+                'allocation_delta': float(allocation_total - prev_alloc_total),
+                'transactions_delta': float(total_transactions_amount - prev_total),
+            }
+        
+        # Get account children for hierarchy display
+        children = list(account.children.filter(is_active=True).values(
+            'id', 'name', 'account_type', 'description', 'is_active'
+        ))
+        
+        # Build breadcrumb path
+        breadcrumb = []
+        current = account
+        while current:
+            breadcrumb.insert(0, {
+                'id': current.id,
+                'name': current.name,
+                'account_type': current.account_type
+            })
+            current = current.parent
+        
+        # Serialize transaction data
+        transaction_data = []
+        for transaction in recent_transactions:
+            transaction_data.append({
+                'id': transaction.id,
+                'amount': float(transaction.amount),
+                'description': transaction.description,
+                'date': transaction.transaction_date.strftime('%Y-%m-%d'),
+                'transaction_type': transaction.transaction_type,
+                'payee': transaction.payee,
+                'week': transaction.week.start_date.strftime('%Y-%m-%d') if transaction.week else None
+            })
+        
+        # Get recent allocations
+        alloc_qs = Allocation.objects.filter(to_account=account).select_related('to_account', 'week')
+        if week_param:
+            alloc_qs = alloc_qs.filter(week=current_week)
+        recent_allocations = alloc_qs.order_by('-id')[:5]
+        
+        allocation_data = []
+        for allocation in recent_allocations:
+            allocation_data.append({
+                'id': allocation.id,
+                'amount': float(allocation.amount),
+                'notes': allocation.notes,
+                'date': allocation.created_at.strftime('%Y-%m-%d %H:%M') if hasattr(allocation, 'created_at') else 'N/A',
+                'week': allocation.week.start_date.strftime('%Y-%m-%d') if allocation.week else None
+            })
+        
+        # Family-level weekly income context for header cards
+        # income_current = income in current_week
+        # available_current (carry-forward) = sum(income for weeks before current) - sum(allocations through current)
+        income_current = Transaction.objects.filter(
+            family=family,
+            transaction_type='income',
+            week=current_week
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        incomes_to_prev = Transaction.objects.filter(
+            family=family,
+            transaction_type='income',
+            week__start_date__lt=current_week.start_date
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        allocated_through_current = Allocation.objects.filter(
+            family=family,
+            week__start_date__lte=current_week.start_date,
+            from_account__account_type='income'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        available_current = (incomes_to_prev or Decimal('0')) - (allocated_through_current or Decimal('0'))
+
+        return JsonResponse({
+            'success': True,
+            'account': {
+                'id': account.id,
+                'name': account.name,
+                'account_type': account.account_type,
+                'description': account.description or '',
+                'is_active': account.is_active,
+                'is_merchant_payee': getattr(account, 'is_merchant_payee', False),
+                'color': account.color,
+                'full_path': get_account_full_path(account),
+                'parent': {
+                    'id': account.parent.id,
+                    'name': account.parent.name
+                } if account.parent else None,
+                'balance': float(account_balance),
+                'weekly_summary': {
+                    'income_total': float(income_total),
+                    'expense_total': float(expense_total),
+                    'allocation_total': float(allocation_total),
+                    'transactions_total': float(total_transactions_amount),
+                    'delta': delta,
+                    'available_to_children': float(available_to_children or 0),
+                },
+                'allocation_context': {
+                    'available_from_parent': float(available_from_parent) if available_from_parent is not None else None
+                },
+                'children': children,
+                'children_count': len(children),
+                'breadcrumb': breadcrumb,
+                'recent_transactions': transaction_data,
+                'recent_allocations': allocation_data,
+                'transaction_count': Transaction.objects.filter(account=account).count(),
+                'allocation_count': Allocation.objects.filter(to_account=account).count(),
+                'family_week': {
+                    'week_start': current_week.start_date.strftime('%Y-%m-%d') if current_week else None,
+                    'income_current': float(income_current or 0),
+                    # For compatibility, keep keys but note semantics changed: available_current is carry-forward
+                    'income_prev': 0.0,
+                    'allocated_current': float(Allocation.objects.filter(week=current_week, family=family).aggregate(total=Sum('amount'))['total'] or 0),
+                    'available_current': float(available_current or 0),
+                    'locks_enabled': ALLOCATION_LOCKS_ENABLED
+                }
+            }
+        })
+        
+    except Account.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Account not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error loading account details: {str(e)}'}, status=500)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def transactions_api(request):
+    """Get transactions filtered by type (all, income, expense)"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'error': 'Family not found'}, status=400)
+    
+    try:
+        # Get filter type from query parameters
+        filter_type = request.GET.get('type', 'all').lower()
+        
+        # Base queryset for all transactions in the family
+        transactions = Transaction.objects.filter(family=family).select_related('account')
+        
+        # Apply type filter if specified
+        if filter_type == 'income':
+            transactions = transactions.filter(account__account_type='income')
+        elif filter_type == 'expense':
+            transactions = transactions.filter(account__account_type='expense')
+        # 'all' doesn't need additional filtering
+        
+        # Order by date descending and limit to recent transactions
+        transactions = transactions.order_by('-transaction_date', '-created_at')[:100]
+        
+        # Build transaction data
+        transaction_data = []
+        for transaction in transactions:
+            transaction_data.append({
+                'id': transaction.pk,
+                'account_id': transaction.account.pk,
+                'account_name': transaction.account.name,
+                'account_type': transaction.account.account_type,
+                'description': transaction.description or 'Transaction',
+                'amount': float(transaction.amount) if transaction.transaction_type == 'income' else -float(transaction.amount),
+                'date': transaction.transaction_date.strftime('%b %d, %Y'),
+                'payee': transaction.payee or '',
+                'reference': transaction.reference or '',
+                'transaction_type': transaction.transaction_type,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'transactions': transaction_data,
+            'count': len(transaction_data),
+            'filter_type': filter_type
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in transactions_api: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Error loading transactions: {str(e)}'
+        }, status=500)
+
+
+def get_account_full_path(account):
+    """Helper function to get full hierarchical path of an account"""
+    path_parts = []
+    current = account
+    while current:
+        path_parts.insert(0, current.name)
+        current = current.parent
+    return ' → '.join(path_parts)

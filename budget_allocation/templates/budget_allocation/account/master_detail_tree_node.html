@@ -1,0 +1,58 @@
+<!-- Master-Detail Tree Node Template -->
+<div class="account-tree-item" style="margin-bottom: 4px;">
+    <div class="account-item level-{{ level }} account-tree-selector {% if node.account.is_merchant_payee %}merchant-payee{% endif %}"
+        data-account-id="{{ node.account.id }}"
+        {% if node.account.parent_id %}data-parent-id="{{ node.account.parent_id }}"{% endif %}
+        data-account-name="{{ node.account.name }}"
+        data-account-type="{{ node.account.account_type }}"
+        data-level="{{ level }}"
+        draggable="true"
+         data-has-children="{{ node.has_children|yesno:'true,false' }}"
+         style="cursor: pointer;"
+         onclick="toggleAccountRow(event, '{{ node.account.id }}')">
+        <!-- Chevron, tiny folder/file icon, and dominant name -->
+        <div class="d-flex align-items-center" style="gap: 8px;">
+            <span class="tree-toggle">
+            {% if node.has_children %}
+                <!-- inline SVG chevron (right) -->
+                <svg id="chevron-{{ node.account.id }}" class="account-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707A1 1 0 118.707 5.293l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+            {% else %}
+                <!-- spacer to align with siblings having chevrons -->
+                <span style="display:inline-block;width:12px;"></span>
+            {% endif %}
+            </span>
+            <span class="tree-icon">
+                {% if node.has_children %}
+                <!-- inline SVG folder icon -->
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M2 6a2 2 0 012-2h3l2 2h7a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                </svg>
+                {% else %}
+                <!-- inline SVG file icon -->
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M4 3a2 2 0 012-2h4l4 4v11a2 2 0 01-2 2H6a2 2 0 01-2-2V3z" />
+                </svg>
+                {% endif %}
+            </span>
+            <div class="account-info">
+                <div class="account-name">
+                    {{ node.account.name }}
+                    {% if node.account.is_merchant_payee %}
+                    <span class="badge bg-light text-primary ms-2 merchant-payee-badge">{% if node.account.account_type == 'income' %}Payee{% else %}Merchant{% endif %}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Children Container (recursive, only if has children) -->
+    {% if node.has_children %}
+        <div id="children-{{ node.account.id }}" class="account-children collapsed" style="overflow: hidden; transition: all 0.3s ease-in-out; margin-top: 8px;">
+            {% for child_node in node.children %}
+                {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=level|add:1 %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

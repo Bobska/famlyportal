@@ -160,6 +160,12 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
+                    <a href="{% url 'budget_allocation:accounts_master_detail' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'accounts_master_detail' %}active{% endif %}">
+                        <i class="fas fa-columns"></i>
+                        Master-Detail View
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
                     <a href="{% url 'budget_allocation:account_list_all' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'account_list_all' %}active{% endif %}">
                         <i class="fas fa-copy"></i>
                         All Accounts (Duplicate)

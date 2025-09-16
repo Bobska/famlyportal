@@ -457,9 +457,10 @@ class AllocationAdmin(FamilyScopedModelAdmin):
     
     def amount_display(self, obj):
         """Display amount with formatting"""
+        formatted = f"${obj.amount:,.2f}"
         return format_html(
-            '<strong style="color: green;">${:,.2f}</strong>',
-            obj.amount
+            '<strong style="color: green;">{}</strong>',
+            formatted
         )
     amount_display.short_description = 'Amount'
     amount_display.admin_order_field = 'amount'
@@ -632,10 +633,11 @@ class AccountLoanAdmin(FamilyScopedModelAdmin):
     def remaining_amount_display(self, obj):
         """Display remaining amount with color"""
         color = 'red' if obj.remaining_amount > 0 else 'green'
+        formatted = f"${obj.remaining_amount:,.2f}"
         return format_html(
-            '<strong style="color: {};">${:,.2f}</strong>',
+            '<strong style="color: {}">{}</strong>',
             color,
-            obj.remaining_amount
+            formatted
         )
     remaining_amount_display.short_description = 'Remaining'
     remaining_amount_display.admin_order_field = 'remaining_amount'
@@ -708,9 +710,10 @@ class LoanPaymentAdmin(FamilyScopedModelAdmin):
     
     def amount_display(self, obj):
         """Display payment amount"""
+        formatted = f"${obj.amount:,.2f}"
         return format_html(
-            '<strong style="color: green;">${:,.2f}</strong>',
-            obj.amount
+            '<strong style="color: green;">{}</strong>',
+            formatted
         )
     amount_display.short_description = 'Amount'
     amount_display.admin_order_field = 'amount'

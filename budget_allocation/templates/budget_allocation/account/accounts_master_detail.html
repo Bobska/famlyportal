@@ -1,0 +1,2749 @@
+{% extends 'budget_allocation/base_with_sidebar.html' %}
+{% load static %}
+
+{% block page_title %}Master-Detail Account View{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Master-Detail Animation System */
+.master-detail-container {
+    position: relative;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.master-detail-layout {
+    display: flex;
+    height: 100%;
+    transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+/* Master Panel */
+.master-panel {
+    flex: 0 0 35%;
+    border-right: 1px solid #e0e0e0;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: flex;
+}
+
+.master-panel.full-view {
+    flex: 0 0 100%;
+}
+
+.master-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    flex-shrink: 0;
+}
+
+.master-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Account Tree Structure */
+.account-tree-item {
+    margin-bottom: 2px;
+}
+
+
+/* Account List Items */
+.account-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: background-color, transform;
+    position: relative;
+}
+
+.account-item:hover:not(.detail-selected):not(.transaction-selected) {
+    background-color: rgba(0, 123, 255, 0.05);
+    transform: translateX(2px);
+}
+
+.account-item.selected {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-left: 4px solid #007bff;
+    font-weight: 500;
+}
+
+/* Three distinct selection states */
+.account-item.detail-selected {
+    background-color: rgba(0, 123, 255, 0.15) !important;
+    border-left: 4px solid #007bff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1) !important;
+    opacity: 1 !important;
+}
+
+.account-item.transaction-selected {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    border-left: 4px solid #ffc107 !important;
+    font-weight: 500 !important;
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.2) !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+.account-item.hovered {
+    background-color: rgba(108, 117, 125, 0.08);
+    border-left: 3px solid rgba(108, 117, 125, 0.3);
+    transform: translateX(2px);
+}
+
+/* Selection state legend */
+.selection-legend-item {
+    width: 16px;
+    height: 12px;
+    border-radius: 2px;
+    border-left: 3px solid transparent;
+}
+
+.selection-legend-item.detail-selected {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-left-color: #007bff;
+}
+
+.selection-legend-item.transaction-selected {
+    background-color: rgba(255, 193, 7, 0.15);
+    border-left-color: #ffc107;
+}
+
+.account-item.faded {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+
+/* Selection fading is controlled via .faded class in JS for fine-grained control */
+
+/* Hover lineage highlighting for ancestors */
+.account-item.hover-lineage {
+    background-color: rgba(13, 110, 253, 0.06);
+    border-left: 3px solid rgba(13, 110, 253, 0.35);
+}
+.account-item.selected.hover-lineage {
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.12);
+}
+
+/* Merchant/Payee visual indicator */
+.account-item.merchant-payee {
+    border-left: 4px solid #6f42c1; /* purple accent */
+    background-image: linear-gradient(90deg, rgba(111,66,193,0.06), rgba(111,66,193,0));
+}
+.account-item.merchant-payee.selected {
+    border-left-color: #6f42c1;
+    background-color: rgba(111,66,193,0.12);
+}
+.merchant-payee-badge {
+    border: 1px solid #6f42c1;
+}
+
+/* Modal stacking for nested modals */
+.modal.show {
+    z-index: 1050;
+}
+.modal.show + .modal-backdrop {
+    z-index: 1040;
+}
+/* Secondary modal (like create account from transaction) */
+.modal.show[style*="z-index: 1060"] {
+    z-index: 1060 !important;
+}
+.modal-backdrop.show[style*="z-index: 1059"] {
+    z-index: 1059 !important;
+}
+
+/* Transaction list styling */
+.transaction-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.transaction-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover {
+    background-color: #f8f9fa;
+}
+
+.transaction-item.active {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    border-left: 4px solid #007bff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+    transform: translateX(2px);
+}
+
+.transaction-amount {
+    min-width: 80px;
+    text-align: right;
+}
+
+.account-name {
+    font-style: italic;
+}
+
+/* Lineage highlighting for transaction hover */
+.lineage-highlight {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border-left: 3px solid #0d6efd !important;
+}
+
+/* Drag-and-drop visuals */
+.account-item.dragging {
+    opacity: 0.5;
+}
+.account-item.drop-target {
+    outline: 2px dashed #0d6efd;
+    background-color: rgba(13,110,253,0.06);
+}
+
+/* Children container: indentation and collapse behavior */
+.account-children {
+    margin-left: 12px;           /* visually nest under parent */
+    padding-left: 12px;          /* space for connector line */
+    border-left: 1px solid #e5e7eb; /* subtle vertical connector */
+}
+
+.account-children.collapsed {
+    display: none;               /* hide when collapsed */
+}
+
+/* Draw horizontal connector from item to vertical line of parent */
+.account-children .account-item::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    width: 12px;
+    border-top: 1px solid #9ca3af ;
+}
+
+/* Ensure small folder/file icons are visible */
+.tree-icon i { font-size: 16px; opacity: 0.95; }
+/* Inline SVG icon sizing */
+.tree-toggle svg { width: 14px; height: 14px; display: block; color: #6b7280; }
+.tree-icon svg { width: 16px; height: 16px; display: block; color: #6b7280; }
+.account-chevron { transition: transform 0.2s ease; }
+
+/* Hover lineage highlighting for ancestors */
+.account-item.hover-lineage {
+    background-color: rgba(13, 110, 253, 0.06);
+    border-left: 3px solid rgba(13, 110, 253, 0.35);
+}
+.account-item.selected.hover-lineage {
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.12);
+}
+
+/* Toggle and icon spacers for alignment */
+.tree-toggle { width: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tree-icon { width: 16px; display: inline-flex; align-items: center; justify-content: center; color: #9ca3af; flex-shrink: 0; }
+
+/* Indentation is handled by .account-children wrappers for a proper tree; no per-level padding on items */
+.account-item.level-0,
+.account-item.level-1,
+.account-item.level-2,
+.account-item.level-3 { padding-left: 0; }
+
+.account-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.account-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.account-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+    color: #2c3e50;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Remove secondary meta row to make name dominant */
+.account-meta, .account-badge { display: none; }
+
+/* Detail Panel */
+.detail-panel {
+    flex: 0 0 65%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    transform: translateX(0);
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: flex, opacity, transform;
+    overflow: hidden;
+}
+
+.detail-panel.hidden {
+    flex: 0 0 0%;
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+.detail-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    flex-shrink: 0;
+}
+
+.detail-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity;
+}
+
+.loading-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Fade Animations */
+.fade-content {
+    transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity;
+}
+
+.fade-content.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .master-panel.split-view {
+        flex: 0 0 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+        transform: translateX(-100%);
+    }
+    
+    .master-panel.split-view.mobile-visible {
+        transform: translateX(0);
+    }
+    
+    .detail-panel.visible {
+        flex: 0 0 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+    }
+    
+    .mobile-back-btn {
+        display: block;
+    }
+}
+
+.mobile-back-btn {
+    display: none;
+}
+
+/* Account Type Colors */
+.account-type-root { background-color: #6c757d; }
+.account-type-income { background-color: #28a745; }
+.account-type-expense { background-color: #dc3545; }
+
+/* Search and Filter */
+.search-box {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 14px;
+    transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-box:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Breadcrumb */
+.detail-breadcrumb {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.detail-breadcrumb a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.detail-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+/* Transaction List */
+.transaction-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-amount {
+    font-weight: 600;
+}
+
+.transaction-amount.positive { color: #28a745; }
+.transaction-amount.negative { color: #dc3545; }
+
+/* Ensure Bootstrap modals always sit above any app overlays and are not clipped */
+.modal { z-index: 2000; }
+.modal-backdrop { z-index: 1990; }
+
+/* Master panel tab styling */
+.master-panel .nav-tabs {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 6px 6px 0 0;
+}
+
+.master-panel .nav-tabs .nav-link {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+.master-panel .nav-tabs .nav-link:hover {
+    background-color: rgba(0,123,255,0.05);
+    color: #495057;
+}
+
+.master-panel .nav-tabs .nav-link.active {
+    background-color: white;
+    color: #495057;
+    border-bottom: 2px solid;
+    font-weight: 600;
+}
+
+.master-panel .nav-tabs .nav-link#master-income-tab.active {
+    border-bottom-color: #198754;
+}
+
+.master-panel .nav-tabs .nav-link#master-expense-tab.active {
+    border-bottom-color: #dc3545;
+}
+
+.master-panel .tab-content {
+    background-color: white;
+    border-radius: 0 0 6px 6px;
+}
+
+.master-panel .tab-pane {
+    transition: all 0.3s ease-in-out;
+    min-height: 200px;
+}
+
+/* Detail Panel Tabs */
+.detail-panel .nav-tabs {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem;
+}
+
+.detail-panel .nav-tabs .nav-link {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    font-size: 0.9rem;
+    padding: 10px 16px;
+    transition: all 0.2s ease-in-out;
+}
+
+.detail-panel .nav-tabs .nav-link:hover {
+    background-color: rgba(0,123,255,0.05);
+    color: #495057;
+}
+
+.detail-panel .nav-tabs .nav-link.active {
+    background-color: white;
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    font-weight: 600;
+}
+
+.detail-panel .tab-content {
+    background-color: white;
+}
+
+.detail-panel .tab-pane {
+    transition: all 0.3s ease-in-out;
+    min-height: 400px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb_items %}{% endblock %}
+
+{% block page_content %}
+<!-- Week Selector -->
+<div class="row mb-2">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-chevron-left me-1"></i>Previous Week
+                </button>
+                <div class="text-center">
+                    <h5 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h5>
+                    <p id="weekRange" class="text-muted mb-0 small">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
+                </div>
+                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm">
+                    Next Week<i class="fas fa-chevron-right ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Embed current week for JS to pick up -->
+<div id="weekContext" data-week-start="{{ current_week.start_date|date:'Y-m-d' }}" hidden></div>
+
+<div class="master-detail-container">
+    <div class="master-detail-layout" id="masterDetailLayout">
+        
+        <!-- Master Panel -->
+        <div class="master-panel" id="masterPanel">
+            <div class="master-header">
+                <div class="mb-3">
+                    <h5 class="mb-0">Account Hierarchy</h5>
+                    
+                    <!-- Selection State Legend -->
+                    <div class="d-flex align-items-center gap-3 mt-2 small text-muted">
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="selection-legend-item detail-selected"></div>
+                            <span>Viewing Details</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="selection-legend-item transaction-selected"></div>
+                            <span>From Transaction</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-0" id="masterAccountTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active d-flex align-items-center" 
+                                id="master-income-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#master-income-accounts" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="master-income-accounts" 
+                                aria-selected="true">
+                            <i class="fas fa-arrow-up text-success me-2"></i>
+                            <span class="fw-bold">Income</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center" 
+                                id="master-expense-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#master-expense-accounts" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="master-expense-accounts" 
+                                aria-selected="false">
+                            <i class="fas fa-arrow-down text-danger me-2"></i>
+                            <span class="fw-bold">Expenses</span>
+                        </button>
+                    </li>
+                </ul>
+                
+                <input type="text" class="search-box w-100 mt-2" id="accountSearch" placeholder="Search accounts...">
+            </div>
+            
+            <div class="master-content" id="masterContent">
+                <!-- Tab Content -->
+                <div class="tab-content" id="masterAccountTabsContent">
+                    <!-- Income Accounts Tab -->
+                    <div class="tab-pane fade show active" 
+                         id="master-income-accounts" 
+                         role="tabpanel" 
+                         aria-labelledby="master-income-tab">
+                        {% for tree_node in account_tree %}
+                            {% if tree_node.account.account_type == 'income' %}
+                                {% for child_node in tree_node.children %}
+                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
+                                {% endfor %}
+                            {% endif %}
+                        {% empty %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-plus-circle fa-2x mb-3 text-success opacity-25"></i>
+                            <p>No income accounts found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Expense Accounts Tab -->
+                    <div class="tab-pane fade" 
+                         id="master-expense-accounts" 
+                         role="tabpanel" 
+                         aria-labelledby="master-expense-tab">
+                        {% for tree_node in account_tree %}
+                            {% if tree_node.account.account_type == 'expense' %}
+                                {% for child_node in tree_node.children %}
+                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
+                                {% endfor %}
+                            {% endif %}
+                        {% empty %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-minus-circle fa-2x mb-3 text-danger opacity-25"></i>
+                            <p>No expense accounts found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detail Panel -->
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-header">
+                <!-- Detail Panel Tabs - Moved Above Title -->
+                <ul class="nav nav-tabs mb-3" id="detailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" 
+                                id="detail-transactions-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#detail-transactions" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="detail-transactions" 
+                                aria-selected="true">
+                            <i class="fas fa-receipt me-2"></i>Transactions
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" 
+                                id="detail-account-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#detail-account" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="detail-account" 
+                                aria-selected="false">
+                            <i class="fas fa-folder me-2"></i>Account Details
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary mobile-back-btn mb-2" id="mobileBackBtn">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </button>
+                        <h4 id="detailTitle">Details</h4>
+                        <p class="text-muted mb-0" id="detailSubtitle">Select an account or view transactions</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" id="toggleDetailPanel" title="Hide/Show Panel">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="detail-content fade-content" id="detailContent">
+                <!-- Tab Content -->
+                <div class="tab-content" id="detailTabsContent">
+                    <!-- Transactions Tab -->
+                    <div class="tab-pane fade show active" 
+                         id="detail-transactions" 
+                         role="tabpanel" 
+                         aria-labelledby="detail-transactions-tab">
+                        <div class="p-2">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">Recent Transactions</h6>
+                                <div class="d-flex align-items-center gap-3">
+                                    <!-- Transaction Type Filter -->
+                                    <div class="d-flex align-items-center">
+                                        <label for="transactionTypeFilter" class="form-label me-2 mb-0 small text-muted">Filter:</label>
+                                        <select id="transactionTypeFilter" class="form-select form-select-sm" style="width: auto;">
+                                            <option value="all">All</option>
+                                            <option value="income">Income</option>
+                                            <option value="expense">Expense</option>
+                                        </select>
+                                    </div>
+                                    <small class="text-muted" id="transactionCount">Loading...</small>
+                                </div>
+                            </div>
+                            <div id="transactionsList" class="transaction-list">
+                                <div class="text-center text-muted p-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                    <p>Loading transactions...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Details Tab -->
+                    <div class="tab-pane fade" 
+                         id="detail-account" 
+                         role="tabpanel" 
+                         aria-labelledby="detail-account-tab">
+                        <div id="accountDetailsContent" class="p-2">
+                            <div class="text-center text-muted p-4">
+                                <i class="fas fa-folder-open fa-2x mb-3"></i>
+                                <p>Select an account to view details</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="loading-overlay" id="detailLoading">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+<!-- Toast container -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+    <div id="globalToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="globalToastBody">Action completed.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div id="globalToastError" class="toast align-items-center text-bg-danger border-0 mt-2" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="globalToastErrorBody">An error occurred.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Keyboard Shortcuts Help -->
+<div class="mt-3">
+    <small class="text-muted">
+        <strong>Keyboard shortcuts:</strong> 
+        <kbd>↑</kbd><kbd>↓</kbd> Navigate accounts | 
+        <kbd>Enter</kbd> Select account | 
+        <kbd>Esc</kbd> Close detail | 
+        <kbd>/</kbd> Focus search
+    </small>
+</div>
+<!-- Modals -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transactionForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="ajax" value="1" />
+                    <input type="hidden" name="return_week" id="tx_return_week" />
+                    <input type="hidden" name="account" id="tx_account_id" />
+                    <!-- Account is still selected by detail account; Payee/Merchant handled by dedicated modal -->
+                    <div class="mb-3">
+                        <label for="tx_transaction_date" class="form-label">Date</label>
+                        <input type="date" class="form-control" name="transaction_date" id="tx_transaction_date" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_amount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" name="amount" id="tx_amount" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_description" class="form-label">Description</label>
+                        <input type="text" class="form-control" name="description" id="tx_description" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_payee" class="form-label">Merchant/Payee</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="payee" id="tx_payee" />
+                            <button type="button" class="btn btn-outline-secondary" id="tx_open_payee_modal">
+                                <i class="fas fa-plus me-1"></i>New
+                            </button>
+                        </div>
+                        <div class="form-text">Use New to create a Merchant/Payee with an expandable account tree.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tx_reference" class="form-label">Reference</label>
+                        <input type="text" class="form-control" name="reference" id="tx_reference" />
+                    </div>
+                </form>
+                <div id="tx_error" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="tx_submit_btn">Save Transaction</button>
+            </div>
+        </div>
+    </div>
+ </div>
+
+<!-- Create Child Account Modal (from detail panel) -->
+<div class="modal fade" id="createChildAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Child Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createChildAccountForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="cca_parent_id" name="parent" />
+                    <div class="mb-2" id="cca_parent_display" style="display:none;">
+                        <small class="text-muted">Parent:</small>
+                        <div class="fw-semibold" id="cca_parent_name"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cca_name" class="form-label">Account Name</label>
+                        <input type="text" class="form-control" id="cca_name" name="name" required />
+                    </div>
+                    <div class="mb-3" id="cca_type_group">
+                        <label for="cca_type" class="form-label">Type</label>
+                        <select id="cca_type" name="account_type" class="form-select" required>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cca_desc" class="form-label">Description</label>
+                        <textarea class="form-control" id="cca_desc" name="description" rows="2"></textarea>
+                    </div>
+                </form>
+                <div id="cca_error" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="cca_submit_btn">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'budget_allocation/partials/create_account_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global function for account expansion (called from tree node template)
+// All Accounts-style expand/collapse for master-detail
+window.toggleAccountRow = function(event, accountId) {
+    event.stopPropagation();
+    const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+    const childrenDiv = document.getElementById(`children-${accountId}`);
+    const chevron = document.getElementById(`chevron-${accountId}`);
+    if (!selector) return;
+    // Leaf nodes: no children container; still select to show detail
+    if (!childrenDiv) {
+        if (window.masterDetailController) {
+            // Toggle leaf pivot: first click fades siblings (self), second click unfades siblings (parent)
+            const ctrl = window.masterDetailController;
+            if (ctrl.selectedAccountId === accountId) {
+                ctrl.leafPivot = ctrl.leafPivot === 'self' ? 'parent' : 'self';
+            } else {
+                ctrl.leafPivot = 'self';
+            }
+            ctrl.selectAccount(accountId, true);
+        }
+        return;
+    }
+    // Determine if the click originated from the chevron area (expand/collapse only)
+    const clickedChevron = event.target && (
+        event.target.closest(`#chevron-${accountId}`) ||
+        event.target.closest('.account-chevron') ||
+        event.target.closest('.tree-toggle')
+    );
+    const isExpanded = selector.classList.contains('expanded');
+    const isCurrentlySelected = selector.classList.contains('selected') || (window.masterDetailController && window.masterDetailController.selectedAccountId === accountId);
+
+    // If clicking a parent while a descendant is currently selected, collapse this parent and select it
+    if (!clickedChevron && childrenDiv && window.masterDetailController) {
+        const selectedId = window.masterDetailController.selectedAccountId;
+        if (selectedId && selectedId !== accountId) {
+            const subtree = document.getElementById(`children-${accountId}`);
+            if (subtree && subtree.querySelector(`[data-account-id="${selectedId}"]`)) {
+                selector.classList.remove('expanded');
+                childrenDiv.classList.add('collapsed');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                window.masterDetailController.selectAccount(accountId, true);
+                return;
+            }
+        }
+    }
+
+    if (clickedChevron) {
+        // Chevron click: toggle expand/collapse without changing selection
+        if (isExpanded) {
+            selector.classList.remove('expanded');
+            childrenDiv.classList.add('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            // Update fading pivot to parent/root if this node was selected
+            if (window.masterDetailController && isCurrentlySelected) {
+                const parentId = selector.getAttribute('data-parent-id');
+                if (parentId) {
+                    window.masterDetailController.applyFadingWithPivot(selector.dataset.accountId, parentId);
+                } else {
+                    window.masterDetailController.applyRootPivotFading(selector.dataset.accountId);
+                }
+            }
+        } else {
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
+        }
+        return;
+    }
+
+    // Row click (not chevron)
+    if (childrenDiv && isCurrentlySelected) {
+        // Toggle expand/collapse on selected row
+        if (isExpanded) {
+            selector.classList.remove('expanded');
+            childrenDiv.classList.add('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            if (window.masterDetailController) {
+                const parentId = selector.getAttribute('data-parent-id');
+                if (parentId) {
+                    window.masterDetailController.applyFadingWithPivot(selector.dataset.accountId, parentId);
+                } else {
+                    window.masterDetailController.applyRootPivotFading(selector.dataset.accountId);
+                }
+            }
+        } else {
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
+        }
+        return;
+    }
+
+    // Otherwise, delegate selection to controller
+    if (window.masterDetailController) {
+        window.masterDetailController.selectAccount(accountId, true);
+    }
+};
+
+// Collapse all children and remove expanded class on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.account-children').forEach(function(child) {
+        child.classList.add('collapsed');
+    });
+    document.querySelectorAll('.account-tree-selector.expanded').forEach(function(sel) {
+        sel.classList.remove('expanded');
+    });
+    document.querySelectorAll('.account-chevron').forEach(function(chevron) {
+        chevron.style.transform = 'rotate(0deg)';
+    });
+
+    // Drag-and-drop handlers for reordering/restructuring
+    let dragSrcId = null;
+    const addDnDHandlers = () => {
+        document.querySelectorAll('.account-item.account-tree-selector').forEach(function(item){
+            item.addEventListener('dragstart', function(e){
+                dragSrcId = this.dataset.accountId;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', dragSrcId);
+                this.classList.add('dragging');
+            });
+            item.addEventListener('dragend', function(){
+                this.classList.remove('dragging');
+                document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+            });
+            item.addEventListener('dragover', function(e){
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drop-target');
+            });
+            item.addEventListener('dragleave', function(){
+                this.classList.remove('drop-target');
+            });
+            item.addEventListener('drop', async function(e){
+                e.preventDefault();
+                this.classList.remove('drop-target');
+                const srcId = dragSrcId || e.dataTransfer.getData('text/plain');
+                const targetId = this.dataset.accountId;
+                if (!srcId || !targetId || srcId === targetId) return;
+                // Default: move inside target; modifiers: Ctrl/Cmd -> after, Shift -> before
+                const moveMode = e.shiftKey ? 'before' : ((e.ctrlKey || e.metaKey) ? 'after' : 'inside');
+                const ok = await window.masterDetailController?.performAccountMove({ sourceId: srcId, targetId, mode: moveMode });
+                if (ok) {
+                    window.masterDetailController?.applyLocalMove(srcId, targetId, moveMode);
+                }
+            });
+        });
+    };
+    addDnDHandlers();
+});
+
+
+// Initialize Master-Detail Controller after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Parse URL params to get account_id
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountId = urlParams.get('account_id');
+    
+    const controller = new MasterDetailController({
+        apiEndpoint: '/budget-allocation/api/account/{id}/',
+        selectedAccountId: accountId,
+        weekStart: (document.getElementById('weekContext') || {}).dataset?.weekStart || null
+    });
+    window.masterDetailController = controller;
+    
+    // Initialize master panel tabs functionality
+    initializeMasterTabs();
+});
+
+// Master panel tabs functionality
+function initializeMasterTabs() {
+    const tabTriggers = document.querySelectorAll('#masterAccountTabs button[data-bs-toggle="tab"]');
+    
+    // Add smooth transition animation
+    tabTriggers.forEach(trigger => {
+        trigger.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            const targetPane = document.querySelector(targetId);
+            
+            // Add a subtle fade-in animation
+            if (targetPane) {
+                targetPane.style.opacity = '0';
+                targetPane.style.transform = 'translateY(10px)';
+                
+                // Animate in
+                setTimeout(() => {
+                    targetPane.style.transition = 'all 0.3s ease-in-out';
+                    targetPane.style.opacity = '1';
+                    targetPane.style.transform = 'translateY(0)';
+                }, 10);
+            }
+        });
+        
+        // Add active state styling
+        trigger.addEventListener('click', function() {
+            // Remove active styling from all tabs
+            tabTriggers.forEach(tab => {
+                tab.classList.remove('active');
+                tab.style.borderBottomColor = 'transparent';
+            });
+            
+            // Add active styling to clicked tab
+            this.classList.add('active');
+            if (this.id === 'master-income-tab') {
+                this.style.borderBottomColor = '#198754'; // Success green
+            } else if (this.id === 'master-expense-tab') {
+                this.style.borderBottomColor = '#dc3545'; // Danger red
+            }
+        });
+    });
+    
+    // Remember last active tab
+    const lastActiveTab = localStorage.getItem('activeMasterAccountTab');
+    if (lastActiveTab) {
+        const savedTab = document.querySelector(`#${lastActiveTab}`);
+        if (savedTab) {
+            const tab = new bootstrap.Tab(savedTab);
+            tab.show();
+        }
+    }
+    
+    // Save active tab to localStorage and trigger transaction filtering
+    tabTriggers.forEach(trigger => {
+        trigger.addEventListener('shown.bs.tab', function(event) {
+            localStorage.setItem('activeMasterAccountTab', event.target.id);
+            
+            // Trigger transaction filtering based on active tab
+            if (window.masterDetailController) {
+                const tabId = event.target.id;
+                if (tabId === 'master-income-tab') {
+                    window.masterDetailController.filterTransactionsByType('income');
+                } else if (tabId === 'master-expense-tab') {
+                    window.masterDetailController.filterTransactionsByType('expense');
+                }
+            }
+            
+            // Clear state restore permission when switching tabs to ensure collapsed state
+            if (event.target.id === 'master-income-tab' || event.target.id === 'master-expense-tab') {
+                sessionStorage.removeItem('allowMasterStateRestore');
+                
+                // Apply collapsed state immediately
+                setTimeout(() => {
+                    document.querySelectorAll('.account-tree-selector').forEach(selector => {
+                        selector.classList.remove('expanded');
+                    });
+                    
+                    document.querySelectorAll('[id^="children-"]').forEach(childrenDiv => {
+                        childrenDiv.classList.add('collapsed');
+                    });
+                    
+                    document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+                        chevron.style.transform = 'rotate(0deg)';
+                    });
+                }, 50);
+            }
+        });
+    });
+    
+    // Functions to save and restore account tree state
+    function saveMasterTreeState() {
+        const expandedAccounts = [];
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(selector => {
+            const accountId = selector.getAttribute('data-account-id');
+            if (accountId) {
+                expandedAccounts.push(accountId);
+            }
+        });
+        localStorage.setItem('expandedMasterAccountIds', JSON.stringify(expandedAccounts));
+    }
+    
+    function restoreMasterTreeState() {
+        // Only restore expanded state if user is navigating within the same session
+        const shouldRestoreState = sessionStorage.getItem('allowMasterStateRestore') === 'true';
+        
+        if (shouldRestoreState) {
+            const expandedAccountIds = JSON.parse(localStorage.getItem('expandedMasterAccountIds') || '[]');
+            expandedAccountIds.forEach(accountId => {
+                const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+                const childrenDiv = document.getElementById(`children-${accountId}`);
+                const chevron = document.getElementById(`chevron-${accountId}`);
+                
+                if (selector && childrenDiv) {
+                    selector.classList.add('expanded');
+                    childrenDiv.classList.remove('collapsed');
+                    if (chevron) {
+                        chevron.style.transform = 'rotate(90deg)';
+                    }
+                }
+            });
+        } else {
+            // Default state: all accounts collapsed
+            document.querySelectorAll('.account-tree-selector').forEach(selector => {
+                selector.classList.remove('expanded');
+            });
+            
+            document.querySelectorAll('[id^="children-"]').forEach(childrenDiv => {
+                childrenDiv.classList.add('collapsed');
+            });
+            
+            document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+                chevron.style.transform = 'rotate(0deg)';
+            });
+        }
+        
+        // Allow state restore for subsequent navigation within the session
+        sessionStorage.setItem('allowMasterStateRestore', 'true');
+    }
+    
+    // Override the global toggleAccountRow to save state
+    const originalToggleAccountRow = window.toggleAccountRow;
+    window.toggleAccountRow = function(event, accountId) {
+        originalToggleAccountRow(event, accountId);
+        saveMasterTreeState();
+    };
+    
+    // Restore state when page loads
+    setTimeout(() => {
+        restoreMasterTreeState();
+    }, 100);
+}
+
+// Master-Detail Animation Controller
+class MasterDetailController {
+    constructor(options = {}) {
+        this.apiEndpoint = options.apiEndpoint;
+        this.selectedAccountId = options.selectedAccountId;
+        this.transactionSelectedAccountId = null; // Track transaction-selected account
+        this.activeTransactionElement = null; // Track currently active transaction
+        this.isDetailVisible = true; // Panel is now always visible by default
+        this.isMobile = window.innerWidth <= 768;
+        this.leafPivot = 'self'; // 'self' fades siblings on first click; 'parent' unfades siblings on second click
+        this.weekStart = options.weekStart || null; // YYYY-MM-DD when provided
+        
+        this.initializeElements();
+        this.bindEvents();
+        
+        // Load initial transactions for the transactions view
+        this.loadTransactionsView();
+        
+        // Load initial account if specified
+        if (this.selectedAccountId) {
+            this.selectAccount(this.selectedAccountId, false);
+        }
+
+        // Clean 'week' from URL on load (we manage week client-side)
+        this.cleanWeekFromURL();
+
+        // Initialize header if weekStart present
+        if (this.weekStart) {
+            this.updateWeekHeader();
+        }
+    }
+    
+    initializeElements() {
+        this.layout = document.getElementById('masterDetailLayout');
+        this.masterPanel = document.getElementById('masterPanel');
+        this.detailPanel = document.getElementById('detailPanel');
+        this.detailContent = document.getElementById('detailContent');
+        this.detailLoading = document.getElementById('detailLoading');
+        this.detailTitle = document.getElementById('detailTitle');
+        this.detailSubtitle = document.getElementById('detailSubtitle');
+        this.searchBox = document.getElementById('accountSearch');
+        this.mobileBackBtn = document.getElementById('mobileBackBtn');
+        this.toggleDetailBtn = document.getElementById('toggleDetailPanel');
+
+        this.floatingTab = document.getElementById('floatingTransactionsTab');
+        
+        this.accountItems = document.querySelectorAll('.account-item');
+        
+        // Initialize all children containers as collapsed
+        this.initializeCollapsedState();
+    }
+    
+    initializeCollapsedState() {
+        document.querySelectorAll('.account-children').forEach(container => {
+            container.classList.add('collapsed');
+        });
+    }
+    
+    bindEvents() {
+        // Account item clicks (skip ones handled via inline onclick)
+        this.accountItems.forEach(item => {
+            if (item.hasAttribute('onclick')) return;
+            item.addEventListener('click', (e) => {
+                const accountId = item.dataset.accountId;
+                this.selectAccount(accountId, true);
+            });
+            // Hover lineage highlighting
+            item.addEventListener('mouseenter', () => {
+                const id = item.dataset.accountId;
+                this.applyHoverLineage(id);
+            });
+            item.addEventListener('mouseleave', () => {
+                this.clearHoverLineage();
+            });
+        });
+        
+        // Search functionality
+        this.searchBox.addEventListener('input', this.handleSearch.bind(this));
+        
+        // Mobile back button
+        this.mobileBackBtn.addEventListener('click', this.hideDetailOnMobile.bind(this));
+        
+        // Toggle detail panel button
+        this.toggleDetailBtn.addEventListener('click', this.toggleDetailPanel.bind(this));
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', this.handleKeyboard.bind(this));
+        
+        // Click outside transactions to deactivate
+        document.addEventListener('click', this.handleDocumentClick.bind(this));
+        
+        // Responsive handling
+        window.addEventListener('resize', this.handleResize.bind(this));
+
+        // Click on master panel whitespace: unselect (like Collapse button)
+        this.masterPanel.addEventListener('click', (e) => {
+            const withinItem = e.target.closest('.account-item');
+            const withinControl = e.target.closest('input,button,select,textarea,a,label');
+            if (!withinItem && !withinControl) {
+                this.hideDetailPanel();
+                this.updateSelection(null);
+                this.selectedAccountId = null;
+                this.updateURL(null);
+            }
+        });
+
+        // Week navigation buttons
+        const prevBtn = document.getElementById('prevWeekBtn');
+        const nextBtn = document.getElementById('nextWeekBtn');
+        if (prevBtn) prevBtn.addEventListener('click', () => this.shiftWeek(-7));
+        if (nextBtn) nextBtn.addEventListener('click', () => this.shiftWeek(7));
+        
+        // Transaction type filter dropdown
+        const transactionTypeFilter = document.getElementById('transactionTypeFilter');
+        if (transactionTypeFilter) {
+            transactionTypeFilter.addEventListener('change', (e) => {
+                this.filterTransactionsByType(e.target.value);
+            });
+        }
+    }
+
+    cleanWeekFromURL() {
+        const url = new URL(window.location);
+        if (url.searchParams.has('week')) {
+            url.searchParams.delete('week');
+            window.history.replaceState({}, '', url.toString());
+        }
+    }
+
+    shiftWeek(deltaDays) {
+        if (!this.weekStart) return;
+        const current = new Date(this.weekStart);
+        // Correct for timezone offset
+        const adjusted = new Date(Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()));
+        adjusted.setUTCDate(adjusted.getUTCDate() + deltaDays);
+        const yyyy = adjusted.getUTCFullYear();
+        const mm = String(adjusted.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(adjusted.getUTCDate()).padStart(2, '0');
+        this.weekStart = `${yyyy}-${mm}-${dd}`;
+        this.updateWeekHeader();
+        // If an account is selected, reload its details for the new week
+        if (this.selectedAccountId) {
+            this.loadAccountData(this.selectedAccountId);
+        }
+    }
+
+    updateWeekHeader() {
+        // weekStart is Monday; range = weekStart .. weekStart+6
+        const start = new Date(this.weekStart);
+        const startUTC = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+        const endUTC = new Date(startUTC);
+        endUTC.setUTCDate(endUTC.getUTCDate() + 6);
+
+        const formatLong = (d) => d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
+        const formatShort = (d) => d.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
+
+        const labelEl = document.getElementById('weekLabel');
+        const rangeEl = document.getElementById('weekRange');
+        if (labelEl) labelEl.textContent = `Week of ${formatLong(startUTC)}`;
+        if (rangeEl) rangeEl.textContent = `${formatShort(startUTC)} - ${formatLong(endUTC)}`;
+    }
+
+    applyHoverLineage(accountId) {
+        // Clear existing first
+        this.clearHoverLineage();
+        if (!accountId) return;
+        const ids = [accountId, ...this.getAncestorIds(accountId)];
+        ids.forEach(id => {
+            const el = document.querySelector(`[data-account-id="${id}"]`);
+            if (el) el.classList.add('hover-lineage');
+        });
+    }
+
+    clearHoverLineage() {
+        document.querySelectorAll('.account-item.hover-lineage').forEach(el => el.classList.remove('hover-lineage'));
+    }
+    
+    async selectAccount(accountId, animate = true) {
+        if (this.selectedAccountId === accountId && this.isDetailVisible) {
+            // Already selected: still ensure the tree expands the selected path
+            this.updateSelection(accountId);
+            return;
+        }
+        
+        // Clear any transaction selection when manually selecting an account
+        this.clearTransactionSelection();
+        
+        // Update UI selection
+        if (this.selectedAccountId !== accountId) {
+            this.leafPivot = 'self'; // reset leaf pivot mode on new selection
+        }
+        this.updateSelection(accountId);
+        this.selectedAccountId = accountId;
+        
+        // Update URL to preserve selection across week navigation
+        this.updateURL(accountId);
+        
+        // Show detail panel with animation
+        if (animate) {
+            this.showDetailPanel();
+        } else {
+            this.masterPanel.classList.add('split-view');
+            this.detailPanel.classList.add('visible');
+            this.isDetailVisible = true;
+        }
+        
+        // Load account data
+        await this.loadAccountData(accountId);
+    }
+    
+    updateSelection(accountId) {
+        // Clear previous detail selection and fading
+        this.accountItems.forEach(item => {
+            item.classList.remove('selected', 'detail-selected');
+            item.classList.remove('faded');
+        });
+
+        if (!accountId) {
+            return;
+        }
+
+        const selectedItem = document.querySelector(`[data-account-id="${accountId}"]`);
+        if (!selectedItem) return;
+
+        // Mark as detail-selected (for accounts showing in detail panel)
+        selectedItem.classList.add('selected', 'detail-selected');
+
+        // Compute ancestors and descendants
+        const ancestorIds = this.getAncestorIds(accountId);
+        const descendantIds = this.getDescendantIds(accountId);
+
+        // Collapse all branches first for global accordion (across all branches)
+        this.collapseAllBranches();
+
+        // Ensure the path is visible: expand ancestors and the selected node
+        ancestorIds.forEach(id => {
+            this.expandNode(id);
+        });
+        this.expandNode(accountId);
+
+        // If the selection is a leaf, optionally fade as if parent is selected so siblings are not faded (when leafPivot='parent')
+        const childrenDiv = document.getElementById(`children-${accountId}`);
+        if (!childrenDiv) {
+            const pivotParentId = selectedItem.dataset.parentId || '';
+            if (this.leafPivot === 'parent') {
+                if (pivotParentId) {
+                    this.applyFadingWithPivot(accountId, pivotParentId);
+                } else {
+                    // Root leaf with no parent: keep root level unfaded, others faded
+                    const rootSelectors = Array.from(document.querySelectorAll('.account-tree-item > .account-tree-selector:not([data-parent-id])'));
+                    const keepRoot = new Set(rootSelectors.map(el => el.dataset.accountId));
+                    keepRoot.add(accountId);
+                    this.accountItems.forEach(item => {
+                        const id = item.dataset.accountId;
+                        const isRoot = !item.dataset.parentId;
+                        if (!(keepRoot.has(id) || isRoot)) item.classList.add('faded');
+                    });
+                }
+            } else {
+                // Default fading: leaf as pivot
+                const keepVisible = new Set([accountId, ...ancestorIds, ...descendantIds]);
+                this.accountItems.forEach(item => {
+                    const id = item.dataset.accountId;
+                    if (!keepVisible.has(id)) item.classList.add('faded');
+                });
+            }
+        } else {
+            // Non-leaf: default fading based on selected node
+            const keepVisible = new Set([accountId, ...ancestorIds, ...descendantIds]);
+            this.accountItems.forEach(item => {
+                const id = item.dataset.accountId;
+                if (!keepVisible.has(id)) item.classList.add('faded');
+            });
+        }
+
+        // Scroll selected into view if needed
+        selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Keep selectedId as the selected row, but compute fading with respect to pivotId
+    applyFadingWithPivot(selectedId, pivotId) {
+        // Clear all fading first
+        this.accountItems.forEach(item => item.classList.remove('faded'));
+
+        // Maintain selection highlight on selectedId
+        this.accountItems.forEach(item => item.classList.remove('selected'));
+        const selectedItem = document.querySelector(`[data-account-id="${selectedId}"]`);
+        if (selectedItem) selectedItem.classList.add('selected');
+
+        if (!pivotId) return; // no fading if no pivot
+
+        const ancestorIds = this.getAncestorIds(pivotId);
+        const descendantIds = this.getDescendantIds(pivotId);
+        const keepVisible = new Set([pivotId, ...ancestorIds, ...descendantIds, selectedId]);
+
+        // Apply fading to everything else
+        this.accountItems.forEach(item => {
+            const id = item.dataset.accountId;
+            if (!keepVisible.has(id)) item.classList.add('faded');
+        });
+    }
+
+    applyRootPivotFading(selectedId) {
+        // Clear all fading first
+        this.accountItems.forEach(item => item.classList.remove('faded'));
+
+        // Maintain selection highlight on selectedId
+        this.accountItems.forEach(item => item.classList.remove('selected'));
+        const selectedItem = document.querySelector(`[data-account-id="${selectedId}"]`);
+        if (selectedItem) selectedItem.classList.add('selected');
+
+        // Keep all root items unfaded (siblings at level 0), and the selected root itself
+        const rootSelectors = Array.from(document.querySelectorAll('.account-tree-item > .account-tree-selector:not([data-parent-id])'));
+        const keepVisible = new Set(rootSelectors.map(el => el.dataset.accountId));
+        keepVisible.add(selectedId);
+
+        this.accountItems.forEach(item => {
+            const id = item.dataset.accountId;
+            const isRoot = !item.dataset.parentId;
+            if (!(keepVisible.has(id) || isRoot)) item.classList.add('faded');
+        });
+    }
+
+    getAncestorIds(accountId) {
+        const ids = [];
+        let current = document.querySelector(`[data-account-id="${accountId}"]`);
+        let parentId = current ? (current.dataset.parentId || '') : '';
+        while (parentId) {
+            ids.push(parentId);
+            const parentEl = document.querySelector(`[data-account-id="${parentId}"]`);
+            if (!parentEl) break;
+            parentId = parentEl.dataset.parentId || '';
+        }
+        return ids;
+    }
+
+    getDescendantIds(accountId) {
+        const container = document.getElementById(`children-${accountId}`);
+        if (!container) return [];
+        const ids = [];
+        container.querySelectorAll('.account-item').forEach(item => ids.push(item.dataset.accountId));
+        return ids;
+    }
+
+    expandNode(accountId) {
+        const childrenDiv = document.getElementById(`children-${accountId}`);
+        const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+        const chevron = document.getElementById(`chevron-${accountId}`);
+        if (childrenDiv && selector) {
+            selector.classList.add('expanded');
+            childrenDiv.classList.remove('collapsed');
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
+        }
+    }
+
+    collapseSiblings(accountId) { /* no-op: using global collapse now */ }
+
+    collapseAllBranches() {
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(sel => sel.classList.remove('expanded'));
+        document.querySelectorAll('.account-children').forEach(container => container.classList.add('collapsed'));
+        document.querySelectorAll('.account-chevron').forEach(chev => chev.style.transform = 'rotate(0deg)');
+    }
+    
+    showDetailPanel() {
+        // Detail panel is now always visible by default
+        // This method now just ensures it's not hidden
+        this.detailPanel.classList.remove('hidden');
+        this.masterPanel.classList.remove('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        this.toggleDetailBtn.title = 'Hide Panel';
+        this.isDetailVisible = true;
+    }
+    
+    hideDetailPanel() {
+        // Hide the detail panel using the new hidden class
+        this.detailPanel.classList.add('hidden');
+        this.masterPanel.classList.add('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye"></i>';
+        this.toggleDetailBtn.title = 'Show Panel';
+        this.isDetailVisible = false;
+    }
+    
+    hideDetailOnMobile() {
+        if (this.isMobile) {
+            this.hideDetailPanel();
+        }
+    }
+    
+    async loadAccountData(accountId) {
+        try {
+            // Add fade-out effect to current content
+            this.detailContent.classList.add('loading');
+            this.showLoading();
+            
+            let url = this.apiEndpoint.replace('{id}', accountId);
+            if (this.weekStart) {
+                const sep = url.includes('?') ? '&' : '?';
+                url = `${url}${sep}week=${encodeURIComponent(this.weekStart)}`;
+            }
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Small delay to ensure fade-out is visible
+                await new Promise(resolve => setTimeout(resolve, 150));
+                this.renderAccountDetail(data.account);
+            } else {
+                this.renderError(data.error || 'Failed to load account data');
+            }
+        } catch (error) {
+            console.error('Error loading account data:', error);
+            this.renderError('Network error occurred');
+        } finally {
+            this.hideLoading();
+            // Remove loading class to fade content back in
+            setTimeout(() => {
+                this.detailContent.classList.remove('loading');
+            }, 50);
+        }
+    }
+    
+    renderAccountDetail(account) {
+        // Update header
+        this.detailTitle.textContent = account.name;
+        this.detailSubtitle.textContent = account.description || '';
+        
+        // Switch to account details tab
+        const accountTab = document.getElementById('detail-account-tab');
+        if (accountTab) {
+            const tab = new bootstrap.Tab(accountTab);
+            tab.show();
+        }
+        
+        // Prepare weekly summary values for header cards
+        const ws = account.weekly_summary || { income_total: 0, expense_total: 0, transactions_total: 0 };
+        const acctType = (account.account_type || '').toLowerCase();
+        const showExpenses = acctType === 'expense' || acctType === 'expenses';
+        const inOutLabel = showExpenses ? 'Expenses' : 'Income';
+        const inOutValue = showExpenses ? ws.expense_total : ws.income_total;
+        const familyWeek = account.family_week || { income_current: 0, income_prev: 0 };
+        // Deltas removed per request
+
+        // Render account details content
+        const content = `
+            <div class="p-2">
+                <!-- Action Buttons -->
+                <div class="mb-3 d-flex" style="gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTransaction">Add Transaction</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCreateChildAccount">Create Child</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnEditAccount">Edit</button>
+                </div>
+                
+                <!-- Balance Cards -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">Account Balance</h6>
+                                <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">${inOutLabel}</h6>
+                                <h5 class="mb-0 ${showExpenses ? 'text-danger' : 'text-success'}">$${(inOutValue || 0).toFixed(2)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Account Details -->
+                <div class="mb-4">
+                    <h6 class="border-bottom pb-2">Account Information</h6>
+                    <div class="row">
+                        <div class="col-sm-3"><strong>Type:</strong></div>
+                        <div class="col-sm-9">
+                            <span class="badge bg-secondary">${account.account_type.charAt(0).toUpperCase() + account.account_type.slice(1)}</span>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-sm-3"><strong>Status:</strong></div>
+                        <div class="col-sm-9">
+                            <span class="badge ${account.is_active ? 'bg-success' : 'bg-warning'}">${account.is_active ? 'Active' : 'Inactive'}</span>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-sm-3"><strong>Merchant/Payee:</strong></div>
+                        <div class="col-sm-9">
+                            ${account.is_merchant_payee ? `<span class="badge ${acctType==='income' ? 'bg-success' : 'bg-primary'}">${acctType==='income' ? 'Payee' : 'Merchant'}</span>` : '<span class="text-muted">No</span>'}
+                        </div>
+                    </div>
+                    ${account.parent ? `
+                    <div class="row mt-2">
+                        <div class="col-sm-3"><strong>Parent:</strong></div>
+                        <div class="col-sm-9">${account.parent.name}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <!-- Children Accounts -->
+                ${(account.children && account.children.length > 0) ? (() => {
+                    const childList = (account.children || []).map(child => `
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="me-3">
+                                <div>${child.name}</div>
+                                <small class="text-muted">${child.account_type || 'Account'}</small>
+                            </div>
+                            <div class="d-flex align-items-center" style="gap:8px;">
+                                <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${child.id}', true)">View</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    return `
+                    <div class="mb-3">
+                        <h6 class="border-bottom pb-2">Child Accounts</h6>
+                        <div class="border rounded p-2">
+                            ${childList}
+                        </div>
+                    </div>`;
+                })() : ''}
+                
+                <!-- Recent Transactions -->
+                ${account.recent_transactions.length > 0 ? `
+                <div class="mb-3">
+                    <h6 class="border-bottom pb-2">Recent Transactions</h6>
+                    ${account.recent_transactions.map(transaction => `
+                        <div class="transaction-item">
+                            <div>
+                                <div class="fw-medium">${transaction.description || 'Transaction'}</div>
+                                <small class="text-muted">${transaction.date}</small>
+                            </div>
+                            <div class="transaction-amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                                ${transaction.amount >= 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                
+            </div>
+        `;
+        
+        // Update the account details tab content
+        const accountDetailsContent = document.getElementById('accountDetailsContent');
+        if (accountDetailsContent) {
+            accountDetailsContent.innerHTML = content;
+        }
+        
+        // Initialize tooltips in newly rendered content
+        if (window.bootstrap) {
+            const tooltipEls = Array.from(accountDetailsContent.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipEls.forEach(el => new bootstrap.Tooltip(el));
+        }
+        
+        // Wire action buttons to open modals
+        const txBtn = document.getElementById('btnAddTransaction');
+        if (txBtn) {
+            txBtn.addEventListener('click', () => this.openTransactionModal(account));
+        }
+        // Allocation removed
+        const childBtn = document.getElementById('btnCreateChildAccount');
+        if (childBtn) {
+            childBtn.addEventListener('click', () => {
+                const parentInput = document.getElementById('cca_parent_id');
+                const typeSelect = document.getElementById('cca_type');
+                const nameInput = document.getElementById('cca_name');
+                const errBox = document.getElementById('cca_error');
+                if (errBox) { errBox.classList.add('d-none'); errBox.textContent=''; }
+                if (parentInput) parentInput.value = account.id || '';
+                // When parent known, hide Type and show the parent name
+                const typeGroup = document.getElementById('cca_type_group');
+                const parentDisp = document.getElementById('cca_parent_display');
+                const parentNameEl = document.getElementById('cca_parent_name');
+                if (typeSelect) typeSelect.value = (account.account_type || 'expense').toLowerCase();
+                if (typeGroup) typeGroup.style.display = 'none';
+                if (parentDisp) parentDisp.style.display = 'block';
+                if (parentNameEl) parentNameEl.textContent = account.name || '';
+                if (nameInput) nameInput.value = '';
+                const modalEl = document.getElementById('createChildAccountModal');
+                if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
+                const submitBtn = document.getElementById('cca_submit_btn');
+                if (submitBtn) submitBtn.onclick = async () => {
+                    const form = document.getElementById('createChildAccountForm');
+                    const formData = new FormData(form);
+                    try {
+                        submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+                        const resp = await fetch('/budget-allocation/api/accounts/create/', {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+                            body: formData
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('createChildAccountModal'));
+                            if (modal) modal.hide();
+                            if (this.selectedAccountId) {
+                                await this.loadAccountData(this.selectedAccountId);
+                            }
+                        } else {
+                            if (errBox) { errBox.classList.remove('d-none'); errBox.textContent = data.error || 'Failed to create account.'; }
+                        }
+                    } catch (e) {
+                        if (errBox) { errBox.classList.remove('d-none'); errBox.textContent = 'Network error. Please try again.'; }
+                    } finally {
+                        submitBtn.disabled = false; submitBtn.textContent = 'Create';
+                    }
+                };
+            });
+        }
+        const editBtn = document.getElementById('btnEditAccount');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                const idEl = document.getElementById('ea_account_id');
+                const nameEl = document.getElementById('ea_name');
+                const descEl = document.getElementById('ea_desc');
+                const mpEl = document.getElementById('ea_is_mp');
+                const err = document.getElementById('ea_error');
+                if (err) { err.classList.add('d-none'); err.textContent=''; }
+                if (idEl) idEl.value = account.id || '';
+                if (nameEl) nameEl.value = account.name || '';
+                if (descEl) descEl.value = account.description || '';
+                if (mpEl) mpEl.checked = !!account.is_merchant_payee;
+                const mpRole = document.getElementById('ea_is_mp_role');
+                if (mpRole) mpRole.textContent = (account.account_type || '').toLowerCase() === 'income' ? 'Payee' : 'Merchant';
+                const modalEl = document.getElementById('editAccountModal');
+                if (modalEl && window.bootstrap) {
+                    // Move modal to body to avoid being inside faded/overflow contexts
+                    if (modalEl.parentElement !== document.body) {
+                        document.body.appendChild(modalEl);
+                    }
+                    new bootstrap.Modal(modalEl).show();
+                }
+                const save = document.getElementById('ea_submit_btn');
+                if (save) save.onclick = async () => {
+                    const form = document.getElementById('editAccountForm');
+                    const btn = save;
+                    try {
+                        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+                        const resp = await fetch('/budget-allocation/api/account/update/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+                            body: JSON.stringify({
+                                account_id: idEl.value,
+                                name: nameEl.value,
+                                description: descEl.value,
+                                is_merchant_payee: mpEl.checked
+                            })
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            const m = bootstrap.Modal.getInstance(modalEl);
+                            if (m) m.hide();
+                            window.masterDetailController?.showToast('Account updated');
+                            if (this.selectedAccountId) await this.loadAccountData(this.selectedAccountId);
+                        } else {
+                            if (err) { err.classList.remove('d-none'); err.textContent = data.error || 'Failed to update account.'; }
+                            window.masterDetailController?.showToast(data.error || 'Failed to update account', true);
+                        }
+                    } catch (e) {
+                        if (err) { err.classList.remove('d-none'); err.textContent = 'Network error. Please try again.'; }
+                        window.masterDetailController?.showToast('Network error updating account', true);
+                    } finally {
+                        btn.disabled = false; btn.textContent = 'Save';
+                    }
+                };
+            });
+        }
+    }
+    
+    renderError(message) {
+        this.detailContent.innerHTML = `
+            <div class="p-4 text-center text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>${message}</p>
+                <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                    <i class="fas fa-refresh"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+
+    restoreDetailPlaceholder() {
+        this.detailTitle.textContent = 'Select an account';
+        this.detailSubtitle.textContent = 'Choose an account from the list to view details';
+        this.detailContent.innerHTML = `
+            <div class="p-4 text-center text-muted">
+                <i class="fas fa-hand-point-left fa-2x mb-3"></i>
+                <p>Select an account from the master list to view detailed information</p>
+            </div>
+        `;
+    }
+
+    renderSearchResultsDetail(matches, query) {
+        // Compact multi-result view; show a few key fields
+        const items = matches.map(item => {
+            const id = item.dataset.accountId;
+            const name = item.dataset.accountName;
+            const type = item.dataset.accountType;
+            return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span>${name}</span>
+                        <span class="badge bg-light text-dark">${type}</span>
+                        <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${id}', true)">View</button>
+                    </div>`;
+        }).join('');
+        this.detailTitle.textContent = `Search: ${query}`;
+        this.detailSubtitle.textContent = `${matches.length} result${matches.length === 1 ? '' : 's'}`;
+        this.detailBreadcrumb.innerHTML = '';
+        this.detailContent.innerHTML = `
+            <div class="p-3">
+                ${items || '<div class="text-muted">No results</div>'}
+            </div>
+        `;
+        // Ensure detail panel is visible in split view
+        if (!this.isDetailVisible) this.showDetailPanel();
+    }
+    
+    showLoading() {
+        this.detailLoading.classList.add('visible');
+        this.detailContent.classList.add('loading');
+    }
+    
+    hideLoading() {
+        this.detailLoading.classList.remove('visible');
+        this.detailContent.classList.remove('loading');
+    }
+    
+    handleSearch(e) {
+        const query = e.target.value.toLowerCase();
+        
+        if (query === '') {
+            // Reset: show all, collapse, clear fading, and restore detail view
+            document.querySelectorAll('.account-tree-item').forEach(item => item.style.display = 'block');
+            this.initializeCollapsedState();
+            this.accountItems.forEach(item => item.classList.remove('faded'));
+            // If multiple-results view is shown, clear it
+            this.restoreDetailPlaceholder();
+            return;
+        }
+
+    // Show everything
+    document.querySelectorAll('.account-tree-item').forEach(item => item.style.display = 'block');
+    // We'll collapse selectively after identifying matches
+
+        // Determine matches
+        const matches = [];
+        this.accountItems.forEach(item => {
+            const name = (item.dataset.accountName || '').toLowerCase();
+            const type = (item.dataset.accountType || '').toLowerCase();
+            if (name.includes(query) || type.includes(query)) matches.push(item);
+        });
+
+        // If we have matches: expand their ancestor path and unfade them; fade others
+        const matchedIds = new Set();
+        matches.forEach(item => {
+            matchedIds.add(item.dataset.accountId);
+            // Unfade this item and expand its path
+            let current = item;
+            while (current) {
+                const currentTree = current.closest('.account-tree-item');
+                if (currentTree) currentTree.style.display = 'block';
+                const parentId = current.dataset.parentId || '';
+                if (!parentId) break;
+                const parentSelector = document.querySelector(`[data-account-id="${parentId}"]`);
+                const parentChildren = document.getElementById(`children-${parentId}`);
+                if (parentChildren) parentChildren.classList.remove('collapsed');
+                if (parentSelector) parentSelector.classList.add('expanded');
+                current = parentSelector;
+            }
+        });
+
+        // Fade all non-matches
+        const ancestorIds = new Set();
+        matchedIds.forEach(id => this.getAncestorIds(id).forEach(a => ancestorIds.add(a)));
+        const keepVisible = !this.selectedAccountId
+            ? new Set([...matchedIds]) // only results are unfaded until an account is selected
+            : new Set([...matchedIds, ...ancestorIds]); // if an account is selected, keep ancestors unfaded for context
+        this.accountItems.forEach(item => {
+            const id = item.dataset.accountId;
+            if (!keepVisible.has(id)) item.classList.add('faded'); else item.classList.remove('faded');
+        });
+
+        // Collapse nodes that aren't in keepVisible and have no matching descendants
+        document.querySelectorAll('.account-tree-selector').forEach(sel => {
+            const id = sel.dataset.accountId;
+            const children = document.getElementById(`children-${id}`);
+            if (!children) return;
+            const hasMatchDesc = !!children.querySelector('.account-tree-selector:not(.faded)');
+            if (!keepVisible.has(id) && !hasMatchDesc) {
+                sel.classList.remove('expanded');
+                children.classList.add('collapsed');
+            }
+        });
+
+        // Show a brief multi-result view in detail panel
+        this.renderSearchResultsDetail(matches, query);
+    }
+    
+    handleKeyboard(e) {
+        // Focus search on '/' key
+        if (e.key === '/' && document.activeElement !== this.searchBox) {
+            e.preventDefault();
+            this.searchBox.focus();
+            return;
+        }
+        
+        // Handle other keys only if not in input
+        if (document.activeElement.tagName === 'INPUT') return;
+        
+        switch (e.key) {
+            case 'Escape':
+                if (this.isDetailVisible) {
+                    this.hideDetailPanel();
+                }
+                break;
+                
+            case 'ArrowUp':
+            case 'ArrowDown':
+                e.preventDefault();
+                this.navigateAccounts(e.key === 'ArrowUp' ? -1 : 1);
+                break;
+                
+            case 'Enter':
+                if (this.selectedAccountId) {
+                    // Enter key behavior - could trigger edit or other action
+                }
+                break;
+        }
+    }
+    
+    handleDocumentClick(e) {
+        // Check if click is outside of transactions area
+        const transactionsList = document.getElementById('transactionsList');
+        const detailTransactionsTab = document.getElementById('detail-transactions');
+        
+        // If no active transaction, nothing to do
+        if (!this.activeTransactionElement) return;
+        
+        // If click is inside transactions area, don't deactivate
+        if (transactionsList && transactionsList.contains(e.target)) return;
+        if (detailTransactionsTab && detailTransactionsTab.contains(e.target)) return;
+        
+        // If click is on the transaction filter dropdown, don't deactivate
+        const transactionFilter = document.getElementById('transactionTypeFilter');
+        if (transactionFilter && transactionFilter.contains(e.target)) return;
+        
+        // Click is outside transactions area, deactivate
+        this.deactivateTransaction();
+    }
+    
+    navigateAccounts(direction) {
+        const visibleItems = Array.from(this.accountItems).filter(item => item.style.display !== 'none');
+        if (visibleItems.length === 0) return;
+        
+        const currentIndex = visibleItems.findIndex(item => item.classList.contains('selected'));
+        let newIndex;
+        
+        if (currentIndex === -1) {
+            newIndex = direction > 0 ? 0 : visibleItems.length - 1;
+        } else {
+            newIndex = currentIndex + direction;
+            if (newIndex < 0) newIndex = visibleItems.length - 1;
+            if (newIndex >= visibleItems.length) newIndex = 0;
+        }
+        
+        const newItem = visibleItems[newIndex];
+        this.selectAccount(newItem.dataset.accountId, true);
+    }
+    
+    handleResize() {
+        const wasMobile = this.isMobile;
+        this.isMobile = window.innerWidth <= 768;
+        
+        if (wasMobile !== this.isMobile) {
+            // Reset panels for responsive changes
+            if (!this.isMobile && this.isDetailVisible) {
+                this.masterPanel.classList.add('split-view');
+                this.detailPanel.classList.add('visible');
+            }
+        }
+    }
+    
+    collapseAll() {
+        if (this.isDetailVisible) {
+            this.hideDetailPanel();
+        }
+        
+        // Collapse all expanded tree nodes
+        document.querySelectorAll('.account-children').forEach(container => {
+            container.classList.add('collapsed');
+        });
+        // Remove expanded state from all selectors
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(sel => sel.classList.remove('expanded'));
+        
+        // Reset all chevrons
+        document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+            chevron.style.transform = 'rotate(0deg)';
+        });
+
+        // Clear selection and fading
+        this.selectedAccountId = null;
+        this.leafPivot = 'self';
+        this.accountItems.forEach(item => {
+            item.classList.remove('selected');
+            item.classList.remove('faded');
+        });
+        
+        // Clear account_id from URL
+        this.updateURL(null);
+    }
+    
+    updateURL(accountId) {
+        const url = new URL(window.location);
+        if (accountId) {
+            url.searchParams.set('account_id', accountId);
+        } else {
+            url.searchParams.delete('account_id');
+        }
+        // Update URL without triggering page reload
+        window.history.replaceState({}, '', url.toString());
+    }
+}
+// Toast helpers
+MasterDetailController.prototype.showToast = function(message, isError=false) {
+    const id = isError ? 'globalToastError' : 'globalToast';
+    const bodyId = isError ? 'globalToastErrorBody' : 'globalToastBody';
+    const el = document.getElementById(id);
+    const body = document.getElementById(bodyId);
+    if (!el || !body) return;
+    body.textContent = message;
+    const t = new bootstrap.Toast(el, { delay: 2500 });
+    t.show();
+};
+
+// Modal helpers and submissions
+MasterDetailController.prototype.performAccountMove = async function({ sourceId, targetId, mode }){
+    try {
+        const resp = await fetch('/budget-allocation/api/account/move/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify({ source_id: sourceId, target_id: targetId, mode })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+            this.showToast(data.error || 'Failed to move account', true);
+            return false;
+        }
+        // Refresh selected account detail (roll-ups) without full page reload
+        if (this.selectedAccountId) await this.loadAccountData(this.selectedAccountId);
+        this.showToast('Account moved');
+        return true;
+    } catch (e) {
+        this.showToast('Network error while moving account', true);
+        return false;
+    }
+};
+
+// Update DOM tree locally after move
+MasterDetailController.prototype.applyLocalMove = function(sourceId, targetId, mode) {
+    const srcSel = document.querySelector(`[data-account-id="${sourceId}"]`);
+    const tgtSel = document.querySelector(`[data-account-id="${targetId}"]`);
+    if (!srcSel || !tgtSel) return;
+    const srcBlock = srcSel.closest('.account-tree-item');
+    const tgtBlock = tgtSel.closest('.account-tree-item');
+    if (!srcBlock || !tgtBlock) return;
+
+    // Helper to ensure target has a children container and chevron
+    const ensureChildrenContainer = (targetId) => {
+        let kids = document.getElementById(`children-${targetId}`);
+        if (!kids) {
+            kids = document.createElement('div');
+            kids.id = `children-${targetId}`;
+            kids.className = 'account-children';
+            kids.style.overflow = 'hidden';
+            kids.style.transition = 'all 0.3s ease-in-out';
+            kids.style.marginTop = '8px';
+            tgtBlock.appendChild(kids);
+            // Add chevron and data flag if missing
+            const chev = tgtSel.querySelector('.account-chevron');
+            if (!chev) {
+                const toggleSpan = tgtSel.querySelector('.tree-toggle');
+                if (toggleSpan) {
+                    toggleSpan.innerHTML = `<svg id="chevron-${targetId}" class="account-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707A1 1 0 118.707 5.293l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
+                }
+                tgtSel.setAttribute('data-has-children', 'true');
+            }
+        }
+        // Expand target to show moved node
+        tgtSel.classList.add('expanded');
+        const chevron = document.getElementById(`chevron-${targetId}`);
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
+        kids.classList.remove('collapsed');
+        return kids;
+    };
+
+    // Remove from old location
+    const oldParentId = srcSel.getAttribute('data-parent-id') || '';
+    const oldBlockParent = srcBlock.parentElement;
+    srcBlock.remove();
+
+    if (mode === 'inside') {
+        const kids = ensureChildrenContainer(targetId);
+        kids.appendChild(srcBlock);
+        srcSel.setAttribute('data-parent-id', String(targetId));
+    } else {
+        // Sibling positioning before/after the target block
+        if (mode === 'before') {
+            tgtBlock.parentElement.insertBefore(srcBlock, tgtBlock);
+        } else {
+            tgtBlock.parentElement.insertBefore(srcBlock, tgtBlock.nextSibling);
+        }
+        // Inherit target's parent-id
+        const newParentId = tgtSel.getAttribute('data-parent-id') || '';
+        if (newParentId) srcSel.setAttribute('data-parent-id', newParentId);
+        else srcSel.removeAttribute('data-parent-id');
+    }
+
+    // If old parent container becomes empty, optionally collapse visuals (left as-is for simplicity)
+};
+MasterDetailController.prototype.openTransactionModal = function(account) {
+    // Prefill hidden inputs and date
+    const weekStart = this.weekStart;
+    const txAccount = document.getElementById('tx_account_id');
+    const txWeek = document.getElementById('tx_return_week');
+    const txDate = document.getElementById('tx_transaction_date');
+    const txAmount = document.getElementById('tx_amount');
+    const txDesc = document.getElementById('tx_description');
+    const txPayee = document.getElementById('tx_payee');
+    const txRef = document.getElementById('tx_reference');
+    const txError = document.getElementById('tx_error');
+    if (txError) { txError.classList.add('d-none'); txError.textContent = ''; }
+    if (txAccount) txAccount.value = account.id;
+    if (txWeek) txWeek.value = weekStart || '';
+    if (txAmount) txAmount.value = '';
+    if (txDesc) txDesc.value = '';
+    if (txPayee) txPayee.value = account.name || '';
+    if (txRef) txRef.value = '';
+    if (txDate) {
+        // Default to weekStart or today if missing
+        let dateStr = '';
+        if (weekStart) {
+            dateStr = weekStart;
+        } else {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            dateStr = `${yyyy}-${mm}-${dd}`;
+        }
+        txDate.value = dateStr;
+    }
+    const modalEl = document.getElementById('transactionModal');
+    if (modalEl && window.bootstrap) {
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+    // Bind submit button
+    const submitBtn = document.getElementById('tx_submit_btn');
+    if (submitBtn) {
+        submitBtn.onclick = () => this.submitTransactionForm();
+    }
+    const openPayeeBtn = document.getElementById('tx_open_payee_modal');
+    if (openPayeeBtn) {
+        openPayeeBtn.onclick = () => {
+            // Determine type based on selected account type in detail
+            const type = (account.account_type || 'expense').toLowerCase();
+            
+            // Temporarily fade the transaction modal
+            const transactionModal = document.getElementById('transactionModal');
+            if (transactionModal) {
+                transactionModal.style.opacity = '0.5';
+            }
+            
+            window.initCreateAccountModal({
+                accountType: type,
+                onSuccess: (acct) => {
+                    // Set payee field and restore transaction modal opacity
+                    const payee = document.getElementById('tx_payee');
+                    if (payee) payee.value = acct.name || '';
+                    if (transactionModal) {
+                        transactionModal.style.opacity = '1';
+                    }
+                },
+                onCancel: () => {
+                    // Restore transaction modal opacity
+                    if (transactionModal) {
+                        transactionModal.style.opacity = '1';
+                    }
+                }
+            });
+        };
+    }
+};
+
+MasterDetailController.prototype.submitTransactionForm = async function() {
+    const form = document.getElementById('transactionForm');
+    const errorBox = document.getElementById('tx_error');
+    const submitBtn = document.getElementById('tx_submit_btn');
+    if (!form) return;
+    const formData = new FormData(form);
+    formData.set('ajax', '1');
+    formData.set('return_week', this.weekStart || '');
+    try {
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...'; }
+        const resp = await fetch('/budget-allocation/transactions/create/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+            body: formData
+        });
+        const data = await resp.json();
+        if (data.success) {
+            // Close modal
+            const txEl = document.getElementById('transactionModal');
+            const modal = txEl ? bootstrap.Modal.getInstance(txEl) : null;
+            if (modal) modal.hide();
+            // If server returns week_start, sync and reload selected account
+            if (data.week_start) {
+                this.weekStart = data.week_start;
+                this.updateWeekHeader();
+            }
+            if (this.selectedAccountId) {
+                await this.loadAccountData(this.selectedAccountId);
+            }
+        } else {
+            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = data.error || 'Failed to save transaction.'; }
+        }
+    } catch (e) {
+        if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Network error. Please try again.'; }
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Transaction'; }
+    }
+};
+
+// Toggle detail panel visibility
+MasterDetailController.prototype.toggleDetailPanel = function() {
+    const isHidden = this.detailPanel.classList.contains('hidden');
+    if (isHidden) {
+        // Show detail panel
+        this.detailPanel.classList.remove('hidden');
+        this.masterPanel.classList.remove('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        this.toggleDetailBtn.title = 'Hide Panel';
+        this.isDetailVisible = true;
+    } else {
+        // Hide detail panel
+        this.detailPanel.classList.add('hidden');
+        this.masterPanel.classList.add('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye"></i>';
+        this.toggleDetailBtn.title = 'Show Panel';
+        this.isDetailVisible = false;
+    }
+};
+
+// Load initial transactions view
+MasterDetailController.prototype.loadTransactionsView = function() {
+    // Load all transactions initially
+    this.filterTransactionsByType('all');
+};
+
+// Filter transactions by type (all, income, expense)
+MasterDetailController.prototype.filterTransactionsByType = async function(type) {
+    const transactionsList = document.getElementById('transactionsList');
+    const transactionCount = document.getElementById('transactionCount');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailSubtitle = document.getElementById('detailSubtitle');
+    
+    // Update title based on filter
+    if (type === 'income') {
+        detailTitle.textContent = 'Income Transactions';
+        detailSubtitle.textContent = 'Transactions from income accounts';
+    } else if (type === 'expense') {
+        detailTitle.textContent = 'Expense Transactions';
+        detailSubtitle.textContent = 'Transactions from expense accounts';
+    } else {
+        detailTitle.textContent = 'All Transactions';
+        detailSubtitle.textContent = 'Recent transactions across all accounts';
+    }
+    
+    // Show loading state
+    transactionsList.innerHTML = `
+        <div class="text-center text-muted p-4">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Loading transactions...</p>
+        </div>
+    `;
+    
+    try {
+        // Build URL with type filter
+        let url = '/budget-allocation/api/transactions/';
+        if (type !== 'all') {
+            url += `?type=${type}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success && data.transactions) {
+            this.renderTransactionsList(data.transactions);
+            transactionCount.textContent = `${data.transactions.length} transactions`;
+        } else {
+            transactionsList.innerHTML = `
+                <div class="text-center text-muted p-4">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <p>Unable to load transactions</p>
+                </div>
+            `;
+            transactionCount.textContent = '0 transactions';
+        }
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+        transactionsList.innerHTML = `
+            <div class="text-center text-muted p-4">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>Error loading transactions</p>
+            </div>
+        `;
+        transactionCount.textContent = 'Error';
+    }
+};
+
+// Render transactions list with hover functionality
+MasterDetailController.prototype.renderTransactionsList = function(transactions) {
+    const transactionsList = document.getElementById('transactionsList');
+    
+    if (!transactions || transactions.length === 0) {
+        transactionsList.innerHTML = `
+            <div class="text-center text-muted p-4">
+                <i class="fas fa-receipt fa-2x mb-3"></i>
+                <p>No transactions found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const transactionsHtml = transactions.map(transaction => `
+        <div class="transaction-item" 
+             data-account-id="${transaction.account_id}"
+             style="cursor: pointer;">
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="fw-medium">${transaction.description || 'Transaction'}</div>
+                        <div class="transaction-amount ${transaction.amount >= 0 ? 'text-success' : 'text-danger'} fw-bold">
+                            ${transaction.amount >= 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">${transaction.date}</small>
+                        <small class="text-muted account-name">${transaction.account_name || 'Unknown Account'}</small>
+                    </div>
+                    ${transaction.payee ? `<small class="text-muted">• ${transaction.payee}</small>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    transactionsList.innerHTML = transactionsHtml;
+    
+    // Add event listeners to transaction items
+    const transactionItems = transactionsList.querySelectorAll('.transaction-item');
+    transactionItems.forEach(item => {
+        const accountId = item.dataset.accountId;
+        
+        // Hover events
+        item.addEventListener('mouseenter', () => {
+            if (window.masterDetailController) {
+                window.masterDetailController.highlightTransactionAccount(accountId);
+            }
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            if (window.masterDetailController) {
+                window.masterDetailController.clearTransactionHighlight();
+            }
+        });
+        
+        // Click event - toggle active state
+        item.addEventListener('click', () => {
+            if (window.masterDetailController) {
+                window.masterDetailController.toggleTransactionActive(item, accountId);
+            }
+        });
+    });
+};
+
+// Highlight account when hovering over transaction
+MasterDetailController.prototype.highlightTransactionAccount = function(accountId) {
+    // Clear any existing highlights
+    this.clearTransactionHighlight();
+    // Ensure no legacy fades from detail selection remain during transaction hover
+    this.accountItems.forEach(item => item.classList.remove('faded'));
+    
+    // Find the target account item
+    const targetItem = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!targetItem) return;
+    
+    // Auto-switch master panel tabs based on account type
+    this.autoSwitchMasterTab(accountId);
+    
+    // Fade all account items
+    this.accountItems.forEach(item => {
+        item.style.opacity = '0.3';
+        item.style.transition = 'opacity 0.2s ease';
+    });
+    
+    // Highlight the target account and its ancestors
+    this.highlightAccountLineage(accountId);
+
+    // Auto-expand/collapse tree to reveal the account
+    this.expandTreeToAccount(accountId);
+};
+
+// Expand/collapse tree to reveal a specific account
+MasterDetailController.prototype.expandTreeToAccount = function(accountId) {
+    // Collapse all first
+    this.collapseAllBranches();
+    // Expand ancestors and self
+    const ancestorIds = this.getAncestorIds(accountId);
+    ancestorIds.forEach(id => this.expandNode(id));
+    this.expandNode(accountId);
+    // Scroll into view
+    const el = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+
+// Auto-switch master panel tabs based on account type
+MasterDetailController.prototype.autoSwitchMasterTab = function(accountId) {
+    // Find the account in the master panel to determine its type
+    const accountElement = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!accountElement) return;
+    
+    // Check which parent tab container this account belongs to
+    const incomeTab = document.getElementById('master-income-accounts');
+    const expenseTab = document.getElementById('master-expense-accounts');
+    
+    let targetTabId = null;
+    if (incomeTab && incomeTab.contains(accountElement)) {
+        targetTabId = 'master-income-tab';
+    } else if (expenseTab && expenseTab.contains(accountElement)) {
+        targetTabId = 'master-expense-tab';
+    }
+    
+    // Switch to the appropriate tab
+    if (targetTabId) {
+        const targetTab = document.getElementById(targetTabId);
+        if (targetTab && window.bootstrap) {
+            const tab = new bootstrap.Tab(targetTab);
+            tab.show();
+        }
+    }
+};
+
+// Toggle transaction active state
+MasterDetailController.prototype.toggleTransactionActive = function(transactionElement, accountId) {
+    // If this transaction is already active, deactivate it
+    if (this.activeTransactionElement === transactionElement) {
+        this.deactivateTransaction();
+        return;
+    }
+    
+    // Deactivate any currently active transaction
+    this.deactivateTransaction();
+    
+    // Activate this transaction
+    this.activateTransaction(transactionElement, accountId);
+};
+
+// Activate a transaction
+MasterDetailController.prototype.activateTransaction = function(transactionElement, accountId) {
+    // Set active transaction
+    this.activeTransactionElement = transactionElement;
+    transactionElement.classList.add('active');
+    
+    // Select the corresponding account
+    this.selectTransactionAccount(accountId);
+};
+
+// Deactivate the current transaction
+MasterDetailController.prototype.deactivateTransaction = function() {
+    if (this.activeTransactionElement) {
+        this.activeTransactionElement.classList.remove('active');
+        this.activeTransactionElement = null;
+    }
+    
+    // Clear the transaction-selected account
+    this.clearTransactionSelection();
+    // Restore fades to reflect current detail selection, or clear if none
+    if (this.selectedAccountId) {
+        this.updateSelection(this.selectedAccountId);
+    } else {
+        this.accountItems.forEach(item => item.classList.remove('faded'));
+    }
+};
+
+// Select account when clicking on a transaction
+MasterDetailController.prototype.selectTransactionAccount = function(accountId) {
+    // Clear any existing transaction selection highlights
+    this.clearTransactionSelection();
+    
+    // Auto-switch to the correct master tab
+    this.autoSwitchMasterTab(accountId);
+    
+    // Expand tree to show the account and keep it expanded
+    this.expandTreeToAccount(accountId);
+    // Remove any existing fades so transaction-selected view is fully visible
+    this.accountItems.forEach(item => item.classList.remove('faded'));
+    
+    // Add transaction-selected visual state to the account
+    const accountElement = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (accountElement) {
+        // Remove conflicting classes that might override our styling
+        accountElement.classList.remove('faded', 'lineage-highlight');
+        accountElement.classList.add('transaction-selected');
+        
+        // Force the element to be visible and not faded
+        accountElement.style.opacity = '1';
+        accountElement.style.transition = 'all 0.2s ease';
+    }
+    
+    // Store the transaction-selected account ID
+    this.transactionSelectedAccountId = accountId;
+    
+    // Keep the account path visible by ensuring ancestors stay expanded
+    const ancestorIds = this.getAncestorIds(accountId);
+    ancestorIds.forEach(id => this.expandNode(id));
+    this.expandNode(accountId);
+};
+
+// Clear transaction selection highlighting
+MasterDetailController.prototype.clearTransactionSelection = function() {
+    // Remove transaction-selected class from all accounts
+    document.querySelectorAll('.account-item.transaction-selected').forEach(el => {
+        el.classList.remove('transaction-selected');
+        // Remove inline styles we added
+        el.style.opacity = '';
+        el.style.transition = '';
+    });
+    this.transactionSelectedAccountId = null;
+};
+
+// Clear transaction account highlighting
+MasterDetailController.prototype.clearTransactionHighlight = function() {
+    // Restore opacity for all account items except transaction-selected ones
+    this.accountItems.forEach(item => {
+        if (!item.classList.contains('transaction-selected')) {
+            item.style.opacity = '';
+            item.style.transition = '';
+        }
+    });
+    
+    // Clear any lineage highlighting except from transaction-selected accounts
+    document.querySelectorAll('.lineage-highlight').forEach(el => {
+        if (!el.classList.contains('transaction-selected')) {
+            el.classList.remove('lineage-highlight');
+        }
+    });
+    
+    // Only collapse the tree if there's no transaction-selected account
+    if (!this.transactionSelectedAccountId) {
+        this.collapseAllBranches();
+    } else {
+        // Keep the transaction-selected account and its path expanded
+        this.expandTreeToAccount(this.transactionSelectedAccountId);
+    }
+};
+
+// Highlight account lineage (ancestors)
+MasterDetailController.prototype.highlightAccountLineage = function(accountId) {
+    const targetItem = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!targetItem) return;
+    
+    // Highlight the target account
+    targetItem.style.opacity = '1';
+    targetItem.classList.add('lineage-highlight');
+    
+    // Find and highlight ancestors
+    let currentElement = targetItem.parentElement;
+    while (currentElement) {
+        if (currentElement.classList.contains('account-children')) {
+            // Find the parent account item
+            const parentContainer = currentElement.previousElementSibling;
+            if (parentContainer && parentContainer.classList.contains('account-item')) {
+                parentContainer.style.opacity = '1';
+                parentContainer.classList.add('lineage-highlight');
+            }
+        }
+        currentElement = currentElement.parentElement;
+    }
+};
+
+// Remove floating tab references from existing methods
+MasterDetailController.prototype.initializeElements = function() {
+    this.layout = document.getElementById('masterDetailLayout');
+    this.masterPanel = document.getElementById('masterPanel');
+    this.detailPanel = document.getElementById('detailPanel');
+    this.detailContent = document.getElementById('detailContent');
+    this.detailLoading = document.getElementById('detailLoading');
+    this.detailTitle = document.getElementById('detailTitle');
+    this.detailSubtitle = document.getElementById('detailSubtitle');
+    this.searchBox = document.getElementById('accountSearch');
+    this.mobileBackBtn = document.getElementById('mobileBackBtn');
+    this.toggleDetailBtn = document.getElementById('toggleDetailPanel');
+    
+    this.accountItems = document.querySelectorAll('.account-item');
+    
+    // Initialize all children containers as collapsed
+    this.initializeCollapsedState();
+};
+
+
+// Allocation code removed for Distribution rewrite
+</script>
+{% endblock %}

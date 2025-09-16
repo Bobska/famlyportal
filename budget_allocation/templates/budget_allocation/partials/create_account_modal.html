@@ -1,0 +1,250 @@
+{% load static %}
+<!-- Reusable Create Merchant/Payee Modal -->
+<div class="modal fade" id="createAccountModal" tabindex="-1" aria-labelledby="createAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createAccountModalLabel">
+          <i class="fas fa-plus-circle me-2"></i>Create New <span id="newAccountTypeLabel">Account</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="createAccountForm">
+          {% csrf_token %}
+
+          <div id="createAccountMessages" class="d-none"></div>
+
+          <div class="mb-3">
+            <label for="newAccountName" class="form-label fw-bold">
+              <i class="fas fa-tag me-1"></i><span id="newAccountNameLabel">Account Name</span> *
+            </label>
+            <input type="text" class="form-control" id="newAccountName" name="name" required placeholder="Enter name...">
+          </div>
+
+          <!-- Parent selector with collapsible tree -->
+          <div class="mb-3" id="parentSelectionDiv">
+            <label class="form-label fw-bold">
+              <i class="fas fa-sitemap me-1"></i>Parent <span id="parentAccountTypeLabel">Account</span>
+            </label>
+            <div class="border rounded p-2" style="max-height: 240px; overflow-y: auto; background-color: #f8f9fa;">
+              <div class="form-text mb-2" id="parentSelectionInstructions">Select the parent account:</div>
+              <div id="accountTreeSelector"></div>
+            </div>
+            <input type="hidden" id="newAccountParent" name="parent" value="">
+            <div class="mt-1">
+              <small class="text-muted">Selected: <span id="selectedParentName" class="fw-bold">None</span></small>
+            </div>
+          </div>
+
+          <input type="hidden" id="newAccountType" name="account_type" value="">
+
+          <div class="mb-3">
+            <label for="newAccountDescription" class="form-label text-muted">
+              <i class="fas fa-info-circle me-1"></i>Description (Optional)
+            </label>
+            <textarea class="form-control" id="newAccountDescription" name="description" rows="2" placeholder="Brief description..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelCreateAccountBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveNewAccountBtn">
+          <i class="fas fa-save me-1"></i>Create <span id="saveAccountTypeLabel">Account</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Minimal reusable tree logic pulling from API and supporting expand/collapse
+(function(){
+  function filterByType(tree, type) {
+    const out = [];
+    tree.forEach(node => {
+      const kids = filterByType(node.children || [], type);
+      if (node.account.account_type === type && node.level === 0) {
+        // Flatten children under root of matching type
+        out.push(...kids);
+      } else if (node.account.account_type === type) {
+        out.push({ account: node.account, level: node.level, children: kids });
+      } else if (kids.length) {
+        out.push({ account: node.account, level: node.level, children: kids });
+      }
+    });
+    return out;
+  }
+
+  function renderTree(nodes, container, level=0) {
+    nodes.forEach(n => {
+      const hasChildren = n.children && n.children.length > 0;
+      const row = document.createElement('div');
+      row.className = 'account-tree-node';
+      row.style.marginLeft = (level * 18) + 'px';
+      row.innerHTML = `
+        <div class="d-flex align-items-center py-1 account-tree-item selectable" data-id="${n.account.id}" data-name="${n.account.name}">
+          ${hasChildren ? '<i class="fas fa-chevron-right me-2 tree-toggle" style="cursor:pointer;font-size:0.8em;"></i>' : '<span class="me-2" style="width:14px;display:inline-block;"></span>'}
+          <i class="fas ${n.account.account_type==='income' ? 'fa-plus-circle text-success' : 'fa-minus-circle text-danger'} me-2"></i>
+          <span class="account-name">${n.account.name}</span>
+          <i class="fas fa-check-circle ms-auto text-primary" style="display:none;"></i>
+        </div>
+      `;
+      if (hasChildren) {
+        const kids = document.createElement('div');
+        kids.className = 'account-tree-children border-start ps-2';
+        kids.style.display = 'none'; // collapsed by default
+        renderTree(n.children, kids, level+1);
+        row.appendChild(kids);
+      }
+      container.appendChild(row);
+    });
+  }
+
+  function bindTreeEvents(root) {
+    root.addEventListener('click', function(e){
+      const tog = e.target.closest('.tree-toggle');
+      if (tog) {
+        const node = tog.closest('.account-tree-node');
+        const kids = node.querySelector(':scope > .account-tree-children');
+        if (kids) {
+          const expanded = kids.style.display !== 'none';
+          kids.style.display = expanded ? 'none' : 'block';
+          tog.className = expanded ? 'fas fa-chevron-right me-2 tree-toggle' : 'fas fa-chevron-down me-2 tree-toggle';
+        }
+        return;
+      }
+      const item = e.target.closest('.account-tree-item.selectable');
+      if (item) {
+        root.querySelectorAll('.account-tree-item .fa-check-circle').forEach(i => i.style.display='none');
+        root.querySelectorAll('.account-tree-item').forEach(i => i.style.backgroundColor='');
+        item.style.backgroundColor = '#e8f5e8';
+        const check = item.querySelector('.fa-check-circle');
+        if (check) check.style.display = 'inline';
+        const id = item.getAttribute('data-id');
+        const name = item.getAttribute('data-name');
+        const hidden = document.getElementById('newAccountParent');
+        const label = document.getElementById('selectedParentName');
+        if (hidden) hidden.value = id;
+        if (label) label.textContent = name;
+      }
+    });
+  }
+
+  async function populateTreeForType(type) {
+    const container = document.getElementById('accountTreeSelector');
+    if (!container) return;
+    container.innerHTML = '<div class="text-muted small">Loading…</div>';
+    try {
+      const resp = await fetch('/budget-allocation/api/account-tree/');
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.error || 'Load failed');
+      container.innerHTML = '';
+      const filtered = filterByType(data.tree || [], type);
+      if (!filtered.length) {
+        container.innerHTML = `<div class="text-muted text-center py-3"><i class="fas fa-info-circle me-2"></i>No ${type} accounts found. New item will be created under the main ${type} category.</div>`;
+        document.getElementById('parentSelectionInstructions').textContent = `This will be created as a top-level ${type} entry:`;
+        document.getElementById('selectedParentName').textContent = `Main ${type.charAt(0).toUpperCase()+type.slice(1)} Account`;
+        return;
+      }
+      renderTree(filtered, container, 0);
+      bindTreeEvents(container);
+      document.getElementById('parentSelectionInstructions').textContent = 'Select the parent account:';
+      document.getElementById('selectedParentName').textContent = 'None';
+    } catch (e) {
+      container.innerHTML = '<div class="text-danger small">Error loading accounts. Please try again.</div>';
+    }
+  }
+
+  // Public API: initialize modal for a given type ('income' or 'expense') and optional callbacks
+  window.initCreateAccountModal = function({ accountType, onSuccess, onCancel } = {}){
+    const type = accountType || 'expense';
+    // Set labels
+    const typeLabel = document.getElementById('newAccountTypeLabel');
+    const nameLabel = document.getElementById('newAccountNameLabel');
+    const saveTypeLabel = document.getElementById('saveAccountTypeLabel');
+    const parentTypeLabel = document.getElementById('parentAccountTypeLabel');
+    if (type === 'income') {
+      if (typeLabel) typeLabel.textContent = 'Payee';
+      if (nameLabel) nameLabel.textContent = 'Payee Name';
+      if (saveTypeLabel) saveTypeLabel.textContent = 'Payee';
+      if (parentTypeLabel) parentTypeLabel.textContent = 'Income Account';
+    } else {
+      if (typeLabel) typeLabel.textContent = 'Merchant';
+      if (nameLabel) nameLabel.textContent = 'Merchant Name';
+      if (saveTypeLabel) saveTypeLabel.textContent = 'Merchant';
+      if (parentTypeLabel) parentTypeLabel.textContent = 'Expense Account';
+    }
+    document.getElementById('newAccountType').value = type;
+    document.getElementById('newAccountName').value = '';
+    document.getElementById('newAccountDescription').value = '';
+    document.getElementById('newAccountParent').value = '';
+    document.getElementById('selectedParentName').textContent = 'None';
+    populateTreeForType(type);
+
+    // Wire buttons each time to ensure latest callbacks
+    const cancelBtn = document.getElementById('cancelCreateAccountBtn');
+    const saveBtn = document.getElementById('saveNewAccountBtn');
+    const modalEl = document.getElementById('createAccountModal');
+    if (cancelBtn) cancelBtn.onclick = function(){
+      if (onCancel) onCancel();
+      const m = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+      m.hide();
+    };
+    if (saveBtn) saveBtn.onclick = async function(){
+      const form = document.getElementById('createAccountForm');
+      const btn = saveBtn;
+      const msg = document.getElementById('createAccountMessages');
+      msg.innerHTML=''; msg.classList.add('d-none');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+      try {
+        const resp = await fetch('{% url "budget_allocation:create_account_ajax" %}', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+          body: new FormData(form)
+        });
+        const data = await resp.json();
+        if (data.success) {
+          const m = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+          m.hide();
+          if (onSuccess) onSuccess(data.account);
+        } else {
+          msg.innerHTML = '<div class="alert alert-danger">'+(data.error || 'Error creating account')+'</div>';
+          msg.classList.remove('d-none');
+        }
+      } catch (e) {
+        msg.innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
+        msg.classList.remove('d-none');
+      } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Create <span id="saveAccountTypeLabel">Account</span>';
+      }
+    };
+
+    // Show modal
+    const modal = new bootstrap.Modal(modalEl);
+    
+    // Check if we're opening this modal from within another modal (like transaction modal)
+    const existingModalBackdrop = document.querySelector('.modal-backdrop');
+    if (existingModalBackdrop) {
+      // We're opening from another modal, so increase z-index
+      modalEl.style.zIndex = '1060'; // Higher than default modal z-index (1050)
+      
+      // Listen for when this modal is shown to adjust backdrop
+      modalEl.addEventListener('shown.bs.modal', function() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length > 1) {
+          // Set the latest backdrop to higher z-index
+          backdrops[backdrops.length - 1].style.zIndex = '1059';
+        }
+      }, { once: true });
+      
+      // Reset z-index when modal is hidden
+      modalEl.addEventListener('hidden.bs.modal', function() {
+        modalEl.style.zIndex = '';
+      }, { once: true });
+    }
+    
+    modal.show();
+  };
+})();
+</script>

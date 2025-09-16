@@ -213,3 +213,12 @@ LOGGING = {
         },
     },
 }
+
+# Budget Allocation feature flags
+# Control week allocation locking behavior. For testing, disable locks in DEBUG by default.
+# Override via environment: ALLOCATION_LOCKS_ENABLED=true|false
+ALLOCATION_LOCKS_ENABLED = config(
+    'ALLOCATION_LOCKS_ENABLED',
+    default=('False' if DEBUG else 'True'),
+    cast=bool,
+)

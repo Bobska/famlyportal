@@ -14,6 +14,8 @@
     margin: 0 !important;
     max-width: none !important;
     backdrop-filter: none !important;
+    padding: 0 !important;
+    width: 100% !important;
 }
 
 .budget-main-content {
@@ -22,6 +24,8 @@
     min-height: auto !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 /* Override base template sidebar styling for master-detail layout */
@@ -747,38 +751,13 @@
 /* Sticky Week card so it stays visible during long scrolls */
 .week-sticky { position: sticky; top: 0; z-index: 100; }
 
-/* Transaction Details Panel - Position within detail area */
-.transaction-details-panel {
-    position: absolute;
-    top: 0;
-    right: -40%; /* Hidden by default, relative to detail area */
-    width: 40%;
-    height: 100%;
-    background: white;
-    border-left: 1px solid #dee2e6;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 100;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-y: auto;
-}
-
-.transaction-details-panel.active {
-    right: 0;
-}
-
-/* When panel is active, squish the detail content */
-.detail-panel {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.detail-panel.panel-squished {
-    padding-right: 40%;
-}
-
 /* Transactions tab specific panel (outer list) */
 .outer-transactions-container {
     position: relative;
+    height: calc(100vh - 240px); /* Set proper height for the container */
+    min-height: 500px;
 }
+
 .outer-transaction-details-panel {
     position: absolute;
     top: 0;
@@ -792,8 +771,15 @@
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
 }
-.outer-transaction-details-panel.active { right: 0; }
-.outer-transactions-squished { padding-right: 40%; transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.outer-transaction-details-panel.active { 
+    right: 0; 
+}
+
+.outer-transactions-squished { 
+    padding-right: 40%; 
+    transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+}
 
 .transaction-details-header {
     padding: 20px;
@@ -1186,55 +1172,6 @@
             <!-- Allocations Tab Placeholder -->
             <div class="tab-pane fade" id="outer-allocations" role="tabpanel" aria-labelledby="outer-allocations-tab">
                 <div class="text-muted p-3">Allocations view is coming soon.</div>
-            </div>
-        </div>
-        
-        <!-- Transaction Details Panel - positioned within detail area -->
-        <div id="transaction-details-panel" class="transaction-details-panel">
-            <div class="transaction-details-header">
-                <h5 class="transaction-details-title">Transaction Details</h5>
-                <button type="button" class="btn-close transaction-details-close" aria-label="Close"></button>
-            </div>
-            <div class="transaction-details-content">
-                <div class="transaction-basic-info">
-                    <div class="transaction-amount-display">
-                        <span class="amount-value" id="detail-amount">$0.00</span>
-                        <span class="amount-type" id="detail-type">Debit</span>
-                    </div>
-                    <div class="transaction-date" id="detail-date">Select a transaction</div>
-                </div>
-                
-                <div class="transaction-meta">
-                    <div class="meta-item">
-                        <label>Account:</label>
-                        <span id="detail-account">-</span>
-                    </div>
-                    <div class="meta-item">
-                        <label>Category:</label>
-                        <span id="detail-category">-</span>
-                    </div>
-                    <div class="meta-item">
-                        <label>Description:</label>
-                        <span id="detail-description">-</span>
-                    </div>
-                    <div class="meta-item">
-                        <label>Reference:</label>
-                        <span id="detail-reference">-</span>
-                    </div>
-                    <div class="meta-item">
-                        <label>Week:</label>
-                        <span id="detail-week">-</span>
-                    </div>
-                </div>
-                
-                <div class="transaction-actions">
-                    <button type="button" class="btn btn-primary btn-sm" id="edit-transaction-btn">
-                        <i class="fas fa-edit"></i> Edit Transaction
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" id="delete-transaction-btn">
-                        <i class="fas fa-trash"></i> Delete Transaction
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -1780,7 +1717,8 @@ class MasterDetailController {
         // Initialize header and button states if weekStart present
         if (this.weekStart) {
             this.updateWeekHeader();
-            this.updateWeekNavigationButtons();
+            // Always fetch week availability on initialization to ensure correct button states
+            this.updateWeekNavigationAvailability();
         }
     }
     
@@ -3370,91 +3308,57 @@ MasterDetailController.prototype.initializeElements = function() {
 
 // Transaction Details Panel Management
 document.addEventListener('DOMContentLoaded', function() {
-    // Panels and containers
-    const detailTabPanel = document.getElementById('transaction-details-panel');
-    const detailPanelContainer = document.getElementById('detailPanel');
+    // Only handle the outer transactions panel now
     const outerTabPanel = document.getElementById('outer-transaction-details-panel');
     const outerContainer = document.getElementById('outerTransactionsContainer');
-
-    const closeDetailBtn = document.querySelector('.transaction-details-close');
     const closeOuterBtn = document.querySelector('.outer-transaction-details-close');
 
-    // Helpers to open/close specific panel
-    function closePanel(context) {
-        if (context === 'outer') {
-            outerTabPanel?.classList.remove('active');
-            outerContainer?.classList.remove('outer-transactions-squished');
-        } else {
-            detailTabPanel?.classList.remove('active');
-            detailPanelContainer?.classList.remove('panel-squished');
-        }
+    // Helpers to open/close the outer panel
+    function closePanel() {
+        outerTabPanel?.classList.remove('active');
+        outerContainer?.classList.remove('outer-transactions-squished');
         // Clear selected state
         document.querySelectorAll('.transaction-item.selected').forEach(el => el.classList.remove('selected'));
     }
 
-    function populatePanel(context, data) {
-        if (context === 'outer') {
-            document.getElementById('outer-detail-amount').textContent = data.amount || '$0.00';
-            document.getElementById('outer-detail-type').textContent = data.type || 'Transaction';
-            document.getElementById('outer-detail-date').textContent = data.date || 'No date';
-            document.getElementById('outer-detail-account').textContent = data.account || '-';
-            document.getElementById('outer-detail-category').textContent = data.category || '-';
-            document.getElementById('outer-detail-description').textContent = data.description || '-';
-            document.getElementById('outer-detail-reference').textContent = data.reference || '-';
-            document.getElementById('outer-detail-week').textContent = data.week || '-';
-            outerTabPanel.dataset.transactionId = data.id || '';
-        } else {
-            document.getElementById('detail-amount').textContent = data.amount || '$0.00';
-            document.getElementById('detail-type').textContent = data.type || 'Transaction';
-            document.getElementById('detail-date').textContent = data.date || 'No date';
-            document.getElementById('detail-account').textContent = data.account || '-';
-            document.getElementById('detail-category').textContent = data.category || '-';
-            document.getElementById('detail-description').textContent = data.description || '-';
-            document.getElementById('detail-reference').textContent = data.reference || '-';
-            document.getElementById('detail-week').textContent = data.week || '-';
-            detailTabPanel.dataset.transactionId = data.id || '';
-        }
+    function populatePanel(data) {
+        document.getElementById('outer-detail-amount').textContent = data.amount || '$0.00';
+        document.getElementById('outer-detail-type').textContent = data.type || 'Transaction';
+        document.getElementById('outer-detail-date').textContent = data.date || 'No date';
+        document.getElementById('outer-detail-account').textContent = data.account || '-';
+        document.getElementById('outer-detail-category').textContent = data.category || '-';
+        document.getElementById('outer-detail-description').textContent = data.description || '-';
+        document.getElementById('outer-detail-reference').textContent = data.reference || '-';
+        document.getElementById('outer-detail-week').textContent = data.week || '-';
+        outerTabPanel.dataset.transactionId = data.id || '';
     }
 
-    function openPanel(context, data) {
-        populatePanel(context, data);
-        if (context === 'outer') {
-            outerContainer?.classList.add('outer-transactions-squished');
-            outerTabPanel?.classList.add('active');
-        } else {
-            detailPanelContainer?.classList.add('panel-squished');
-            detailTabPanel?.classList.add('active');
-        }
+    function openPanel(data) {
+        populatePanel(data);
+        outerContainer?.classList.add('outer-transactions-squished');
+        outerTabPanel?.classList.add('active');
     }
 
-    closeDetailBtn?.addEventListener('click', () => closePanel('detail'));
-    closeOuterBtn?.addEventListener('click', () => closePanel('outer'));
+    closeOuterBtn?.addEventListener('click', closePanel);
 
     // Click-outside handling
     document.addEventListener('click', function(event) {
-        // Outer panel
         if (outerTabPanel?.classList.contains('active')) {
             const inside = outerTabPanel.contains(event.target) || event.target.closest('#outerTransactionsList');
-            if (!inside) closePanel('outer');
-        }
-        // Detail panel
-        if (detailTabPanel?.classList.contains('active')) {
-            const inside = detailTabPanel.contains(event.target) || event.target.closest('#transactionsList');
-            if (!inside) closePanel('detail');
+            if (!inside) closePanel();
         }
     });
 
-    // ESC closes whichever is open
+    // ESC closes panel
     document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            if (outerTabPanel?.classList.contains('active')) closePanel('outer');
-            if (detailTabPanel?.classList.contains('active')) closePanel('detail');
+        if (event.key === 'Escape' && outerTabPanel?.classList.contains('active')) {
+            closePanel();
         }
     });
 
-    // Attach click handlers to transactions in both contexts
+    // Attach click handlers to transactions in outer list only
     function attachTransactionClickHandlers() {
-        const items = document.querySelectorAll('#transactionsList .transaction-item, #outerTransactionsList .transaction-item');
+        const items = document.querySelectorAll('#outerTransactionsList .transaction-item');
         items.forEach(item => {
             if (item.dataset.clickHandlerAttached) return;
             item.addEventListener('click', function(e) {
@@ -3473,8 +3377,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     reference: item.querySelector('.reference')?.textContent || '-',
                     week: item.closest('.week-section')?.querySelector('.week-header')?.textContent || '-'
                 };
-                const context = item.closest('#outerTransactionsList') ? 'outer' : 'detail';
-                openPanel(context, data);
+                openPanel(data);
             });
             item.dataset.clickHandlerAttached = 'true';
         });
@@ -3483,25 +3386,23 @@ document.addEventListener('DOMContentLoaded', function() {
     attachTransactionClickHandlers();
 
     const observer = new MutationObserver(() => attachTransactionClickHandlers());
-    const containers = [document.getElementById('transactionsList'), document.getElementById('outerTransactionsList')];
-    containers.forEach(c => c && observer.observe(c, { childList: true, subtree: true }));
+    const outerListContainer = document.getElementById('outerTransactionsList');
+    if (outerListContainer) {
+        observer.observe(outerListContainer, { childList: true, subtree: true });
+    }
 
-    // Wire placeholder edit/delete to correct panel dataset
-    document.getElementById('edit-transaction-btn')?.addEventListener('click', function() {
-        const id = detailTabPanel?.dataset.transactionId;
-        if (id) { console.log('Edit (detail) transaction:', id); alert('Edit functionality coming soon!'); }
-    });
-    document.getElementById('delete-transaction-btn')?.addEventListener('click', function() {
-        const id = detailTabPanel?.dataset.transactionId;
-        if (id && confirm('Are you sure you want to delete this transaction?')) { console.log('Delete (detail) transaction:', id); alert('Delete functionality coming soon!'); closePanel('detail'); }
-    });
+    // Wire placeholder edit/delete buttons
     document.getElementById('outer-edit-transaction-btn')?.addEventListener('click', function() {
         const id = outerTabPanel?.dataset.transactionId;
-        if (id) { console.log('Edit (outer) transaction:', id); alert('Edit functionality coming soon!'); }
+        if (id) { console.log('Edit transaction:', id); alert('Edit functionality coming soon!'); }
     });
     document.getElementById('outer-delete-transaction-btn')?.addEventListener('click', function() {
         const id = outerTabPanel?.dataset.transactionId;
-        if (id && confirm('Are you sure you want to delete this transaction?')) { console.log('Delete (outer) transaction:', id); alert('Delete functionality coming soon!'); closePanel('outer'); }
+        if (id && confirm('Are you sure you want to delete this transaction?')) { 
+            console.log('Delete transaction:', id); 
+            alert('Delete functionality coming soon!'); 
+            closePanel(); 
+        }
     });
 });
 

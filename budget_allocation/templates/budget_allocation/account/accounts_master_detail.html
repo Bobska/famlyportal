@@ -558,226 +558,264 @@
 {% block breadcrumb_items %}{% endblock %}
 
 {% block page_content %}
-<!-- Week Selector -->
-<div class="row mb-2">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center py-2">
-                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-chevron-left me-1"></i>Previous Week
+<div class="card">
+    <div class="card-header pb-0">
+        <ul class="nav nav-tabs card-header-tabs" id="outerTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="outer-accounts-tab" data-bs-toggle="tab" data-bs-target="#outer-accounts" type="button" role="tab" aria-controls="outer-accounts" aria-selected="true">
+                    <i class="fas fa-sitemap me-2"></i>Accounts
                 </button>
-                <div class="text-center">
-                    <h5 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h5>
-                    <p id="weekRange" class="text-muted mb-0 small">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
-                </div>
-                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm">
-                    Next Week<i class="fas fa-chevron-right ms-1"></i>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="outer-transactions-tab" data-bs-toggle="tab" data-bs-target="#outer-transactions" type="button" role="tab" aria-controls="outer-transactions" aria-selected="false">
+                    <i class="fas fa-receipt me-2"></i>Transactions
                 </button>
-            </div>
-        </div>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="outer-allocations-tab" data-bs-toggle="tab" data-bs-target="#outer-allocations" type="button" role="tab" aria-controls="outer-allocations" aria-selected="false">
+                    <i class="fas fa-sliders-h me-2"></i>Allocations
+                </button>
+            </li>
+        </ul>
     </div>
-</div>
-
-<!-- Embed current week for JS to pick up -->
-<div id="weekContext" data-week-start="{{ current_week.start_date|date:'Y-m-d' }}" hidden></div>
-
-<div class="master-detail-container">
-    <div class="master-detail-layout" id="masterDetailLayout">
-        
-        <!-- Master Panel -->
-        <div class="master-panel" id="masterPanel">
-            <div class="master-header">
-                <div class="mb-3">
-                    <h5 class="mb-0">Account Hierarchy</h5>
-                    
-                    <!-- Selection State Legend -->
-                    <div class="d-flex align-items-center gap-3 mt-2 small text-muted">
-                        <div class="d-flex align-items-center gap-1">
-                            <div class="selection-legend-item detail-selected"></div>
-                            <span>Viewing Details</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <div class="selection-legend-item transaction-selected"></div>
-                            <span>From Transaction</span>
+    <div class="card-body pt-3">
+        <div class="tab-content" id="outerTabsContent">
+            <!-- Accounts Tab: existing layout moved here -->
+            <div class="tab-pane fade show active" id="outer-accounts" role="tabpanel" aria-labelledby="outer-accounts-tab">
+                <!-- Week Selector -->
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-chevron-left me-1"></i>Previous Week
+                                </button>
+                                <div class="text-center">
+                                    <h5 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h5>
+                                    <p id="weekRange" class="text-muted mb-0 small">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
+                                </div>
+                                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm">
+                                    Next Week<i class="fas fa-chevron-right ms-1"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Tab Navigation -->
-                <ul class="nav nav-tabs mb-0" id="masterAccountTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active d-flex align-items-center" 
-                                id="master-income-tab" 
-                                data-bs-toggle="tab" 
-                                data-bs-target="#master-income-accounts" 
-                                type="button" 
-                                role="tab" 
-                                aria-controls="master-income-accounts" 
-                                aria-selected="true">
-                            <i class="fas fa-arrow-up text-success me-2"></i>
-                            <span class="fw-bold">Income</span>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link d-flex align-items-center" 
-                                id="master-expense-tab" 
-                                data-bs-toggle="tab" 
-                                data-bs-target="#master-expense-accounts" 
-                                type="button" 
-                                role="tab" 
-                                aria-controls="master-expense-accounts" 
-                                aria-selected="false">
-                            <i class="fas fa-arrow-down text-danger me-2"></i>
-                            <span class="fw-bold">Expenses</span>
-                        </button>
-                    </li>
-                </ul>
-                
-                <input type="text" class="search-box w-100 mt-2" id="accountSearch" placeholder="Search accounts...">
-            </div>
-            
-            <div class="master-content" id="masterContent">
-                <!-- Tab Content -->
-                <div class="tab-content" id="masterAccountTabsContent">
-                    <!-- Income Accounts Tab -->
-                    <div class="tab-pane fade show active" 
-                         id="master-income-accounts" 
-                         role="tabpanel" 
-                         aria-labelledby="master-income-tab">
-                        {% for tree_node in account_tree %}
-                            {% if tree_node.account.account_type == 'income' %}
-                                {% for child_node in tree_node.children %}
-                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
-                                {% endfor %}
-                            {% endif %}
-                        {% empty %}
-                        <div class="text-center text-muted py-5">
-                            <i class="fas fa-plus-circle fa-2x mb-3 text-success opacity-25"></i>
-                            <p>No income accounts found</p>
-                        </div>
-                        {% endfor %}
-                    </div>
 
-                    <!-- Expense Accounts Tab -->
-                    <div class="tab-pane fade" 
-                         id="master-expense-accounts" 
-                         role="tabpanel" 
-                         aria-labelledby="master-expense-tab">
-                        {% for tree_node in account_tree %}
-                            {% if tree_node.account.account_type == 'expense' %}
-                                {% for child_node in tree_node.children %}
-                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
-                                {% endfor %}
-                            {% endif %}
-                        {% empty %}
-                        <div class="text-center text-muted py-5">
-                            <i class="fas fa-minus-circle fa-2x mb-3 text-danger opacity-25"></i>
-                            <p>No expense accounts found</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Detail Panel -->
-        <div class="detail-panel" id="detailPanel">
-            <div class="detail-header">
-                <!-- Detail Panel Tabs - Moved Above Title -->
-                <ul class="nav nav-tabs mb-3" id="detailTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" 
-                                id="detail-transactions-tab" 
-                                data-bs-toggle="tab" 
-                                data-bs-target="#detail-transactions" 
-                                type="button" 
-                                role="tab" 
-                                aria-controls="detail-transactions" 
-                                aria-selected="true">
-                            <i class="fas fa-receipt me-2"></i>Transactions
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" 
-                                id="detail-account-tab" 
-                                data-bs-toggle="tab" 
-                                data-bs-target="#detail-account" 
-                                type="button" 
-                                role="tab" 
-                                aria-controls="detail-account" 
-                                aria-selected="false">
-                            <i class="fas fa-folder me-2"></i>Account Details
-                        </button>
-                    </li>
-                </ul>
-                
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <button class="btn btn-sm btn-outline-secondary mobile-back-btn mb-2" id="mobileBackBtn">
-                            <i class="fas fa-arrow-left"></i> Back to List
-                        </button>
-                        <h4 id="detailTitle">Details</h4>
-                        <p class="text-muted mb-0" id="detailSubtitle">Select an account or view transactions</p>
-                    </div>
-                    <button class="btn btn-sm btn-outline-secondary" id="toggleDetailPanel" title="Hide/Show Panel">
-                        <i class="fas fa-eye-slash"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="detail-content fade-content" id="detailContent">
-                <!-- Tab Content -->
-                <div class="tab-content" id="detailTabsContent">
-                    <!-- Transactions Tab -->
-                    <div class="tab-pane fade show active" 
-                         id="detail-transactions" 
-                         role="tabpanel" 
-                         aria-labelledby="detail-transactions-tab">
-                        <div class="p-2">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0">Recent Transactions</h6>
-                                <div class="d-flex align-items-center gap-3">
-                                    <!-- Transaction Type Filter -->
-                                    <div class="d-flex align-items-center">
-                                        <label for="transactionTypeFilter" class="form-label me-2 mb-0 small text-muted">Filter:</label>
-                                        <select id="transactionTypeFilter" class="form-select form-select-sm" style="width: auto;">
-                                            <option value="all">All</option>
-                                            <option value="income">Income</option>
-                                            <option value="expense">Expense</option>
-                                        </select>
+                <!-- Embed current week for JS to pick up -->
+                <div id="weekContext" data-week-start="{{ current_week.start_date|date:'Y-m-d' }}" hidden></div>
+
+                <div class="master-detail-container">
+                    <div class="master-detail-layout" id="masterDetailLayout">
+                        
+                        <!-- Master Panel -->
+                        <div class="master-panel" id="masterPanel">
+                            <div class="master-header">
+                                <div class="mb-3">
+                                    <h5 class="mb-0">Account Hierarchy</h5>
+                                    
+                                    <!-- Selection State Legend -->
+                                    <div class="d-flex align-items-center gap-3 mt-2 small text-muted">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <div class="selection-legend-item detail-selected"></div>
+                                            <span>Viewing Details</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <div class="selection-legend-item transaction-selected"></div>
+                                            <span>From Transaction</span>
+                                        </div>
                                     </div>
-                                    <small class="text-muted" id="transactionCount">Loading...</small>
                                 </div>
+                                
+                                <!-- Tab Navigation -->
+                                <ul class="nav nav-tabs mb-0" id="masterAccountTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active d-flex align-items-center" 
+                                                id="master-income-tab" 
+                                                data-bs-toggle="tab" 
+                                                data-bs-target="#master-income-accounts" 
+                                                type="button" 
+                                                role="tab" 
+                                                aria-controls="master-income-accounts" 
+                                                aria-selected="true">
+                                            <i class="fas fa-arrow-up text-success me-2"></i>
+                                            <span class="fw-bold">Income</span>
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link d-flex align-items-center" 
+                                                id="master-expense-tab" 
+                                                data-bs-toggle="tab" 
+                                                data-bs-target="#master-expense-accounts" 
+                                                type="button" 
+                                                role="tab" 
+                                                aria-controls="master-expense-accounts" 
+                                                aria-selected="false">
+                                            <i class="fas fa-arrow-down text-danger me-2"></i>
+                                            <span class="fw-bold">Expenses</span>
+                                        </button>
+                                    </li>
+                                </ul>
+                                
+                                <input type="text" class="search-box w-100 mt-2" id="accountSearch" placeholder="Search accounts...">
                             </div>
-                            <div id="transactionsList" class="transaction-list">
-                                <div class="text-center text-muted p-4">
-                                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-                                    <p>Loading transactions...</p>
+                            
+                            <div class="master-content" id="masterContent">
+                                <!-- Tab Content -->
+                                <div class="tab-content" id="masterAccountTabsContent">
+                                    <!-- Income Accounts Tab -->
+                                    <div class="tab-pane fade show active" 
+                                         id="master-income-accounts" 
+                                         role="tabpanel" 
+                                         aria-labelledby="master-income-tab">
+                                        {% for tree_node in account_tree %}
+                                            {% if tree_node.account.account_type == 'income' %}
+                                                {% for child_node in tree_node.children %}
+                                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% empty %}
+                                        <div class="text-center text-muted py-5">
+                                            <i class="fas fa-plus-circle fa-2x mb-3 text-success opacity-25"></i>
+                                            <p>No income accounts found</p>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <!-- Expense Accounts Tab -->
+                                    <div class="tab-pane fade" 
+                                         id="master-expense-accounts" 
+                                         role="tabpanel" 
+                                         aria-labelledby="master-expense-tab">
+                                        {% for tree_node in account_tree %}
+                                            {% if tree_node.account.account_type == 'expense' %}
+                                                {% for child_node in tree_node.children %}
+                                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% empty %}
+                                        <div class="text-center text-muted py-5">
+                                            <i class="fas fa-minus-circle fa-2x mb-3 text-danger opacity-25"></i>
+                                            <p>No expense accounts found</p>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Account Details Tab -->
-                    <div class="tab-pane fade" 
-                         id="detail-account" 
-                         role="tabpanel" 
-                         aria-labelledby="detail-account-tab">
-                        <div id="accountDetailsContent" class="p-2">
-                            <div class="text-center text-muted p-4">
-                                <i class="fas fa-folder-open fa-2x mb-3"></i>
-                                <p>Select an account to view details</p>
+                        
+                        <!-- Detail Panel -->
+                        <div class="detail-panel" id="detailPanel">
+                            <div class="detail-header">
+                                <!-- Detail Panel Tabs - Moved Above Title -->
+                                <ul class="nav nav-tabs mb-3" id="detailTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" 
+                                                id="detail-transactions-tab" 
+                                                data-bs-toggle="tab" 
+                                                data-bs-target="#detail-transactions" 
+                                                type="button" 
+                                                role="tab" 
+                                                aria-controls="detail-transactions" 
+                                                aria-selected="true">
+                                            <i class="fas fa-receipt me-2"></i>Transactions
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" 
+                                                id="detail-account-tab" 
+                                                data-bs-toggle="tab" 
+                                                data-bs-target="#detail-account" 
+                                                type="button" 
+                                                role="tab" 
+                                                aria-controls="detail-account" 
+                                                aria-selected="false">
+                                            <i class="fas fa-folder me-2"></i>Account Details
+                                        </button>
+                                    </li>
+                                </ul>
+                                
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-secondary mobile-back-btn mb-2" id="mobileBackBtn">
+                                            <i class="fas fa-arrow-left"></i> Back to List
+                                        </button>
+                                        <h4 id="detailTitle">Details</h4>
+                                        <p class="text-muted mb-0" id="detailSubtitle">Select an account or view transactions</p>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="toggleDetailPanel" title="Hide/Show Panel">
+                                        <i class="fas fa-eye-slash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-content fade-content" id="detailContent">
+                                <!-- Tab Content -->
+                                <div class="tab-content" id="detailTabsContent">
+                                    <!-- Transactions Tab -->
+                                    <div class="tab-pane fade show active" 
+                                         id="detail-transactions" 
+                                         role="tabpanel" 
+                                         aria-labelledby="detail-transactions-tab">
+                                        <div class="p-2">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h6 class="mb-0">Recent Transactions</h6>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <!-- Transaction Type Filter -->
+                                                    <div class="d-flex align-items-center">
+                                                        <label for="transactionTypeFilter" class="form-label me-2 mb-0 small text-muted">Filter:</label>
+                                                        <select id="transactionTypeFilter" class="form-select form-select-sm" style="width: auto;">
+                                                            <option value="all">All</option>
+                                                            <option value="income">Income</option>
+                                                            <option value="expense">Expense</option>
+                                                        </select>
+                                                    </div>
+                                                    <small class="text-muted" id="transactionCount">Loading...</small>
+                                                </div>
+                                            </div>
+                                            <div id="transactionsList" class="transaction-list">
+                                                <div class="text-center text-muted p-4">
+                                                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                                    <p>Loading transactions...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Account Details Tab -->
+                                    <div class="tab-pane fade" 
+                                         id="detail-account" 
+                                         role="tabpanel" 
+                                         aria-labelledby="detail-account-tab">
+                                        <div id="accountDetailsContent" class="p-2">
+                                            <div class="text-center text-muted p-4">
+                                                <i class="fas fa-folder-open fa-2x mb-3"></i>
+                                                <p>Select an account to view details</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="loading-overlay" id="detailLoading">
+                                <div class="loading-spinner"></div>
                             </div>
                         </div>
+                        
                     </div>
                 </div>
             </div>
-            
-            <div class="loading-overlay" id="detailLoading">
-                <div class="loading-spinner"></div>
+
+            <!-- Transactions Tab Placeholder -->
+            <div class="tab-pane fade" id="outer-transactions" role="tabpanel" aria-labelledby="outer-transactions-tab">
+                <div class="text-muted p-3">Unified Transactions view is coming soon.</div>
+            </div>
+
+            <!-- Allocations Tab Placeholder -->
+            <div class="tab-pane fade" id="outer-allocations" role="tabpanel" aria-labelledby="outer-allocations-tab">
+                <div class="text-muted p-3">Allocations view is coming soon.</div>
             </div>
         </div>
-        
     </div>
 </div>
 <!-- Toast container -->

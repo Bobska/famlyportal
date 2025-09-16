@@ -203,6 +203,12 @@
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
+.transaction-item.selected:hover {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-color: #0056b3;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3), 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+
 .transaction-item.active {
     background-color: rgba(0, 123, 255, 0.12);
     border-color: #007bff;
@@ -1239,6 +1245,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
 <script>
 // Global function for account expansion (called from tree node template)
 // All Accounts-style expand/collapse for master-detail
@@ -2210,14 +2217,18 @@ class MasterDetailController {
                 <div class="mb-3">
                     <h6 class="border-bottom pb-2">Recent Transactions</h6>
                     ${account.recent_transactions.map(transaction => `
-                        <div class="transaction-item">
-                            <div>
-                                <div class="fw-medium">${transaction.description || 'Transaction'}</div>
-                                <small class="text-muted">${transaction.date}</small>
+                        <div class="transaction-item" data-transaction-id="${transaction.id || ''}" style="cursor:pointer;">
+                            <div class="transaction-row">
+                                <div class="fw-medium description">${transaction.description || 'Transaction'}</div>
+                                <small class="text-muted transaction-date">${transaction.date}</small>
                             </div>
-                            <div class="transaction-amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                            <div class="transaction-amount amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
                                 ${transaction.amount >= 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}
                             </div>
+                            <div class="account-name" style="display: none;">${transaction.account_name || ''}</div>
+                            <div class="category" style="display: none;">${transaction.category || ''}</div>
+                            <div class="reference" style="display: none;">${transaction.reference || ''}</div>
+                            <div class="transaction-type" style="display: none;">${transaction.amount >= 0 ? 'Credit' : 'Debit'}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -2932,13 +2943,17 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
     }
     
     const transactionsHtml = transactions.map(tx => `
-        <div class="transaction-item" data-account-id="${tx.account_id}" style="cursor:pointer;">
+        <div class="transaction-item" data-transaction-id="${tx.id || ''}" data-account-id="${tx.account_id}" style="cursor:pointer;">
             <div class="transaction-row">
-                <div class="tx-date">${tx.date || ''}</div>
-                <div class="tx-payee">${tx.payee || tx.description || tx.account_name || 'Transaction'}</div>
-                <div class="tx-amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
+                <div class="tx-date transaction-date">${tx.date || ''}</div>
+                <div class="tx-payee description">${tx.payee || tx.description || tx.account_name || 'Transaction'}</div>
+                <div class="tx-amount amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
                     ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}
                 </div>
+                <div class="account-name" style="display: none;">${tx.account_name || ''}</div>
+                <div class="category" style="display: none;">${tx.category || ''}</div>
+                <div class="reference" style="display: none;">${tx.reference || ''}</div>
+                <div class="transaction-type" style="display: none;">${tx.amount >= 0 ? 'Credit' : 'Debit'}</div>
             </div>
         </div>
     `).join('');
@@ -3204,6 +3219,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close panel functionality
     function closeTransactionPanel() {
         detailsPanel.classList.remove('active');
+        // Clear transaction selection when panel closes
+        document.querySelectorAll('.transaction-item.selected').forEach(item => {
+            item.classList.remove('selected');
+        });
     }
     
     // Open panel with transaction data
@@ -3254,6 +3273,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 item.addEventListener('click', function(event) {
                     event.preventDefault();
                     event.stopPropagation();
+                    
+                    // Remove selected class from all other transaction items
+                    document.querySelectorAll('.transaction-item.selected').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked item immediately
+                    item.classList.add('selected');
                     
                     // Extract transaction data from the item
                     const transactionData = {

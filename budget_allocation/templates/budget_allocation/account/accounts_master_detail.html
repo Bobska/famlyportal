@@ -171,23 +171,44 @@
 .transaction-list {
     max-height: 500px;
     overflow-y: auto;
+    border-radius: 8px;
+    background: #f8f9fa;
+    padding: 8px;
 }
 
 .transaction-item {
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.transaction-item:last-child {
+    margin-bottom: 0;
 }
 
 .transaction-item:hover {
     background-color: #f8f9fa;
+    border-color: #007bff;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.transaction-item.selected {
+    background-color: rgba(0, 123, 255, 0.08);
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
 .transaction-item.active {
-    background-color: rgba(0, 123, 255, 0.1) !important;
-    border-left: 4px solid #007bff;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
-    transform: translateX(2px);
+    background-color: rgba(0, 123, 255, 0.12);
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
+    transform: translateY(-2px);
 }
 
 .transaction-amount {
@@ -203,20 +224,45 @@
 .transaction-row {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+    padding: 16px;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
-.transaction-row:hover {
-    background-color: #f8f9fa;
+
+.transaction-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: transparent;
+    border-radius: 0 4px 4px 0;
+    transition: all 0.2s ease;
 }
+
+.transaction-item:hover .transaction-row::before {
+    background: #007bff;
+}
+
+.transaction-item.selected .transaction-row::before,
+.transaction-item.active .transaction-row::before {
+    background: #007bff;
+}
+
 .transaction-row .tx-date {
-    min-width: 100px;
+    min-width: 110px;
     color: #6c757d;
     font-size: 0.875rem;
     font-weight: 500;
     margin-right: 16px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
 }
+
 .transaction-row .tx-payee {
     flex: 1;
     overflow: hidden;
@@ -226,15 +272,32 @@
     color: #2c3e50;
     font-size: 0.95rem;
     margin-right: 16px;
+    padding: 4px 0;
 }
+
 .transaction-row .tx-amount {
     flex: 0 0 120px;
     text-align: right;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-variant-numeric: tabular-nums;
     -webkit-font-feature-settings: 'tnum';
     font-feature-settings: 'tnum';
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+.transaction-row .tx-amount.text-success {
+    background: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
+
+.transaction-row .tx-amount.text-danger {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
 }
 
 /* Ensure generic transaction amount blocks align similarly */
@@ -490,31 +553,54 @@
     text-decoration: underline;
 }
 
-/* Transaction List */
+/* Transaction List - Secondary Styling */
 .transaction-item {
     padding: 0;
-    border-bottom: 1px solid #e9ecef;
-    display: block; /* Let inner .transaction-row control layout */
+    margin-bottom: 6px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
     background: white;
-    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.transaction-item:last-child {
+    margin-bottom: 0;
 }
 
 .transaction-item:hover {
     background-color: #f8f9fa;
-    border-left: 3px solid #007bff;
-    transform: translateX(2px);
+    border-color: #007bff;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+    transform: translateY(-1px);
 }
 
-.transaction-item:last-child {
-    border-bottom: none;
+.transaction-item.selected {
+    background-color: rgba(0, 123, 255, 0.08);
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
 .transaction-amount {
     font-weight: 600;
 }
 
-.transaction-amount.positive { color: #28a745; }
-.transaction-amount.negative { color: #dc3545; }
+.transaction-amount.positive { 
+    color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+.transaction-amount.negative { 
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+}
 
 /* Ensure Bootstrap modals always sit above any app overlays and are not clipped */
 .modal { z-index: 2000; }
@@ -616,14 +702,14 @@
     <div class="col-md-12">
         <div class="card week-sticky">
             <div class="card-body d-flex justify-content-between align-items-center py-2">
-                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm">
+                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm"{% if not prev_week %} disabled{% endif %}>
                     <i class="fas fa-chevron-left me-1"></i>Previous Week
                 </button>
                 <div class="text-center">
                     <h5 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h5>
                     <p id="weekRange" class="text-muted mb-0 small">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
                 </div>
-                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm">
+                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm"{% if not next_week %} disabled{% endif %}>
                     Next Week<i class="fas fa-chevron-right ms-1"></i>
                 </button>
             </div>
@@ -632,7 +718,11 @@
 </div>
 
 <!-- Embed current week for JS to pick up -->
-<div id="weekContext" data-week-start="{{ current_week.start_date|date:'Y-m-d' }}" hidden></div>
+<div id="weekContext" 
+     data-week-start="{{ current_week.start_date|date:'Y-m-d' }}" 
+     data-has-prev="{% if prev_week %}true{% else %}false{% endif %}"
+     data-has-next="{% if next_week %}true{% else %}false{% endif %}"
+     hidden></div>
 
 <div class="card">
     <div class="card-header pb-0">
@@ -1173,7 +1263,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const controller = new MasterDetailController({
         apiEndpoint: '/budget-allocation/api/account/{id}/',
         selectedAccountId: accountId,
-        weekStart: (document.getElementById('weekContext') || {}).dataset?.weekStart || null
+        weekStart: (document.getElementById('weekContext') || {}).dataset?.weekStart || null,
+        hasPrevWeek: (document.getElementById('weekContext') || {}).dataset?.hasPrev === 'true',
+        hasNextWeek: (document.getElementById('weekContext') || {}).dataset?.hasNext === 'true'
     });
     window.masterDetailController = controller;
     
@@ -1398,6 +1490,8 @@ class MasterDetailController {
         this.isMobile = window.innerWidth <= 768;
         this.leafPivot = 'self'; // 'self' fades siblings on first click; 'parent' unfades siblings on second click
         this.weekStart = options.weekStart || null; // YYYY-MM-DD when provided
+        this.hasPrevWeek = options.hasPrevWeek || false;
+        this.hasNextWeek = options.hasNextWeek || false;
         
         this.initializeElements();
         this.bindEvents();
@@ -1413,9 +1507,10 @@ class MasterDetailController {
         // Clean 'week' from URL on load (we manage week client-side)
         this.cleanWeekFromURL();
 
-        // Initialize header if weekStart present
+        // Initialize header and button states if weekStart present
         if (this.weekStart) {
             this.updateWeekHeader();
+            this.updateWeekNavigationButtons();
         }
     }
     
@@ -1518,6 +1613,11 @@ class MasterDetailController {
 
     shiftWeek(deltaDays) {
         if (!this.weekStart) return;
+        
+        // Check if navigation is allowed
+        if (deltaDays < 0 && !this.hasPrevWeek) return; // Trying to go back but no previous week
+        if (deltaDays > 0 && !this.hasNextWeek) return; // Trying to go forward but no next week
+        
         const current = new Date(this.weekStart);
         // Correct for timezone offset
         const adjusted = new Date(Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()));
@@ -1525,16 +1625,15 @@ class MasterDetailController {
         const yyyy = adjusted.getUTCFullYear();
         const mm = String(adjusted.getUTCMonth() + 1).padStart(2, '0');
         const dd = String(adjusted.getUTCDate()).padStart(2, '0');
-        this.weekStart = `${yyyy}-${mm}-${dd}`;
-        this.updateWeekHeader();
-        // If an account is selected, reload its details for the new week
+        const newWeekStart = `${yyyy}-${mm}-${dd}`;
+        
+        // Navigate to the new week by reloading the page with week parameter
+        const url = new URL(window.location);
+        url.searchParams.set('week', newWeekStart);
         if (this.selectedAccountId) {
-            this.loadAccountData(this.selectedAccountId);
+            url.searchParams.set('account_id', this.selectedAccountId);
         }
-        // Refresh transactions lists for new week
-        this.filterTransactionsByType(localStorage.getItem('ba.outer.txType') || 'all', { target: 'outer' });
-        const detailFilter = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
-        this.filterTransactionsByType(detailFilter, { target: 'detail' });
+        window.location.href = url.toString();
     }
 
     updateWeekHeader() {
@@ -1551,6 +1650,29 @@ class MasterDetailController {
         const rangeEl = document.getElementById('weekRange');
         if (labelEl) labelEl.textContent = `Week of ${formatLong(startUTC)}`;
         if (rangeEl) rangeEl.textContent = `${formatShort(startUTC)} - ${formatLong(endUTC)}`;
+    }
+
+    updateWeekNavigationButtons() {
+        const prevBtn = document.getElementById('prevWeekBtn');
+        const nextBtn = document.getElementById('nextWeekBtn');
+        
+        if (prevBtn) {
+            prevBtn.disabled = !this.hasPrevWeek;
+            if (!this.hasPrevWeek) {
+                prevBtn.classList.add('disabled');
+            } else {
+                prevBtn.classList.remove('disabled');
+            }
+        }
+        
+        if (nextBtn) {
+            nextBtn.disabled = !this.hasNextWeek;
+            if (!this.hasNextWeek) {
+                nextBtn.classList.add('disabled');
+            } else {
+                nextBtn.classList.remove('disabled');
+            }
+        }
     }
 
     applyHoverLineage(accountId) {
@@ -2641,7 +2763,7 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
     }
     
     const transactionsHtml = transactions.map(tx => `
-        <div class="transaction-item border-bottom" data-account-id="${tx.account_id}" style="cursor:pointer;">
+        <div class="transaction-item" data-account-id="${tx.account_id}" style="cursor:pointer;">
             <div class="transaction-row">
                 <div class="tx-date">${tx.date || ''}</div>
                 <div class="tx-payee">${tx.payee || tx.description || tx.account_name || 'Transaction'}</div>

@@ -25,7 +25,7 @@
 
 /* Master Panel */
 .master-panel {
-    flex: 0 0 100%;
+    flex: 0 0 35%;
     border-right: 1px solid #e0e0e0;
     background: #fafafa;
     display: flex;
@@ -34,8 +34,8 @@
     will-change: flex;
 }
 
-.master-panel.split-view {
-    flex: 0 0 40%;
+.master-panel.full-view {
+    flex: 0 0 100%;
 }
 
 .master-header {
@@ -69,7 +69,7 @@
     position: relative;
 }
 
-.account-item:hover {
+.account-item:hover:not(.detail-selected):not(.transaction-selected) {
     background-color: rgba(0, 123, 255, 0.05);
     transform: translateX(2px);
 }
@@ -78,6 +78,48 @@
     background-color: rgba(0, 123, 255, 0.1);
     border-left: 4px solid #007bff;
     font-weight: 500;
+}
+
+/* Three distinct selection states */
+.account-item.detail-selected {
+    background-color: rgba(0, 123, 255, 0.15) !important;
+    border-left: 4px solid #007bff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1) !important;
+    opacity: 1 !important;
+}
+
+.account-item.transaction-selected {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    border-left: 4px solid #ffc107 !important;
+    font-weight: 500 !important;
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.2) !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+.account-item.hovered {
+    background-color: rgba(108, 117, 125, 0.08);
+    border-left: 3px solid rgba(108, 117, 125, 0.3);
+    transform: translateX(2px);
+}
+
+/* Selection state legend */
+.selection-legend-item {
+    width: 16px;
+    height: 12px;
+    border-radius: 2px;
+    border-left: 3px solid transparent;
+}
+
+.selection-legend-item.detail-selected {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-left-color: #007bff;
+}
+
+.selection-legend-item.transaction-selected {
+    background-color: rgba(255, 193, 7, 0.15);
+    border-left-color: #ffc107;
 }
 
 .account-item.faded {
@@ -108,6 +150,59 @@
 }
 .merchant-payee-badge {
     border: 1px solid #6f42c1;
+}
+
+/* Modal stacking for nested modals */
+.modal.show {
+    z-index: 1050;
+}
+.modal.show + .modal-backdrop {
+    z-index: 1040;
+}
+/* Secondary modal (like create account from transaction) */
+.modal.show[style*="z-index: 1060"] {
+    z-index: 1060 !important;
+}
+.modal-backdrop.show[style*="z-index: 1059"] {
+    z-index: 1059 !important;
+}
+
+/* Transaction list styling */
+.transaction-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.transaction-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover {
+    background-color: #f8f9fa;
+}
+
+.transaction-item.active {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    border-left: 4px solid #007bff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+    transform: translateX(2px);
+}
+
+.transaction-amount {
+    min-width: 80px;
+    text-align: right;
+}
+
+.account-name {
+    font-style: italic;
+}
+
+/* Lineage highlighting for transaction hover */
+.lineage-highlight {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border-left: 3px solid #0d6efd !important;
 }
 
 /* Drag-and-drop visuals */
@@ -201,21 +296,21 @@
 
 /* Detail Panel */
 .detail-panel {
-    flex: 0 0 0%;
+    flex: 0 0 65%;
     background: white;
     display: flex;
     flex-direction: column;
-    opacity: 0;
-    transform: translateX(20px);
+    opacity: 1;
+    transform: translateX(0);
     transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
     will-change: flex, opacity, transform;
     overflow: hidden;
 }
 
-.detail-panel.visible {
-    flex: 0 0 60%;
-    opacity: 1;
-    transform: translateX(0);
+.detail-panel.hidden {
+    flex: 0 0 0%;
+    opacity: 0;
+    transform: translateX(20px);
 }
 
 .detail-header {
@@ -419,6 +514,44 @@
     transition: all 0.3s ease-in-out;
     min-height: 200px;
 }
+
+/* Detail Panel Tabs */
+.detail-panel .nav-tabs {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem;
+}
+
+.detail-panel .nav-tabs .nav-link {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    font-size: 0.9rem;
+    padding: 10px 16px;
+    transition: all 0.2s ease-in-out;
+}
+
+.detail-panel .nav-tabs .nav-link:hover {
+    background-color: rgba(0,123,255,0.05);
+    color: #495057;
+}
+
+.detail-panel .nav-tabs .nav-link.active {
+    background-color: white;
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    font-weight: 600;
+}
+
+.detail-panel .tab-content {
+    background-color: white;
+}
+
+.detail-panel .tab-pane {
+    transition: all 0.3s ease-in-out;
+    min-height: 400px;
+}
 </style>
 {% endblock %}
 
@@ -426,18 +559,18 @@
 
 {% block page_content %}
 <!-- Week Selector -->
-<div class="row mb-4">
+<div class="row mb-2">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary">
+            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-chevron-left me-1"></i>Previous Week
                 </button>
                 <div class="text-center">
-                    <h4 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h4>
-                    <p id="weekRange" class="text-muted mb-0">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
+                    <h5 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h5>
+                    <p id="weekRange" class="text-muted mb-0 small">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
                 </div>
-                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary">
+                <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm">
                     Next Week<i class="fas fa-chevron-right ms-1"></i>
                 </button>
             </div>
@@ -456,6 +589,18 @@
             <div class="master-header">
                 <div class="mb-3">
                     <h5 class="mb-0">Account Hierarchy</h5>
+                    
+                    <!-- Selection State Legend -->
+                    <div class="d-flex align-items-center gap-3 mt-2 small text-muted">
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="selection-legend-item detail-selected"></div>
+                            <span>Viewing Details</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="selection-legend-item transaction-selected"></div>
+                            <span>From Transaction</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Tab Navigation -->
@@ -538,18 +683,93 @@
         <!-- Detail Panel -->
         <div class="detail-panel" id="detailPanel">
             <div class="detail-header">
-                <button class="btn btn-sm btn-outline-secondary mobile-back-btn mb-2" id="mobileBackBtn">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </button>
-                <div class="detail-breadcrumb" id="detailBreadcrumb"></div>
-                <h4 id="detailTitle">Select an account</h4>
-                <p class="text-muted mb-0" id="detailSubtitle">Choose an account from the list to view details</p>
+                <!-- Detail Panel Tabs - Moved Above Title -->
+                <ul class="nav nav-tabs mb-3" id="detailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" 
+                                id="detail-transactions-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#detail-transactions" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="detail-transactions" 
+                                aria-selected="true">
+                            <i class="fas fa-receipt me-2"></i>Transactions
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" 
+                                id="detail-account-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#detail-account" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="detail-account" 
+                                aria-selected="false">
+                            <i class="fas fa-folder me-2"></i>Account Details
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary mobile-back-btn mb-2" id="mobileBackBtn">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </button>
+                        <h4 id="detailTitle">Details</h4>
+                        <p class="text-muted mb-0" id="detailSubtitle">Select an account or view transactions</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" id="toggleDetailPanel" title="Hide/Show Panel">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="detail-content fade-content" id="detailContent">
-                <div class="p-4 text-center text-muted">
-                    <i class="fas fa-hand-point-left fa-2x mb-3"></i>
-                    <p>Select an account from the master list to view detailed information</p>
+                <!-- Tab Content -->
+                <div class="tab-content" id="detailTabsContent">
+                    <!-- Transactions Tab -->
+                    <div class="tab-pane fade show active" 
+                         id="detail-transactions" 
+                         role="tabpanel" 
+                         aria-labelledby="detail-transactions-tab">
+                        <div class="p-2">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">Recent Transactions</h6>
+                                <div class="d-flex align-items-center gap-3">
+                                    <!-- Transaction Type Filter -->
+                                    <div class="d-flex align-items-center">
+                                        <label for="transactionTypeFilter" class="form-label me-2 mb-0 small text-muted">Filter:</label>
+                                        <select id="transactionTypeFilter" class="form-select form-select-sm" style="width: auto;">
+                                            <option value="all">All</option>
+                                            <option value="income">Income</option>
+                                            <option value="expense">Expense</option>
+                                        </select>
+                                    </div>
+                                    <small class="text-muted" id="transactionCount">Loading...</small>
+                                </div>
+                            </div>
+                            <div id="transactionsList" class="transaction-list">
+                                <div class="text-center text-muted p-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                    <p>Loading transactions...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Details Tab -->
+                    <div class="tab-pane fade" 
+                         id="detail-account" 
+                         role="tabpanel" 
+                         aria-labelledby="detail-account-tab">
+                        <div id="accountDetailsContent" class="p-2">
+                            <div class="text-center text-muted p-4">
+                                <i class="fas fa-folder-open fa-2x mb-3"></i>
+                                <p>Select an account to view details</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -568,6 +788,7 @@
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     </div>
+
     <div id="globalToastError" class="toast align-items-center text-bg-danger border-0 mt-2" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body" id="globalToastErrorBody">An error occurred.</div>
@@ -905,10 +1126,20 @@ function initializeMasterTabs() {
         }
     }
     
-    // Save active tab to localStorage
+    // Save active tab to localStorage and trigger transaction filtering
     tabTriggers.forEach(trigger => {
         trigger.addEventListener('shown.bs.tab', function(event) {
             localStorage.setItem('activeMasterAccountTab', event.target.id);
+            
+            // Trigger transaction filtering based on active tab
+            if (window.masterDetailController) {
+                const tabId = event.target.id;
+                if (tabId === 'master-income-tab') {
+                    window.masterDetailController.filterTransactionsByType('income');
+                } else if (tabId === 'master-expense-tab') {
+                    window.masterDetailController.filterTransactionsByType('expense');
+                }
+            }
             
             // Clear state restore permission when switching tabs to ensure collapsed state
             if (event.target.id === 'master-income-tab' || event.target.id === 'master-expense-tab') {
@@ -1000,13 +1231,18 @@ class MasterDetailController {
     constructor(options = {}) {
         this.apiEndpoint = options.apiEndpoint;
         this.selectedAccountId = options.selectedAccountId;
-        this.isDetailVisible = false;
+        this.transactionSelectedAccountId = null; // Track transaction-selected account
+        this.activeTransactionElement = null; // Track currently active transaction
+        this.isDetailVisible = true; // Panel is now always visible by default
         this.isMobile = window.innerWidth <= 768;
         this.leafPivot = 'self'; // 'self' fades siblings on first click; 'parent' unfades siblings on second click
         this.weekStart = options.weekStart || null; // YYYY-MM-DD when provided
         
         this.initializeElements();
         this.bindEvents();
+        
+        // Load initial transactions for the transactions view
+        this.loadTransactionsView();
         
         // Load initial account if specified
         if (this.selectedAccountId) {
@@ -1030,9 +1266,11 @@ class MasterDetailController {
         this.detailLoading = document.getElementById('detailLoading');
         this.detailTitle = document.getElementById('detailTitle');
         this.detailSubtitle = document.getElementById('detailSubtitle');
-        this.detailBreadcrumb = document.getElementById('detailBreadcrumb');
         this.searchBox = document.getElementById('accountSearch');
         this.mobileBackBtn = document.getElementById('mobileBackBtn');
+        this.toggleDetailBtn = document.getElementById('toggleDetailPanel');
+
+        this.floatingTab = document.getElementById('floatingTransactionsTab');
         
         this.accountItems = document.querySelectorAll('.account-item');
         
@@ -1070,8 +1308,14 @@ class MasterDetailController {
         // Mobile back button
         this.mobileBackBtn.addEventListener('click', this.hideDetailOnMobile.bind(this));
         
+        // Toggle detail panel button
+        this.toggleDetailBtn.addEventListener('click', this.toggleDetailPanel.bind(this));
+        
         // Keyboard navigation
         document.addEventListener('keydown', this.handleKeyboard.bind(this));
+        
+        // Click outside transactions to deactivate
+        document.addEventListener('click', this.handleDocumentClick.bind(this));
         
         // Responsive handling
         window.addEventListener('resize', this.handleResize.bind(this));
@@ -1093,6 +1337,14 @@ class MasterDetailController {
         const nextBtn = document.getElementById('nextWeekBtn');
         if (prevBtn) prevBtn.addEventListener('click', () => this.shiftWeek(-7));
         if (nextBtn) nextBtn.addEventListener('click', () => this.shiftWeek(7));
+        
+        // Transaction type filter dropdown
+        const transactionTypeFilter = document.getElementById('transactionTypeFilter');
+        if (transactionTypeFilter) {
+            transactionTypeFilter.addEventListener('change', (e) => {
+                this.filterTransactionsByType(e.target.value);
+            });
+        }
     }
 
     cleanWeekFromURL() {
@@ -1158,6 +1410,9 @@ class MasterDetailController {
             return;
         }
         
+        // Clear any transaction selection when manually selecting an account
+        this.clearTransactionSelection();
+        
         // Update UI selection
         if (this.selectedAccountId !== accountId) {
             this.leafPivot = 'self'; // reset leaf pivot mode on new selection
@@ -1182,9 +1437,9 @@ class MasterDetailController {
     }
     
     updateSelection(accountId) {
-        // Clear previous selection and fading
+        // Clear previous detail selection and fading
         this.accountItems.forEach(item => {
-            item.classList.remove('selected');
+            item.classList.remove('selected', 'detail-selected');
             item.classList.remove('faded');
         });
 
@@ -1195,8 +1450,8 @@ class MasterDetailController {
         const selectedItem = document.querySelector(`[data-account-id="${accountId}"]`);
         if (!selectedItem) return;
 
-        // Mark selected
-        selectedItem.classList.add('selected');
+        // Mark as detail-selected (for accounts showing in detail panel)
+        selectedItem.classList.add('selected', 'detail-selected');
 
         // Compute ancestors and descendants
         const ancestorIds = this.getAncestorIds(accountId);
@@ -1335,31 +1590,22 @@ class MasterDetailController {
     }
     
     showDetailPanel() {
-        if (this.isDetailVisible) return;
-        
-        // Trigger layout animation
-        requestAnimationFrame(() => {
-            this.masterPanel.classList.add('split-view');
-            
-            // Delay detail panel animation for smooth effect
-            setTimeout(() => {
-                this.detailPanel.classList.add('visible');
-                this.isDetailVisible = true;
-            }, 100);
-        });
+        // Detail panel is now always visible by default
+        // This method now just ensures it's not hidden
+        this.detailPanel.classList.remove('hidden');
+        this.masterPanel.classList.remove('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        this.toggleDetailBtn.title = 'Hide Panel';
+        this.isDetailVisible = true;
     }
     
     hideDetailPanel() {
-        if (!this.isDetailVisible) return;
-        
-        this.detailPanel.classList.remove('visible');
-        
-        setTimeout(() => {
-            this.masterPanel.classList.remove('split-view');
-            this.isDetailVisible = false;
-            this.selectedAccountId = null;
-            this.updateSelection(null);
-        }, 300);
+        // Hide the detail panel using the new hidden class
+        this.detailPanel.classList.add('hidden');
+        this.masterPanel.classList.add('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye"></i>';
+        this.toggleDetailBtn.title = 'Show Panel';
+        this.isDetailVisible = false;
     }
     
     hideDetailOnMobile() {
@@ -1404,112 +1650,53 @@ class MasterDetailController {
     renderAccountDetail(account) {
         // Update header
         this.detailTitle.textContent = account.name;
-        this.detailSubtitle.textContent = account.description || `${account.account_type.charAt(0).toUpperCase() + account.account_type.slice(1)} Account`;
+        this.detailSubtitle.textContent = account.description || '';
         
-        // Update breadcrumb
-        if (account.breadcrumb && account.breadcrumb.length > 1) {
-            this.detailBreadcrumb.innerHTML = account.breadcrumb
-                .slice(0, -1)
-                .map(item => `<a href="#" data-account-id="${item.id}">${item.name}</a>`)
-                .join(' → ');
-        } else {
-            this.detailBreadcrumb.innerHTML = '';
+        // Switch to account details tab
+        const accountTab = document.getElementById('detail-account-tab');
+        if (accountTab) {
+            const tab = new bootstrap.Tab(accountTab);
+            tab.show();
         }
         
-    // Prepare weekly summary values for header cards
-    const ws = account.weekly_summary || { income_total: 0, expense_total: 0, transactions_total: 0 };
+        // Prepare weekly summary values for header cards
+        const ws = account.weekly_summary || { income_total: 0, expense_total: 0, transactions_total: 0 };
         const acctType = (account.account_type || '').toLowerCase();
         const showExpenses = acctType === 'expense' || acctType === 'expenses';
         const inOutLabel = showExpenses ? 'Expenses' : 'Income';
         const inOutValue = showExpenses ? ws.expense_total : ws.income_total;
-    const familyWeek = account.family_week || { income_current: 0, income_prev: 0 };
+        const familyWeek = account.family_week || { income_current: 0, income_prev: 0 };
         // Deltas removed per request
 
-        // Render detail content
+        // Render account details content
         const content = `
-            <div class="p-3">
-                <!-- Account Summary -->
+            <div class="p-2">
+                <!-- Action Buttons -->
+                <div class="mb-3 d-flex" style="gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTransaction">Add Transaction</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCreateChildAccount">Create Child</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnEditAccount">Edit</button>
+                </div>
+                
+                <!-- Balance Cards -->
                 <div class="row mb-3">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <div class="card border-0 bg-light">
-                            <div class="card-body d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-1">Account Balance</h6>
-                                <!-- Edit Account Modal (global) -->
-                                <div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Edit Account</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form id="editAccountForm">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" id="ea_account_id" name="account_id" />
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Name</label>
-                                                        <input type="text" class="form-control" id="ea_name" name="name" required />
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Description</label>
-                                                        <textarea class="form-control" id="ea_desc" name="description" rows="2"></textarea>
-                                                    </div>
-                                                    <div class="form-check form-switch mb-2">
-                                                        <input class="form-check-input" type="checkbox" id="ea_is_mp" name="is_merchant_payee">
-                                                        <label class="form-check-label" for="ea_is_mp">Mark as <span id="ea_is_mp_role">Merchant/Payee</span></label>
-                                                    </div>
-                                                </form>
-                                                <div id="ea_error" class="alert alert-danger d-none"></div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-primary" id="ea_submit_btn">Save</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                    <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
-                                </div>
-                                <div class="d-flex" style="gap: 8px;">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTransaction">Add Transaction</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCreateChildAccount">Create Child</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnEditAccount">Edit</button>
-                                </div>
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">Account Balance</h6>
+                                <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <div class="card border-0 bg-light">
-                            <div class="card-body">
+                            <div class="card-body py-2">
                                 <h6 class="card-title mb-1">${inOutLabel}</h6>
                                 <h5 class="mb-0 ${showExpenses ? 'text-danger' : 'text-success'}">$${(inOutValue || 0).toFixed(2)}</h5>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title mb-1">Family Income (This Week)</h6>
-                                <h5 class="mb-0 text-success">$${(familyWeek.income_current || 0).toFixed(2)}</h5>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title mb-1">Family Income (Previous Week)</h6>
-                                <h5 class="mb-0 text-muted">$${(familyWeek.income_prev || 0).toFixed(2)}</h5>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                
                 
                 <!-- Account Details -->
                 <div class="mb-4">
@@ -1540,58 +1727,31 @@ class MasterDetailController {
                     ` : ''}
                 </div>
                 
-                <!-- Children Accounts (by type tabs) -->
+                <!-- Children Accounts -->
                 ${(account.children && account.children.length > 0) ? (() => {
-                    const expChildren = (account.children || []).filter(c => (c.account_type || '').toLowerCase() === 'expense');
-                    const incChildren = (account.children || []).filter(c => (c.account_type || '').toLowerCase() === 'income');
-                    const expCount = expChildren.length;
-                    const incCount = incChildren.length;
-                    const tabId = `tabs-${account.id}`;
-                    const expList = expChildren.map(child => `
+                    const childList = (account.children || []).map(child => `
                         <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <div class="me-3">${child.name}</div>
-                            <div class="d-flex align-items-center" style="gap:8px;">
-                                <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${child.id}', true)">View</button>
+                            <div class="me-3">
+                                <div>${child.name}</div>
+                                <small class="text-muted">${child.account_type || 'Account'}</small>
                             </div>
-                        </div>
-                    `).join('');
-                    const incList = incChildren.map(child => `
-                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <div class="me-3">${child.name}</div>
                             <div class="d-flex align-items-center" style="gap:8px;">
                                 <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${child.id}', true)">View</button>
                             </div>
                         </div>
                     `).join('');
                     return `
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <h6 class="border-bottom pb-2">Child Accounts</h6>
-                        <ul class="nav nav-tabs" id="${tabId}" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="${tabId}-expenses-tab" data-bs-toggle="tab" data-bs-target="#${tabId}-expenses" type="button" role="tab" aria-controls="${tabId}-expenses" aria-selected="true">
-                                    Expenses <span class="badge bg-secondary ms-1">${expCount}</span>
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="${tabId}-income-tab" data-bs-toggle="tab" data-bs-target="#${tabId}-income" type="button" role="tab" aria-controls="${tabId}-income" aria-selected="false">
-                                    Income <span class="badge bg-secondary ms-1">${incCount}</span>
-                                </button>
-                            </li>
-                        </ul>
-                        <div class="tab-content border-start border-end border-bottom p-3">
-                            <div class="tab-pane fade show active" id="${tabId}-expenses" role="tabpanel" aria-labelledby="${tabId}-expenses-tab">
-                                ${expCount ? expList : '<div class="text-muted">No expense children</div>'}
-                            </div>
-                            <div class="tab-pane fade" id="${tabId}-income" role="tabpanel" aria-labelledby="${tabId}-income-tab">
-                                ${incCount ? incList : '<div class="text-muted">No income children</div>'}
-                            </div>
+                        <div class="border rounded p-2">
+                            ${childList}
                         </div>
                     </div>`;
                 })() : ''}
                 
                 <!-- Recent Transactions -->
                 ${account.recent_transactions.length > 0 ? `
-                <div class="mb-4">
+                <div class="mb-3">
                     <h6 class="border-bottom pb-2">Recent Transactions</h6>
                     ${account.recent_transactions.map(transaction => `
                         <div class="transaction-item">
@@ -1611,21 +1771,18 @@ class MasterDetailController {
             </div>
         `;
         
-        this.detailContent.innerHTML = content;
+        // Update the account details tab content
+        const accountDetailsContent = document.getElementById('accountDetailsContent');
+        if (accountDetailsContent) {
+            accountDetailsContent.innerHTML = content;
+        }
+        
         // Initialize tooltips in newly rendered content
         if (window.bootstrap) {
-            const tooltipEls = Array.from(this.detailContent.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            const tooltipEls = Array.from(accountDetailsContent.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipEls.forEach(el => new bootstrap.Tooltip(el));
         }
         
-        // Bind breadcrumb clicks
-        this.detailBreadcrumb.addEventListener('click', (e) => {
-            if (e.target.dataset.accountId) {
-                e.preventDefault();
-                this.selectAccount(e.target.dataset.accountId, true);
-            }
-        });
-
         // Wire action buttons to open modals
         const txBtn = document.getElementById('btnAddTransaction');
         if (txBtn) {
@@ -1756,7 +1913,6 @@ class MasterDetailController {
     restoreDetailPlaceholder() {
         this.detailTitle.textContent = 'Select an account';
         this.detailSubtitle.textContent = 'Choose an account from the list to view details';
-        this.detailBreadcrumb.innerHTML = '';
         this.detailContent.innerHTML = `
             <div class="p-4 text-center text-muted">
                 <i class="fas fa-hand-point-left fa-2x mb-3"></i>
@@ -1900,6 +2056,26 @@ class MasterDetailController {
                 }
                 break;
         }
+    }
+    
+    handleDocumentClick(e) {
+        // Check if click is outside of transactions area
+        const transactionsList = document.getElementById('transactionsList');
+        const detailTransactionsTab = document.getElementById('detail-transactions');
+        
+        // If no active transaction, nothing to do
+        if (!this.activeTransactionElement) return;
+        
+        // If click is inside transactions area, don't deactivate
+        if (transactionsList && transactionsList.contains(e.target)) return;
+        if (detailTransactionsTab && detailTransactionsTab.contains(e.target)) return;
+        
+        // If click is on the transaction filter dropdown, don't deactivate
+        const transactionFilter = document.getElementById('transactionTypeFilter');
+        if (transactionFilter && transactionFilter.contains(e.target)) return;
+        
+        // Click is outside transactions area, deactivate
+        this.deactivateTransaction();
     }
     
     navigateAccounts(direction) {
@@ -2124,14 +2300,29 @@ MasterDetailController.prototype.openTransactionModal = function(account) {
         openPayeeBtn.onclick = () => {
             // Determine type based on selected account type in detail
             const type = (account.account_type || 'expense').toLowerCase();
+            
+            // Temporarily fade the transaction modal
+            const transactionModal = document.getElementById('transactionModal');
+            if (transactionModal) {
+                transactionModal.style.opacity = '0.5';
+            }
+            
             window.initCreateAccountModal({
                 accountType: type,
                 onSuccess: (acct) => {
-                    // Set payee field and keep modal open
+                    // Set payee field and restore transaction modal opacity
                     const payee = document.getElementById('tx_payee');
                     if (payee) payee.value = acct.name || '';
+                    if (transactionModal) {
+                        transactionModal.style.opacity = '1';
+                    }
                 },
-                onCancel: () => {}
+                onCancel: () => {
+                    // Restore transaction modal opacity
+                    if (transactionModal) {
+                        transactionModal.style.opacity = '1';
+                    }
+                }
             });
         };
     }
@@ -2174,6 +2365,382 @@ MasterDetailController.prototype.submitTransactionForm = async function() {
     } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Transaction'; }
     }
+};
+
+// Toggle detail panel visibility
+MasterDetailController.prototype.toggleDetailPanel = function() {
+    const isHidden = this.detailPanel.classList.contains('hidden');
+    if (isHidden) {
+        // Show detail panel
+        this.detailPanel.classList.remove('hidden');
+        this.masterPanel.classList.remove('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        this.toggleDetailBtn.title = 'Hide Panel';
+        this.isDetailVisible = true;
+    } else {
+        // Hide detail panel
+        this.detailPanel.classList.add('hidden');
+        this.masterPanel.classList.add('full-view');
+        this.toggleDetailBtn.innerHTML = '<i class="fas fa-eye"></i>';
+        this.toggleDetailBtn.title = 'Show Panel';
+        this.isDetailVisible = false;
+    }
+};
+
+// Load initial transactions view
+MasterDetailController.prototype.loadTransactionsView = function() {
+    // Load all transactions initially
+    this.filterTransactionsByType('all');
+};
+
+// Filter transactions by type (all, income, expense)
+MasterDetailController.prototype.filterTransactionsByType = async function(type) {
+    const transactionsList = document.getElementById('transactionsList');
+    const transactionCount = document.getElementById('transactionCount');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailSubtitle = document.getElementById('detailSubtitle');
+    
+    // Update title based on filter
+    if (type === 'income') {
+        detailTitle.textContent = 'Income Transactions';
+        detailSubtitle.textContent = 'Transactions from income accounts';
+    } else if (type === 'expense') {
+        detailTitle.textContent = 'Expense Transactions';
+        detailSubtitle.textContent = 'Transactions from expense accounts';
+    } else {
+        detailTitle.textContent = 'All Transactions';
+        detailSubtitle.textContent = 'Recent transactions across all accounts';
+    }
+    
+    // Show loading state
+    transactionsList.innerHTML = `
+        <div class="text-center text-muted p-4">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Loading transactions...</p>
+        </div>
+    `;
+    
+    try {
+        // Build URL with type filter
+        let url = '/budget-allocation/api/transactions/';
+        if (type !== 'all') {
+            url += `?type=${type}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success && data.transactions) {
+            this.renderTransactionsList(data.transactions);
+            transactionCount.textContent = `${data.transactions.length} transactions`;
+        } else {
+            transactionsList.innerHTML = `
+                <div class="text-center text-muted p-4">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <p>Unable to load transactions</p>
+                </div>
+            `;
+            transactionCount.textContent = '0 transactions';
+        }
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+        transactionsList.innerHTML = `
+            <div class="text-center text-muted p-4">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>Error loading transactions</p>
+            </div>
+        `;
+        transactionCount.textContent = 'Error';
+    }
+};
+
+// Render transactions list with hover functionality
+MasterDetailController.prototype.renderTransactionsList = function(transactions) {
+    const transactionsList = document.getElementById('transactionsList');
+    
+    if (!transactions || transactions.length === 0) {
+        transactionsList.innerHTML = `
+            <div class="text-center text-muted p-4">
+                <i class="fas fa-receipt fa-2x mb-3"></i>
+                <p>No transactions found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const transactionsHtml = transactions.map(transaction => `
+        <div class="transaction-item" 
+             data-account-id="${transaction.account_id}"
+             style="cursor: pointer;">
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="fw-medium">${transaction.description || 'Transaction'}</div>
+                        <div class="transaction-amount ${transaction.amount >= 0 ? 'text-success' : 'text-danger'} fw-bold">
+                            ${transaction.amount >= 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">${transaction.date}</small>
+                        <small class="text-muted account-name">${transaction.account_name || 'Unknown Account'}</small>
+                    </div>
+                    ${transaction.payee ? `<small class="text-muted">• ${transaction.payee}</small>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    transactionsList.innerHTML = transactionsHtml;
+    
+    // Add event listeners to transaction items
+    const transactionItems = transactionsList.querySelectorAll('.transaction-item');
+    transactionItems.forEach(item => {
+        const accountId = item.dataset.accountId;
+        
+        // Hover events
+        item.addEventListener('mouseenter', () => {
+            if (window.masterDetailController) {
+                window.masterDetailController.highlightTransactionAccount(accountId);
+            }
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            if (window.masterDetailController) {
+                window.masterDetailController.clearTransactionHighlight();
+            }
+        });
+        
+        // Click event - toggle active state
+        item.addEventListener('click', () => {
+            if (window.masterDetailController) {
+                window.masterDetailController.toggleTransactionActive(item, accountId);
+            }
+        });
+    });
+};
+
+// Highlight account when hovering over transaction
+MasterDetailController.prototype.highlightTransactionAccount = function(accountId) {
+    // Clear any existing highlights
+    this.clearTransactionHighlight();
+    // Ensure no legacy fades from detail selection remain during transaction hover
+    this.accountItems.forEach(item => item.classList.remove('faded'));
+    
+    // Find the target account item
+    const targetItem = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!targetItem) return;
+    
+    // Auto-switch master panel tabs based on account type
+    this.autoSwitchMasterTab(accountId);
+    
+    // Fade all account items
+    this.accountItems.forEach(item => {
+        item.style.opacity = '0.3';
+        item.style.transition = 'opacity 0.2s ease';
+    });
+    
+    // Highlight the target account and its ancestors
+    this.highlightAccountLineage(accountId);
+
+    // Auto-expand/collapse tree to reveal the account
+    this.expandTreeToAccount(accountId);
+};
+
+// Expand/collapse tree to reveal a specific account
+MasterDetailController.prototype.expandTreeToAccount = function(accountId) {
+    // Collapse all first
+    this.collapseAllBranches();
+    // Expand ancestors and self
+    const ancestorIds = this.getAncestorIds(accountId);
+    ancestorIds.forEach(id => this.expandNode(id));
+    this.expandNode(accountId);
+    // Scroll into view
+    const el = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+
+// Auto-switch master panel tabs based on account type
+MasterDetailController.prototype.autoSwitchMasterTab = function(accountId) {
+    // Find the account in the master panel to determine its type
+    const accountElement = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!accountElement) return;
+    
+    // Check which parent tab container this account belongs to
+    const incomeTab = document.getElementById('master-income-accounts');
+    const expenseTab = document.getElementById('master-expense-accounts');
+    
+    let targetTabId = null;
+    if (incomeTab && incomeTab.contains(accountElement)) {
+        targetTabId = 'master-income-tab';
+    } else if (expenseTab && expenseTab.contains(accountElement)) {
+        targetTabId = 'master-expense-tab';
+    }
+    
+    // Switch to the appropriate tab
+    if (targetTabId) {
+        const targetTab = document.getElementById(targetTabId);
+        if (targetTab && window.bootstrap) {
+            const tab = new bootstrap.Tab(targetTab);
+            tab.show();
+        }
+    }
+};
+
+// Toggle transaction active state
+MasterDetailController.prototype.toggleTransactionActive = function(transactionElement, accountId) {
+    // If this transaction is already active, deactivate it
+    if (this.activeTransactionElement === transactionElement) {
+        this.deactivateTransaction();
+        return;
+    }
+    
+    // Deactivate any currently active transaction
+    this.deactivateTransaction();
+    
+    // Activate this transaction
+    this.activateTransaction(transactionElement, accountId);
+};
+
+// Activate a transaction
+MasterDetailController.prototype.activateTransaction = function(transactionElement, accountId) {
+    // Set active transaction
+    this.activeTransactionElement = transactionElement;
+    transactionElement.classList.add('active');
+    
+    // Select the corresponding account
+    this.selectTransactionAccount(accountId);
+};
+
+// Deactivate the current transaction
+MasterDetailController.prototype.deactivateTransaction = function() {
+    if (this.activeTransactionElement) {
+        this.activeTransactionElement.classList.remove('active');
+        this.activeTransactionElement = null;
+    }
+    
+    // Clear the transaction-selected account
+    this.clearTransactionSelection();
+    // Restore fades to reflect current detail selection, or clear if none
+    if (this.selectedAccountId) {
+        this.updateSelection(this.selectedAccountId);
+    } else {
+        this.accountItems.forEach(item => item.classList.remove('faded'));
+    }
+};
+
+// Select account when clicking on a transaction
+MasterDetailController.prototype.selectTransactionAccount = function(accountId) {
+    // Clear any existing transaction selection highlights
+    this.clearTransactionSelection();
+    
+    // Auto-switch to the correct master tab
+    this.autoSwitchMasterTab(accountId);
+    
+    // Expand tree to show the account and keep it expanded
+    this.expandTreeToAccount(accountId);
+    // Remove any existing fades so transaction-selected view is fully visible
+    this.accountItems.forEach(item => item.classList.remove('faded'));
+    
+    // Add transaction-selected visual state to the account
+    const accountElement = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (accountElement) {
+        // Remove conflicting classes that might override our styling
+        accountElement.classList.remove('faded', 'lineage-highlight');
+        accountElement.classList.add('transaction-selected');
+        
+        // Force the element to be visible and not faded
+        accountElement.style.opacity = '1';
+        accountElement.style.transition = 'all 0.2s ease';
+    }
+    
+    // Store the transaction-selected account ID
+    this.transactionSelectedAccountId = accountId;
+    
+    // Keep the account path visible by ensuring ancestors stay expanded
+    const ancestorIds = this.getAncestorIds(accountId);
+    ancestorIds.forEach(id => this.expandNode(id));
+    this.expandNode(accountId);
+};
+
+// Clear transaction selection highlighting
+MasterDetailController.prototype.clearTransactionSelection = function() {
+    // Remove transaction-selected class from all accounts
+    document.querySelectorAll('.account-item.transaction-selected').forEach(el => {
+        el.classList.remove('transaction-selected');
+        // Remove inline styles we added
+        el.style.opacity = '';
+        el.style.transition = '';
+    });
+    this.transactionSelectedAccountId = null;
+};
+
+// Clear transaction account highlighting
+MasterDetailController.prototype.clearTransactionHighlight = function() {
+    // Restore opacity for all account items except transaction-selected ones
+    this.accountItems.forEach(item => {
+        if (!item.classList.contains('transaction-selected')) {
+            item.style.opacity = '';
+            item.style.transition = '';
+        }
+    });
+    
+    // Clear any lineage highlighting except from transaction-selected accounts
+    document.querySelectorAll('.lineage-highlight').forEach(el => {
+        if (!el.classList.contains('transaction-selected')) {
+            el.classList.remove('lineage-highlight');
+        }
+    });
+    
+    // Only collapse the tree if there's no transaction-selected account
+    if (!this.transactionSelectedAccountId) {
+        this.collapseAllBranches();
+    } else {
+        // Keep the transaction-selected account and its path expanded
+        this.expandTreeToAccount(this.transactionSelectedAccountId);
+    }
+};
+
+// Highlight account lineage (ancestors)
+MasterDetailController.prototype.highlightAccountLineage = function(accountId) {
+    const targetItem = document.querySelector(`[data-account-id="${accountId}"]`);
+    if (!targetItem) return;
+    
+    // Highlight the target account
+    targetItem.style.opacity = '1';
+    targetItem.classList.add('lineage-highlight');
+    
+    // Find and highlight ancestors
+    let currentElement = targetItem.parentElement;
+    while (currentElement) {
+        if (currentElement.classList.contains('account-children')) {
+            // Find the parent account item
+            const parentContainer = currentElement.previousElementSibling;
+            if (parentContainer && parentContainer.classList.contains('account-item')) {
+                parentContainer.style.opacity = '1';
+                parentContainer.classList.add('lineage-highlight');
+            }
+        }
+        currentElement = currentElement.parentElement;
+    }
+};
+
+// Remove floating tab references from existing methods
+MasterDetailController.prototype.initializeElements = function() {
+    this.layout = document.getElementById('masterDetailLayout');
+    this.masterPanel = document.getElementById('masterPanel');
+    this.detailPanel = document.getElementById('detailPanel');
+    this.detailContent = document.getElementById('detailContent');
+    this.detailLoading = document.getElementById('detailLoading');
+    this.detailTitle = document.getElementById('detailTitle');
+    this.detailSubtitle = document.getElementById('detailSubtitle');
+    this.searchBox = document.getElementById('accountSearch');
+    this.mobileBackBtn = document.getElementById('mobileBackBtn');
+    this.toggleDetailBtn = document.getElementById('toggleDetailPanel');
+    
+    this.accountItems = document.querySelectorAll('.account-item');
+    
+    // Initialize all children containers as collapsed
+    this.initializeCollapsedState();
 };
 
 

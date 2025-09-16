@@ -222,6 +222,28 @@
 
     // Show modal
     const modal = new bootstrap.Modal(modalEl);
+    
+    // Check if we're opening this modal from within another modal (like transaction modal)
+    const existingModalBackdrop = document.querySelector('.modal-backdrop');
+    if (existingModalBackdrop) {
+      // We're opening from another modal, so increase z-index
+      modalEl.style.zIndex = '1060'; // Higher than default modal z-index (1050)
+      
+      // Listen for when this modal is shown to adjust backdrop
+      modalEl.addEventListener('shown.bs.modal', function() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length > 1) {
+          // Set the latest backdrop to higher z-index
+          backdrops[backdrops.length - 1].style.zIndex = '1059';
+        }
+      }, { once: true });
+      
+      // Reset z-index when modal is hidden
+      modalEl.addEventListener('hidden.bs.modal', function() {
+        modalEl.style.zIndex = '';
+      }, { once: true });
+    }
+    
     modal.show();
   };
 })();

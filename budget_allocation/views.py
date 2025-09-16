@@ -2498,6 +2498,63 @@ def account_detail_api(request, account_id):
         return JsonResponse({'success': False, 'error': f'Error loading account details: {str(e)}'}, status=500)
 
 
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def transactions_api(request):
+    """Get transactions filtered by type (all, income, expense)"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'error': 'Family not found'}, status=400)
+    
+    try:
+        # Get filter type from query parameters
+        filter_type = request.GET.get('type', 'all').lower()
+        
+        # Base queryset for all transactions in the family
+        transactions = Transaction.objects.filter(family=family).select_related('account')
+        
+        # Apply type filter if specified
+        if filter_type == 'income':
+            transactions = transactions.filter(account__account_type='income')
+        elif filter_type == 'expense':
+            transactions = transactions.filter(account__account_type='expense')
+        # 'all' doesn't need additional filtering
+        
+        # Order by date descending and limit to recent transactions
+        transactions = transactions.order_by('-transaction_date', '-created_at')[:100]
+        
+        # Build transaction data
+        transaction_data = []
+        for transaction in transactions:
+            transaction_data.append({
+                'id': transaction.pk,
+                'account_id': transaction.account.pk,
+                'account_name': transaction.account.name,
+                'account_type': transaction.account.account_type,
+                'description': transaction.description or 'Transaction',
+                'amount': float(transaction.amount) if transaction.transaction_type == 'income' else -float(transaction.amount),
+                'date': transaction.transaction_date.strftime('%b %d, %Y'),
+                'payee': transaction.payee or '',
+                'reference': transaction.reference or '',
+                'transaction_type': transaction.transaction_type,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'transactions': transaction_data,
+            'count': len(transaction_data),
+            'filter_type': filter_type
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in transactions_api: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Error loading transactions: {str(e)}'
+        }, status=500)
+
+
 def get_account_full_path(account):
     """Helper function to get full hierarchical path of an account"""
     path_parts = []

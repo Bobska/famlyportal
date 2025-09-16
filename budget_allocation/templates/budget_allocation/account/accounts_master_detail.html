@@ -24,18 +24,37 @@
     box-shadow: none !important;
 }
 
+/* Override base template sidebar styling for master-detail layout */
+.budget-sidebar {
+    transition: width 0.3s ease !important;
+    overflow: hidden !important;
+}
+
 /* Fix sidebar collapse behavior for master-detail layout */
 .budget-sidebar.collapsed {
-    margin-left: 0 !important; /* Don't hide sidebar in master-detail view */
+    width: 60px !important; /* Icon-only width instead of hiding completely */
+    margin-left: 0 !important; /* Override base template behavior */
 }
 
 .budget-main-content.expanded {
     margin-left: 0 !important;
 }
 
-/* Hide the sidebar toggle button in master-detail view since collapse doesn't work well */
+/* Show the sidebar toggle button */
 .sidebar-toggle {
-    display: none !important;
+    display: flex !important;
+}
+
+/* Hide text labels when sidebar is collapsed */
+.budget-sidebar.collapsed .sidebar-nav-link span,
+.budget-sidebar.collapsed .sidebar-header,
+.budget-sidebar.collapsed .sidebar-section {
+    display: none;
+}
+
+.budget-sidebar.collapsed .sidebar-nav-link {
+    justify-content: center;
+    padding: 0.875rem 0.5rem;
 }
 
 /* Master-Detail Animation System */
@@ -728,23 +747,32 @@
 /* Sticky Week card so it stays visible during long scrolls */
 .week-sticky { position: sticky; top: 0; z-index: 100; }
 
-/* Transaction Details Panel */
+/* Transaction Details Panel - Position within detail area */
 .transaction-details-panel {
-    position: fixed;
-    top: 76px; /* Below header */
-    right: -400px; /* Hidden by default */
-    width: 400px;
-    height: calc(100vh - 76px);
+    position: absolute;
+    top: 0;
+    right: -40%; /* Hidden by default, relative to detail area */
+    width: 40%;
+    height: 100%;
     background: white;
     border-left: 1px solid #dee2e6;
     box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1500;
+    z-index: 100;
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
 }
 
 .transaction-details-panel.active {
     right: 0;
+}
+
+/* When panel is active, squish the detail content */
+.detail-panel {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.detail-panel.panel-squished {
+    padding-right: 40%;
 }
 
 .transaction-details-header {
@@ -1111,6 +1139,55 @@
                 <div class="text-muted p-3">Allocations view is coming soon.</div>
             </div>
         </div>
+        
+        <!-- Transaction Details Panel - positioned within detail area -->
+        <div id="transaction-details-panel" class="transaction-details-panel">
+            <div class="transaction-details-header">
+                <h5 class="transaction-details-title">Transaction Details</h5>
+                <button type="button" class="btn-close transaction-details-close" aria-label="Close"></button>
+            </div>
+            <div class="transaction-details-content">
+                <div class="transaction-basic-info">
+                    <div class="transaction-amount-display">
+                        <span class="amount-value" id="detail-amount">$0.00</span>
+                        <span class="amount-type" id="detail-type">Debit</span>
+                    </div>
+                    <div class="transaction-date" id="detail-date">Select a transaction</div>
+                </div>
+                
+                <div class="transaction-meta">
+                    <div class="meta-item">
+                        <label>Account:</label>
+                        <span id="detail-account">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <label>Category:</label>
+                        <span id="detail-category">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <label>Description:</label>
+                        <span id="detail-description">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <label>Reference:</label>
+                        <span id="detail-reference">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <label>Week:</label>
+                        <span id="detail-week">-</span>
+                    </div>
+                </div>
+                
+                <div class="transaction-actions">
+                    <button type="button" class="btn btn-primary btn-sm" id="edit-transaction-btn">
+                        <i class="fas fa-edit"></i> Edit Transaction
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" id="delete-transaction-btn">
+                        <i class="fas fa-trash"></i> Delete Transaction
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <!-- Toast container -->
@@ -1225,55 +1302,6 @@
 </div>
 
 {% include 'budget_allocation/partials/create_account_modal.html' %}
-
-<!-- Transaction Details Panel -->
-<div id="transaction-details-panel" class="transaction-details-panel">
-    <div class="transaction-details-header">
-        <h5 class="transaction-details-title">Transaction Details</h5>
-        <button type="button" class="btn-close transaction-details-close" aria-label="Close"></button>
-    </div>
-    <div class="transaction-details-content">
-        <div class="transaction-basic-info">
-            <div class="transaction-amount-display">
-                <span class="amount-value" id="detail-amount">$0.00</span>
-                <span class="amount-type" id="detail-type">Debit</span>
-            </div>
-            <div class="transaction-date" id="detail-date">Select a transaction</div>
-        </div>
-        
-        <div class="transaction-meta">
-            <div class="meta-item">
-                <label>Account:</label>
-                <span id="detail-account">-</span>
-            </div>
-            <div class="meta-item">
-                <label>Category:</label>
-                <span id="detail-category">-</span>
-            </div>
-            <div class="meta-item">
-                <label>Description:</label>
-                <span id="detail-description">-</span>
-            </div>
-            <div class="meta-item">
-                <label>Reference:</label>
-                <span id="detail-reference">-</span>
-            </div>
-            <div class="meta-item">
-                <label>Week:</label>
-                <span id="detail-week">-</span>
-            </div>
-        </div>
-        
-        <div class="transaction-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="edit-transaction-btn">
-                <i class="fas fa-edit"></i> Edit Transaction
-            </button>
-            <button type="button" class="btn btn-danger btn-sm" id="delete-transaction-btn">
-                <i class="fas fa-trash"></i> Delete Transaction
-            </button>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 
@@ -1437,10 +1465,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const accountId = urlParams.get('account_id');
     
+    // Get week from localStorage or fall back to current week
+    function getCurrentWeekStart() {
+        const saved = localStorage.getItem('budget_allocation_week');
+        if (saved) return saved;
+        
+        // Default to current week (Monday)
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        const yyyy = monday.getFullYear();
+        const mm = String(monday.getMonth() + 1).padStart(2, '0');
+        const dd = String(monday.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    
     const controller = new MasterDetailController({
         apiEndpoint: '/budget-allocation/api/account/{id}/',
         selectedAccountId: accountId,
-        weekStart: (document.getElementById('weekContext') || {}).dataset?.weekStart || null,
+        weekStart: getCurrentWeekStart(),
         hasPrevWeek: (document.getElementById('weekContext') || {}).dataset?.hasPrev === 'true',
         hasNextWeek: (document.getElementById('weekContext') || {}).dataset?.hasNext === 'true'
     });
@@ -1807,11 +1851,16 @@ class MasterDetailController {
         // Update header and refresh data without page reload
         this.updateWeekHeader();
         
-        // Update URL without page reload
+        // Update localStorage for week persistence
+        localStorage.setItem('budget_allocation_week', this.weekStart);
+        
+        // Update URL without week parameter (only account_id)
         const url = new URL(window.location);
-        url.searchParams.set('week', this.weekStart);
+        url.searchParams.delete('week'); // Remove week from URL
         if (this.selectedAccountId) {
             url.searchParams.set('account_id', this.selectedAccountId);
+        } else {
+            url.searchParams.delete('account_id');
         }
         window.history.pushState({}, '', url.toString());
         
@@ -3278,6 +3327,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close panel functionality
     function closeTransactionPanel() {
         detailsPanel.classList.remove('active');
+        // Remove squishing effect from detail panel
+        const detailPanelElement = document.getElementById('detailPanel');
+        if (detailPanelElement) {
+            detailPanelElement.classList.remove('panel-squished');
+        }
         // Clear transaction selection when panel closes
         document.querySelectorAll('.transaction-item.selected').forEach(item => {
             item.classList.remove('selected');
@@ -3298,6 +3352,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Store transaction ID for edit/delete operations
         detailsPanel.dataset.transactionId = transactionData.id || '';
+        
+        // Add squishing effect to detail panel
+        const detailPanelElement = document.getElementById('detailPanel');
+        if (detailPanelElement) {
+            detailPanelElement.classList.add('panel-squished');
+        }
         
         // Show panel
         detailsPanel.classList.add('active');

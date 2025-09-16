@@ -369,6 +369,56 @@
 
 .transaction-amount.positive { color: #28a745; }
 .transaction-amount.negative { color: #dc3545; }
+
+/* Ensure Bootstrap modals always sit above any app overlays and are not clipped */
+.modal { z-index: 2000; }
+.modal-backdrop { z-index: 1990; }
+
+/* Master panel tab styling */
+.master-panel .nav-tabs {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 6px 6px 0 0;
+}
+
+.master-panel .nav-tabs .nav-link {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+.master-panel .nav-tabs .nav-link:hover {
+    background-color: rgba(0,123,255,0.05);
+    color: #495057;
+}
+
+.master-panel .nav-tabs .nav-link.active {
+    background-color: white;
+    color: #495057;
+    border-bottom: 2px solid;
+    font-weight: 600;
+}
+
+.master-panel .nav-tabs .nav-link#master-income-tab.active {
+    border-bottom-color: #198754;
+}
+
+.master-panel .nav-tabs .nav-link#master-expense-tab.active {
+    border-bottom-color: #dc3545;
+}
+
+.master-panel .tab-content {
+    background-color: white;
+    border-radius: 0 0 6px 6px;
+}
+
+.master-panel .tab-pane {
+    transition: all 0.3s ease-in-out;
+    min-height: 200px;
+}
 </style>
 {% endblock %}
 
@@ -404,27 +454,84 @@
         <!-- Master Panel -->
         <div class="master-panel" id="masterPanel">
             <div class="master-header">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="mb-3">
                     <h5 class="mb-0">Account Hierarchy</h5>
-                    <button class="btn btn-sm btn-outline-primary" id="collapseAllBtn">
-                        <i class="fas fa-compress-alt"></i> Collapse
-                    </button>
                 </div>
-                <div class="text-muted small">
-                    Drag to move inside. Hold <kbd>Ctrl/Cmd</kbd> to place after, hold <kbd>Shift</kbd> to place before.
-                </div>
-                <input type="text" class="search-box w-100" id="accountSearch" placeholder="Search accounts...">
+                
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-0" id="masterAccountTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active d-flex align-items-center" 
+                                id="master-income-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#master-income-accounts" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="master-income-accounts" 
+                                aria-selected="true">
+                            <i class="fas fa-arrow-up text-success me-2"></i>
+                            <span class="fw-bold">Income</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link d-flex align-items-center" 
+                                id="master-expense-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#master-expense-accounts" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="master-expense-accounts" 
+                                aria-selected="false">
+                            <i class="fas fa-arrow-down text-danger me-2"></i>
+                            <span class="fw-bold">Expenses</span>
+                        </button>
+                    </li>
+                </ul>
+                
+                <input type="text" class="search-box w-100 mt-2" id="accountSearch" placeholder="Search accounts...">
             </div>
             
             <div class="master-content" id="masterContent">
-                {% for tree_node in account_tree %}
-                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=tree_node level=0 %}
-                {% empty %}
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-folder-open fa-2x mb-3"></i>
-                    <p>No accounts found</p>
+                <!-- Tab Content -->
+                <div class="tab-content" id="masterAccountTabsContent">
+                    <!-- Income Accounts Tab -->
+                    <div class="tab-pane fade show active" 
+                         id="master-income-accounts" 
+                         role="tabpanel" 
+                         aria-labelledby="master-income-tab">
+                        {% for tree_node in account_tree %}
+                            {% if tree_node.account.account_type == 'income' %}
+                                {% for child_node in tree_node.children %}
+                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
+                                {% endfor %}
+                            {% endif %}
+                        {% empty %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-plus-circle fa-2x mb-3 text-success opacity-25"></i>
+                            <p>No income accounts found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Expense Accounts Tab -->
+                    <div class="tab-pane fade" 
+                         id="master-expense-accounts" 
+                         role="tabpanel" 
+                         aria-labelledby="master-expense-tab">
+                        {% for tree_node in account_tree %}
+                            {% if tree_node.account.account_type == 'expense' %}
+                                {% for child_node in tree_node.children %}
+                                    {% include "budget_allocation/account/master_detail_tree_node.html" with node=child_node level=0 %}
+                                {% endfor %}
+                            {% endif %}
+                        {% empty %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-minus-circle fa-2x mb-3 text-danger opacity-25"></i>
+                            <p>No expense accounts found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
         
@@ -543,11 +650,15 @@
                 <form id="createChildAccountForm">
                     {% csrf_token %}
                     <input type="hidden" id="cca_parent_id" name="parent" />
+                    <div class="mb-2" id="cca_parent_display" style="display:none;">
+                        <small class="text-muted">Parent:</small>
+                        <div class="fw-semibold" id="cca_parent_name"></div>
+                    </div>
                     <div class="mb-3">
                         <label for="cca_name" class="form-label">Account Name</label>
                         <input type="text" class="form-control" id="cca_name" name="name" required />
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="cca_type_group">
                         <label for="cca_type" class="form-label">Type</label>
                         <select id="cca_type" name="account_type" class="form-select" required>
                             <option value="income">Income</option>
@@ -570,42 +681,6 @@
 </div>
 
 {% include 'budget_allocation/partials/create_account_modal.html' %}
-
-<div class="modal fade" id="allocationModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Allocate Funds</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="allocationForm">
-                    {% csrf_token %}
-                    <input type="hidden" name="ajax" value="1" />
-                    <input type="hidden" name="to_account" id="alloc_to_account_id" />
-                    <input type="hidden" name="week_start" id="alloc_week_start" />
-                    <input type="hidden" name="auto_from_income" value="1" />
-                    <div class="mb-3">
-                        <label for="alloc_amount" class="form-label">Amount</label>
-                        <input type="number" step="0.01" min="0.01" class="form-control" name="amount" id="alloc_amount" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="alloc_notes" class="form-label">Notes</label>
-                        <textarea class="form-control" rows="3" name="notes" id="alloc_notes" placeholder="Optional"></textarea>
-                    </div>
-                    <div class="alert alert-info" id="alloc_info_box">
-                        Available from last week: <strong id="alloc_available_text">$0.00</strong>
-                    </div>
-                </form>
-                <div id="alloc_error" class="alert alert-danger d-none"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="alloc_submit_btn">Allocate</button>
-            </div>
-        </div>
-    </div>
- </div>
 {% endblock %}
 
 {% block extra_js %}
@@ -640,6 +715,21 @@ window.toggleAccountRow = function(event, accountId) {
     );
     const isExpanded = selector.classList.contains('expanded');
     const isCurrentlySelected = selector.classList.contains('selected') || (window.masterDetailController && window.masterDetailController.selectedAccountId === accountId);
+
+    // If clicking a parent while a descendant is currently selected, collapse this parent and select it
+    if (!clickedChevron && childrenDiv && window.masterDetailController) {
+        const selectedId = window.masterDetailController.selectedAccountId;
+        if (selectedId && selectedId !== accountId) {
+            const subtree = document.getElementById(`children-${accountId}`);
+            if (subtree && subtree.querySelector(`[data-account-id="${selectedId}"]`)) {
+                selector.classList.remove('expanded');
+                childrenDiv.classList.add('collapsed');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                window.masterDetailController.selectAccount(accountId, true);
+                return;
+            }
+        }
+    }
 
     if (clickedChevron) {
         // Chevron click: toggle expand/collapse without changing selection
@@ -758,7 +848,152 @@ document.addEventListener('DOMContentLoaded', function() {
         weekStart: (document.getElementById('weekContext') || {}).dataset?.weekStart || null
     });
     window.masterDetailController = controller;
+    
+    // Initialize master panel tabs functionality
+    initializeMasterTabs();
 });
+
+// Master panel tabs functionality
+function initializeMasterTabs() {
+    const tabTriggers = document.querySelectorAll('#masterAccountTabs button[data-bs-toggle="tab"]');
+    
+    // Add smooth transition animation
+    tabTriggers.forEach(trigger => {
+        trigger.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            const targetPane = document.querySelector(targetId);
+            
+            // Add a subtle fade-in animation
+            if (targetPane) {
+                targetPane.style.opacity = '0';
+                targetPane.style.transform = 'translateY(10px)';
+                
+                // Animate in
+                setTimeout(() => {
+                    targetPane.style.transition = 'all 0.3s ease-in-out';
+                    targetPane.style.opacity = '1';
+                    targetPane.style.transform = 'translateY(0)';
+                }, 10);
+            }
+        });
+        
+        // Add active state styling
+        trigger.addEventListener('click', function() {
+            // Remove active styling from all tabs
+            tabTriggers.forEach(tab => {
+                tab.classList.remove('active');
+                tab.style.borderBottomColor = 'transparent';
+            });
+            
+            // Add active styling to clicked tab
+            this.classList.add('active');
+            if (this.id === 'master-income-tab') {
+                this.style.borderBottomColor = '#198754'; // Success green
+            } else if (this.id === 'master-expense-tab') {
+                this.style.borderBottomColor = '#dc3545'; // Danger red
+            }
+        });
+    });
+    
+    // Remember last active tab
+    const lastActiveTab = localStorage.getItem('activeMasterAccountTab');
+    if (lastActiveTab) {
+        const savedTab = document.querySelector(`#${lastActiveTab}`);
+        if (savedTab) {
+            const tab = new bootstrap.Tab(savedTab);
+            tab.show();
+        }
+    }
+    
+    // Save active tab to localStorage
+    tabTriggers.forEach(trigger => {
+        trigger.addEventListener('shown.bs.tab', function(event) {
+            localStorage.setItem('activeMasterAccountTab', event.target.id);
+            
+            // Clear state restore permission when switching tabs to ensure collapsed state
+            if (event.target.id === 'master-income-tab' || event.target.id === 'master-expense-tab') {
+                sessionStorage.removeItem('allowMasterStateRestore');
+                
+                // Apply collapsed state immediately
+                setTimeout(() => {
+                    document.querySelectorAll('.account-tree-selector').forEach(selector => {
+                        selector.classList.remove('expanded');
+                    });
+                    
+                    document.querySelectorAll('[id^="children-"]').forEach(childrenDiv => {
+                        childrenDiv.classList.add('collapsed');
+                    });
+                    
+                    document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+                        chevron.style.transform = 'rotate(0deg)';
+                    });
+                }, 50);
+            }
+        });
+    });
+    
+    // Functions to save and restore account tree state
+    function saveMasterTreeState() {
+        const expandedAccounts = [];
+        document.querySelectorAll('.account-tree-selector.expanded').forEach(selector => {
+            const accountId = selector.getAttribute('data-account-id');
+            if (accountId) {
+                expandedAccounts.push(accountId);
+            }
+        });
+        localStorage.setItem('expandedMasterAccountIds', JSON.stringify(expandedAccounts));
+    }
+    
+    function restoreMasterTreeState() {
+        // Only restore expanded state if user is navigating within the same session
+        const shouldRestoreState = sessionStorage.getItem('allowMasterStateRestore') === 'true';
+        
+        if (shouldRestoreState) {
+            const expandedAccountIds = JSON.parse(localStorage.getItem('expandedMasterAccountIds') || '[]');
+            expandedAccountIds.forEach(accountId => {
+                const selector = document.querySelector(`[data-account-id="${accountId}"]`);
+                const childrenDiv = document.getElementById(`children-${accountId}`);
+                const chevron = document.getElementById(`chevron-${accountId}`);
+                
+                if (selector && childrenDiv) {
+                    selector.classList.add('expanded');
+                    childrenDiv.classList.remove('collapsed');
+                    if (chevron) {
+                        chevron.style.transform = 'rotate(90deg)';
+                    }
+                }
+            });
+        } else {
+            // Default state: all accounts collapsed
+            document.querySelectorAll('.account-tree-selector').forEach(selector => {
+                selector.classList.remove('expanded');
+            });
+            
+            document.querySelectorAll('[id^="children-"]').forEach(childrenDiv => {
+                childrenDiv.classList.add('collapsed');
+            });
+            
+            document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+                chevron.style.transform = 'rotate(0deg)';
+            });
+        }
+        
+        // Allow state restore for subsequent navigation within the session
+        sessionStorage.setItem('allowMasterStateRestore', 'true');
+    }
+    
+    // Override the global toggleAccountRow to save state
+    const originalToggleAccountRow = window.toggleAccountRow;
+    window.toggleAccountRow = function(event, accountId) {
+        originalToggleAccountRow(event, accountId);
+        saveMasterTreeState();
+    };
+    
+    // Restore state when page loads
+    setTimeout(() => {
+        restoreMasterTreeState();
+    }, 100);
+}
 
 // Master-Detail Animation Controller
 class MasterDetailController {
@@ -798,7 +1033,6 @@ class MasterDetailController {
         this.detailBreadcrumb = document.getElementById('detailBreadcrumb');
         this.searchBox = document.getElementById('accountSearch');
         this.mobileBackBtn = document.getElementById('mobileBackBtn');
-        this.collapseAllBtn = document.getElementById('collapseAllBtn');
         
         this.accountItems = document.querySelectorAll('.account-item');
         
@@ -841,16 +1075,16 @@ class MasterDetailController {
         
         // Responsive handling
         window.addEventListener('resize', this.handleResize.bind(this));
-        
-        // Collapse all button
-        this.collapseAllBtn.addEventListener('click', this.collapseAll.bind(this));
 
-        // Click on master panel whitespace: unselect and collapse all (like Collapse button)
+        // Click on master panel whitespace: unselect (like Collapse button)
         this.masterPanel.addEventListener('click', (e) => {
             const withinItem = e.target.closest('.account-item');
             const withinControl = e.target.closest('input,button,select,textarea,a,label');
             if (!withinItem && !withinControl) {
-                this.collapseAll();
+                this.hideDetailPanel();
+                this.updateSelection(null);
+                this.selectedAccountId = null;
+                this.updateURL(null);
             }
         });
 
@@ -1183,12 +1417,12 @@ class MasterDetailController {
         }
         
     // Prepare weekly summary values for header cards
-        const ws = account.weekly_summary || { income_total: 0, expense_total: 0, allocation_total: 0, transactions_total: 0 };
+    const ws = account.weekly_summary || { income_total: 0, expense_total: 0, transactions_total: 0 };
         const acctType = (account.account_type || '').toLowerCase();
         const showExpenses = acctType === 'expense' || acctType === 'expenses';
         const inOutLabel = showExpenses ? 'Expenses' : 'Income';
         const inOutValue = showExpenses ? ws.expense_total : ws.income_total;
-    const familyWeek = account.family_week || { income_current: 0, income_prev: 0, allocated_current: 0, available_current: 0 };
+    const familyWeek = account.family_week || { income_current: 0, income_prev: 0 };
         // Deltas removed per request
 
         // Render detail content
@@ -1201,11 +1435,44 @@ class MasterDetailController {
                             <div class="card-body d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title mb-1">Account Balance</h6>
+                                <!-- Edit Account Modal (global) -->
+                                <div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit Account</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form id="editAccountForm">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" id="ea_account_id" name="account_id" />
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Name</label>
+                                                        <input type="text" class="form-control" id="ea_name" name="name" required />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Description</label>
+                                                        <textarea class="form-control" id="ea_desc" name="description" rows="2"></textarea>
+                                                    </div>
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="ea_is_mp" name="is_merchant_payee">
+                                                        <label class="form-check-label" for="ea_is_mp">Mark as <span id="ea_is_mp_role">Merchant/Payee</span></label>
+                                                    </div>
+                                                </form>
+                                                <div id="ea_error" class="alert alert-danger d-none"></div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-primary" id="ea_submit_btn">Save</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                     <h4 class="text-primary mb-0">$${account.balance.toFixed(2)}</h4>
                                 </div>
                                 <div class="d-flex" style="gap: 8px;">
                                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTransaction">Add Transaction</button>
-                                    ${showExpenses ? `<button type="button" class="btn btn-sm btn-primary" id="btnAllocateFunds">Allocate Funds</button>` : ''}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCreateChildAccount">Create Child</button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnEditAccount">Edit</button>
                                 </div>
@@ -1214,15 +1481,7 @@ class MasterDetailController {
                     </div>
                 </div>
                 <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title mb-1">Allocation</h6>
-                                <h5 class="text-success mb-0">$${(ws.allocation_total || 0).toFixed(2)}</h5>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <div class="card border-0 bg-light">
                             <div class="card-body">
                                 <h6 class="card-title mb-1">${inOutLabel}</h6>
@@ -1243,17 +1502,14 @@ class MasterDetailController {
                     <div class="col-md-6">
                         <div class="card border-0 bg-light">
                             <div class="card-body">
-                                <h6 class="card-title mb-1">Available to Allocate (carry-forward)</h6>
-                                <h5 class="mb-0 ${familyWeek.available_current >= 0 ? 'text-success' : 'text-danger'}">$${(familyWeek.available_current || 0).toFixed(2)}</h5>
+                                <h6 class="card-title mb-1">Family Income (Previous Week)</h6>
+                                <h5 class="mb-0 text-muted">$${(familyWeek.income_prev || 0).toFixed(2)}</h5>
                             </div>
                         </div>
                     </div>
                 </div>
-                ${familyWeek && familyWeek.locks_enabled === false ? `
-                <div class="alert alert-warning py-2 mb-4" role="alert">
-                    <strong>Test mode:</strong> Weekly allocation locks are disabled. You can allocate into any week.
-                </div>
-                `: ''}
+                
+                
                 
                 <!-- Account Details -->
                 <div class="mb-4">
@@ -1284,18 +1540,54 @@ class MasterDetailController {
                     ` : ''}
                 </div>
                 
-                <!-- Children Accounts -->
-                ${account.children.length > 0 ? `
-                <div class="mb-4">
-                    <h6 class="border-bottom pb-2">Child Accounts</h6>
-                    ${account.children.map(child => `
+                <!-- Children Accounts (by type tabs) -->
+                ${(account.children && account.children.length > 0) ? (() => {
+                    const expChildren = (account.children || []).filter(c => (c.account_type || '').toLowerCase() === 'expense');
+                    const incChildren = (account.children || []).filter(c => (c.account_type || '').toLowerCase() === 'income');
+                    const expCount = expChildren.length;
+                    const incCount = incChildren.length;
+                    const tabId = `tabs-${account.id}`;
+                    const expList = expChildren.map(child => `
                         <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <span>${child.name}</span>
-                            <span class="badge bg-light text-dark">${child.account_type}</span>
+                            <div class="me-3">${child.name}</div>
+                            <div class="d-flex align-items-center" style="gap:8px;">
+                                <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${child.id}', true)">View</button>
+                            </div>
                         </div>
-                    `).join('')}
-                </div>
-                ` : ''}
+                    `).join('');
+                    const incList = incChildren.map(child => `
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="me-3">${child.name}</div>
+                            <div class="d-flex align-items-center" style="gap:8px;">
+                                <button class="btn btn-sm btn-link" onclick="window.masterDetailController && window.masterDetailController.selectAccount('${child.id}', true)">View</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    return `
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2">Child Accounts</h6>
+                        <ul class="nav nav-tabs" id="${tabId}" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="${tabId}-expenses-tab" data-bs-toggle="tab" data-bs-target="#${tabId}-expenses" type="button" role="tab" aria-controls="${tabId}-expenses" aria-selected="true">
+                                    Expenses <span class="badge bg-secondary ms-1">${expCount}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="${tabId}-income-tab" data-bs-toggle="tab" data-bs-target="#${tabId}-income" type="button" role="tab" aria-controls="${tabId}-income" aria-selected="false">
+                                    Income <span class="badge bg-secondary ms-1">${incCount}</span>
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content border-start border-end border-bottom p-3">
+                            <div class="tab-pane fade show active" id="${tabId}-expenses" role="tabpanel" aria-labelledby="${tabId}-expenses-tab">
+                                ${expCount ? expList : '<div class="text-muted">No expense children</div>'}
+                            </div>
+                            <div class="tab-pane fade" id="${tabId}-income" role="tabpanel" aria-labelledby="${tabId}-income-tab">
+                                ${incCount ? incList : '<div class="text-muted">No income children</div>'}
+                            </div>
+                        </div>
+                    </div>`;
+                })() : ''}
                 
                 <!-- Recent Transactions -->
                 ${account.recent_transactions.length > 0 ? `
@@ -1315,62 +1607,16 @@ class MasterDetailController {
                 </div>
                 ` : ''}
                 
-                <!-- Recent Allocations -->
-                ${account.recent_allocations.length > 0 ? `
-                <div class="mb-4">
-                    <h6 class="border-bottom pb-2">Recent Allocations</h6>
-                    ${account.recent_allocations.map(allocation => `
-                        <div class="transaction-item">
-                            <div>
-                                <div class="fw-medium">${allocation.notes || 'Allocation'}</div>
-                                <small class="text-muted">${allocation.date}</small>
-
-                            <!-- Edit Account Modal -->
-                            <div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Edit Account</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <form id="editAccountForm">
-                                                {% csrf_token %}
-                                                <input type="hidden" id="ea_account_id" name="account_id" />
-                                                <div class="mb-3">
-                                                    <label class="form-label">Name</label>
-                                                    <input type="text" class="form-control" id="ea_name" name="name" required />
-                                                </div>
-                                                <div class="mb-3">
-                                                                <label class="form-label">Description</label>
-                                                    <textarea class="form-control" id="ea_desc" name="description" rows="2"></textarea>
-                                                </div>
-                                                <div class="form-check form-switch mb-2">
-                                                    <input class="form-check-input" type="checkbox" id="ea_is_mp" name="is_merchant_payee">
-                                                                <label class="form-check-label" for="ea_is_mp">Mark as <span id="ea_is_mp_role">Merchant/Payee</span></label>
-                                                </div>
-                                            </form>
-                                            <div id="ea_error" class="alert alert-danger d-none"></div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="button" class="btn btn-primary" id="ea_submit_btn">Save</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            <div class="transaction-amount positive">
-                                +$${allocation.amount.toFixed(2)}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                ` : ''}
+                
             </div>
         `;
         
         this.detailContent.innerHTML = content;
+        // Initialize tooltips in newly rendered content
+        if (window.bootstrap) {
+            const tooltipEls = Array.from(this.detailContent.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipEls.forEach(el => new bootstrap.Tooltip(el));
+        }
         
         // Bind breadcrumb clicks
         this.detailBreadcrumb.addEventListener('click', (e) => {
@@ -1385,10 +1631,7 @@ class MasterDetailController {
         if (txBtn) {
             txBtn.addEventListener('click', () => this.openTransactionModal(account));
         }
-        const allocBtn = document.getElementById('btnAllocateFunds');
-        if (allocBtn) {
-            allocBtn.addEventListener('click', () => this.openAllocationModal(account));
-        }
+        // Allocation removed
         const childBtn = document.getElementById('btnCreateChildAccount');
         if (childBtn) {
             childBtn.addEventListener('click', () => {
@@ -1398,7 +1641,14 @@ class MasterDetailController {
                 const errBox = document.getElementById('cca_error');
                 if (errBox) { errBox.classList.add('d-none'); errBox.textContent=''; }
                 if (parentInput) parentInput.value = account.id || '';
+                // When parent known, hide Type and show the parent name
+                const typeGroup = document.getElementById('cca_type_group');
+                const parentDisp = document.getElementById('cca_parent_display');
+                const parentNameEl = document.getElementById('cca_parent_name');
                 if (typeSelect) typeSelect.value = (account.account_type || 'expense').toLowerCase();
+                if (typeGroup) typeGroup.style.display = 'none';
+                if (parentDisp) parentDisp.style.display = 'block';
+                if (parentNameEl) parentNameEl.textContent = account.name || '';
                 if (nameInput) nameInput.value = '';
                 const modalEl = document.getElementById('createChildAccountModal');
                 if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
@@ -1447,7 +1697,13 @@ class MasterDetailController {
                 const mpRole = document.getElementById('ea_is_mp_role');
                 if (mpRole) mpRole.textContent = (account.account_type || '').toLowerCase() === 'income' ? 'Payee' : 'Merchant';
                 const modalEl = document.getElementById('editAccountModal');
-                if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
+                if (modalEl && window.bootstrap) {
+                    // Move modal to body to avoid being inside faded/overflow contexts
+                    if (modalEl.parentElement !== document.body) {
+                        document.body.appendChild(modalEl);
+                    }
+                    new bootstrap.Modal(modalEl).show();
+                }
                 const save = document.getElementById('ea_submit_btn');
                 if (save) save.onclick = async () => {
                     const form = document.getElementById('editAccountForm');
@@ -1852,6 +2108,9 @@ MasterDetailController.prototype.openTransactionModal = function(account) {
     }
     const modalEl = document.getElementById('transactionModal');
     if (modalEl && window.bootstrap) {
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
     }
@@ -1896,7 +2155,8 @@ MasterDetailController.prototype.submitTransactionForm = async function() {
         const data = await resp.json();
         if (data.success) {
             // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('transactionModal'));
+            const txEl = document.getElementById('transactionModal');
+            const modal = txEl ? bootstrap.Modal.getInstance(txEl) : null;
             if (modal) modal.hide();
             // If server returns week_start, sync and reload selected account
             if (data.week_start) {
@@ -1917,81 +2177,6 @@ MasterDetailController.prototype.submitTransactionForm = async function() {
 };
 
 
-MasterDetailController.prototype.openAllocationModal = function(account) {
-    // Prefill TO account and week; allocation uses last week's income pool (no manual from_account)
-    const toInput = document.getElementById('alloc_to_account_id');
-    const weekInput = document.getElementById('alloc_week_start');
-    const amountInput = document.getElementById('alloc_amount');
-    const notesInput = document.getElementById('alloc_notes');
-    const errorBox = document.getElementById('alloc_error');
-    const availableText = document.getElementById('alloc_available_text');
-    if (errorBox) { errorBox.classList.add('d-none'); errorBox.textContent = ''; }
-    if (toInput) toInput.value = account.id;
-    if (weekInput) weekInput.value = this.weekStart || '';
-    if (amountInput) amountInput.value = '';
-    if (notesInput) notesInput.value = '';
-    // Set available and client-side max from account.family_week.available_current
-    const famWeek = account.family_week || {};
-    const available = typeof famWeek.available_current === 'number' ? famWeek.available_current : 0;
-    if (availableText) {
-        availableText.textContent = `$${(available || 0).toFixed(2)}`;
-    }
-    if (amountInput) {
-        amountInput.max = available > 0 ? String(available) : '';
-    }
-
-    const modalEl = document.getElementById('allocationModal');
-    if (modalEl && window.bootstrap) {
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-    }
-    const submitBtn = document.getElementById('alloc_submit_btn');
-    if (submitBtn) submitBtn.onclick = () => this.submitAllocationForm();
-};
-
-MasterDetailController.prototype.submitAllocationForm = async function() {
-    const form = document.getElementById('allocationForm');
-    const errorBox = document.getElementById('alloc_error');
-    const submitBtn = document.getElementById('alloc_submit_btn');
-    const amountInput = document.getElementById('alloc_amount');
-    const availableText = document.getElementById('alloc_available_text');
-    if (!form) return;
-    const formData = new FormData(form);
-    formData.set('ajax', '1');
-    // Server view currently expects 'week' (model) not 'week_start'; we'll pass week_start for backend to resolve
-    try {
-        // Lightweight client-side check for over-allocation
-        const available = availableText ? parseFloat((availableText.textContent || '').replace(/[^0-9.-]/g, '')) : NaN;
-        const amount = amountInput ? parseFloat(amountInput.value || '0') : 0;
-        if (!isNaN(available) && amount > available + 1e-6) {
-            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Amount exceeds available to allocate from last week.'; }
-            return;
-        }
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Allocating...'; }
-        const resp = await fetch('/budget-allocation/allocation/create/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
-            body: formData
-        });
-        const data = await resp.json();
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('allocationModal'));
-            if (modal) modal.hide();
-            if (data.week_start) {
-                this.weekStart = data.week_start;
-                this.updateWeekHeader();
-            }
-            if (this.selectedAccountId) {
-                await this.loadAccountData(this.selectedAccountId);
-            }
-        } else {
-            if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = data.error || 'Failed to allocate funds.'; }
-        }
-    } catch (e) {
-        if (errorBox) { errorBox.classList.remove('d-none'); errorBox.textContent = 'Network error. Please try again.'; }
-    } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Allocate'; }
-    }
-};
+// Allocation code removed for Distribution rewrite
 </script>
 {% endblock %}

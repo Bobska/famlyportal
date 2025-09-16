@@ -1171,6 +1171,16 @@ def allocation_create(request):
                 messages.error(request, err_msg)
                 return redirect('budget_allocation:allocation_dashboard')
             post_data['from_account'] = str(root_income.id)
+        else:
+            # If not drawing from income and no explicit from_account provided, default to the parent's account
+            if not post_data.get('from_account') and post_data.get('to_account'):
+                try:
+                    to_acc_id = int(post_data.get('to_account'))
+                    to_acc = Account.objects.get(id=to_acc_id, family=family)
+                    if to_acc.parent_id:
+                        post_data['from_account'] = str(to_acc.parent_id)
+                except Exception:
+                    pass
         form = AllocationForm(post_data, family=family)
         if form.is_valid():
             allocation = form.save(commit=False)
@@ -1209,25 +1219,78 @@ def allocation_create(request):
                 messages.error(request, err)
                 return redirect('budget_allocation:allocation_dashboard')
 
-            # Enforce available pool (carry-forward): sum of all prior weeks' income minus allocations through current week
+            # Enforce cascading parent pools (top-down): a child’s allocation cannot exceed
+            # the parent's remaining direct allocation for the week after accounting for:
+            # - allocations to other sibling branches, and
+            # - allocations already made to this subtree
+            try:
+                from decimal import Decimal
+                to_acc = allocation.to_account
+                if to_acc and to_acc.parent_id:
+                    parent = to_acc.parent
+                    # Parent's direct allocation for the week
+                    p_direct = Allocation.objects.filter(to_account=parent, week=allocation.week).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                    # Collect this subtree ids
+                    subtree_ids = []
+                    def collect_ids(acc):
+                        subtree_ids.append(acc.id)
+                        for c in acc.children.all():
+                            collect_ids(c)
+                    collect_ids(to_acc)
+                    # Collect full parent subtree ids
+                    parent_subtree_ids = []
+                    def collect_parent_ids(acc):
+                        parent_subtree_ids.append(acc.id)
+                        for c in acc.children.all():
+                            collect_parent_ids(c)
+                    collect_parent_ids(parent)
+                    # Sibling-and-other ids = parent subtree minus this subtree and minus the parent itself
+                    siblings_and_other_ids = [i for i in parent_subtree_ids if i not in subtree_ids and i != parent.id]
+                    siblings_and_other = Allocation.objects.filter(
+                        to_account_id__in=siblings_and_other_ids,
+                        week=allocation.week
+                    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                    # Already used within this subtree (excluding parent)
+                    this_subtree_used = Allocation.objects.filter(
+                        to_account_id__in=subtree_ids,
+                        week=allocation.week
+                    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                    remaining_for_subtree = p_direct - siblings_and_other - this_subtree_used
+                    if remaining_for_subtree < 0:
+                        remaining_for_subtree = Decimal('0')
+                    if allocation.amount and allocation.amount > remaining_for_subtree:
+                        err = f"Insufficient parent pool. Available from parent: ${remaining_for_subtree:.2f}."
+                        if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                            return JsonResponse({'success': False, 'error': err, 'available_from_parent': float(remaining_for_subtree)}, status=400)
+                        messages.error(request, err)
+                        return redirect('budget_allocation:allocation_dashboard')
+            except Exception:
+                # Fallback silently if hierarchy traversal fails; carry-forward guard still applies below
+                pass
+
+            # Enforce available pool (carry-forward) ONLY when consuming from the family income pool
+            # i.e., allocations where from_account is an Income account. Redistributing within Expenses is allowed
+            # as long as the parent's pool enforcement above passes.
             current_week = allocation.week
-            from decimal import Decimal
-            incomes_to_prev = Transaction.objects.filter(
-                family=family,
-                transaction_type='income',
-                week__start_date__lt=current_week.start_date
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            allocations_to_current = Allocation.objects.filter(
-                family=family,
-                week__start_date__lte=current_week.start_date
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            available = (incomes_to_prev or Decimal('0')) - (allocations_to_current or Decimal('0'))
-            if allocation.amount and allocation.amount > available:
-                err = f"Insufficient available funds to allocate. Available (carry-forward): ${available:.2f}."
-                if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                    return JsonResponse({'success': False, 'error': err, 'available_current': float(available)}, status=400)
-                messages.error(request, err)
-                return redirect('budget_allocation:allocation_dashboard')
+            if allocation.from_account and getattr(allocation.from_account, 'account_type', '').lower() == 'income':
+                from decimal import Decimal
+                incomes_to_prev = Transaction.objects.filter(
+                    family=family,
+                    transaction_type='income',
+                    week__start_date__lt=current_week.start_date
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                allocations_to_current = Allocation.objects.filter(
+                    family=family,
+                    week__start_date__lte=current_week.start_date,
+                    from_account__account_type='income'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                available = (incomes_to_prev or Decimal('0')) - (allocations_to_current or Decimal('0'))
+                if allocation.amount and allocation.amount > available:
+                    err = f"Insufficient available funds to allocate. Available (carry-forward): ${available:.2f}."
+                    if post_data.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'error': err, 'available_current': float(available)}, status=400)
+                    messages.error(request, err)
+                    return redirect('budget_allocation:allocation_dashboard')
 
             allocation.save()
 
@@ -1941,7 +2004,8 @@ def create_account_ajax(request):
         if not name:
             return JsonResponse({'success': False, 'error': 'Account name is required'}, status=400)
         
-        if not account_type or account_type not in ['income', 'expense']:
+        # account_type may be omitted when parent is provided; we'll infer from parent then
+        if not account_type and not parent_id:
             return JsonResponse({'success': False, 'error': 'Valid account type is required'}, status=400)
             
         if not parent_id:
@@ -1962,12 +2026,13 @@ def create_account_ajax(request):
             # Validate parent account exists and belongs to user's family
             try:
                 parent_account = Account.objects.get(id=parent_id, family=family)
-                # Allow any account of the same type as parent (more flexible than just matching type)
-                # This allows creating child accounts under any account, not just root accounts
-                if parent_account.account_type != account_type:
+                # If type not provided, derive from parent; if provided, enforce match
+                if not account_type:
+                    account_type = parent_account.account_type
+                elif parent_account.account_type != account_type:
                     return JsonResponse({
-                        'success': False, 
-                        'error': f'Parent account must be of type {account_type}'
+                        'success': False,
+                        'error': f'Parent account is {parent_account.account_type}; type must match'
                     }, status=400)
             except Account.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Invalid parent account'}, status=400)
@@ -2180,7 +2245,7 @@ def account_detail_api(request, account_id):
             tx_qs = tx_qs.filter(week=current_week)
         recent_transactions = tx_qs.order_by('-transaction_date')[:10]
 
-        # Get account balance for the resolved week, including all descendants (roll-up)
+    # Get account balance for the resolved week, including all descendants (roll-up)
         account_balance = get_account_balance_with_children(account, current_week)
 
         # Compute weekly totals: allocations to this account (and descendants) and transactions (income/expenses)
@@ -2226,6 +2291,56 @@ def account_detail_api(request, account_id):
         if week_param:
             weekly_alloc = weekly_alloc.filter(week=current_week)
         allocation_total = weekly_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        # Allocation trickle-down metrics
+        # 1) available_to_children at this node: direct allocation to this node that hasn't been consumed by descendants
+        direct_alloc = Allocation.objects.filter(to_account=account)
+        if week_param:
+            direct_alloc = direct_alloc.filter(week=current_week)
+        direct_alloc_total = direct_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        # Total allocations to descendants (exclude this account)
+        descendants_only_ids = [i for i in account_ids if i != account.id]
+        descendants_alloc = Allocation.objects.filter(to_account_id__in=descendants_only_ids)
+        if week_param:
+            descendants_alloc = descendants_alloc.filter(week=current_week)
+        descendants_alloc_total = descendants_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        # Available to allocate at this node = allocation_total (self + descendants) - descendants_alloc
+        # which simplifies to direct_alloc_total. Keep both forms for clarity.
+        available_to_children = (allocation_total or Decimal('0')) - (descendants_alloc_total or Decimal('0'))
+        available_to_children = available_to_children if available_to_children >= 0 else Decimal('0')
+
+        # 2) available_from_parent: if the node has a parent, how much of parent's direct allocation remains after siblings
+        available_from_parent = None
+        if account.parent_id:
+            parent = account.parent
+            # Parent scope
+            p_ids = []
+            def collect_ids(acc):
+                p_ids.append(acc.id)
+                for c in acc.children.all():
+                    collect_ids(c)
+            collect_ids(parent)
+            # Parent totals
+            p_alloc = Allocation.objects.filter(to_account_id__in=p_ids)
+            if week_param:
+                p_alloc = p_alloc.filter(week=current_week)
+            p_total = p_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            # Exclude parent descendants allocations to compute parent's direct alloc share
+            p_direct = Allocation.objects.filter(to_account=parent)
+            if week_param:
+                p_direct = p_direct.filter(week=current_week)
+            p_direct_total = p_direct.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            # Siblings (descendants excluding this account subtree)
+            this_subtree_ids = account_ids
+            siblings_and_other = [i for i in p_ids if i not in this_subtree_ids and i != parent.id]
+            sib_alloc = Allocation.objects.filter(to_account_id__in=siblings_and_other)
+            if week_param:
+                sib_alloc = sib_alloc.filter(week=current_week)
+            sib_total = sib_alloc.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            # Remaining from parent that could still flow into this subtree this week
+            available_from_parent = p_direct_total - sib_total
+            if available_from_parent < 0:
+                available_from_parent = Decimal('0')
 
         # Previous week deltas (optional, only if week is provided)
         delta = {
@@ -2326,7 +2441,8 @@ def account_detail_api(request, account_id):
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         allocated_through_current = Allocation.objects.filter(
             family=family,
-            week__start_date__lte=current_week.start_date
+            week__start_date__lte=current_week.start_date,
+            from_account__account_type='income'
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         available_current = (incomes_to_prev or Decimal('0')) - (allocated_through_current or Decimal('0'))
 
@@ -2352,6 +2468,10 @@ def account_detail_api(request, account_id):
                     'allocation_total': float(allocation_total),
                     'transactions_total': float(total_transactions_amount),
                     'delta': delta,
+                    'available_to_children': float(available_to_children or 0),
+                },
+                'allocation_context': {
+                    'available_from_parent': float(available_from_parent) if available_from_parent is not None else None
                 },
                 'children': children,
                 'children_count': len(children),

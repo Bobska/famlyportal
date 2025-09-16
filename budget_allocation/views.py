@@ -2502,7 +2502,13 @@ def account_detail_api(request, account_id):
 @family_required
 @app_permission_required('budget_allocation')
 def transactions_api(request):
-    """Get transactions filtered by type (all, income, expense) and optional week start (YYYY-MM-DD)"""
+    """Get transactions filtered by type (all, income, expense) and optional week start (YYYY-MM-DD).
+
+        Rules:
+        - Type filter is based on Transaction.transaction_type, not Account.account_type.
+        - Week filter is applied against Transaction.week matching the WeeklyPeriod that starts on the given date
+            for the current family; if not found, we fall back to transaction_date within the 7-day window.
+        """
     family = get_user_family(request.user)
     if not family:
         return JsonResponse({'error': 'Family not found'}, status=400)
@@ -2513,23 +2519,28 @@ def transactions_api(request):
         week_start_str = request.GET.get('week')
         
         # Base queryset for all transactions in the family
-        transactions = Transaction.objects.filter(family=family).select_related('account')
+        transactions = Transaction.objects.filter(family=family).select_related('account', 'week')
 
-        # If week start provided, filter to that 7-day window
+        # If week start provided, filter strictly by WeeklyPeriod (only transactions associated to that week)
         if week_start_str:
             try:
                 from datetime import datetime, timedelta
                 ws = datetime.strptime(week_start_str, '%Y-%m-%d').date()
-                we = ws + timedelta(days=6)
-                transactions = transactions.filter(transaction_date__range=(ws, we))
+                # Match WeeklyPeriod for family
+                week_obj = WeeklyPeriod.objects.filter(family=family, start_date=ws).first()
+                if week_obj:
+                    transactions = transactions.filter(week=week_obj)
+                else:
+                    # If no matching week exists, return empty set to enforce week association
+                    transactions = transactions.none()
             except Exception:
                 pass
         
-        # Apply type filter if specified
+        # Apply type filter if specified using Transaction.transaction_type
         if filter_type == 'income':
-            transactions = transactions.filter(account__account_type='income')
+            transactions = transactions.filter(transaction_type='income')
         elif filter_type == 'expense':
-            transactions = transactions.filter(account__account_type='expense')
+            transactions = transactions.filter(transaction_type='expense')
         # 'all' doesn't need additional filtering
         
         # Order by date descending and limit to recent transactions

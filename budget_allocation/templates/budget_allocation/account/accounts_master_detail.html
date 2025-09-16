@@ -220,7 +220,8 @@
     color: #2c3e50;
 }
 .transaction-row .tx-amount {
-    min-width: 120px;
+    margin-left: auto; /* push to far right */
+    flex: 0 0 140px;   /* consistent width */
     text-align: right;
     font-weight: 600;
     font-variant-numeric: tabular-nums; /* Align digits and cents */
@@ -588,6 +589,8 @@
     transition: all 0.3s ease-in-out;
     min-height: 400px;
 }
+/* Sticky Week card so it stays visible during long scrolls */
+.week-sticky { position: sticky; top: 0; z-index: 100; }
 </style>
 {% endblock %}
 
@@ -597,7 +600,7 @@
 <!-- Week Selector (persistent above tabs) -->
 <div class="row mb-2">
     <div class="col-md-12">
-        <div class="card">
+        <div class="card week-sticky">
             <div class="card-body d-flex justify-content-between align-items-center py-2">
                 <button type="button" id="prevWeekBtn" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-chevron-left me-1"></i>Previous Week
@@ -897,16 +900,6 @@
     </div>
 </div>
 
-<!-- Keyboard Shortcuts Help -->
-<div class="mt-3">
-    <small class="text-muted">
-        <strong>Keyboard shortcuts:</strong> 
-        <kbd>↑</kbd><kbd>↓</kbd> Navigate accounts | 
-        <kbd>Enter</kbd> Select account | 
-        <kbd>Esc</kbd> Close detail | 
-        <kbd>/</kbd> Focus search
-    </small>
-</div>
 <!-- Modals -->
 <div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -1175,6 +1168,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize outer Transactions tab behavior
     initializeOuterTransactionsTab(controller);
+    // Persist outer tab selection
+    const outerTabs = document.getElementById('outerTabs');
+    if (outerTabs) {
+        outerTabs.querySelectorAll('button[data-bs-toggle="tab"]').forEach(btn => {
+            btn.addEventListener('shown.bs.tab', (e) => {
+                localStorage.setItem('ba.outer.activeTabId', e.target.id);
+            });
+        });
+        const savedOuter = localStorage.getItem('ba.outer.activeTabId');
+        if (savedOuter) {
+            const btn = document.getElementById(savedOuter);
+            if (btn && window.bootstrap) new bootstrap.Tab(btn).show();
+        }
+    }
 });
 
 // Master panel tabs functionality
@@ -1340,7 +1347,8 @@ function initializeOuterTransactionsTab(controller) {
 
     // When switching to the Transactions tab, load 'all' by default
     outerTabBtn.addEventListener('shown.bs.tab', async () => {
-        await controller.filterTransactionsByType('all', { target: 'outer' });
+        const savedType = localStorage.getItem('ba.outer.txType') || 'all';
+        await controller.filterTransactionsByType(savedType, { target: 'outer' });
     });
 
     // Add Transaction opens the same modal, using current selected account if any
@@ -1358,6 +1366,7 @@ function initializeOuterTransactionsTab(controller) {
         typeMenu.querySelectorAll('button[data-type]').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const t = e.currentTarget.getAttribute('data-type') || 'all';
+                localStorage.setItem('ba.outer.txType', t);
                 await controller.filterTransactionsByType(t, { target: 'outer' });
             });
         });
@@ -1508,6 +1517,10 @@ class MasterDetailController {
         if (this.selectedAccountId) {
             this.loadAccountData(this.selectedAccountId);
         }
+        // Refresh transactions lists for new week
+        this.filterTransactionsByType(localStorage.getItem('ba.outer.txType') || 'all', { target: 'outer' });
+        const detailFilter = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
+        this.filterTransactionsByType(detailFilter, { target: 'detail' });
     }
 
     updateWeekHeader() {
@@ -2564,9 +2577,13 @@ MasterDetailController.prototype.filterTransactionsByType = async function(type,
     try {
         // Build URL with type filter
         let url = '/budget-allocation/api/transactions/';
-        if (type !== 'all') {
-            url += `?type=${type}`;
-        }
+        const params = new URLSearchParams();
+        if (type !== 'all') params.set('type', type);
+        // pass weekStart if present
+        const weekStart = (document.getElementById('weekContext') || {}).dataset?.weekStart;
+        if (weekStart) params.set('week', weekStart);
+        const qs = params.toString();
+        if (qs) url += `?${qs}`;
         
         const response = await fetch(url);
         const data = await response.json();

@@ -2502,17 +2502,28 @@ def account_detail_api(request, account_id):
 @family_required
 @app_permission_required('budget_allocation')
 def transactions_api(request):
-    """Get transactions filtered by type (all, income, expense)"""
+    """Get transactions filtered by type (all, income, expense) and optional week start (YYYY-MM-DD)"""
     family = get_user_family(request.user)
     if not family:
         return JsonResponse({'error': 'Family not found'}, status=400)
     
     try:
-        # Get filter type from query parameters
+        # Get filter type and week from query parameters
         filter_type = request.GET.get('type', 'all').lower()
+        week_start_str = request.GET.get('week')
         
         # Base queryset for all transactions in the family
         transactions = Transaction.objects.filter(family=family).select_related('account')
+
+        # If week start provided, filter to that 7-day window
+        if week_start_str:
+            try:
+                from datetime import datetime, timedelta
+                ws = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+                we = ws + timedelta(days=6)
+                transactions = transactions.filter(transaction_date__range=(ws, we))
+            except Exception:
+                pass
         
         # Apply type filter if specified
         if filter_type == 'income':

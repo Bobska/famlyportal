@@ -4,7 +4,40 @@
 {% block page_title %}Master-Detail Account View{% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <style>
+/* Override base template styles for master-detail specific layout */
+.container-fluid {
+    background: white !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    max-width: none !important;
+    backdrop-filter: none !important;
+}
+
+.budget-main-content {
+    padding: 0 !important;
+    background: white !important;
+    min-height: auto !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Fix sidebar collapse behavior for master-detail layout */
+.budget-sidebar.collapsed {
+    margin-left: 0 !important; /* Don't hide sidebar in master-detail view */
+}
+
+.budget-main-content.expanded {
+    margin-left: 0 !important;
+}
+
+/* Hide the sidebar toggle button in master-detail view since collapse doesn't work well */
+.sidebar-toggle {
+    display: none !important;
+}
+
 /* Master-Detail Animation System */
 .master-detail-container {
     position: relative;
@@ -710,7 +743,7 @@
     overflow-y: auto;
 }
 
-.transaction-details-panel.open {
+.transaction-details-panel.active {
     right: 0;
 }
 
@@ -2111,6 +2144,19 @@ class MasterDetailController {
     }
     
     renderAccountDetail(account) {
+        // Helper function to format date with day of week
+        function formatDateWithDay(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const dayOfWeek = days[date.getDay()];
+                return `${dayOfWeek} ${dateString}`;
+            } catch (e) {
+                return dateString; // fallback to original if parsing fails
+            }
+        }
+        
         // Update header
         this.detailTitle.textContent = account.name;
         this.detailSubtitle.textContent = account.description || '';
@@ -2220,7 +2266,7 @@ class MasterDetailController {
                         <div class="transaction-item" data-transaction-id="${transaction.id || ''}" style="cursor:pointer;">
                             <div class="transaction-row">
                                 <div class="fw-medium description">${transaction.description || 'Transaction'}</div>
-                                <small class="text-muted transaction-date">${transaction.date}</small>
+                                <small class="text-muted transaction-date">${formatDateWithDay(transaction.date)}</small>
                             </div>
                             <div class="transaction-amount amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
                                 ${transaction.amount >= 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}
@@ -2942,10 +2988,23 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
         return;
     }
     
+    // Helper function to format date with day of week
+    function formatDateWithDay(dateString) {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayOfWeek = days[date.getDay()];
+            return `${dayOfWeek} ${dateString}`;
+        } catch (e) {
+            return dateString; // fallback to original if parsing fails
+        }
+    }
+    
     const transactionsHtml = transactions.map(tx => `
         <div class="transaction-item" data-transaction-id="${tx.id || ''}" data-account-id="${tx.account_id}" style="cursor:pointer;">
             <div class="transaction-row">
-                <div class="tx-date transaction-date">${tx.date || ''}</div>
+                <div class="tx-date transaction-date">${formatDateWithDay(tx.date)}</div>
                 <div class="tx-payee description">${tx.payee || tx.description || tx.account_name || 'Transaction'}</div>
                 <div class="tx-amount amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
                     ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}

@@ -2122,21 +2122,40 @@ def accounts_master_detail(request):
         messages.error(request, "You must be part of a family to access accounts.")
         return redirect('accounts:dashboard')
     
-    # Determine current week (optional ?week=YYYY-MM-DD) similar to weekly view
+    # Determine current week (optional ?week=YYYY-MM-DD) - only use existing weeks with data
     week_param = request.GET.get('week')
+    
+    # Get weeks that have actual data (transactions or allocations)
+    weeks_with_data = WeeklyPeriod.objects.filter(
+        family=family
+    ).filter(
+        Q(transaction_weeks__isnull=False) | 
+        Q(allocation_weeks__isnull=False)
+    ).distinct().order_by('start_date')
+    
     if week_param:
         try:
             parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+            # Try to find existing week with this start date
+            current_week = weeks_with_data.filter(start_date=parsed_date).first()
+            if not current_week:
+                # If requested week doesn't exist or has no data, use latest week with data
+                current_week = weeks_with_data.last()
         except ValueError:
-            parsed_date = timezone.now().date()
+            current_week = weeks_with_data.last()
     else:
-        parsed_date = timezone.now().date()
-
-    current_week = get_or_create_week_for_date(family, parsed_date)
-    prev_start = current_week.start_date - timedelta(days=7)
-    next_start = current_week.start_date + timedelta(days=7)
-    prev_week = get_or_create_week_for_date(family, prev_start)
-    next_week = get_or_create_week_for_date(family, next_start)
+        # Default to most recent week with data
+        current_week = weeks_with_data.last()
+    
+    # If no weeks with data exist, create current week as fallback
+    if not current_week:
+        current_week = get_or_create_week_for_date(family, timezone.now().date())
+        weeks_with_data = [current_week]
+    
+    # Find prev/next weeks within the data range
+    current_index = list(weeks_with_data).index(current_week) if current_week in weeks_with_data else 0
+    prev_week = weeks_with_data[current_index - 1] if current_index > 0 else None
+    next_week = weeks_with_data[current_index + 1] if current_index < len(weeks_with_data) - 1 else None
 
     # Get account tree with enhanced data for master-detail view
     account_tree = get_account_tree(family)
@@ -2504,11 +2523,11 @@ def account_detail_api(request, account_id):
 def transactions_api(request):
     """Get transactions filtered by type (all, income, expense) and optional week start (YYYY-MM-DD).
 
-        Rules:
-        - Type filter is based on Transaction.transaction_type, not Account.account_type.
-        - Week filter is applied against Transaction.week matching the WeeklyPeriod that starts on the given date
-            for the current family; if not found, we fall back to transaction_date within the 7-day window.
-        """
+    Rules:
+    - Type filter is based on Transaction.transaction_type, not Account.account_type.
+    - Week filter requires Transaction.week to match the WeeklyPeriod that starts on the given date
+      for the current family. Only transactions associated with that specific week are returned.
+    """
     family = get_user_family(request.user)
     if not family:
         return JsonResponse({'error': 'Family not found'}, status=400)

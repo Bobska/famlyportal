@@ -203,28 +203,36 @@
 .transaction-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 10px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+.transaction-row:hover {
+    background-color: #f8f9fa;
 }
 .transaction-row .tx-date {
-    min-width: 92px;
+    min-width: 100px;
     color: #6c757d;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-right: 16px;
 }
 .transaction-row .tx-payee {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 500;
+    font-weight: 600;
     color: #2c3e50;
+    font-size: 0.95rem;
+    margin-right: 16px;
 }
 .transaction-row .tx-amount {
-    margin-left: auto; /* push to far right */
-    flex: 0 0 140px;   /* consistent width */
+    flex: 0 0 120px;
     text-align: right;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums; /* Align digits and cents */
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
     -webkit-font-feature-settings: 'tnum';
     font-feature-settings: 'tnum';
 }
@@ -484,9 +492,17 @@
 
 /* Transaction List */
 .transaction-item {
-    padding: 0.75rem;
-    border-bottom: 1px solid #f8f9fa;
+    padding: 0;
+    border-bottom: 1px solid #e9ecef;
     display: block; /* Let inner .transaction-row control layout */
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.transaction-item:hover {
+    background-color: #f8f9fa;
+    border-left: 3px solid #007bff;
+    transform: translateX(2px);
 }
 
 .transaction-item:last-child {
@@ -2578,8 +2594,7 @@ MasterDetailController.prototype.filterTransactionsByType = async function(type,
         const params = new URLSearchParams();
         if (type !== 'all') params.set('type', type);
         // pass weekStart if present
-        const weekStart = (document.getElementById('weekContext') || {}).dataset?.weekStart;
-        if (weekStart) params.set('week', weekStart);
+        if (this.weekStart) params.set('week', this.weekStart);
         const qs = params.toString();
         if (qs) url += `?${qs}`;
         
@@ -2629,7 +2644,7 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
         <div class="transaction-item border-bottom" data-account-id="${tx.account_id}" style="cursor:pointer;">
             <div class="transaction-row">
                 <div class="tx-date">${tx.date || ''}</div>
-                <div class="tx-payee">${(tx.payee || tx.description || '—')}</div>
+                <div class="tx-payee">${tx.payee || tx.description || tx.account_name || 'Transaction'}</div>
                 <div class="tx-amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
                     ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}
                 </div>

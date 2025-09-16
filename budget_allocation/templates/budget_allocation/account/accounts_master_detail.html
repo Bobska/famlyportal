@@ -199,6 +199,32 @@
     font-style: italic;
 }
 
+/* Single-line transaction layout */
+.transaction-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+}
+.transaction-row .tx-date {
+    min-width: 92px;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+.transaction-row .tx-payee {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    color: #2c3e50;
+}
+.transaction-row .tx-amount {
+    min-width: 110px;
+    text-align: right;
+    font-weight: 600;
+}
+
 /* Lineage highlighting for transaction hover */
 .lineage-highlight {
     background-color: rgba(13, 110, 253, 0.1) !important;
@@ -774,9 +800,9 @@
                                                 </div>
                                             </div>
                                             <div id="transactionsList" class="transaction-list">
-                                                <div class="text-center text-muted p-4">
-                                                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-                                                    <p>Loading transactions...</p>
+                                                <div class="text-center text-muted p-3">
+                                                    <i class="fas fa-spinner fa-spin me-2"></i>
+                                                    Loading transactions...
                                                 </div>
                                             </div>
                                         </div>
@@ -830,9 +856,9 @@
                     </div>
                 </div>
                 <div id="outerTransactionsList" class="transaction-list">
-                    <div class="text-center text-muted p-4">
-                        <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-                        <p>Loading transactions...</p>
+                    <div class="text-center text-muted p-3">
+                        <i class="fas fa-spinner fa-spin me-2"></i>
+                        Loading transactions...
                     </div>
                 </div>
             </div>
@@ -2574,23 +2600,13 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
         return;
     }
     
-    const transactionsHtml = transactions.map(transaction => `
-        <div class="transaction-item" 
-             data-account-id="${transaction.account_id}"
-             style="cursor: pointer;">
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-start mb-1">
-                        <div class="fw-medium">${transaction.description || 'Transaction'}</div>
-                        <div class="transaction-amount ${transaction.amount >= 0 ? 'text-success' : 'text-danger'} fw-bold">
-                            ${transaction.amount >= 0 ? '+' : ''}$${Math.abs(transaction.amount).toFixed(2)}
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted">${transaction.date}</small>
-                        <small class="text-muted account-name">${transaction.account_name || 'Unknown Account'}</small>
-                    </div>
-                    ${transaction.payee ? `<small class="text-muted">• ${transaction.payee}</small>` : ''}
+    const transactionsHtml = transactions.map(tx => `
+        <div class="transaction-item border-bottom" data-account-id="${tx.account_id}" style="cursor:pointer;">
+            <div class="transaction-row">
+                <div class="tx-date">${tx.date || ''}</div>
+                <div class="tx-payee">${(tx.payee || tx.description || '—')}</div>
+                <div class="tx-amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
+                    ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}
                 </div>
             </div>
         </div>

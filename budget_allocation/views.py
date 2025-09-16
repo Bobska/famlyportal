@@ -2596,6 +2596,59 @@ def transactions_api(request):
         }, status=500)
 
 
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
+def week_availability_api(request):
+    """API endpoint for checking prev/next week availability"""
+    family = get_user_family(request.user)
+    if not family:
+        return JsonResponse({'success': False, 'error': 'Family not found'}, status=400)
+    
+    week_param = request.GET.get('week')
+    if not week_param:
+        return JsonResponse({'success': False, 'error': 'Week parameter required'}, status=400)
+    
+    try:
+        # Parse the week parameter
+        parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+        
+        # Get weeks that have actual data (transactions or allocations)
+        weeks_with_data = WeeklyPeriod.objects.filter(
+            family=family
+        ).filter(
+            Q(allocation_transactions__isnull=False) | 
+            Q(allocations__isnull=False)
+        ).distinct().order_by('start_date')
+        
+        # Find current week in the data
+        current_week = weeks_with_data.filter(start_date=parsed_date).first()
+        if not current_week:
+            # Week doesn't exist or has no data
+            return JsonResponse({
+                'success': True,
+                'has_prev_week': False,
+                'has_next_week': False
+            })
+        
+        # Find prev/next weeks within the data range
+        current_index = list(weeks_with_data).index(current_week)
+        has_prev_week = current_index > 0
+        has_next_week = current_index < len(weeks_with_data) - 1
+        
+        return JsonResponse({
+            'success': True,
+            'has_prev_week': has_prev_week,
+            'has_next_week': has_next_week
+        })
+        
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Invalid week format'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in week_availability_api: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 def get_account_full_path(account):
     """Helper function to get full hierarchical path of an account"""
     path_parts = []

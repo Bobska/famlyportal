@@ -49,5 +49,6 @@ urlpatterns = [
     path('api/account/<int:account_id>/delete/', views.delete_account_api, name='delete_account_api'),
     path('api/allocation-suggestions/', views.allocation_suggestions_api, name='allocation_suggestions_api'),
     path('api/week-summary/', views.week_summary_api, name='week_summary_api'),
+    path('api/week-availability/', views.week_availability_api, name='week_availability_api'),
     path('api/transactions/', views.transactions_api, name='transactions_api'),
 ]

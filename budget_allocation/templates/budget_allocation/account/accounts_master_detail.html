@@ -2227,7 +2227,14 @@ class MasterDetailController {
             }
         });
 
-        // Week navigation buttons with debouncing
+        // Initialize navigation queue system
+        this.navigationQueue = [];
+        this.isProcessingQueue = false;
+        this.baseAnimationDuration = 1000; // 1 second base duration
+        this.minAnimationDuration = 200;   // Minimum 200ms for fast navigation
+        this.maxQueueSize = 10;            // Prevent excessive queuing
+
+        // Week navigation buttons with queue-based system
         const prevBtn = document.getElementById('prevWeekBtn');
         const nextBtn = document.getElementById('nextWeekBtn');
         const todayBtn = document.getElementById('todayWeekBtn');
@@ -2235,27 +2242,21 @@ class MasterDetailController {
         if (prevBtn) {
             prevBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (!this.isShiftingWeek) {
-                    this.shiftWeek(-7);
-                }
+                this.queueNavigation(-7);
             });
         }
         
         if (nextBtn) {
             nextBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (!this.isShiftingWeek) {
-                    this.shiftWeek(7);
-                }
+                this.queueNavigation(7);
             });
         }
         
         if (todayBtn) {
             todayBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (!this.isShiftingWeek) {
-                    this.goToCurrentWeek();
-                }
+                this.queueNavigation('today');
             });
         }
         
@@ -2276,29 +2277,85 @@ class MasterDetailController {
         }
     }
 
-    async shiftWeek(deltaDays) {
-        if (!this.weekStart) return;
+    // Queue-based navigation system for rapid week navigation
+    queueNavigation(deltaDays) {
+        // Prevent excessive queue buildup
+        if (this.navigationQueue.length >= this.maxQueueSize) {
+            return;
+        }
+
+        // Special handling for 'today' navigation
+        if (deltaDays === 'today') {
+            // Clear queue and go directly to today
+            this.navigationQueue = [];
+            this.goToCurrentWeek();
+            return;
+        }
+
+        // Add to queue
+        this.navigationQueue.push(deltaDays);
         
-        // Prevent multiple simultaneous week shifts
-        if (this.isShiftingWeek) return;
-        this.isShiftingWeek = true;
+        // Start processing if not already processing
+        if (!this.isProcessingQueue) {
+            this.processNavigationQueue();
+        }
+    }
+
+    async processNavigationQueue() {
+        if (this.isProcessingQueue || this.navigationQueue.length === 0) {
+            return;
+        }
+
+        this.isProcessingQueue = true;
+
+        while (this.navigationQueue.length > 0) {
+            const deltaDays = this.navigationQueue.shift();
+            
+            // Calculate dynamic animation duration based on queue length
+            const queueLength = this.navigationQueue.length;
+            let animationDuration;
+            
+            if (queueLength === 0) {
+                // Last item - use normal speed
+                animationDuration = this.baseAnimationDuration;
+            } else if (queueLength >= 5) {
+                // Many items - use fastest speed
+                animationDuration = this.minAnimationDuration;
+            } else {
+                // Scale speed based on queue length (more items = faster)
+                const speedMultiplier = Math.max(0.2, 1 - (queueLength * 0.15));
+                animationDuration = Math.max(this.minAnimationDuration, this.baseAnimationDuration * speedMultiplier);
+            }
+
+            // Process single navigation step with dynamic duration
+            await this.performSingleNavigation(deltaDays, animationDuration);
+            
+            // Small delay between rapid navigations to prevent overwhelming
+            if (this.navigationQueue.length > 0) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+
+        this.isProcessingQueue = false;
+    }
+
+    async performSingleNavigation(deltaDays, duration = this.baseAnimationDuration) {
+        if (!this.weekStart) return;
         
         // Check if navigation is allowed
         if (deltaDays < 0 && !this.hasPrevWeek) {
-            this.isShiftingWeek = false;
             return;
         }
         if (deltaDays > 0 && !this.hasNextWeek) {
-            this.isShiftingWeek = false;
             return;
         }
         
         // Determine animation direction
         const isGoingForward = deltaDays > 0;
-        const slideOutDirection = isGoingForward ? 'left' : 'right'; // Current content slides out
-        const slideInDirection = isGoingForward ? 'right' : 'left'; // New content slides in from opposite side
+        const slideOutDirection = isGoingForward ? 'left' : 'right';
+        const slideInDirection = isGoingForward ? 'right' : 'left';
         
-        // Calculate new week start before starting animations
+        // Calculate new week start
         const current = new Date(this.weekStart);
         const adjusted = new Date(Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()));
         adjusted.setUTCDate(adjusted.getUTCDate() + deltaDays);
@@ -2307,13 +2364,13 @@ class MasterDetailController {
         const dd = String(adjusted.getUTCDate()).padStart(2, '0');
         const newWeekStart = `${yyyy}-${mm}-${dd}`;
         
-        try {
-            // Preload new data first
-            this.weekStart = newWeekStart;
-            this.updateWeekHeader();
-            localStorage.setItem('budget_allocation_week', this.weekStart);
-            
-            // Update URL
+        // Update week data
+        this.weekStart = newWeekStart;
+        this.updateWeekHeader();
+        localStorage.setItem('budget_allocation_week', this.weekStart);
+        
+        // Update URL (only for the final navigation to avoid excessive history entries)
+        if (this.navigationQueue.length === 0) {
             const url = new URL(window.location);
             url.searchParams.delete('week');
             if (this.selectedAccountId) {
@@ -2322,22 +2379,31 @@ class MasterDetailController {
                 url.searchParams.delete('account_id');
             }
             window.history.pushState({}, '', url.toString());
-            
-            // Update week navigation availability
-            this.updateWeekNavigationAvailability();
-            
-            // Load new data
-            const newData = await this.preloadNewWeekData();
-            
-            // Perform simultaneous slide animation
-            await this.performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData);
-            
+        }
+        
+        // Update week navigation availability
+        this.updateWeekNavigationAvailability();
+        
+        // Load new data and animate with custom duration
+        const newData = await this.preloadNewWeekData();
+        await this.performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData, duration);
+    }
+
+    async shiftWeek(deltaDays) {
+        if (!this.weekStart) return;
+        
+        // Prevent multiple simultaneous week shifts
+        if (this.isShiftingWeek) return;
+        this.isShiftingWeek = true;
+        
+        try {
+            await this.performSingleNavigation(deltaDays);
         } finally {
             this.isShiftingWeek = false;
         }
     }
     
-    async performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData) {
+    async performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData, duration = 1000) {
         return new Promise((resolve) => {
             const outerList = document.getElementById('outerTransactionsList');
             const detailList = document.getElementById('detail-transactions');
@@ -2383,6 +2449,13 @@ class MasterDetailController {
             const slideOutClass = slideOutDirection === 'left' ? 'slideOutLeft' : 'slideOutRight';
             const slideInClass = slideInDirection === 'left' ? 'slideInLeft' : 'slideInRight';
             
+            // Set dynamic animation duration on all elements
+            const animationDuration = `${duration}ms`;
+            outerClone.style.animationDuration = animationDuration;
+            detailClone.style.animationDuration = animationDuration;
+            outerList.style.animationDuration = animationDuration;
+            detailList.style.animationDuration = animationDuration;
+            
             // Start both animations simultaneously
             outerClone.classList.add(slideOutClass);
             detailClone.classList.add(slideOutClass);
@@ -2395,12 +2468,14 @@ class MasterDetailController {
                 outerClone.remove();
                 detailClone.remove();
                 
-                // Remove animation classes from originals
+                // Remove animation classes and reset duration
                 outerList.classList.remove(slideInClass);
                 detailList.classList.remove(slideInClass);
+                outerList.style.animationDuration = '';
+                detailList.style.animationDuration = '';
                 
                 resolve();
-            }, 1000); // Full animation duration
+            }, duration); // Use dynamic duration
         });
     }
 

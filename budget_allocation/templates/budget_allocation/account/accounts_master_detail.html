@@ -4362,12 +4362,17 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
             submitBtn.disabled = true;
             
+            // Add CSRF token and AJAX flag to form data
+            formData.set('ajax', '1');
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            
             // Submit via AJAX
             fetch('{% url "budget_allocation:transaction_create" %}', {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken || ''
                 }
             })
             .then(response => response.json())
@@ -4586,7 +4591,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken ? csrfToken.value : ''
                     }
                 })
                 .then(response => response.json())
@@ -5054,11 +5060,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const transactionId = document.getElementById('editTransactionId').value;
+            
+            // Add CSRF token to form data
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            
             const response = await fetch(`/budget-allocation/transactions/${transactionId}/edit/`, {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken || ''
                 }
             });
             
@@ -5106,14 +5118,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const formData = new FormData();
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
             formData.append('ajax', '1');
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            formData.append('csrfmiddlewaretoken', csrfToken);
             
             const response = await fetch(`/budget-allocation/transactions/${transactionId}/delete/`, {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken || ''
                 }
             });
             

@@ -58,25 +58,24 @@ body {
 }
 
 .sidebar-toggle {
-    position: absolute;
-    top: 20px;
-    right: -40px;
-    background: #0d6efd;
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 0 8px 8px 0;
-    z-index: 1000;
+    border: 1px solid #dee2e6;
+    background: transparent;
+    color: #495057;
     transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .sidebar-toggle:hover {
-    background: #0b5ed7;
+    background: #0d6efd;
+    border-color: #0d6efd;
     color: white;
+}
+
+.budget-sidebar.collapsed .sidebar-toggle span {
+    display: none;
+}
+
+.budget-sidebar.collapsed .sidebar-toggle {
+    padding: 0.5rem;
 }
 
 .budget-main-content {
@@ -123,6 +122,7 @@ body {
     width: 20px;
     margin-right: 0.75rem;
     text-align: center;
+}
 
 /* Hide labels when collapsed and center icons */
 .budget-sidebar.collapsed .sidebar-header,
@@ -138,7 +138,6 @@ body {
 }
 .budget-sidebar.collapsed .sidebar-nav-link span {
     display: none;
-}
 }
 
 .sidebar-header {
@@ -228,13 +227,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainContent = document.querySelector('.budget-main-content');
     const toggleBtn = document.getElementById('sidebarToggle');
     const toggleIcon = toggleBtn.querySelector('i');
+    const toggleText = toggleBtn.querySelector('span');
     
     // Check for saved state
     const sidebarCollapsed = localStorage.getItem('budget_sidebar_collapsed') === 'true';
     if (sidebarCollapsed) {
         sidebar.classList.add('collapsed');
         mainContent.classList.add('expanded');
-        toggleIcon.className = 'fas fa-chevron-right';
+        toggleIcon.className = 'fas fa-chevron-right me-2';
+        toggleText.textContent = 'Expand';
     }
     
     toggleBtn.addEventListener('click', function() {
@@ -244,13 +245,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Expand sidebar
             sidebar.classList.remove('collapsed');
             mainContent.classList.remove('expanded');
-            toggleIcon.className = 'fas fa-chevron-left';
+            toggleIcon.className = 'fas fa-chevron-left me-2';
+            toggleText.textContent = 'Collapse';
             localStorage.setItem('budget_sidebar_collapsed', 'false');
         } else {
             // Collapse sidebar
             sidebar.classList.add('collapsed');
             mainContent.classList.add('expanded');
-            toggleIcon.className = 'fas fa-chevron-right';
+            toggleIcon.className = 'fas fa-chevron-right me-2';
+            toggleText.textContent = 'Expand';
             localStorage.setItem('budget_sidebar_collapsed', 'true');
         }
     });
@@ -265,9 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="row g-0">
         <!-- Sidebar Navigation -->
         <div class="col-lg-3 col-md-4 budget-sidebar" id="budgetSidebar">
-            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
-                <i class="fas fa-chevron-left"></i>
-            </button>
             
             <div class="sidebar-header">
                 <i class="fas fa-chart-pie me-2"></i>
@@ -357,6 +357,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     </a>
                 </li>
             </ul>
+            
+            <!-- Sidebar Toggle Button at Bottom -->
+            <div class="sidebar-nav mt-auto pt-3 border-top">
+                <button class="btn btn-outline-primary w-100 sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+                    <i class="fas fa-chevron-left me-2"></i>
+                    <span>Collapse</span>
+                </button>
+            </div>
         </div>
         
         <!-- Main Content Area -->

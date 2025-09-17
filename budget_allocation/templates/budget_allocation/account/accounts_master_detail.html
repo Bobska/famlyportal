@@ -31,7 +31,7 @@
 /* Override base template sidebar styling for master-detail layout */
 .budget-sidebar {
     transition: width 0.3s ease !important;
-    overflow: hidden !important;
+    z-index: 1030 !important; /* Ensure sidebar stays above main content */
 }
 
 /* Fix sidebar collapse behavior for master-detail layout */
@@ -44,9 +44,16 @@
     margin-left: 0 !important;
 }
 
+/* Ensure main content adjusts properly when sidebar is expanded */
+.budget-sidebar:not(.collapsed) + .budget-main-content {
+    flex: 1 1 calc(100% - 25%) !important;
+    max-width: calc(100% - 25%) !important;
+}
+
 /* Show the sidebar toggle button */
 .sidebar-toggle {
     display: flex !important;
+    z-index: 1040 !important; /* Ensure toggle button is always clickable */
 }
 
 /* Hide text labels when sidebar is collapsed */
@@ -208,20 +215,6 @@
     border: 1px solid #6f42c1;
 }
 
-/* Modal stacking for nested modals */
-.modal.show {
-    z-index: 1050;
-}
-.modal.show + .modal-backdrop {
-    z-index: 1040;
-}
-/* Secondary modal (like create account from transaction) */
-.modal.show[style*="z-index: 1060"] {
-    z-index: 1060 !important;
-}
-.modal-backdrop.show[style*="z-index: 1059"] {
-    z-index: 1059 !important;
-}
 
 /* Transaction list styling */
 .transaction-list {
@@ -256,19 +249,16 @@
 .transaction-item.selected {
     background-color: rgba(0, 123, 255, 0.08);
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
 .transaction-item.selected:hover {
     background-color: rgba(0, 123, 255, 0.15);
     border-color: #0056b3;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3), 0 4px 12px rgba(0, 123, 255, 0.2);
 }
 
 .transaction-item.active {
     background-color: rgba(0, 123, 255, 0.12);
     border-color: #007bff;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
 }
 
 .transaction-amount {
@@ -312,7 +302,9 @@
 }
 
 .transaction-row .tx-date {
-    min-width: 110px;
+    min-width: 130px;
+    width: 130px;
+    flex-shrink: 0;
     color: #6c757d;
     font-size: 0.875rem;
     font-weight: 500;
@@ -638,7 +630,6 @@
 .transaction-item.selected {
     background-color: rgba(0, 123, 255, 0.08);
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
 .transaction-amount {
@@ -661,9 +652,23 @@
     padding: 4px 8px;
 }
 
-/* Ensure Bootstrap modals always sit above any app overlays and are not clipped */
-.modal { z-index: 2000; }
-.modal-backdrop { z-index: 1990; }
+/* Ensure Bootstrap modals work properly - use standard Bootstrap z-index values */
+.modal { 
+    z-index: 1055 !important; 
+}
+.modal-backdrop { 
+    z-index: 1050 !important; 
+}
+
+/* Account tree selection in Create Account modal */
+.account-tree-item:hover {
+    background-color: #f8f9fa !important;
+}
+
+.account-tree-item.selected {
+    background-color: #e3f2fd !important;
+    font-weight: bold;
+}
 
 /* Master panel tab styling */
 .master-panel .nav-tabs {
@@ -754,15 +759,15 @@
 /* Transactions tab specific panel (outer list) */
 .outer-transactions-container {
     position: relative;
-    height: calc(100vh - 240px); /* Set proper height for the container */
-    min-height: 500px;
+    height: 100%; /* Use full height of master-detail-container */
+    overflow: hidden;
 }
 
 .outer-transaction-details-panel {
     position: absolute;
     top: 0;
-    right: -40%;
-    width: 40%;
+    right: -100%;
+    width: 50%;
     height: 100%;
     background: white;
     border-left: 1px solid #dee2e6;
@@ -777,7 +782,7 @@
 }
 
 .outer-transactions-squished { 
-    padding-right: 40%; 
+    padding-right: 50%; 
     transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
 }
 
@@ -866,8 +871,10 @@
                     <i class="fas fa-chevron-left me-1"></i>Previous Week
                 </button>
                 <div class="text-center">
-                    <h5 id="weekLabel" class="mb-1">Week of {{ current_week.start_date|date:"M d, Y" }}</h5>
-                    <p id="weekRange" class="text-muted mb-0 small">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</p>
+                    <h5 id="weekRange" class="mb-1">{{ current_week.start_date|date:"M d" }} - {{ current_week.end_date|date:"M d, Y" }}</h5>
+                    <button type="button" id="todayWeekBtn" class="btn btn-link btn-sm text-muted p-0 mt-1" title="Go to current week">
+                        <i class="fas fa-calendar-day me-1"></i>Go to today
+                    </button>
                 </div>
                 <button type="button" id="nextWeekBtn" class="btn btn-outline-secondary btn-sm"{% if not next_week %} disabled{% endif %}>
                     Next Week<i class="fas fa-chevron-right ms-1"></i>
@@ -1111,53 +1118,58 @@
 
             <!-- Transactions Tab: All Transactions-style view -->
             <div class="tab-pane fade" id="outer-transactions" role="tabpanel" aria-labelledby="outer-transactions-tab">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">All Transactions</h5>
-                    <div class="d-flex align-items-center" style="gap: 8px;">
-                        <small class="text-muted" id="outerTransactionCount">&nbsp;</small>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="outerAddTransactionBtn">
-                                <i class="fas fa-plus me-1"></i>Add Transaction
-                            </button>
-                            <div class="btn-group" role="group">
-                                <button id="outerFilterDropdownBtn" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-filter me-1"></i>Filter
+                <div class="master-detail-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">All Transactions</h5>
+                        <div class="d-flex align-items-center" style="gap: 8px;">
+                            <small class="text-muted" id="outerTransactionCount">&nbsp;</small>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="outerAddTransactionBtn" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                                    <i class="fas fa-plus me-1"></i>Add Transaction
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="outerFilterDropdownBtn" id="outerTransactionTypeMenu">
-                                    <li><button class="dropdown-item" data-type="all">All</button></li>
-                                    <li><button class="dropdown-item" data-type="income">Income</button></li>
-                                    <li><button class="dropdown-item" data-type="expense">Expense</button></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="outer-transactions-container" id="outerTransactionsContainer">
-                    <div id="outerTransactionsList" class="transaction-list">
-                        <div class="text-center text-muted p-3">
-                            <i class="fas fa-spinner fa-spin me-2"></i>
-                            Loading transactions...
-                        </div>
-                    </div>
-                    <!-- Transactions tab details panel -->
-                    <div id="outer-transaction-details-panel" class="outer-transaction-details-panel">
-                        <div class="transaction-details-header">
-                            <h5 class="transaction-details-title">Transaction Details</h5>
-                            <button type="button" class="btn-close outer-transaction-details-close" aria-label="Close"></button>
-                        </div>
-                        <div class="transaction-details-content">
-                            <div class="transaction-basic-info">
-                                <div class="transaction-amount-display">
-                                    <span class="amount-value" id="outer-detail-amount">$0.00</span>
-                                    <span class="amount-type" id="outer-detail-type">Debit</span>
+                                <div class="btn-group" role="group">
+                                    <button id="outerFilterDropdownBtn" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-filter me-1"></i>Filter
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="outerFilterDropdownBtn" id="outerTransactionTypeMenu">
+                                        <li><button class="dropdown-item" data-type="all">All</button></li>
+                                        <li><button class="dropdown-item" data-type="income">Income</button></li>
+                                        <li><button class="dropdown-item" data-type="expense">Expense</button></li>
+                                    </ul>
                                 </div>
-                                <div class="transaction-date" id="outer-detail-date">Select a transaction</div>
                             </div>
-                            <div class="transaction-meta">
-                                <div class="meta-item"><label>Account:</label> <span id="outer-detail-account">-</span></div>
-                                <div class="meta-item"><label>Category:</label> <span id="outer-detail-category">-</span></div>
+                        </div>
+                    </div>
+                    <div class="outer-transactions-container" id="outerTransactionsContainer">
+                        <div id="outerTransactionsList" class="transaction-list">
+                            <div class="text-center text-muted p-3">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Loading transactions...
+                            </div>
+                        </div>
+                        <!-- Transactions tab details panel -->
+                        <div id="outer-transaction-details-panel" class="outer-transaction-details-panel">
+                            <div class="transaction-details-header">
+                                <div class="d-flex align-items-center">
+                                    <button type="button" class="btn-close outer-transaction-details-close me-2" aria-label="Close"></button>
+                                    <h5 class="transaction-details-title mb-0">Transaction Details</h5>
+                                </div>
+                            </div>
+                            <div class="transaction-details-content">
+                                <div class="transaction-basic-info">
+                                    <div class="transaction-amount-display">
+                                        <span class="amount-value" id="outer-detail-amount">$0.00</span>
+                                        <span class="amount-type" id="outer-detail-type">Debit</span>
+                                    </div>
+                                    <div class="transaction-date" id="outer-detail-date">Select a transaction</div>
+                                </div>
+                                <div class="transaction-meta">
+                                    <div class="meta-item"><label>Account:</label> <span id="outer-detail-account">-</span></div>
+                                    <div class="meta-item"><label>Payee:</label> <span id="outer-detail-payee">-</span></div>
+                                    <div class="meta-item"><label>Category:</label> <span id="outer-detail-category">-</span></div>
                                 <div class="meta-item"><label>Description:</label> <span id="outer-detail-description">-</span></div>
                                 <div class="meta-item"><label>Reference:</label> <span id="outer-detail-reference">-</span></div>
+                                <div class="meta-item"><label>Reconciled:</label> <span id="outer-detail-reconciled">-</span></div>
                                 <div class="meta-item"><label>Week:</label> <span id="outer-detail-week">-</span></div>
                             </div>
                             <div class="transaction-actions">
@@ -1166,6 +1178,7 @@
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
 
@@ -1194,57 +1207,6 @@
 </div>
 
 <!-- Modals -->
-<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Transaction</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="transactionForm">
-                    {% csrf_token %}
-                    <input type="hidden" name="ajax" value="1" />
-                    <input type="hidden" name="return_week" id="tx_return_week" />
-                    <input type="hidden" name="account" id="tx_account_id" />
-                    <!-- Account is still selected by detail account; Payee/Merchant handled by dedicated modal -->
-                    <div class="mb-3">
-                        <label for="tx_transaction_date" class="form-label">Date</label>
-                        <input type="date" class="form-control" name="transaction_date" id="tx_transaction_date" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="tx_amount" class="form-label">Amount</label>
-                        <input type="number" step="0.01" min="0.01" class="form-control" name="amount" id="tx_amount" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="tx_description" class="form-label">Description</label>
-                        <input type="text" class="form-control" name="description" id="tx_description" />
-                    </div>
-                    <div class="mb-3">
-                        <label for="tx_payee" class="form-label">Merchant/Payee</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="payee" id="tx_payee" />
-                            <button type="button" class="btn btn-outline-secondary" id="tx_open_payee_modal">
-                                <i class="fas fa-plus me-1"></i>New
-                            </button>
-                        </div>
-                        <div class="form-text">Use New to create a Merchant/Payee with an expandable account tree.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tx_reference" class="form-label">Reference</label>
-                        <input type="text" class="form-control" name="reference" id="tx_reference" />
-                    </div>
-                </form>
-                <div id="tx_error" class="alert alert-danger d-none"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="tx_submit_btn">Save Transaction</button>
-            </div>
-        </div>
-    </div>
- </div>
-
 <!-- Create Child Account Modal (from detail panel) -->
 <div class="modal fade" id="createChildAccountModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -1287,7 +1249,196 @@
     </div>
 </div>
 
-{% include 'budget_allocation/partials/create_account_modal.html' %}
+<!-- Quick Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1" aria-labelledby="addTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTransactionModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Quick Add Transaction
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickTransactionForm" method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <!-- Success/Error Messages -->
+                    <div id="modalMessages" class="d-none"></div>
+                    
+                    <div class="row">
+                        <!-- Transaction Date - First Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalTransactionDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-1"></i>Date *
+                                </label>
+                                <input type="date" class="form-control" id="modalTransactionDate" 
+                                       name="transaction_date" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Transaction Type - Second Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalTransactionType" class="form-label fw-bold">
+                                    <i class="fas fa-exchange-alt me-1"></i>Type *
+                                </label>
+                                <select class="form-select" id="modalTransactionType" name="transaction_type" required>
+                                    <option value="">Choose type...</option>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Merchant/Payee - Third Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalMerchantPayee" class="form-label fw-bold">
+                                    <i class="fas fa-store me-1"></i><span id="merchantPayeeLabel">Merchant/Payee</span> *
+                                </label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <select class="form-select flex-grow-1" id="modalMerchantPayee" name="account" required disabled>
+                                        <option value="">First select a transaction type...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary" id="createNewAccountBtn" 
+                                            style="display: none;">
+                                        <i class="fas fa-plus me-1"></i>New
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Amount - Fourth Field -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalAmount" class="form-label fw-bold">
+                                    <i class="fas fa-dollar-sign me-1"></i>Amount *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="modalAmount" name="amount" 
+                                           step="0.01" min="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visual Separator for Optional Fields -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <hr class="mb-3" style="border-top: 2px dashed #dee2e6;">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Optional Details
+                            </h6>
+                        </div>
+                    </div>
+                    
+                    <!-- Description and Reference on same line - Optional Fields -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalDescription" class="form-label text-muted">
+                                    <i class="fas fa-pencil-alt me-1"></i>Description
+                                </label>
+                                <input type="text" class="form-control" id="modalDescription" name="description" 
+                                       placeholder="Describe this transaction...">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modalReference" class="form-label text-muted">
+                                    <i class="fas fa-hashtag me-1"></i>Reference
+                                </label>
+                                <input type="text" class="form-control" id="modalReference" name="reference" 
+                                       placeholder="Check number, invoice number, etc.">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Transaction
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Account Modal -->
+<div class="modal fade" id="createAccountModal" tabindex="-1" aria-labelledby="createAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createAccountModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Create New <span id="newAccountTypeLabel">Account</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createAccountForm">
+                    {% csrf_token %}
+                    
+                    <!-- Messages for account creation -->
+                    <div id="createAccountMessages" class="d-none"></div>
+                    
+                    <!-- Account Name -->
+                    <div class="mb-3">
+                        <label for="newAccountName" class="form-label fw-bold">
+                            <i class="fas fa-tag me-1"></i><span id="newAccountNameLabel">Account Name</span> *
+                        </label>
+                        <input type="text" class="form-control" id="newAccountName" name="name" required
+                               placeholder="Enter account name...">
+                    </div>
+                    
+                    <!-- Parent Account Selection -->
+                    <div class="mb-3" id="parentSelectionDiv">
+                        <label for="newAccountParent" class="form-label fw-bold">
+                            <i class="fas fa-sitemap me-1"></i>Parent <span id="parentAccountTypeLabel">Account</span>
+                        </label>
+                        <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa;">
+                            <div class="form-text mb-2" id="parentSelectionInstructions">Select the account to add this new item under:</div>
+                            <div id="accountTreeSelector">
+                                <!-- Account tree will be populated here -->
+                            </div>
+                        </div>
+                        <input type="hidden" id="newAccountParent" name="parent" value="">
+                        <div class="mt-1">
+                            <small class="text-muted">Selected: <span id="selectedParentName" class="fw-bold">None</span></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Type (hidden - auto-set based on transaction type) -->
+                    <input type="hidden" id="newAccountType" name="account_type" value="">
+                    
+                    <!-- Optional Description -->
+                    <div class="mb-3">
+                        <label for="newAccountDescription" class="form-label text-muted">
+                            <i class="fas fa-info-circle me-1"></i>Description (Optional)
+                        </label>
+                        <textarea class="form-control" id="newAccountDescription" name="description" rows="2"
+                                  placeholder="Brief description of this account..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Create <span id="saveAccountTypeLabel">Account</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
@@ -1799,8 +1950,10 @@ class MasterDetailController {
         // Week navigation buttons
         const prevBtn = document.getElementById('prevWeekBtn');
         const nextBtn = document.getElementById('nextWeekBtn');
+        const todayBtn = document.getElementById('todayWeekBtn');
         if (prevBtn) prevBtn.addEventListener('click', () => this.shiftWeek(-7));
         if (nextBtn) nextBtn.addEventListener('click', () => this.shiftWeek(7));
+        if (todayBtn) todayBtn.addEventListener('click', () => this.goToCurrentWeek());
         
         // Transaction type filter dropdown
         const transactionTypeFilter = document.getElementById('transactionTypeFilter');
@@ -1865,6 +2018,95 @@ class MasterDetailController {
         this.filterTransactionsByType(detailFilter, { target: 'detail' });
     }
 
+    goToCurrentWeek() {
+        // Calculate the current week's Monday
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const mondayOffset = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday
+        
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + mondayOffset);
+        
+        // Format as YYYY-MM-DD
+        const yyyy = monday.getFullYear();
+        const mm = String(monday.getMonth() + 1).padStart(2, '0');
+        const dd = String(monday.getDate()).padStart(2, '0');
+        const currentWeekStart = `${yyyy}-${mm}-${dd}`;
+        
+        // If we're already on the current week, do nothing
+        if (this.weekStart === currentWeekStart) {
+            return;
+        }
+        
+        // Set to current week and refresh
+        this.weekStart = currentWeekStart;
+        
+        // Update header and refresh data
+        this.updateWeekHeader();
+        
+        // Update localStorage for week persistence
+        localStorage.setItem('budget_allocation_week', this.weekStart);
+        
+        // Update URL without week parameter (only account_id)
+        const url = new URL(window.location);
+        url.searchParams.delete('week');
+        if (this.selectedAccountId) {
+            url.searchParams.set('account_id', this.selectedAccountId);
+        } else {
+            url.searchParams.delete('account_id');
+        }
+        window.history.pushState({}, '', url.toString());
+        
+        // Update week navigation button states
+        this.updateWeekNavigationAvailability();
+        
+        // If an account is selected, reload its details for the new week
+        if (this.selectedAccountId) {
+            this.loadAccountData(this.selectedAccountId);
+        }
+        
+        // Refresh transactions lists for current week
+        this.filterTransactionsByType(localStorage.getItem('ba.outer.txType') || 'all', { target: 'outer' });
+        const detailFilter = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
+        this.filterTransactionsByType(detailFilter, { target: 'detail' });
+        
+        // Update Today button state
+        this.updateTodayButton();
+    }
+
+    updateTodayButton() {
+        const todayBtn = document.getElementById('todayWeekBtn');
+        if (!todayBtn) return;
+        
+        // Calculate current week's Monday
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const mondayOffset = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + mondayOffset);
+        
+        const yyyy = monday.getFullYear();
+        const mm = String(monday.getMonth() + 1).padStart(2, '0');
+        const dd = String(monday.getDate()).padStart(2, '0');
+        const currentWeekStart = `${yyyy}-${mm}-${dd}`;
+        
+        const isCurrentWeek = this.weekStart === currentWeekStart;
+        
+        if (isCurrentWeek) {
+            todayBtn.innerHTML = '<i class="fas fa-calendar-check me-1"></i>Current week';
+            todayBtn.disabled = true;
+            todayBtn.classList.add('text-success');
+            todayBtn.classList.remove('text-muted');
+            todayBtn.title = 'You are viewing the current week';
+        } else {
+            todayBtn.innerHTML = '<i class="fas fa-calendar-day me-1"></i>Go to today';
+            todayBtn.disabled = false;
+            todayBtn.classList.remove('text-success');
+            todayBtn.classList.add('text-muted');
+            todayBtn.title = 'Go to current week';
+        }
+    }
+
     updateWeekHeader() {
         // weekStart is Monday; range = weekStart .. weekStart+6
         const start = new Date(this.weekStart);
@@ -1875,10 +2117,11 @@ class MasterDetailController {
         const formatLong = (d) => d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
         const formatShort = (d) => d.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
 
-        const labelEl = document.getElementById('weekLabel');
         const rangeEl = document.getElementById('weekRange');
-        if (labelEl) labelEl.textContent = `Week of ${formatLong(startUTC)}`;
         if (rangeEl) rangeEl.textContent = `${formatShort(startUTC)} - ${formatLong(endUTC)}`;
+        
+        // Update Today button state whenever week changes
+        this.updateTodayButton();
     }
 
     updateWeekNavigationButtons() {
@@ -3046,8 +3289,10 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
                     ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}
                 </div>
                 <div class="account-name" style="display: none;">${tx.account_name || ''}</div>
+                <div class="payee" style="display: none;">${tx.payee || ''}</div>
                 <div class="category" style="display: none;">${tx.category || ''}</div>
                 <div class="reference" style="display: none;">${tx.reference || ''}</div>
+                <div class="reconciled" style="display: none;">${tx.is_reconciled || false}</div>
                 <div class="transaction-type" style="display: none;">${tx.amount >= 0 ? 'Credit' : 'Debit'}</div>
             </div>
         </div>
@@ -3326,9 +3571,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('outer-detail-type').textContent = data.type || 'Transaction';
         document.getElementById('outer-detail-date').textContent = data.date || 'No date';
         document.getElementById('outer-detail-account').textContent = data.account || '-';
+        document.getElementById('outer-detail-payee').textContent = data.payee || '-';
         document.getElementById('outer-detail-category').textContent = data.category || '-';
         document.getElementById('outer-detail-description').textContent = data.description || '-';
         document.getElementById('outer-detail-reference').textContent = data.reference || '-';
+        document.getElementById('outer-detail-reconciled').textContent = data.reconciled ? 'Yes' : 'No';
         document.getElementById('outer-detail-week').textContent = data.week || '-';
         outerTabPanel.dataset.transactionId = data.id || '';
     }
@@ -3372,9 +3619,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     type: item.querySelector('.transaction-type')?.textContent || 'Transaction',
                     date: item.querySelector('.transaction-date')?.textContent || 'No date',
                     account: item.querySelector('.account-name')?.textContent || '-',
+                    payee: item.querySelector('.payee')?.textContent || '-',
                     category: item.querySelector('.category')?.textContent || '-',
                     description: item.querySelector('.description')?.textContent || '-',
                     reference: item.querySelector('.reference')?.textContent || '-',
+                    reconciled: item.querySelector('.reconciled')?.textContent === 'true',
                     week: item.closest('.week-section')?.querySelector('.week-header')?.textContent || '-'
                 };
                 openPanel(data);
@@ -3404,6 +3653,637 @@ document.addEventListener('DOMContentLoaded', function() {
             closePanel(); 
         }
     });
+});
+
+// Add Transaction Modal Management
+
+// --- Add Transaction Modal: Account Dropdown Selector ---
+document.addEventListener('DOMContentLoaded', function() {
+    const addTransactionModal = document.getElementById('addTransactionModal');
+    const modalDateField = document.getElementById('modalTransactionDate');
+    const modalTypeField = document.getElementById('modalTransactionType');
+    const modalMerchantSelect = document.getElementById('modalMerchantPayee');
+    const createNewBtn = document.getElementById('createNewAccountBtn');
+    const merchantLabel = document.getElementById('merchantPayeeLabel');
+
+    // Prefill date with today's date when modal opens
+    addTransactionModal.addEventListener('show.bs.modal', function() {
+        if (modalDateField && !modalDateField.value) {
+            const today = new Date().toISOString().split('T')[0];
+            modalDateField.value = today;
+        }
+    });
+
+    // Handle transaction type change
+    modalTypeField.addEventListener('change', function() {
+        const selectedType = this.value;
+        if (selectedType) {
+            createNewBtn.style.display = 'block';
+            // Update label based on type
+            merchantLabel.textContent = selectedType === 'income' ? 'Payee' : 'Merchant';
+            // Populate dropdown with filtered accounts
+            populateAccountDropdown(selectedType);
+        } else {
+            createNewBtn.style.display = 'none';
+            merchantLabel.textContent = 'Merchant/Payee';
+            modalMerchantSelect.disabled = true;
+            modalMerchantSelect.innerHTML = '<option value="">First select a transaction type...</option>';
+        }
+    });
+
+    // Populate dropdown with accounts filtered by type (like All Transactions modal)
+    function populateAccountDropdown(type) {
+        // Clear current options
+        modalMerchantSelect.innerHTML = `<option value="">Choose ${type === 'income' ? 'payee' : 'merchant'}...</option>`;
+        
+        // Get all account items from the master panel
+        const accountItems = document.querySelectorAll('#masterPanel .account-item');
+        const filteredAccounts = [];
+        
+        accountItems.forEach(item => {
+            const accountId = item.dataset.accountId;
+            const accountName = item.querySelector('.account-name')?.textContent?.trim();
+            const accountType = item.dataset.accountType || '';
+            
+            // Only include accounts that match the transaction type and are merchant/payee accounts
+            // (leaf accounts - accounts without children, or accounts marked as merchant/payee)
+            const hasChildren = item.parentElement?.querySelector('.account-children')?.children?.length > 0;
+            const isMerchantPayee = !hasChildren || item.classList.contains('merchant-payee');
+            
+            if (accountType === type && isMerchantPayee && accountId && accountName) {
+                filteredAccounts.push({
+                    id: accountId,
+                    name: accountName,
+                    type: accountType
+                });
+            }
+        });
+
+        if (filteredAccounts.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = `No ${type} accounts available`;
+            option.disabled = true;
+            modalMerchantSelect.appendChild(option);
+        } else {
+            // Add filtered accounts to dropdown
+            filteredAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = account.name;
+                modalMerchantSelect.appendChild(option);
+            });
+        }
+        
+        // Enable the dropdown
+        modalMerchantSelect.disabled = false;
+    }
+
+    // Handle Add Transaction form submission via AJAX
+    const quickTransactionForm = document.getElementById('quickTransactionForm');
+    if (quickTransactionForm) {
+        quickTransactionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Transaction form submitted');
+            
+            // Get form data
+            const formData = new FormData(this);
+            
+            // Validate required fields
+            const requiredFields = ['transaction_date', 'transaction_type', 'account', 'amount'];
+            const missingFields = [];
+            
+            requiredFields.forEach(field => {
+                const value = formData.get(field);
+                if (!value || value.trim() === '') {
+                    missingFields.push(field);
+                }
+            });
+            
+            if (missingFields.length > 0) {
+                showModalMessage('error', 'Please fill in all required fields.');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+            submitBtn.disabled = true;
+            
+            // Submit via AJAX
+            fetch('{% url "budget_allocation:transaction_create" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Transaction creation response:', data);
+                
+                if (data.success) {
+                    // Show success message
+                    showModalMessage('success', data.message || 'Transaction created successfully!');
+                    
+                    // Clear form
+                    quickTransactionForm.reset();
+                    modalMerchantSelect.disabled = true;
+                    modalMerchantSelect.innerHTML = '<option value="">First select a transaction type...</option>';
+                    createNewBtn.style.display = 'none';
+                    merchantLabel.textContent = 'Merchant/Payee';
+                    
+                    // Close modal after delay
+                    setTimeout(() => {
+                        const modalInstance = bootstrap.Modal.getInstance(addTransactionModal);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                        
+                        // Refresh the page to show updated balances and transactions
+                        location.reload();
+                    }, 1500);
+                    
+                } else {
+                    showModalMessage('error', data.error || 'Error creating transaction');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showModalMessage('error', 'Error creating transaction: ' + error.message);
+            })
+            .finally(() => {
+                // Restore button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+    
+    // Helper function to show messages in the modal
+    function showModalMessage(type, message) {
+        const messagesDiv = document.getElementById('modalMessages');
+        if (messagesDiv) {
+            messagesDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`;
+            messagesDiv.innerHTML = `
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            messagesDiv.classList.remove('d-none');
+            
+            // Auto-hide success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    if (messagesDiv.parentNode) {
+                        messagesDiv.classList.add('d-none');
+                    }
+                }, 3000);
+            }
+        }
+    }
+
+    // Handle "Create New Account" button click to set up the tree for parent selection
+    createNewBtn.addEventListener('click', function() {
+        const selectedType = modalTypeField.value;
+        if (selectedType) {
+            // Store that we came from Add Transaction modal
+            sessionStorage.setItem('cameFromAddTransaction', 'true');
+            sessionStorage.setItem('addTransactionType', selectedType);
+            
+            // Set the account type for the new account modal
+            document.getElementById('newAccountType').value = selectedType;
+            
+            // Update labels in the create account modal
+            updateCreateAccountModalLabels(selectedType);
+            
+            // Don't hide the Add Transaction modal - keep it in the background
+            const addTransactionModalElement = document.getElementById('addTransactionModal');
+            if (addTransactionModalElement) {
+                // Reduce z-index and add fade effect
+                addTransactionModalElement.style.zIndex = '1050';
+                addTransactionModalElement.style.opacity = '0.3';
+                addTransactionModalElement.style.filter = 'blur(1px)';
+                addTransactionModalElement.style.transition = 'opacity 0.3s ease, filter 0.3s ease';
+                
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.style.zIndex = '1049';
+                }
+            }
+            
+            // Show the Create Account modal on top
+            const createAccountModal = document.getElementById('createAccountModal');
+            if (createAccountModal) {
+                createAccountModal.style.zIndex = '1060';
+                // Add enhanced shadow to make it stand out from faded background
+                const modalDialog = createAccountModal.querySelector('.modal-dialog');
+                if (modalDialog) {
+                    modalDialog.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.3)';
+                    modalDialog.style.transition = 'box-shadow 0.3s ease';
+                }
+                const createModalInstance = new bootstrap.Modal(createAccountModal);
+                createModalInstance.show();
+            }
+        }
+    });
+
+    // Handle Create Account modal shown event to populate the tree
+    const createAccountModal = document.getElementById('createAccountModal');
+    if (createAccountModal) {
+        createAccountModal.addEventListener('shown.bs.modal', function() {
+            console.log('Create Account modal shown');
+            
+            // Check if we came from Add Transaction modal
+            const cameFromAddTransaction = sessionStorage.getItem('cameFromAddTransaction');
+            const storedType = sessionStorage.getItem('addTransactionType') || document.getElementById('newAccountType')?.value;
+            
+            if (cameFromAddTransaction && storedType) {
+                console.log('Using stored transaction type from Add Transaction modal:', storedType);
+                populateParentAccountTree(storedType);
+                updateCreateAccountModalLabels(storedType);
+                // Set the hidden account type input
+                document.getElementById('newAccountType').value = storedType;
+            } else {
+                // Fallback to existing logic
+                const accountType = document.getElementById('newAccountType').value;
+                if (accountType) {
+                    populateParentAccountTree(accountType);
+                    updateCreateAccountModalLabels(accountType);
+                } else {
+                    console.log('No transaction type found, defaulting to expense');
+                    populateParentAccountTree('expense');
+                    updateCreateAccountModalLabels('expense');
+                    document.getElementById('newAccountType').value = 'expense';
+                }
+            }
+        });
+        
+        // Handle Cancel button
+        const cancelButton = createAccountModal.querySelector('.btn-secondary');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                console.log('Cancel button clicked');
+                
+                // Check if we came from Add Transaction modal
+                const cameFromAddTransaction = sessionStorage.getItem('cameFromAddTransaction');
+                
+                if (cameFromAddTransaction) {
+                    // Clear the session storage
+                    sessionStorage.removeItem('cameFromAddTransaction');
+                    sessionStorage.removeItem('addTransactionType');
+                    
+                    // Restore Add Transaction modal to front
+                    const addTransactionModalElement = document.getElementById('addTransactionModal');
+                    if (addTransactionModalElement) {
+                        addTransactionModalElement.style.zIndex = '1055';
+                        addTransactionModalElement.style.opacity = '1';
+                        addTransactionModalElement.style.filter = 'none';
+                        addTransactionModalElement.style.transition = 'opacity 0.3s ease, filter 0.3s ease';
+                        
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.style.zIndex = '1054';
+                        }
+                    }
+                }
+                
+                const modalInstance = bootstrap.Modal.getInstance(createAccountModal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            });
+        }
+        
+        // Handle Create button
+        const createButton = createAccountModal.querySelector('.btn-primary');
+        if (createButton) {
+            createButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Create Account button clicked');
+                
+                // Get form data
+                const accountName = document.getElementById('newAccountName')?.value?.trim();
+                const parentId = document.getElementById('newAccountParent')?.value;
+                const accountType = document.getElementById('newAccountType')?.value;
+                
+                if (!accountName) {
+                    alert('Please enter an account name');
+                    return;
+                }
+                
+                console.log('Creating account:', { name: accountName, parent: parentId, type: accountType });
+                
+                // Prepare form data for submission
+                const formData = new FormData();
+                formData.append('name', accountName);
+                formData.append('account_type', accountType || 'expense');
+                
+                if (parentId) {
+                    formData.append('parent', parentId);
+                }
+                
+                // Add CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfToken) {
+                    formData.append('csrfmiddlewaretoken', csrfToken.value);
+                }
+                
+                // Submit the form via AJAX
+                fetch('{% url "budget_allocation:create_account_ajax" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Account creation response:', data);
+                    
+                    if (data.success) {
+                        // Close the create account modal
+                        const modalInstance = bootstrap.Modal.getInstance(createAccountModal);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                        
+                        // Check if we came from Add Transaction modal
+                        const cameFromAddTransaction = sessionStorage.getItem('cameFromAddTransaction');
+                        
+                        if (cameFromAddTransaction) {
+                            // Clear the session storage
+                            sessionStorage.removeItem('cameFromAddTransaction');
+                            sessionStorage.removeItem('addTransactionType');
+                            
+                            // Restore Add Transaction modal to front
+                            const addTransactionModalElement = document.getElementById('addTransactionModal');
+                            if (addTransactionModalElement) {
+                                addTransactionModalElement.style.zIndex = '1055';
+                                addTransactionModalElement.style.opacity = '1';
+                                addTransactionModalElement.style.filter = 'none';
+                                addTransactionModalElement.style.transition = 'opacity 0.3s ease, filter 0.3s ease';
+                                
+                                const backdrop = document.querySelector('.modal-backdrop');
+                                if (backdrop) {
+                                    backdrop.style.zIndex = '1054';
+                                }
+                            }
+                            
+                            // Auto-populate the merchant/payee dropdown in Add Transaction modal
+                            const merchantDropdown = document.getElementById('modalMerchantPayee');
+                            if (merchantDropdown && data.account) {
+                                // Add the new account to the dropdown
+                                const newOption = document.createElement('option');
+                                newOption.value = data.account.id;
+                                newOption.textContent = data.account.name;
+                                newOption.selected = true;
+                                merchantDropdown.appendChild(newOption);
+                                
+                                console.log('Added new account to merchant dropdown:', data.account.name);
+                                
+                                // Show success message in Add Transaction modal
+                                const addModalBody = addTransactionModalElement.querySelector('.modal-body');
+                                if (addModalBody) {
+                                    const successAlert = document.createElement('div');
+                                    successAlert.className = 'alert alert-success alert-dismissible fade show';
+                                    successAlert.innerHTML = `
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        ${data.account.account_type === 'income' ? 'Payee' : 'Merchant'} "${data.account.name}" created successfully!
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    `;
+                                    addModalBody.insertBefore(successAlert, addModalBody.firstChild);
+                                    
+                                    // Auto-remove after 3 seconds
+                                    setTimeout(() => {
+                                        if (successAlert.parentNode) {
+                                            successAlert.remove();
+                                        }
+                                    }, 3000);
+                                }
+                            }
+                        } else {
+                            // Not from Add Transaction modal - refresh the page to show new account
+                            location.reload();
+                        }
+                        
+                    } else {
+                        alert('Error creating account: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error creating account: ' + error.message);
+                });
+            });
+        }
+        
+        // Handle modal being hidden (X button, escape key, etc.)
+        createAccountModal.addEventListener('hidden.bs.modal', function() {
+            console.log('Create Account modal hidden');
+            
+            // Check if we came from Add Transaction modal
+            const cameFromAddTransaction = sessionStorage.getItem('cameFromAddTransaction');
+            
+            if (cameFromAddTransaction) {
+                // Clear the session storage
+                sessionStorage.removeItem('cameFromAddTransaction');
+                sessionStorage.removeItem('addTransactionType');
+                
+                // Restore Add Transaction modal to front
+                const addTransactionModalElement = document.getElementById('addTransactionModal');
+                if (addTransactionModalElement) {
+                    addTransactionModalElement.style.zIndex = '1055';
+                    addTransactionModalElement.style.opacity = '1';
+                    addTransactionModalElement.style.filter = 'none';
+                    addTransactionModalElement.style.transition = 'opacity 0.3s ease, filter 0.3s ease';
+                    
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.style.zIndex = '1054';
+                    }
+                }
+            }
+            
+            // Clear form data
+            document.getElementById('newAccountName').value = '';
+            document.getElementById('newAccountDescription').value = '';
+            document.getElementById('newAccountParent').value = '';
+            const selectedParentName = document.getElementById('selectedParentName');
+            if (selectedParentName) {
+                selectedParentName.textContent = 'None';
+            }
+            
+            // Reset modal styling
+            const modalDialog = createAccountModal.querySelector('.modal-dialog');
+            if (modalDialog) {
+                modalDialog.style.boxShadow = '';
+                modalDialog.style.transition = '';
+            }
+        });
+    }
+
+    // Update labels in create account modal based on type
+    function updateCreateAccountModalLabels(selectedType) {
+        const createNewTypeSpan = document.getElementById('createNewAccountType');
+        const newAccountTypeLabel = document.getElementById('newAccountTypeLabel');
+        const parentAccountTypeLabel = document.getElementById('parentAccountTypeLabel');
+        const saveAccountTypeLabel = document.getElementById('saveAccountTypeLabel');
+        const newAccountNameLabel = document.getElementById('newAccountNameLabel');
+        
+        if (selectedType === 'income') {
+            if (createNewTypeSpan) createNewTypeSpan.textContent = 'Payee';
+            if (newAccountTypeLabel) newAccountTypeLabel.textContent = 'Payee';
+            if (parentAccountTypeLabel) parentAccountTypeLabel.textContent = 'Income Account';
+            if (saveAccountTypeLabel) saveAccountTypeLabel.textContent = 'Payee';
+            if (newAccountNameLabel) newAccountNameLabel.textContent = 'Payee Name';
+        } else {
+            if (createNewTypeSpan) createNewTypeSpan.textContent = 'Merchant';
+            if (newAccountTypeLabel) newAccountTypeLabel.textContent = 'Merchant';
+            if (parentAccountTypeLabel) parentAccountTypeLabel.textContent = 'Expense Account';
+            if (saveAccountTypeLabel) saveAccountTypeLabel.textContent = 'Merchant';
+            if (newAccountNameLabel) newAccountNameLabel.textContent = 'Merchant Name';
+        }
+    }
+
+    // Populate the parent account tree in the Create New Account modal
+    function populateParentAccountTree(type) {
+        const accountTreeSelector = document.getElementById('accountTreeSelector');
+        const parentSelectionInstructions = document.getElementById('parentSelectionInstructions');
+        const selectedParentName = document.getElementById('selectedParentName');
+        
+        if (!accountTreeSelector) {
+            console.log('accountTreeSelector not found');
+            return;
+        }
+        
+        console.log('Populating parent account tree for type:', type);
+        
+        // Clear previous selection and set default to root
+        document.getElementById('newAccountParent').value = '';
+        
+        // Set default parent to root category
+        const rootCategoryName = type.charAt(0).toUpperCase() + type.slice(1);
+        if (selectedParentName) {
+            selectedParentName.textContent = rootCategoryName;
+        }
+        
+        // Get all accounts of the selected type from the master panel
+        const accountItems = document.querySelectorAll('#masterPanel .account-item[data-account-type="' + type + '"]');
+        console.log('Found account items:', accountItems.length);
+        
+        // Build tree structure showing hierarchy
+        let treeHtml = `
+            <div class="account-tree-item d-flex align-items-center py-2 px-2 mb-1 root-category" 
+                 style="cursor: pointer; border-radius: 4px; border: 2px solid #0d6efd; background-color: #e3f2fd; font-weight: bold;" 
+                 data-account-id="" 
+                 data-account-name="${rootCategoryName}">
+                <i class="fas fa-home me-2 text-primary"></i>
+                <span class="flex-grow-1">${rootCategoryName} (Root)</span>
+                <i class="fas fa-check-circle text-primary"></i>
+            </div>
+        `;
+        
+        if (accountItems.length > 0) {
+            accountItems.forEach(item => {
+                const accountId = item.dataset.accountId;
+                const accountName = item.querySelector('.account-name')?.textContent?.trim();
+                
+                if (accountId && accountName) {
+                    // Calculate indentation based on the item's position in the tree
+                    const computedStyle = window.getComputedStyle(item);
+                    const paddingLeft = parseInt(computedStyle.paddingLeft) || 0;
+                    const level = Math.max(0, Math.floor(paddingLeft / 20));
+                    
+                    // Check if this account has children
+                    const hasChildren = item.nextElementSibling?.classList.contains('account-children');
+                    
+                    treeHtml += `
+                        <div class="account-tree-item d-flex align-items-center py-2 px-2 mb-1" 
+                             style="margin-left: ${(level + 1) * 20}px; cursor: pointer; border-radius: 4px; border: 1px solid transparent;" 
+                             data-account-id="${accountId}" 
+                             data-account-name="${accountName}"
+                             data-has-children="${hasChildren}">
+                            ${hasChildren ? 
+                                '<i class="fas fa-folder me-2 text-warning"></i>' : 
+                                '<i class="fas fa-' + (type === 'income' ? 'plus' : 'minus') + '-circle me-2 text-' + (type === 'income' ? 'success' : 'danger') + '"></i>'
+                            }
+                            <span class="flex-grow-1">${accountName}</span>
+                            <i class="fas fa-check-circle text-primary" style="display: none;"></i>
+                        </div>
+                    `;
+                }
+            });
+        }
+        
+        accountTreeSelector.innerHTML = treeHtml;
+        
+        if (parentSelectionInstructions) {
+            parentSelectionInstructions.textContent = `Select parent account for your new ${type === 'income' ? 'payee' : 'merchant'}:`;
+        }
+        
+        // Attach click handlers for parent selection
+        accountTreeSelector.querySelectorAll('.account-tree-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const isCurrentlySelected = this.classList.contains('selected');
+                const isRootCategory = this.classList.contains('root-category');
+                
+                // Remove previous selection from all items
+                accountTreeSelector.querySelectorAll('.account-tree-item').forEach(el => {
+                    el.classList.remove('selected');
+                    el.style.borderColor = el.classList.contains('root-category') ? '#0d6efd' : 'transparent';
+                    el.style.backgroundColor = el.classList.contains('root-category') ? '#e3f2fd' : '';
+                    el.style.fontWeight = el.classList.contains('root-category') ? 'bold' : '';
+                    const checkIcon = el.querySelector('.fa-check-circle');
+                    if (checkIcon) {
+                        checkIcon.style.display = el.classList.contains('root-category') ? 'inline' : 'none';
+                    }
+                });
+                
+                if (isCurrentlySelected && !isRootCategory) {
+                    // Unselect current item, revert to root
+                    document.getElementById('newAccountParent').value = '';
+                    if (selectedParentName) {
+                        selectedParentName.textContent = rootCategoryName;
+                    }
+                    console.log('Unselected, reverted to root:', rootCategoryName);
+                } else if (!isRootCategory) {
+                    // Select new item
+                    this.classList.add('selected');
+                    this.style.borderColor = '#0d6efd';
+                    this.style.backgroundColor = '#e3f2fd';
+                    this.style.fontWeight = 'bold';
+                    const checkIcon = this.querySelector('.fa-check-circle');
+                    if (checkIcon) checkIcon.style.display = 'inline';
+                    
+                    // Set the parent value
+                    document.getElementById('newAccountParent').value = this.dataset.accountId;
+                    if (selectedParentName) {
+                        selectedParentName.textContent = this.dataset.accountName;
+                    }
+                    
+                    console.log('Selected parent:', this.dataset.accountName, 'ID:', this.dataset.accountId);
+                }
+                // If clicking root when already selected, do nothing (root stays selected)
+            });
+            
+            // Add hover effects (except for root which is always highlighted)
+            if (!item.classList.contains('root-category')) {
+                item.addEventListener('mouseenter', function() {
+                    if (!this.classList.contains('selected')) {
+                        this.style.backgroundColor = '#f8f9fa';
+                    }
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    if (!this.classList.contains('selected')) {
+                        this.style.backgroundColor = '';
+                    }
+                });
+            }
+        });
+    }
 });
 
 

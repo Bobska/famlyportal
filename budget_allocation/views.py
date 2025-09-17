@@ -1560,6 +1560,82 @@ def transaction_create(request):
 @login_required
 @family_required
 @app_permission_required('budget_allocation')
+def transaction_update(request, pk):
+    """Update an existing transaction"""
+    family = get_user_family(request.user)
+    if not family:
+        if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'You must be part of a family to edit transactions.'}, status=400)
+        messages.error(request, "You must be part of a family to edit transactions.")
+        return redirect('accounts:dashboard')
+    
+    # Get the transaction, ensuring it belongs to the user's family
+    transaction_obj = get_object_or_404(Transaction, pk=pk, family=family)
+    
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, family=family, instance=transaction_obj)
+        if form.is_valid():
+            transaction = form.save(commit=False)
+            transaction.family = family
+            
+            # Auto-assign to week based on transaction date if week changed
+            if transaction.transaction_date:
+                from datetime import timedelta
+                trans_date = transaction.transaction_date
+                week_start = trans_date - timedelta(days=trans_date.weekday())
+                week_end = week_start + timedelta(days=6)
+
+                current_week, created = WeeklyPeriod.objects.get_or_create(
+                    start_date=week_start,
+                    end_date=week_end,
+                    family=family,
+                    defaults={
+                        'is_active': True,
+                        'week_number': 1 + (week_start - date(week_start.year, 1, 1)).days // 7,
+                        'year': week_start.year
+                    }
+                )
+                transaction.week = current_week
+
+            transaction.save()
+
+            # If ajax, return JSON
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'id': transaction.id,
+                    'amount': float(transaction.amount),
+                    'account_id': transaction.account_id,
+                    'transaction_date': transaction.transaction_date.strftime('%Y-%m-%d') if transaction.transaction_date else None,
+                    'transaction_type': transaction.transaction_type,
+                    'payee': transaction.payee,
+                    'description': transaction.description,
+                    'reference': transaction.reference,
+                    'message': 'Transaction updated successfully'
+                })
+
+            messages.success(request, f'Transaction "{transaction.description or "Transaction"}" updated successfully.')
+            return redirect('budget_allocation:accounts_master_detail')
+        else:
+            if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                err = next(iter(form.errors.values()))[0] if form.errors else 'Invalid data'
+                return JsonResponse({'success': False, 'error': str(err)}, status=400)
+    else:
+        form = TransactionForm(family=family, instance=transaction_obj)
+    
+    # For GET requests or form errors in non-AJAX context
+    context = {
+        'title': 'Edit Transaction',
+        'form': form,
+        'family': family,
+        'transaction': transaction_obj,
+    }
+    return render(request, 'budget_allocation/transaction/edit.html', context)
+
+
+@login_required
+@family_required
+@app_permission_required('budget_allocation')
 def transaction_delete(request, pk):
     """Delete a transaction"""
     family = get_user_family(request.user)
@@ -1573,6 +1649,14 @@ def transaction_delete(request, pk):
     if request.method == 'POST':
         transaction_description = transaction_obj.description or "Transaction"
         transaction_obj.delete()
+        
+        # If ajax, return JSON
+        if request.POST.get('ajax') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': f'Transaction "{transaction_description}" has been deleted successfully.'
+            })
+        
         messages.success(request, f'Transaction "{transaction_description}" has been deleted successfully.')
         
         # Check if we should redirect back to account detail

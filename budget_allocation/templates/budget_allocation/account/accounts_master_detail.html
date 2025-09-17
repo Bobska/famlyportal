@@ -763,6 +763,81 @@
     overflow: hidden;
 }
 
+/* Week navigation slide animations - pure slide with subtle gap between weeks */
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-110%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(110%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutLeft {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-110%);
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(110%);
+    }
+}
+
+.transaction-list {
+    position: relative;
+    transition: all 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.transaction-list.slide-in-left {
+    animation: slideInLeft 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.transaction-list.slide-in-right {
+    animation: slideInRight 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.transaction-list.slide-out-left {
+    animation: slideOutLeft 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.transaction-list.slide-out-right {
+    animation: slideOutRight 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Animation classes for transaction lists - ultra smooth and slow with gap */
+.slideInLeft {
+    animation: slideInLeft 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.slideInRight {
+    animation: slideInRight 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.slideOutLeft {
+    animation: slideOutLeft 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.slideOutRight {
+    animation: slideOutRight 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 .outer-transaction-details-panel {
     position: absolute;
     top: 0;
@@ -773,17 +848,21 @@
     border-left: 1px solid #dee2e6;
     box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
     z-index: 100;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     overflow-y: auto;
+    opacity: 0;
+    transform: translateX(20px);
 }
 
 .outer-transaction-details-panel.active { 
-    right: 0; 
+    right: 0;
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .outer-transactions-squished { 
     padding-right: 50%; 
-    transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    transition: padding-right 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); 
 }
 
 .transaction-details-header {
@@ -1440,6 +1519,206 @@
     </div>
 </div>
 
+<!-- Edit Transaction Modal -->
+<div class="modal fade" id="editTransactionModal" tabindex="-1" aria-labelledby="editTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTransactionModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Transaction
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editTransactionForm" method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editTransactionId" name="transaction_id">
+                    
+                    <!-- Success/Error Messages -->
+                    <div id="editModalMessages" class="d-none"></div>
+                    
+                    <div class="row">
+                        <!-- Transaction Date -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editTransactionDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-1"></i>Date *
+                                </label>
+                                <input type="date" class="form-control" id="editTransactionDate" 
+                                       name="transaction_date" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Transaction Type -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editTransactionType" class="form-label fw-bold">
+                                    <i class="fas fa-exchange-alt me-1"></i>Type *
+                                </label>
+                                <select class="form-select" id="editTransactionType" name="transaction_type" required>
+                                    <option value="">Choose type...</option>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Merchant/Payee -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editMerchantPayee" class="form-label fw-bold">
+                                    <i class="fas fa-store me-1"></i><span id="editMerchantPayeeLabel">Merchant/Payee</span> *
+                                </label>
+                                <select class="form-select" id="editMerchantPayee" name="account" required>
+                                    <option value="">Select merchant/payee...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Amount -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editAmount" class="form-label fw-bold">
+                                    <i class="fas fa-dollar-sign me-1"></i>Amount *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="editAmount" name="amount" 
+                                           step="0.01" min="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visual Separator for Optional Fields -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <hr class="mb-3" style="border-top: 2px dashed #dee2e6;">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Optional Details
+                            </h6>
+                        </div>
+                    </div>
+                    
+                    <!-- Description and Reference -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editDescription" class="form-label text-muted">
+                                    <i class="fas fa-pencil-alt me-1"></i>Description
+                                </label>
+                                <input type="text" class="form-control" id="editDescription" name="description" 
+                                       placeholder="Describe this transaction...">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editReference" class="form-label text-muted">
+                                    <i class="fas fa-hashtag me-1"></i>Reference
+                                </label>
+                                <input type="text" class="form-control" id="editReference" name="reference" 
+                                       placeholder="Check number, invoice number, etc.">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payee Field -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="editPayee" class="form-label text-muted">
+                                    <i class="fas fa-user me-1"></i>Payee/From
+                                </label>
+                                <input type="text" class="form-control" id="editPayee" name="payee" 
+                                       placeholder="Who was this transaction with?">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Transaction Modal -->
+<div class="modal fade" id="deleteTransactionModal" tabindex="-1" aria-labelledby="deleteTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteTransactionModalLabel">
+                    <i class="fas fa-trash me-2"></i>Delete Transaction
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                </div>
+                
+                <h6 class="text-center mb-3">Are you sure you want to delete this transaction?</h6>
+                
+                <!-- Transaction Summary -->
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Amount:</small><br>
+                                <strong id="deleteTransactionAmount">$0.00</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Date:</small><br>
+                                <strong id="deleteTransactionDate">-</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <small class="text-muted">Payee:</small><br>
+                                <strong id="deleteTransactionPayee">-</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Type:</small><br>
+                                <strong id="deleteTransactionType">-</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2" id="deleteTransactionDescriptionRow" style="display: none;">
+                            <div class="col-12">
+                                <small class="text-muted">Description:</small><br>
+                                <strong id="deleteTransactionDescription">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-1"></i>This action cannot be undone.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteTransaction">
+                    <i class="fas fa-trash me-1"></i>Delete Transaction
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -1850,6 +2129,7 @@ class MasterDetailController {
         this.weekStart = options.weekStart || null; // YYYY-MM-DD when provided
         this.hasPrevWeek = options.hasPrevWeek || false;
         this.hasNextWeek = options.hasNextWeek || false;
+        this.isShiftingWeek = false; // Prevent multiple simultaneous week shifts
         
         this.initializeElements();
         this.bindEvents();
@@ -1947,13 +2227,37 @@ class MasterDetailController {
             }
         });
 
-        // Week navigation buttons
+        // Week navigation buttons with debouncing
         const prevBtn = document.getElementById('prevWeekBtn');
         const nextBtn = document.getElementById('nextWeekBtn');
         const todayBtn = document.getElementById('todayWeekBtn');
-        if (prevBtn) prevBtn.addEventListener('click', () => this.shiftWeek(-7));
-        if (nextBtn) nextBtn.addEventListener('click', () => this.shiftWeek(7));
-        if (todayBtn) todayBtn.addEventListener('click', () => this.goToCurrentWeek());
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!this.isShiftingWeek) {
+                    this.shiftWeek(-7);
+                }
+            });
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!this.isShiftingWeek) {
+                    this.shiftWeek(7);
+                }
+            });
+        }
+        
+        if (todayBtn) {
+            todayBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!this.isShiftingWeek) {
+                    this.goToCurrentWeek();
+                }
+            });
+        }
         
         // Transaction type filter dropdown
         const transactionTypeFilter = document.getElementById('transactionTypeFilter');
@@ -1972,53 +2276,293 @@ class MasterDetailController {
         }
     }
 
-    shiftWeek(deltaDays) {
+    async shiftWeek(deltaDays) {
         if (!this.weekStart) return;
         
-        // Check if navigation is allowed
-        if (deltaDays < 0 && !this.hasPrevWeek) return; // Trying to go back but no previous week
-        if (deltaDays > 0 && !this.hasNextWeek) return; // Trying to go forward but no next week
+        // Prevent multiple simultaneous week shifts
+        if (this.isShiftingWeek) return;
+        this.isShiftingWeek = true;
         
+        // Check if navigation is allowed
+        if (deltaDays < 0 && !this.hasPrevWeek) {
+            this.isShiftingWeek = false;
+            return;
+        }
+        if (deltaDays > 0 && !this.hasNextWeek) {
+            this.isShiftingWeek = false;
+            return;
+        }
+        
+        // Determine animation direction
+        const isGoingForward = deltaDays > 0;
+        const slideOutDirection = isGoingForward ? 'left' : 'right'; // Current content slides out
+        const slideInDirection = isGoingForward ? 'right' : 'left'; // New content slides in from opposite side
+        
+        // Calculate new week start before starting animations
         const current = new Date(this.weekStart);
-        // Correct for timezone offset
         const adjusted = new Date(Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()));
         adjusted.setUTCDate(adjusted.getUTCDate() + deltaDays);
         const yyyy = adjusted.getUTCFullYear();
         const mm = String(adjusted.getUTCMonth() + 1).padStart(2, '0');
         const dd = String(adjusted.getUTCDate()).padStart(2, '0');
-        this.weekStart = `${yyyy}-${mm}-${dd}`;
+        const newWeekStart = `${yyyy}-${mm}-${dd}`;
         
-        // Update header and refresh data without page reload
-        this.updateWeekHeader();
-        
-        // Update localStorage for week persistence
-        localStorage.setItem('budget_allocation_week', this.weekStart);
-        
-        // Update URL without week parameter (only account_id)
-        const url = new URL(window.location);
-        url.searchParams.delete('week'); // Remove week from URL
-        if (this.selectedAccountId) {
-            url.searchParams.set('account_id', this.selectedAccountId);
-        } else {
-            url.searchParams.delete('account_id');
+        try {
+            // Preload new data first
+            this.weekStart = newWeekStart;
+            this.updateWeekHeader();
+            localStorage.setItem('budget_allocation_week', this.weekStart);
+            
+            // Update URL
+            const url = new URL(window.location);
+            url.searchParams.delete('week');
+            if (this.selectedAccountId) {
+                url.searchParams.set('account_id', this.selectedAccountId);
+            } else {
+                url.searchParams.delete('account_id');
+            }
+            window.history.pushState({}, '', url.toString());
+            
+            // Update week navigation availability
+            this.updateWeekNavigationAvailability();
+            
+            // Load new data
+            const newData = await this.preloadNewWeekData();
+            
+            // Perform simultaneous slide animation
+            await this.performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData);
+            
+        } finally {
+            this.isShiftingWeek = false;
         }
-        window.history.pushState({}, '', url.toString());
-        
-        // Update week navigation button states by fetching server data
-        this.updateWeekNavigationAvailability();
-        
-        // If an account is selected, reload its details for the new week
-        if (this.selectedAccountId) {
-            this.loadAccountData(this.selectedAccountId);
+    }
+    
+    async performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData) {
+        return new Promise((resolve) => {
+            const outerList = document.getElementById('outerTransactionsList');
+            const detailList = document.getElementById('detail-transactions');
+            
+            if (!outerList || !detailList) {
+                resolve();
+                return;
+            }
+            
+            // Create clones of current content for slide-out animation
+            const outerClone = outerList.cloneNode(true);
+            const detailClone = detailList.cloneNode(true);
+            
+            // Position clones absolutely over originals
+            outerClone.style.position = 'absolute';
+            outerClone.style.top = '0';
+            outerClone.style.left = '0';
+            outerClone.style.width = '100%';
+            outerClone.style.zIndex = '10';
+            outerClone.id = 'outerTransactionsListClone';
+            
+            detailClone.style.position = 'absolute';
+            detailClone.style.top = '0';
+            detailClone.style.left = '0';
+            detailClone.style.width = '100%';
+            detailClone.style.zIndex = '10';
+            detailClone.id = 'detailTransactionsClone';
+            
+            // Insert clones before originals
+            outerList.parentNode.insertBefore(outerClone, outerList);
+            detailList.parentNode.insertBefore(detailClone, detailList);
+            
+            // Update original lists with new content immediately
+            this.renderNewWeekContent(newData);
+            
+            // Clean up any existing animation classes
+            this.cleanupAnimationClasses(outerList);
+            this.cleanupAnimationClasses(detailList);
+            this.cleanupAnimationClasses(outerClone);
+            this.cleanupAnimationClasses(detailClone);
+            
+            // Apply animations: clones slide out, originals slide in
+            const slideOutClass = slideOutDirection === 'left' ? 'slideOutLeft' : 'slideOutRight';
+            const slideInClass = slideInDirection === 'left' ? 'slideInLeft' : 'slideInRight';
+            
+            // Start both animations simultaneously
+            outerClone.classList.add(slideOutClass);
+            detailClone.classList.add(slideOutClass);
+            outerList.classList.add(slideInClass);
+            detailList.classList.add(slideInClass);
+            
+            // Clean up after animation completes
+            setTimeout(() => {
+                // Remove clones
+                outerClone.remove();
+                detailClone.remove();
+                
+                // Remove animation classes from originals
+                outerList.classList.remove(slideInClass);
+                detailList.classList.remove(slideInClass);
+                
+                resolve();
+            }, 1000); // Full animation duration
+        });
+    }
+
+    async preloadNewWeekData() {
+        try {
+            // If an account is selected, reload its details for the new week
+            if (this.selectedAccountId) {
+                this.loadAccountData(this.selectedAccountId);
+            }
+            
+            // Fetch transaction data simultaneously
+            const outerFilterType = localStorage.getItem('ba.outer.txType') || 'all';
+            const detailFilterType = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
+            
+            // Fetch data simultaneously
+            const [outerData, detailData] = await Promise.all([
+                this.fetchTransactionData(outerFilterType),
+                this.fetchTransactionData(detailFilterType)
+            ]);
+            
+            return {
+                outerData,
+                detailData,
+                outerFilterType,
+                detailFilterType
+            };
+            
+        } catch (error) {
+            console.error('Error preloading new week data:', error);
+            return null;
         }
+    }
+    
+    renderNewWeekContent(data) {
+        if (!data) return;
         
-        // Refresh transactions lists for new week
-        this.filterTransactionsByType(localStorage.getItem('ba.outer.txType') || 'all', { target: 'outer' });
-        const detailFilter = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
-        this.filterTransactionsByType(detailFilter, { target: 'detail' });
+        const { outerData, detailData } = data;
+        
+        // Update lists with new data
+        this.renderTransactionsList(outerData.transactions || [], { target: 'outer' });
+        this.renderTransactionsList(detailData.transactions || [], { target: 'detail' });
+        
+        // Update counts
+        const outerCount = document.getElementById('outerTransactionCount');
+        const detailCount = document.getElementById('transactionCount');
+        if (outerCount) outerCount.textContent = `${(outerData.transactions || []).length} transactions`;
+        if (detailCount) detailCount.textContent = `${(detailData.transactions || []).length} transactions`;
+    }
+
+    async loadNewWeekData(slideInDirection) {
+        try {
+            // If an account is selected, reload its details for the new week
+            if (this.selectedAccountId) {
+                this.loadAccountData(this.selectedAccountId);
+            }
+            
+            // Load new transaction data simultaneously
+            const outerFilterType = localStorage.getItem('ba.outer.txType') || 'all';
+            const detailFilterType = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
+            
+            // Fetch data simultaneously
+            const [outerData, detailData] = await Promise.all([
+                this.fetchTransactionData(outerFilterType),
+                this.fetchTransactionData(detailFilterType)
+            ]);
+            
+            // Update lists with new data (without slide animation first)
+            this.renderTransactionsList(outerData.transactions || [], { target: 'outer' });
+            this.renderTransactionsList(detailData.transactions || [], { target: 'detail' });
+            
+            // Update counts
+            const outerCount = document.getElementById('outerTransactionCount');
+            const detailCount = document.getElementById('transactionCount');
+            if (outerCount) outerCount.textContent = `${(outerData.transactions || []).length} transactions`;
+            if (detailCount) detailCount.textContent = `${(detailData.transactions || []).length} transactions`;
+            
+            // Now apply slide-in animation to the new content
+            await this.animateTransactionListSlideIn(slideInDirection);
+            
+        } catch (error) {
+            console.error('Error loading new week data:', error);
+        }
+    }
+    
+    async fetchTransactionData(type) {
+        let url = '/budget-allocation/api/transactions/';
+        const params = new URLSearchParams();
+        if (type !== 'all') params.set('type', type);
+        if (this.weekStart) params.set('week', this.weekStart);
+        const qs = params.toString();
+        if (qs) url += `?${qs}`;
+        
+        const response = await fetch(url);
+        return await response.json();
+    }
+
+    // Animation helper methods for week navigation
+    animateTransactionListSlideOut(direction) {
+        return new Promise((resolve) => {
+            const outerList = document.getElementById('outerTransactionsList');
+            const detailList = document.getElementById('detail-transactions');
+            
+            // Clean up any existing animation classes first
+            this.cleanupAnimationClasses(outerList);
+            this.cleanupAnimationClasses(detailList);
+            
+            // Apply slide-out animation class
+            const slideOutClass = direction === 'left' ? 'slideOutLeft' : 'slideOutRight';
+            
+            if (outerList) {
+                outerList.classList.add(slideOutClass);
+            }
+            if (detailList) {
+                detailList.classList.add(slideOutClass);
+            }
+            
+            // Wait for full animation to complete
+            setTimeout(() => {
+                // Remove animation class
+                if (outerList) outerList.classList.remove(slideOutClass);
+                if (detailList) detailList.classList.remove(slideOutClass);
+                resolve();
+            }, 1000); // Full animation duration
+        });
+    }
+
+    animateTransactionListSlideIn(direction) {
+        return new Promise((resolve) => {
+            const outerList = document.getElementById('outerTransactionsList');
+            const detailList = document.getElementById('detail-transactions');
+            
+            // Apply slide-in animation class (don't clean up slide-out yet for simultaneous effect)
+            const slideInClass = direction === 'left' ? 'slideInLeft' : 'slideInRight';
+            
+            if (outerList) {
+                outerList.classList.add(slideInClass);
+            }
+            if (detailList) {
+                detailList.classList.add(slideInClass);
+            }
+            
+            // Wait for full animation to complete
+            setTimeout(() => {
+                // Remove animation class
+                if (outerList) outerList.classList.remove(slideInClass);
+                if (detailList) detailList.classList.remove(slideInClass);
+                resolve();
+            }, 1000); // Full animation duration
+        });
+    }
+    
+    cleanupAnimationClasses(element) {
+        if (!element) return;
+        const animationClasses = ['slideInLeft', 'slideInRight', 'slideOutLeft', 'slideOutRight'];
+        animationClasses.forEach(cls => element.classList.remove(cls));
     }
 
     goToCurrentWeek() {
+        // Prevent multiple simultaneous operations
+        if (this.isShiftingWeek) return;
+        this.isShiftingWeek = true;
+        
         // Calculate the current week's Monday
         const now = new Date();
         const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -2035,43 +2579,49 @@ class MasterDetailController {
         
         // If we're already on the current week, do nothing
         if (this.weekStart === currentWeekStart) {
+            this.isShiftingWeek = false;
             return;
         }
         
-        // Set to current week and refresh
-        this.weekStart = currentWeekStart;
-        
-        // Update header and refresh data
-        this.updateWeekHeader();
-        
-        // Update localStorage for week persistence
-        localStorage.setItem('budget_allocation_week', this.weekStart);
-        
-        // Update URL without week parameter (only account_id)
-        const url = new URL(window.location);
-        url.searchParams.delete('week');
-        if (this.selectedAccountId) {
-            url.searchParams.set('account_id', this.selectedAccountId);
-        } else {
-            url.searchParams.delete('account_id');
+        try {
+            // Set to current week and refresh
+            this.weekStart = currentWeekStart;
+            
+            // Update header and refresh data
+            this.updateWeekHeader();
+            
+            // Update localStorage for week persistence
+            localStorage.setItem('budget_allocation_week', this.weekStart);
+            
+            // Update URL without week parameter (only account_id)
+            const url = new URL(window.location);
+            url.searchParams.delete('week');
+            if (this.selectedAccountId) {
+                url.searchParams.set('account_id', this.selectedAccountId);
+            } else {
+                url.searchParams.delete('account_id');
+            }
+            window.history.pushState({}, '', url.toString());
+            
+            // Update week navigation button states
+            this.updateWeekNavigationAvailability();
+            
+            // If an account is selected, reload its details for the new week
+            if (this.selectedAccountId) {
+                this.loadAccountData(this.selectedAccountId);
+            }
+            
+            // Refresh transactions lists for current week
+            this.filterTransactionsByType(localStorage.getItem('ba.outer.txType') || 'all', { target: 'outer' });
+            const detailFilter = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
+            this.filterTransactionsByType(detailFilter, { target: 'detail' });
+            
+            // Update Today button state
+            this.updateTodayButton();
+            
+        } finally {
+            this.isShiftingWeek = false;
         }
-        window.history.pushState({}, '', url.toString());
-        
-        // Update week navigation button states
-        this.updateWeekNavigationAvailability();
-        
-        // If an account is selected, reload its details for the new week
-        if (this.selectedAccountId) {
-            this.loadAccountData(this.selectedAccountId);
-        }
-        
-        // Refresh transactions lists for current week
-        this.filterTransactionsByType(localStorage.getItem('ba.outer.txType') || 'all', { target: 'outer' });
-        const detailFilter = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
-        this.filterTransactionsByType(detailFilter, { target: 'detail' });
-        
-        // Update Today button state
-        this.updateTodayButton();
     }
 
     updateTodayButton() {
@@ -3199,6 +3749,7 @@ MasterDetailController.prototype.loadTransactionsView = function() {
 // Filter transactions by type (all, income, expense)
 MasterDetailController.prototype.filterTransactionsByType = async function(type, options = {}) {
     const target = options.target || 'detail'; // 'detail' | 'outer'
+    const slideIn = options.slideIn; // 'left' | 'right' for animation
     const transactionsList = target === 'outer' ? document.getElementById('outerTransactionsList') : document.getElementById('transactionsList');
     const transactionCount = target === 'outer' ? document.getElementById('outerTransactionCount') : document.getElementById('transactionCount');
     const detailTitle = document.getElementById('detailTitle');
@@ -3242,6 +3793,11 @@ MasterDetailController.prototype.filterTransactionsByType = async function(type,
         if (data.success && data.transactions) {
             this.renderTransactionsList(data.transactions, { target });
             transactionCount.textContent = `${data.transactions.length} transactions`;
+            
+            // Apply slide-in animation if specified
+            if (slideIn) {
+                await this.animateTransactionListSlideIn(slideIn);
+            }
         } else {
             transactionsList.innerHTML = `
                 <div class="text-center text-muted p-4">
@@ -3278,21 +3834,21 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
         return;
     }
     
-    // Helper function to format date with day of week in NZ format (DD/MM/YYYY)
+    // Helper function to format date with day of week in format: 'Mon - 16 Dec, 2025'
     function formatDateWithDay(dateString) {
         if (!dateString) return '';
         try {
             const date = new Date(dateString);
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
             const dayOfWeek = days[date.getDay()];
-            
-            // Format to NZ format: DD/MM/YYYY
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = date.getDate();
+            const month = months[date.getMonth()];
             const year = date.getFullYear();
-            const nzFormat = `${day}/${month}/${year}`;
             
-            return `${dayOfWeek} ${nzFormat}`;
+            return `${dayOfWeek} - ${day} ${month}, ${year}`;
         } catch (e) {
             return dateString; // fallback to original if parsing fails
         }
@@ -3674,17 +4230,18 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(outerListContainer, { childList: true, subtree: true });
     }
 
-    // Wire placeholder edit/delete buttons
+    // Wire edit/delete buttons
     document.getElementById('outer-edit-transaction-btn')?.addEventListener('click', function() {
         const id = outerTabPanel?.dataset.transactionId;
-        if (id) { console.log('Edit transaction:', id); alert('Edit functionality coming soon!'); }
+        if (id) {
+            openEditTransactionModal(id);
+        }
     });
+    
     document.getElementById('outer-delete-transaction-btn')?.addEventListener('click', function() {
         const id = outerTabPanel?.dataset.transactionId;
-        if (id && confirm('Are you sure you want to delete this transaction?')) { 
-            console.log('Delete transaction:', id); 
-            alert('Delete functionality coming soon!'); 
-            closePanel(); 
+        if (id) {
+            openDeleteTransactionModal(id);
         }
     });
 });
@@ -4319,6 +4876,305 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Edit Transaction Modal Functions
+function openEditTransactionModal(transactionId) {
+    const modal = document.getElementById('editTransactionModal');
+    const form = document.getElementById('editTransactionForm');
+    
+    // Reset form
+    form.reset();
+    document.getElementById('editModalMessages').classList.add('d-none');
+    
+    // Show loading state
+    const submitBtn = modal.querySelector('.btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+    submitBtn.disabled = true;
+    
+    // Get transaction data from the detail panel
+    const data = extractTransactionData();
+    if (data && data.id === transactionId) {
+        populateEditForm(data);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+    
+    // Show modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+}
+
+function extractTransactionData() {
+    const panel = document.getElementById('outer-transaction-details-panel');
+    if (!panel || !panel.dataset.transactionId) return null;
+    
+    return {
+        id: panel.dataset.transactionId,
+        amount: document.getElementById('outer-detail-amount')?.textContent?.replace(/[\$,]/g, '') || '',
+        date: document.getElementById('outer-detail-date')?.textContent || '',
+        account: document.getElementById('outer-detail-account')?.textContent || '',
+        payee: document.getElementById('outer-detail-payee')?.textContent || '',
+        description: document.getElementById('outer-detail-description')?.textContent || '',
+        reference: document.getElementById('outer-detail-reference')?.textContent || '',
+        transaction_type: getCurrentTransactionType()
+    };
+}
+
+function getCurrentTransactionType() {
+    // Extract from selected transaction item
+    const selectedItem = document.querySelector('#outerTransactionsList .transaction-item.selected');
+    if (selectedItem) {
+        const txTypeEl = selectedItem.querySelector('.tx-transaction-type');
+        return txTypeEl?.textContent || '';
+    }
+    return '';
+}
+
+function populateEditForm(data) {
+    document.getElementById('editTransactionId').value = data.id;
+    document.getElementById('editAmount').value = Math.abs(parseFloat(data.amount) || 0);
+    document.getElementById('editDescription').value = data.description === '-' ? '' : data.description;
+    document.getElementById('editReference').value = data.reference === '-' ? '' : data.reference;
+    document.getElementById('editPayee').value = data.payee === '-' ? '' : data.payee;
+    document.getElementById('editTransactionType').value = data.transaction_type;
+    
+    // Parse and set date
+    if (data.date && data.date !== '-') {
+        const dateMatch = data.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (dateMatch) {
+            const [, day, month, year] = dateMatch;
+            document.getElementById('editTransactionDate').value = `${year}-${month}-${day}`;
+        }
+    }
+    
+    // Trigger type change to load accounts
+    if (data.transaction_type) {
+        handleEditTransactionTypeChange();
+    }
+}
+
+function handleEditTransactionTypeChange() {
+    const typeSelect = document.getElementById('editTransactionType');
+    const accountSelect = document.getElementById('editMerchantPayee');
+    const label = document.getElementById('editMerchantPayeeLabel');
+    
+    const selectedType = typeSelect.value;
+    
+    // Update label
+    if (selectedType === 'income') {
+        label.textContent = 'Payee';
+    } else if (selectedType === 'expense') {
+        label.textContent = 'Merchant';
+    } else {
+        label.textContent = 'Merchant/Payee';
+    }
+    
+    // Load accounts for this type
+    loadAccountsForEdit(selectedType);
+}
+
+async function loadAccountsForEdit(type) {
+    const accountSelect = document.getElementById('editMerchantPayee');
+    
+    if (!type) {
+        accountSelect.innerHTML = '<option value="">First select a transaction type...</option>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/budget-allocation/api/accounts/?merchant_payee_only=true&type=${type}`);
+        const data = await response.json();
+        
+        if (data.success && data.accounts) {
+            accountSelect.innerHTML = '<option value="">Select ' + (type === 'income' ? 'payee' : 'merchant') + '...</option>';
+            data.accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = account.name;
+                accountSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading accounts:', error);
+        accountSelect.innerHTML = '<option value="">Error loading accounts</option>';
+    }
+}
+
+// Delete Transaction Modal Functions
+function openDeleteTransactionModal(transactionId) {
+    const modal = document.getElementById('deleteTransactionModal');
+    
+    // Get transaction data from the detail panel
+    const data = extractTransactionData();
+    if (data && data.id === transactionId) {
+        populateDeleteForm(data);
+    }
+    
+    // Store transaction ID
+    modal.dataset.transactionId = transactionId;
+    
+    // Show modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+}
+
+function populateDeleteForm(data) {
+    document.getElementById('deleteTransactionAmount').textContent = '$' + Math.abs(parseFloat(data.amount) || 0).toFixed(2);
+    document.getElementById('deleteTransactionDate').textContent = data.date || '-';
+    document.getElementById('deleteTransactionPayee').textContent = data.payee || '-';
+    document.getElementById('deleteTransactionType').textContent = data.transaction_type || '-';
+    
+    const descRow = document.getElementById('deleteTransactionDescriptionRow');
+    const descEl = document.getElementById('deleteTransactionDescription');
+    if (data.description && data.description !== '-') {
+        descEl.textContent = data.description;
+        descRow.style.display = 'block';
+    } else {
+        descRow.style.display = 'none';
+    }
+}
+
+// Event Listeners for Modal Forms
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit transaction type change
+    document.getElementById('editTransactionType')?.addEventListener('change', handleEditTransactionTypeChange);
+    
+    // Edit form submission
+    document.getElementById('editTransactionForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('ajax', '1');
+        
+        const submitBtn = this.querySelector('.btn-primary');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+        submitBtn.disabled = true;
+        
+        try {
+            const transactionId = document.getElementById('editTransactionId').value;
+            const response = await fetch(`/budget-allocation/transactions/${transactionId}/edit/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editTransactionModal'));
+                modal.hide();
+                
+                // Refresh transaction list
+                if (window.masterDetailController) {
+                    window.masterDetailController.filterTransactionsByType('all', {target: 'outer'});
+                }
+                
+                // Close detail panel
+                const closePanel = window.closePanel;
+                if (closePanel) closePanel();
+                
+                // Show success message
+                showToast('Transaction updated successfully', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to update transaction');
+            }
+        } catch (error) {
+            console.error('Error updating transaction:', error);
+            showModalError('editModalMessages', error.message || 'Failed to update transaction');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+    
+    // Delete confirmation
+    document.getElementById('confirmDeleteTransaction')?.addEventListener('click', async function() {
+        const modal = document.getElementById('deleteTransactionModal');
+        const transactionId = modal.dataset.transactionId;
+        
+        if (!transactionId) return;
+        
+        const submitBtn = this;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Deleting...';
+        submitBtn.disabled = true;
+        
+        try {
+            const formData = new FormData();
+            formData.append('ajax', '1');
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            const response = await fetch(`/budget-allocation/transactions/${transactionId}/delete/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Close modal
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+                
+                // Refresh transaction list
+                if (window.masterDetailController) {
+                    window.masterDetailController.filterTransactionsByType('all', {target: 'outer'});
+                }
+                
+                // Close detail panel
+                const closePanel = window.closePanel;
+                if (closePanel) closePanel();
+                
+                // Show success message
+                showToast('Transaction deleted successfully', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to delete transaction');
+            }
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            alert('Error: ' + (error.message || 'Failed to delete transaction'));
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+});
+
+function showModalError(messageElementId, message) {
+    const messageEl = document.getElementById(messageElementId);
+    if (messageEl) {
+        messageEl.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        messageEl.classList.remove('d-none');
+    }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('globalToast');
+    const toastBody = document.getElementById('globalToastBody');
+    
+    if (toast && toastBody) {
+        // Update class and message
+        toast.className = `toast align-items-center text-bg-${type} border-0`;
+        toastBody.textContent = message;
+        
+        // Show toast
+        const toastInstance = new bootstrap.Toast(toast);
+        toastInstance.show();
+    }
+}
 
 
 // Allocation code removed for Distribution rewrite

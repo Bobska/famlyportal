@@ -2423,14 +2423,21 @@ class MasterDetailController {
     }
     
     renderAccountDetail(account) {
-        // Helper function to format date with day of week
+        // Helper function to format date with day of week in NZ format (DD/MM/YYYY)
         function formatDateWithDay(dateString) {
             if (!dateString) return '';
             try {
                 const date = new Date(dateString);
                 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 const dayOfWeek = days[date.getDay()];
-                return `${dayOfWeek} ${dateString}`;
+                
+                // Format to NZ format: DD/MM/YYYY
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const nzFormat = `${day}/${month}/${year}`;
+                
+                return `${dayOfWeek} ${nzFormat}`;
             } catch (e) {
                 return dateString; // fallback to original if parsing fails
             }
@@ -2541,10 +2548,13 @@ class MasterDetailController {
                 ${account.recent_transactions.length > 0 ? `
                 <div class="mb-3">
                     <h6 class="border-bottom pb-2">Recent Transactions</h6>
-                    ${account.recent_transactions.map(transaction => `
+                    ${account.recent_transactions.map(transaction => {
+                        // Determine what to show based on transaction type
+                        const displayValue = transaction.payee || transaction.description || 'Transaction';
+                        return `
                         <div class="transaction-item" data-transaction-id="${transaction.id || ''}" style="cursor:pointer;">
                             <div class="transaction-row">
-                                <div class="fw-medium description">${transaction.description || 'Transaction'}</div>
+                                <div class="fw-medium description">${displayValue}</div>
                                 <small class="text-muted transaction-date">${formatDateWithDay(transaction.date)}</small>
                             </div>
                             <div class="transaction-amount amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
@@ -2555,7 +2565,8 @@ class MasterDetailController {
                             <div class="reference" style="display: none;">${transaction.reference || ''}</div>
                             <div class="transaction-type" style="display: none;">${transaction.amount >= 0 ? 'Credit' : 'Debit'}</div>
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
                 ` : ''}
                 
@@ -3267,24 +3278,36 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
         return;
     }
     
-    // Helper function to format date with day of week
+    // Helper function to format date with day of week in NZ format (DD/MM/YYYY)
     function formatDateWithDay(dateString) {
         if (!dateString) return '';
         try {
             const date = new Date(dateString);
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const dayOfWeek = days[date.getDay()];
-            return `${dayOfWeek} ${dateString}`;
+            
+            // Format to NZ format: DD/MM/YYYY
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const nzFormat = `${day}/${month}/${year}`;
+            
+            return `${dayOfWeek} ${nzFormat}`;
         } catch (e) {
             return dateString; // fallback to original if parsing fails
         }
     }
     
-    const transactionsHtml = transactions.map(tx => `
+    const transactionsHtml = transactions.map(tx => {
+        // Determine what to show based on transaction type
+        const displayLabel = tx.transaction_type === 'income' ? 'Payee' : 'Merchant';
+        const displayValue = tx.payee || tx.description || tx.account_name || 'Transaction';
+        
+        return `
         <div class="transaction-item" data-transaction-id="${tx.id || ''}" data-account-id="${tx.account_id}" style="cursor:pointer;">
             <div class="transaction-row">
                 <div class="tx-date transaction-date">${formatDateWithDay(tx.date)}</div>
-                <div class="tx-payee description">${tx.payee || tx.description || tx.account_name || 'Transaction'}</div>
+                <div class="tx-payee description" title="${displayLabel}: ${displayValue}">${displayValue}</div>
                 <div class="tx-amount amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
                     ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}
                 </div>
@@ -3294,9 +3317,11 @@ MasterDetailController.prototype.renderTransactionsList = function(transactions,
                 <div class="reference" style="display: none;">${tx.reference || ''}</div>
                 <div class="reconciled" style="display: none;">${tx.is_reconciled || false}</div>
                 <div class="transaction-type" style="display: none;">${tx.amount >= 0 ? 'Credit' : 'Debit'}</div>
+                <div class="tx-transaction-type" style="display: none;">${tx.transaction_type || ''}</div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
     
     transactionsList.innerHTML = transactionsHtml;
     
@@ -3577,6 +3602,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('outer-detail-reference').textContent = data.reference || '-';
         document.getElementById('outer-detail-reconciled').textContent = data.reconciled ? 'Yes' : 'No';
         document.getElementById('outer-detail-week').textContent = data.week || '-';
+        
+        // Update the payee label based on transaction type
+        const payeeLabel = document.querySelector('#outer-detail-payee').previousElementSibling;
+        if (payeeLabel && payeeLabel.tagName === 'LABEL') {
+            const isIncome = data.transaction_type === 'income';
+            payeeLabel.textContent = isIncome ? 'Payee:' : 'Merchant:';
+        }
+        
         outerTabPanel.dataset.transactionId = data.id || '';
     }
 
@@ -3624,7 +3657,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     description: item.querySelector('.description')?.textContent || '-',
                     reference: item.querySelector('.reference')?.textContent || '-',
                     reconciled: item.querySelector('.reconciled')?.textContent === 'true',
-                    week: item.closest('.week-section')?.querySelector('.week-header')?.textContent || '-'
+                    week: item.closest('.week-section')?.querySelector('.week-header')?.textContent || '-',
+                    transaction_type: item.querySelector('.tx-transaction-type')?.textContent || ''
                 };
                 openPanel(data);
             });

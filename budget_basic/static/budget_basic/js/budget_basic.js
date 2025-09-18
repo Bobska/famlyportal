@@ -45,17 +45,16 @@ function handleAddIncomeForm() {
         // Get form data
         const formData = new FormData(form);
         const incomeData = {
-            amount: formData.get('amount'),
-            description: formData.get('description'),
-            category: formData.get('category'),
             date: formData.get('date'),
+            payee: formData.get('payee'),
+            amount: formData.get('amount'),
             notes: formData.get('notes')
         };
         
         console.log('Income data:', incomeData);
         
         // For now, just show a success message and close modal
-        alert('Income added successfully!\n\nAmount: $' + incomeData.amount + '\nDescription: ' + incomeData.description);
+        alert('Income added successfully!\n\nDate: ' + incomeData.date + '\nPayee: ' + incomeData.payee + '\nAmount: $' + incomeData.amount);
         
         // Reset form and close modal
         form.reset();

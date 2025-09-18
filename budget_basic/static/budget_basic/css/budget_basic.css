@@ -171,11 +171,26 @@
 /* Buttons */
 .btn {
     font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    min-height: 38px;
 }
 
 .btn-sm {
-    padding: 6px 12px;
+    padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
+    min-height: 32px;
+}
+
+/* Page action buttons - ensure consistent sizing */
+.page-header .btn-group .btn {
+    padding: 0.5rem 1rem;
+    min-width: 100px;
+}
+
+/* Main template header buttons */
+.card-header .btn-group-sm .btn {
+    padding: 0.25rem 0.75rem;
+    min-width: 70px;
 }
 
 /* Responsive Design */

@@ -1,0 +1,43 @@
+<!-- Add Income Modal -->
+<div class="modal" id="addIncomeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Income</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addIncomeForm">
+                <div class="modal-body">
+                    <!-- Primary Fields - Main Focus -->
+                    <div class="mb-3">
+                        <label for="incomeDate" class="form-label fw-bold">Date</label>
+                        <input type="date" class="form-control form-control-lg" id="incomeDate" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="incomePayee" class="form-label fw-bold">Payee</label>
+                        <input type="text" class="form-control form-control-lg" id="incomePayee" name="payee" placeholder="e.g., Employer, Client, Bank" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="incomeAmount" class="form-label fw-bold">Amount</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="incomeAmount" name="amount" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional Notes - Less Prominent -->
+                    <div class="mb-3">
+                        <label for="incomeNotes" class="form-label text-muted small">Additional Notes (Optional)</label>
+                        <textarea class="form-control form-control-sm" id="incomeNotes" name="notes" rows="2" placeholder="Optional details..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-secondary">Add Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -193,6 +193,28 @@
     min-width: 70px;
 }
 
+/* Form styling - remove blue focus borders */
+.form-control:focus,
+.form-select:focus {
+    border-color: #6c757d;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+}
+
+/* Modal styling */
+.modal-content {
+    border: 1px solid #dee2e6;
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .budget-basic-sidebar {

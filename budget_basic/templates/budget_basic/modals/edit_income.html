@@ -1,0 +1,45 @@
+<!-- Edit Income Modal -->
+<div class="modal" id="editIncomeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Income</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editIncomeForm">
+                {% csrf_token %}
+                <input type="hidden" id="editIncomeId" name="income_id">
+                <div class="modal-body">
+                    <!-- Primary Fields - Main Focus -->
+                    <div class="mb-3">
+                        <label for="editIncomeDate" class="form-label fw-bold">Date</label>
+                        <input type="date" class="form-control" id="editIncomeDate" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editIncomePayee" class="form-label fw-bold">Payee</label>
+                        <input type="text" class="form-control" id="editIncomePayee" name="payee" placeholder="e.g., Employer, Client, Bank" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="editIncomeAmount" class="form-label fw-bold">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control" id="editIncomeAmount" name="amount" placeholder="0.00" pattern="[\d,]+\.?\d{0,2}" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional Notes - Less Prominent -->
+                    <div class="mb-3">
+                        <label for="editIncomeNotes" class="form-label text-muted small">Additional Notes (Optional)</label>
+                        <textarea class="form-control form-control-sm" id="editIncomeNotes" name="notes" rows="2" placeholder="Optional details..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-secondary">Update Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

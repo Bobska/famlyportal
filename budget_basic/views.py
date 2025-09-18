@@ -105,3 +105,113 @@ def add_income(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+@require_POST
+def edit_income(request, income_id):
+    """Edit existing income entry via AJAX."""
+    try:
+        # Get the income entry and verify ownership
+        try:
+            income = Income.objects.get(id=income_id, user=request.user)
+        except Income.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Income entry not found or access denied'})
+        
+        # Get form data
+        date_str = request.POST.get('date')
+        payee = request.POST.get('payee', '').strip()
+        amount_str = request.POST.get('amount', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        
+        # Validate required fields
+        if not date_str:
+            return JsonResponse({'success': False, 'error': 'Date is required'})
+        
+        if not payee:
+            return JsonResponse({'success': False, 'error': 'Payee is required'})
+        
+        if not amount_str:
+            return JsonResponse({'success': False, 'error': 'Amount is required'})
+        
+        # Parse date
+        try:
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Invalid date format'})
+        
+        # Parse amount
+        try:
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                return JsonResponse({'success': False, 'error': 'Amount must be positive'})
+        except (ValueError, InvalidOperation):
+            return JsonResponse({'success': False, 'error': 'Invalid amount format'})
+        
+        # Update income entry
+        income.date = date
+        income.payee = payee
+        income.amount = amount
+        income.notes = notes
+        income.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Income entry updated successfully: ${amount} from {payee}',
+            'income_id': income.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+def get_income(request, income_id):
+    """Get income entry data for editing via AJAX."""
+    try:
+        # Get the income entry and verify ownership
+        try:
+            income = Income.objects.get(id=income_id, user=request.user)
+        except Income.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Income entry not found or access denied'})
+        
+        return JsonResponse({
+            'success': True,
+            'income': {
+                'id': income.id,
+                'date': income.date.strftime('%Y-%m-%d'),
+                'payee': income.payee,
+                'amount': str(income.amount),
+                'notes': income.notes or ''
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+@require_POST
+def delete_income(request, income_id):
+    """Delete income entry via AJAX."""
+    try:
+        # Get the income entry and verify ownership
+        try:
+            income = Income.objects.get(id=income_id, user=request.user)
+        except Income.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Income entry not found or access denied'})
+        
+        # Store details for success message before deletion
+        payee = income.payee
+        amount = income.amount
+        
+        # Delete the income entry
+        income.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Income entry deleted successfully: ${amount} from {payee}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})

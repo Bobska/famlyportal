@@ -1,3 +1,4 @@
+{% load humanize %}
 <aside class="budget-basic-sidebar">
     <div class="sidebar-content">
         <!-- Quick Actions -->
@@ -19,16 +20,16 @@
             <div class="budget-summary">
                 <div class="budget-item">
                     <span class="budget-label">Income:</span>
-                    <span class="budget-value">${{ monthly_income|floatformat:2 }}</span>
+                    <span class="budget-value">${{ monthly_income|floatformat:2|intcomma }}</span>
                 </div>
                 <div class="budget-item">
                     <span class="budget-label">Expenses:</span>
-                    <span class="budget-value">${{ monthly_expenses|floatformat:2 }}</span>
+                    <span class="budget-value">${{ monthly_expenses|floatformat:2|intcomma }}</span>
                 </div>
                 <hr class="my-2">
                 <div class="budget-item">
                     <span class="budget-label">Balance:</span>
-                    <span class="budget-value {% if monthly_balance < 0 %}text-danger{% elif monthly_balance > 0 %}text-success{% endif %}">${{ monthly_balance|floatformat:2 }}</span>
+                    <span class="budget-value {% if monthly_balance < 0 %}text-danger{% elif monthly_balance > 0 %}text-success{% endif %}">${{ monthly_balance|floatformat:2|intcomma }}</span>
                 </div>
             </div>
         </div>

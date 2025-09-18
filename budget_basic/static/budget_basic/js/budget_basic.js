@@ -11,6 +11,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize add income form
     handleAddIncomeForm();
+    
+    // Initialize edit income form
+    handleEditIncomeForm();
+    
+    // Initialize delete income functionality
+    handleDeleteIncomeForm();
+    
+    // Initialize amount formatting
+    initializeAmountFormatting();
 });
 
 /**
@@ -27,6 +36,51 @@ function showComingSoonModal() {
 function showSuccessModal(message) {
     document.getElementById('successMessage').textContent = message;
     const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+/**
+ * Show edit income modal with data
+ */
+function showEditIncomeModal(incomeId) {
+    // Fetch income data
+    fetch(`/budget-basic/income/${incomeId}/get/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate form with existing data
+                document.getElementById('editIncomeId').value = data.income.id;
+                document.getElementById('editIncomeDate').value = data.income.date;
+                document.getElementById('editIncomePayee').value = data.income.payee;
+                document.getElementById('editIncomeAmount').value = addCommasToNumber(data.income.amount);
+                document.getElementById('editIncomeNotes').value = data.income.notes;
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editIncomeModal'));
+                modal.show();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while loading the income data. Please try again.');
+        });
+}
+
+/**
+ * Show delete income confirmation modal
+ */
+function showDeleteIncomeModal(incomeId, payee, amount) {
+    // Set the income details in the modal
+    document.getElementById('deleteIncomeId').value = incomeId;
+    document.getElementById('deleteIncomeDetails').innerHTML = `
+        <strong>Payee:</strong> ${payee}<br>
+        <strong>Amount:</strong> $${amount}
+    `;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteIncomeModal'));
     modal.show();
 }
 
@@ -55,6 +109,11 @@ function handleAddIncomeForm() {
         
         // Get form data
         const formData = new FormData(form);
+        
+        // Remove commas from amount before validation and submission
+        const amountInput = form.querySelector('[name="amount"]');
+        const cleanAmount = removeCommasFromAmount(amountInput.value);
+        formData.set('amount', cleanAmount);
         
         // Validate required fields
         const date = formData.get('date');
@@ -113,6 +172,219 @@ function handleAddIncomeForm() {
             submitBtn.textContent = originalText;
         });
     });
+}
+
+/**
+ * Handle edit income form submission
+ */
+function handleEditIncomeForm() {
+    const form = document.getElementById('editIncomeForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        const incomeId = formData.get('income_id');
+        
+        // Remove commas from amount before validation and submission
+        const amountInput = form.querySelector('[name="amount"]');
+        const cleanAmount = removeCommasFromAmount(amountInput.value);
+        formData.set('amount', cleanAmount);
+        
+        // Validate required fields
+        const date = formData.get('date');
+        const payee = formData.get('payee');
+        const amount = formData.get('amount');
+        
+        if (!date || !payee || !amount) {
+            alert('Please fill in all required fields (Date, Payee, Amount)');
+            return;
+        }
+        
+        // Disable submit button to prevent double submission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Updating...';
+        
+        // Send data to server
+        fetch(`/budget-basic/income/${incomeId}/edit/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reset form and close modal first
+                form.reset();
+                const editIncomeModal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
+                editIncomeModal.hide();
+                
+                // Show success modal after edit modal is closed
+                setTimeout(() => {
+                    showSuccessModal(data.message);
+                    
+                    // Reload the page to show the updated income entry
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 300);
+                
+            } else {
+                // Show error message via alert (keep alerts for errors)
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the income entry. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
+    });
+}
+
+/**
+ * Handle delete income confirmation
+ */
+function handleDeleteIncomeForm() {
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    if (!confirmBtn) return;
+    
+    confirmBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const incomeId = document.getElementById('deleteIncomeId').value;
+        if (!incomeId) {
+            alert('No income entry selected for deletion');
+            return;
+        }
+        
+        // Disable button to prevent double clicks
+        const originalText = confirmBtn.textContent;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Deleting...';
+        
+        // Send delete request to server
+        fetch(`/budget-basic/income/${incomeId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close delete modal first
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
+                deleteModal.hide();
+                
+                // Show success modal after delete modal is closed
+                setTimeout(() => {
+                    showSuccessModal(data.message);
+                    
+                    // Reload the page to show the updated list
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 300);
+                
+            } else {
+                // Show error message via alert
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the income entry. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+        });
+    });
+}
+
+/**
+ * Initialize amount field formatting
+ */
+function initializeAmountFormatting() {
+    // Add formatting to amount inputs
+    const amountInputs = document.querySelectorAll('#incomeAmount, #editIncomeAmount');
+    
+    amountInputs.forEach(input => {
+        // Format on input (as user types)
+        input.addEventListener('input', function(e) {
+            formatAmountInput(e.target);
+        });
+        
+        // Format on blur (when user leaves the field)
+        input.addEventListener('blur', function(e) {
+            formatAmountInput(e.target);
+        });
+        
+        // Handle paste events
+        input.addEventListener('paste', function(e) {
+            setTimeout(() => formatAmountInput(e.target), 10);
+        });
+    });
+}
+
+/**
+ * Format amount input with commas
+ */
+function formatAmountInput(input) {
+    let value = input.value;
+    
+    // Remove all non-numeric characters except decimal point and commas
+    value = value.replace(/[^\d.,]/g, '');
+    
+    // Remove existing commas before processing
+    value = value.replace(/,/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit to 2 decimal places
+    if (parts[1] && parts[1].length > 2) {
+        value = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    // Add commas to the integer part
+    if (value.includes('.')) {
+        const [integerPart, decimalPart] = value.split('.');
+        const formattedInteger = addCommasToNumber(integerPart);
+        input.value = formattedInteger + '.' + decimalPart;
+    } else {
+        input.value = addCommasToNumber(value);
+    }
+}
+
+/**
+ * Add commas to a number string
+ */
+function addCommasToNumber(numberStr) {
+    if (!numberStr) return '';
+    return numberStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Remove commas from amount for form submission
+ */
+function removeCommasFromAmount(amountStr) {
+    return amountStr.replace(/,/g, '');
 }
 
 /**

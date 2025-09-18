@@ -236,3 +236,66 @@
 .fw-bold {
     font-weight: 600 !important;
 }
+
+/* Transaction Table Styles */
+.transaction-table {
+    cursor: pointer;
+}
+
+.transaction-table tbody tr {
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+/* Hover effects */
+.transaction-table tbody tr:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+/* Selected/Active state */
+.transaction-table tbody tr.selected {
+    background-color: #e9ecef;
+    border-left: 4px solid #6c757d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Selected row on hover - slightly different effect */
+.transaction-table tbody tr.selected:hover {
+    background-color: #dee2e6;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Make action buttons more subtle when row is not selected */
+.transaction-table tbody tr:not(.selected) .btn-group {
+    opacity: 0.7;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.transaction-table tbody tr:hover:not(.selected) .btn-group {
+    opacity: 1;
+}
+
+/* Keep action buttons fully visible for selected rows */
+.transaction-table tbody tr.selected .btn-group {
+    opacity: 1;
+}
+
+/* Enhanced button styling for selected rows */
+.transaction-table tbody tr.selected .btn-outline-secondary {
+    border-color: #6c757d;
+    color: #495057;
+}
+
+.transaction-table tbody tr.selected .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+}
+
+/* Amount highlighting */
+.transaction-table tbody tr.selected .amount-value {
+    font-weight: 600;
+    color: #495057;
+}

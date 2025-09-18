@@ -100,8 +100,8 @@ function formatCurrency(amount) {
  * Update budget summary in sidebar
  */
 function updateBudgetSummary(income, expenses) {
-    const incomeElement = document.querySelector('.budget-summary .text-success');
-    const expensesElement = document.querySelector('.budget-summary .text-danger');
+    const incomeElement = document.querySelector('.budget-summary .budget-value');
+    const expensesElement = document.querySelector('.budget-summary .budget-value:nth-child(2n)');
     const balanceElement = document.querySelector('.budget-summary .budget-value:last-child');
     
     if (incomeElement) {
@@ -115,7 +115,7 @@ function updateBudgetSummary(income, expenses) {
     if (balanceElement) {
         const balance = income - expenses;
         balanceElement.textContent = formatCurrency(balance);
-        balanceElement.className = `budget-value ${balance >= 0 ? 'text-success' : 'text-danger'}`;
+        balanceElement.className = 'budget-value';
     }
 }
 

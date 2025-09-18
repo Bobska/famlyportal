@@ -55,6 +55,7 @@ LOCAL_APPS = [
     'household_budget',
     'subscription_tracker',
     'budget_allocation',
+    'budget_basic',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

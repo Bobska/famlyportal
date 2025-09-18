@@ -65,12 +65,12 @@ def has_app_permission(context, app_name):
         
         # Children have limited access
         if family_member.role == 'child':
-            allowed_apps = ['timesheet', 'employment_history', 'autocraftcv']
+            allowed_apps = ['timesheet', 'employment_history', 'autocraftcv', 'budget_basic']
             return app_name in allowed_apps
         
         # Others have basic access
         if family_member.role == 'other':
-            allowed_apps = ['timesheet']
+            allowed_apps = ['timesheet', 'budget_basic']
             return app_name in allowed_apps
             
         return False

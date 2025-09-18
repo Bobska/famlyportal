@@ -37,78 +37,42 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Description</th>
-                                <th>Category</th>
-                                <th>Type</th>
+                                <th>Payee</th>
                                 <th class="text-end">Amount</th>
-                                <th>Actions</th>
+                                <th class="text-end" style="width: 120px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Sample Data - Remove when implementing real data -->
-                            <tr>
-                                <td>2025-09-18</td>
-                                <td>Sample Income Transaction</td>
-                                <td>Salary</td>
-                                <td><span class="badge bg-light text-dark">Income</span></td>
-                                <td class="text-end">+$3,500.00</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Edit Transaction">
-                                            Edit
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Delete Transaction">
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025-09-17</td>
-                                <td>Grocery Shopping</td>
-                                <td>Food</td>
-                                <td><span class="badge bg-light text-dark">Expense</span></td>
-                                <td class="text-end">-$125.50</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Edit Transaction">
-                                            Edit
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Delete Transaction">
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025-09-16</td>
-                                <td>Gas Station</td>
-                                <td>Transportation</td>
-                                <td><span class="badge bg-light text-dark">Expense</span></td>
-                                <td class="text-end">-$65.00</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Edit Transaction">
-                                            Edit
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Delete Transaction">
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <!-- End Sample Data -->
-                            
-                            <!-- Empty State - Show when no real transactions -->
-                            <!-- 
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="fas fa-receipt fa-3x mb-3"></i>
-                                    <p class="mb-0">No transactions yet</p>
-                                    <small>Start by adding your first income or expense</small>
-                                </td>
-                            </tr>
-                            -->
+                            {% if income_entries %}
+                                {% for income in income_entries %}
+                                <tr>
+                                    <td>{{ income.date|date:"Y-m-d" }}</td>
+                                    <td>{{ income.payee }}</td>
+                                    <td class="text-end">+${{ income.amount|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Edit Transaction">
+                                                Edit
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()" title="Delete Transaction">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Empty State - Show when no transactions -->
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <div class="mb-3">
+                                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                                        </div>
+                                        <p class="mb-0">No transactions yet</p>
+                                        <small>Start by adding your first income</small>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>

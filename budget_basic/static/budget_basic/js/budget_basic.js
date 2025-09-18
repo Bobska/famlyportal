@@ -22,6 +22,15 @@ function showComingSoonModal() {
 }
 
 /**
+ * Show success modal with a message
+ */
+function showSuccessModal(message) {
+    document.getElementById('successMessage').textContent = message;
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+/**
  * Show add income modal
  */
 function showAddIncomeModal() {
@@ -39,30 +48,91 @@ function showAddIncomeModal() {
  */
 function handleAddIncomeForm() {
     const form = document.getElementById('addIncomeForm');
+    if (!form) return;
+    
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
         // Get form data
         const formData = new FormData(form);
-        const incomeData = {
-            date: formData.get('date'),
-            payee: formData.get('payee'),
-            amount: formData.get('amount'),
-            notes: formData.get('notes')
-        };
         
-        console.log('Income data:', incomeData);
+        // Validate required fields
+        const date = formData.get('date');
+        const payee = formData.get('payee');
+        const amount = formData.get('amount');
         
-        // For now, just show a success message and close modal
-        alert('Income added successfully!\n\nDate: ' + incomeData.date + '\nPayee: ' + incomeData.payee + '\nAmount: $' + incomeData.amount);
+        if (!date || !payee || !amount) {
+            alert('Please fill in all required fields (Date, Payee, Amount)');
+            return;
+        }
         
-        // Reset form and close modal
-        form.reset();
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
-        modal.hide();
+        // Disable submit button to prevent double submission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
         
-        // TODO: Send data to server when backend is implemented
+        // Send data to server
+        fetch('/budget-basic/income/add/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reset form and close modal first
+                form.reset();
+                const addIncomeModal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
+                addIncomeModal.hide();
+                
+                // Show success modal after add modal is closed
+                setTimeout(() => {
+                    showSuccessModal(data.message);
+                    
+                    // Reload the page to show the new income entry
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 300);
+                
+            } else {
+                // Show error message via alert (keep alerts for errors)
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while saving the income entry. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
     });
+}
+
+/**
+ * Get CSRF token from the page
+ */
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (token) {
+        return token.value;
+    }
+    
+    // Fallback: get from cookies
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    return '';
 }
 
 /**

@@ -2233,6 +2233,9 @@ class MasterDetailController {
         this.baseAnimationDuration = 1000; // 1 second base duration
         this.minAnimationDuration = 200;   // Minimum 200ms for fast navigation
         this.maxQueueSize = 10;            // Prevent excessive queuing
+        this.targetWeekStart = null;       // Track target week for instant updates
+        this.currentDisplayWeek = null;    // Track the actual currently displayed week during animations
+        this.queueProcessingTimeout = null; // Timeout for batching rapid clicks
 
         // Week navigation buttons with queue-based system
         const prevBtn = document.getElementById('prevWeekBtn');
@@ -2242,6 +2245,7 @@ class MasterDetailController {
         if (prevBtn) {
             prevBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                this.instantWeekUpdate(-7);
                 this.queueNavigation(-7);
             });
         }
@@ -2249,6 +2253,7 @@ class MasterDetailController {
         if (nextBtn) {
             nextBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                this.instantWeekUpdate(7);
                 this.queueNavigation(7);
             });
         }
@@ -2277,6 +2282,33 @@ class MasterDetailController {
         }
     }
 
+    // Instant week title update for immediate user feedback
+    instantWeekUpdate(deltaDays) {
+        if (!this.weekStart) return;
+        
+        // Initialize target week if not set
+        if (!this.targetWeekStart) {
+            this.targetWeekStart = this.weekStart;
+        }
+        
+        // Calculate new target week
+        const current = new Date(this.targetWeekStart);
+        const adjusted = new Date(Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()));
+        adjusted.setUTCDate(adjusted.getUTCDate() + deltaDays);
+        
+        const yyyy = adjusted.getUTCFullYear();
+        const mm = String(adjusted.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(adjusted.getUTCDate()).padStart(2, '0');
+        const newTargetWeek = `${yyyy}-${mm}-${dd}`;
+        
+        // Update target week and display immediately
+        this.targetWeekStart = newTargetWeek;
+        this.weekStart = newTargetWeek;
+        this.updateWeekHeader();
+        localStorage.setItem('budget_allocation_week', this.weekStart);
+        this.updateWeekNavigationAvailability();
+    }
+
     // Queue-based navigation system for rapid week navigation
     queueNavigation(deltaDays) {
         // Prevent excessive queue buildup
@@ -2288,107 +2320,381 @@ class MasterDetailController {
         if (deltaDays === 'today') {
             // Clear queue and go directly to today
             this.navigationQueue = [];
+            this.targetWeekStart = null; // Reset target tracking
             this.goToCurrentWeek();
             return;
         }
 
-        // Add to queue
+        // Add to queue for animation processing (title already updated)
         this.navigationQueue.push(deltaDays);
         
-        // Start processing if not already processing
-        if (!this.isProcessingQueue) {
-            this.processNavigationQueue();
+        // Initialize currentDisplayWeek when starting a new navigation sequence
+        if (this.navigationQueue.length === 1 && !this.isProcessingQueue) {
+            this.currentDisplayWeek = this.addDaysToDateString(this.weekStart, -deltaDays);
         }
+        
+        // Always clear any existing processing timeout and reset it
+        // This allows rapid clicks to keep extending the batching window
+        if (this.queueProcessingTimeout) {
+            clearTimeout(this.queueProcessingTimeout);
+        }
+        
+        // Start/restart processing timeout regardless of current processing state
+        // This ensures that rapid clicks during animation get queued for the next batch
+        this.queueProcessingTimeout = setTimeout(() => {
+            this.processNavigationQueue();
+        }, 100); // Increased to 100ms for better batching of rapid clicks
     }
 
     async processNavigationQueue() {
-        if (this.isProcessingQueue || this.navigationQueue.length === 0) {
+        if (this.navigationQueue.length === 0) {
             return;
         }
-
+        
+        // If already processing, the timeout will handle the next batch
+        if (this.isProcessingQueue) {
+            console.log(`Queue processing already running, ${this.navigationQueue.length} items will be processed in next batch`);
+            return;
+        }
+        
         this.isProcessingQueue = true;
-
-        while (this.navigationQueue.length > 0) {
-            const deltaDays = this.navigationQueue.shift();
-            
-            // Calculate dynamic animation duration based on queue length
-            const queueLength = this.navigationQueue.length;
-            let animationDuration;
-            
-            if (queueLength === 0) {
-                // Last item - use normal speed
-                animationDuration = this.baseAnimationDuration;
-            } else if (queueLength >= 5) {
-                // Many items - use fastest speed
-                animationDuration = this.minAnimationDuration;
-            } else {
-                // Scale speed based on queue length (more items = faster)
-                const speedMultiplier = Math.max(0.2, 1 - (queueLength * 0.15));
-                animationDuration = Math.max(this.minAnimationDuration, this.baseAnimationDuration * speedMultiplier);
-            }
-
-            // Process single navigation step with dynamic duration
-            await this.performSingleNavigation(deltaDays, animationDuration);
-            
-            // Small delay between rapid navigations to prevent overwhelming
-            if (this.navigationQueue.length > 0) {
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
+        
+        // Clear the processing timeout since we're starting now
+        if (this.queueProcessingTimeout) {
+            clearTimeout(this.queueProcessingTimeout);
+            this.queueProcessingTimeout = null;
         }
 
+        // Process current queue items
+        const queueToProcess = [...this.navigationQueue];
+        this.navigationQueue = []; // Clear queue for new items
+        
+        console.log(`Starting queue processing with ${queueToProcess.length} items`);
+
+        // Start from the actual currently displayed week (before any navigation started)
+        // If we don't have a saved display week, use the current weekStart minus total deltas
+        if (!this.currentDisplayWeek) {
+            const totalDelta = queueToProcess.reduce((acc, d) => acc + d, 0);
+            this.currentDisplayWeek = this.addDaysToDateString(this.weekStart, -totalDelta);
+        }
+        
+        let baseWeekStart = this.currentDisplayWeek;
+        const totalSteps = queueToProcess.length;
+        console.log(`Starting queue processing from week: ${baseWeekStart}, queue length: ${totalSteps}`);
+
+        // Always use the new carousel animation system for consistency
+        const rapidDuration = this.minAnimationDuration;
+        await this.performContinuousAnimation(baseWeekStart, queueToProcess, rapidDuration);
+
+        this.updateUrlForFinalStep();
+        this.currentDisplayWeek = null;
         this.isProcessingQueue = false;
+        
+        // Check if new items were added while we were processing
+        if (this.navigationQueue.length > 0) {
+            console.log(`Found ${this.navigationQueue.length} new items in queue, scheduling next batch`);
+            // Schedule processing of any new items that were added during processing
+            setTimeout(() => {
+                this.processNavigationQueue();
+            }, 50); // Small delay to allow any additional rapid clicks
+        }
+    }
+
+    updateUrlForFinalStep() {
+        const url = new URL(window.location);
+        url.searchParams.delete('week');
+        if (this.selectedAccountId) {
+            url.searchParams.set('account_id', this.selectedAccountId);
+        } else {
+            url.searchParams.delete('account_id');
+        }
+        window.history.pushState({}, '', url.toString());
+    }
+
+    async performContinuousAnimation(startWeek, deltas, stepDuration) {
+        console.log(`Starting simple slide animation with ${deltas.length} steps`);
+        
+        // For multiple steps, do them one by one with simple slide transitions
+        let currentWeek = startWeek;
+        
+        for (let i = 0; i < deltas.length; i++) {
+            const delta = deltas[i];
+            const nextWeek = this.addDaysToDateString(currentWeek, delta);
+            
+            console.log(`Step ${i + 1}: Sliding from ${currentWeek} to ${nextWeek}`);
+            
+            // Load the next week's data
+            const newData = await this.preloadWeekPackageFor(nextWeek);
+            
+            // Perform simple slide animation
+            await this.performSimpleSlide(delta > 0 ? 'forward' : 'backward', newData);
+            
+            currentWeek = nextWeek;
+        }
+        
+        console.log(`Animation completed at week: ${currentWeek}`);
+    }
+
+    async performSimpleSlide(direction, newData) {
+        const outerList = document.getElementById('outerTransactionsList');
+        const detailList = document.getElementById('transactionsList');
+        
+        if (!outerList || !detailList) return;
+
+        // Create containers for the slide animation
+        const outerContainer = outerList.parentElement;
+        const detailContainer = detailList.parentElement;
+        
+        // Set up container for animation
+        outerContainer.style.position = 'relative';
+        outerContainer.style.overflow = 'hidden';
+        detailContainer.style.position = 'relative';
+        detailContainer.style.overflow = 'hidden';
+        
+        // Create new content containers
+        const newOuterList = outerList.cloneNode(false);
+        const newDetailList = detailList.cloneNode(false);
+        
+        // Populate new containers with new data
+        this.populateListWithData(newOuterList, newData.outerData);
+        this.populateListWithData(newDetailList, newData.detailData);
+        
+        // Position new content off-screen
+        const slideDistance = direction === 'forward' ? '100%' : '-100%';
+        newOuterList.style.position = 'absolute';
+        newOuterList.style.top = '0';
+        newOuterList.style.left = slideDistance;
+        newOuterList.style.width = '100%';
+        newOuterList.style.transition = 'left 400ms ease-out';
+        
+        newDetailList.style.position = 'absolute';
+        newDetailList.style.top = '0';
+        newDetailList.style.left = slideDistance;
+        newDetailList.style.width = '100%';
+        newDetailList.style.transition = 'left 400ms ease-out';
+        
+        // Set up old content for sliding out
+        outerList.style.position = 'relative';
+        outerList.style.transition = 'left 400ms ease-out';
+        outerList.style.left = '0';
+        
+        detailList.style.position = 'relative';
+        detailList.style.transition = 'left 400ms ease-out';
+        detailList.style.left = '0';
+        
+        // Add new content to containers
+        outerContainer.appendChild(newOuterList);
+        detailContainer.appendChild(newDetailList);
+        
+        // Force reflow
+        newOuterList.offsetHeight;
+        newDetailList.offsetHeight;
+        
+        return new Promise((resolve) => {
+            // Start the slide animation
+            const exitDistance = direction === 'forward' ? '-100%' : '100%';
+            
+            outerList.style.left = exitDistance;
+            detailList.style.left = exitDistance;
+            newOuterList.style.left = '0';
+            newDetailList.style.left = '0';
+            
+            console.log(`Sliding: old content to ${exitDistance}, new content to 0`);
+            
+            setTimeout(() => {
+                // Replace old content with new content
+                outerList.innerHTML = newOuterList.innerHTML;
+                detailList.innerHTML = newDetailList.innerHTML;
+                
+                // Reset styles
+                outerList.style.position = '';
+                outerList.style.transition = '';
+                outerList.style.left = '';
+                detailList.style.position = '';
+                detailList.style.transition = '';
+                detailList.style.left = '';
+                
+                // Remove temporary elements
+                newOuterList.remove();
+                newDetailList.remove();
+                
+                // Reset container styles
+                outerContainer.style.position = '';
+                outerContainer.style.overflow = '';
+                detailContainer.style.position = '';
+                detailContainer.style.overflow = '';
+                
+                // Re-attach event listeners
+                this.attachTransactionEventListeners(outerList);
+                this.attachTransactionEventListeners(detailList);
+                
+                console.log('Slide animation completed and cleaned up');
+                resolve();
+            }, 400);
+        });
+    }
+
+    populateListWithData(listElement, transactionData) {
+        if (transactionData.transactions && transactionData.transactions.length > 0) {
+            const transactionsHtml = this.generateProperTransactionHTML(transactionData.transactions);
+            listElement.innerHTML = transactionsHtml;
+        } else {
+            listElement.innerHTML = '<div class="text-center text-muted p-4"><i class="fas fa-receipt fa-2x mb-3"></i><p>No transactions for this week</p></div>';
+        }
+    }
+
+    generateProperTransactionHTML(transactions) {
+        // Helper function to format date with day of week in format: 'Mon - 16 Dec, 2025'
+        function formatDateWithDay(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                const dayOfWeek = days[date.getDay()];
+                const day = date.getDate();
+                const month = months[date.getMonth()];
+                const year = date.getFullYear();
+                
+                return `${dayOfWeek} - ${day} ${month}, ${year}`;
+            } catch (e) {
+                return dateString; // fallback to original if parsing fails
+            }
+        }
+        
+        return transactions.map(tx => {
+            // Determine what to show based on transaction type
+            const displayLabel = tx.transaction_type === 'income' ? 'Payee' : 'Merchant';
+            const displayValue = tx.payee || tx.description || tx.account_name || 'Transaction';
+            
+            return `
+            <div class="transaction-item" data-transaction-id="${tx.id || ''}" data-account-id="${tx.account_id}" style="cursor:pointer;">
+                <div class="transaction-row">
+                    <div class="tx-date transaction-date">${formatDateWithDay(tx.date)}</div>
+                    <div class="tx-payee description" title="${displayLabel}: ${displayValue}">${displayValue}</div>
+                    <div class="tx-amount amount ${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
+                        ${tx.amount >= 0 ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}
+                    </div>
+                    <div class="account-name" style="display: none;">${tx.account_name || ''}</div>
+                    <div class="payee" style="display: none;">${tx.payee || ''}</div>
+                    <div class="category" style="display: none;">${tx.category || ''}</div>
+                    <div class="reference" style="display: none;">${tx.reference || ''}</div>
+                    <div class="reconciled" style="display: none;">${tx.is_reconciled || false}</div>
+                    <div class="transaction-type" style="display: none;">${tx.amount >= 0 ? 'Credit' : 'Debit'}</div>
+                    <div class="tx-transaction-type" style="display: none;">${tx.transaction_type || ''}</div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    attachTransactionEventListeners(container) {
+        const transactionItems = container.querySelectorAll('.transaction-item');
+        transactionItems.forEach(item => {
+            const accountId = item.dataset.accountId;
+            
+            // Hover events for lineage highlighting
+            item.addEventListener('mouseenter', () => {
+                if (accountId) {
+                    this.highlightTransactionAccount(accountId);
+                }
+            });
+            
+            item.addEventListener('mouseleave', () => {
+                this.clearTransactionHighlight();
+            });
+            
+            // Click events for account selection
+            item.addEventListener('click', () => {
+                if (accountId) {
+                    this.toggleTransactionActive(item, accountId);
+                }
+            });
+        });
     }
 
     async performSingleNavigation(deltaDays, duration = this.baseAnimationDuration) {
-        if (!this.weekStart) return;
-        
-        // Check if navigation is allowed
-        if (deltaDays < 0 && !this.hasPrevWeek) {
-            return;
-        }
-        if (deltaDays > 0 && !this.hasNextWeek) {
-            return;
-        }
-        
-        // Determine animation direction
+        // This function is no longer directly used by the queue processor,
+        // but we keep it for potential single-step navigation or other features.
         const isGoingForward = deltaDays > 0;
         const slideOutDirection = isGoingForward ? 'left' : 'right';
         const slideInDirection = isGoingForward ? 'right' : 'left';
-        
-        // Calculate new week start
-        const current = new Date(this.weekStart);
-        const adjusted = new Date(Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()));
-        adjusted.setUTCDate(adjusted.getUTCDate() + deltaDays);
-        const yyyy = adjusted.getUTCFullYear();
-        const mm = String(adjusted.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(adjusted.getUTCDate()).padStart(2, '0');
-        const newWeekStart = `${yyyy}-${mm}-${dd}`;
-        
-        // Update week data
-        this.weekStart = newWeekStart;
-        this.updateWeekHeader();
-        localStorage.setItem('budget_allocation_week', this.weekStart);
-        
-        // Update URL (only for the final navigation to avoid excessive history entries)
-        if (this.navigationQueue.length === 0) {
-            const url = new URL(window.location);
-            url.searchParams.delete('week');
-            if (this.selectedAccountId) {
-                url.searchParams.set('account_id', this.selectedAccountId);
-            } else {
-                url.searchParams.delete('account_id');
-            }
-            window.history.pushState({}, '', url.toString());
-        }
-        
-        // Update week navigation availability
-        this.updateWeekNavigationAvailability();
-        
-        // Load new data and animate with custom duration
-        const newData = await this.preloadNewWeekData();
+
+        // Compute next week from the currently displayed week
+        const current = this.weekStart;
+        const nextWeekStart = this.addDaysToDateString(current, deltaDays);
+        const newData = await this.preloadWeekPackageFor(nextWeekStart);
         await this.performSimultaneousSlideAnimation(slideOutDirection, slideInDirection, newData, duration);
+
+        if (this.navigationQueue.length === 0) {
+            this.updateUrlForFinalStep();
+        }
     }
 
+    addDaysToDateString(yyyyMmDd, deltaDays) {
+        try {
+            const [y, m, d] = yyyyMmDd.split('-').map(Number);
+            const base = new Date(Date.UTC(y, m - 1, d));
+            base.setUTCDate(base.getUTCDate() + deltaDays);
+            const yyyy = base.getUTCFullYear();
+            const mm = String(base.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(base.getUTCDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        } catch (e) {
+            return yyyyMmDd;
+        }
+    }
+
+    async preloadWeekPackageFor(weekStart) {
+        try {
+            // Debug logging to verify correct week
+            console.log(`Fetching data for week: ${weekStart}`);
+            
+            // If an account is selected, reload its details for the new week
+            if (this.selectedAccountId) {
+                this.loadAccountData(this.selectedAccountId);
+            }
+
+            const outerFilterType = localStorage.getItem('ba.outer.txType') || 'all';
+            const detailFilterType = (document.getElementById('transactionTypeFilter') || {}).value || 'all';
+
+            // Build URLs explicitly for the given week
+            const buildUrl = (type) => {
+                let url = '/budget-allocation/api/transactions/';
+                const params = new URLSearchParams();
+                if (type && type !== 'all') params.set('type', type);
+                if (weekStart) params.set('week', weekStart);
+                const qs = params.toString();
+                if (qs) url += `?${qs}`;
+                return url;
+            };
+
+            const outerUrl = buildUrl(outerFilterType);
+            const detailUrl = buildUrl(detailFilterType);
+            console.log(`Outer URL: ${outerUrl}`);
+            console.log(`Detail URL: ${detailUrl}`);
+
+            // Fetch both lists simultaneously for the precise week
+            const [outerRes, detailRes] = await Promise.all([
+                fetch(outerUrl),
+                fetch(detailUrl)
+            ]);
+            const [outerData, detailData] = await Promise.all([
+                outerRes.json(),
+                detailRes.json()
+            ]);
+
+            console.log(`Loaded ${outerData.transactions?.length || 0} outer transactions and ${detailData.transactions?.length || 0} detail transactions for week ${weekStart}`);
+
+            return { outerData, detailData };
+        } catch (error) {
+            console.error('Error preloading week package:', error);
+            return { outerData: { transactions: [] }, detailData: { transactions: [] } };
+        }
+    }
+    
     async shiftWeek(deltaDays) {
         if (!this.weekStart) return;
         
@@ -2412,17 +2718,36 @@ class MasterDetailController {
                 resolve();
                 return;
             }
+
+            // Proactively remove any leftover clones from a previous animation step
+            const prevOuterClone = document.getElementById('outerTransactionsListClone');
+            const prevDetailClone = document.getElementById('detailTransactionsClone');
+            if (prevOuterClone && prevOuterClone.parentNode) prevOuterClone.parentNode.removeChild(prevOuterClone);
+            if (prevDetailClone && prevDetailClone.parentNode) prevDetailClone.parentNode.removeChild(prevDetailClone);
+            
+            // Ensure parents are positioned to anchor absolutely positioned clones correctly
+            if (outerList.parentElement && getComputedStyle(outerList.parentElement).position === 'static') {
+                outerList.parentElement.style.position = 'relative';
+            }
+            if (detailList.parentElement && getComputedStyle(detailList.parentElement).position === 'static') {
+                detailList.parentElement.style.position = 'relative';
+            }
             
             // Create clones of current content for slide-out animation
             const outerClone = outerList.cloneNode(true);
             const detailClone = detailList.cloneNode(true);
             
+            // Remove nested IDs from clones to avoid ID collisions (so updates target originals)
+            outerClone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+            detailClone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+
             // Position clones absolutely over originals
             outerClone.style.position = 'absolute';
             outerClone.style.top = '0';
             outerClone.style.left = '0';
             outerClone.style.width = '100%';
             outerClone.style.zIndex = '10';
+            outerClone.style.pointerEvents = 'none';
             outerClone.id = 'outerTransactionsListClone';
             
             detailClone.style.position = 'absolute';
@@ -2430,6 +2755,7 @@ class MasterDetailController {
             detailClone.style.left = '0';
             detailClone.style.width = '100%';
             detailClone.style.zIndex = '10';
+            detailClone.style.pointerEvents = 'none';
             detailClone.id = 'detailTransactionsClone';
             
             // Insert clones before originals
@@ -2465,8 +2791,8 @@ class MasterDetailController {
             // Clean up after animation completes
             setTimeout(() => {
                 // Remove clones
-                outerClone.remove();
-                detailClone.remove();
+                if (outerClone && outerClone.parentNode) outerClone.parentNode.removeChild(outerClone);
+                if (detailClone && detailClone.parentNode) detailClone.parentNode.removeChild(detailClone);
                 
                 // Remove animation classes and reset duration
                 outerList.classList.remove(slideInClass);
@@ -2511,18 +2837,30 @@ class MasterDetailController {
     
     renderNewWeekContent(data) {
         if (!data) return;
-        
+
+        // If server returned a full HTML snippet (legacy path), replace container innerHTML safely
+        if (typeof data === 'string') {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const newOuter = doc.getElementById('outerTransactionsList');
+            const newDetail = doc.getElementById('transactionsList') || doc.getElementById('detail-transactions');
+            const outerList = document.getElementById('outerTransactionsList');
+            const detailList = document.getElementById('transactionsList') || document.getElementById('detail-transactions');
+            if (outerList && newOuter) outerList.innerHTML = newOuter.innerHTML;
+            if (detailList && newDetail) detailList.innerHTML = newDetail.innerHTML;
+            return;
+        }
+
+        // JSON package path
         const { outerData, detailData } = data;
-        
-        // Update lists with new data
-        this.renderTransactionsList(outerData.transactions || [], { target: 'outer' });
-        this.renderTransactionsList(detailData.transactions || [], { target: 'detail' });
-        
-        // Update counts
+        this.renderTransactionsList((outerData && outerData.transactions) || [], { target: 'outer' });
+        this.renderTransactionsList((detailData && detailData.transactions) || [], { target: 'detail' });
+
+        // Update counts (if visible)
         const outerCount = document.getElementById('outerTransactionCount');
         const detailCount = document.getElementById('transactionCount');
-        if (outerCount) outerCount.textContent = `${(outerData.transactions || []).length} transactions`;
-        if (detailCount) detailCount.textContent = `${(detailData.transactions || []).length} transactions`;
+        if (outerCount) outerCount.textContent = `${((outerData && outerData.transactions) || []).length} transactions`;
+        if (detailCount) detailCount.textContent = `${((detailData && detailData.transactions) || []).length} transactions`;
     }
 
     async loadNewWeekData(slideInDirection) {

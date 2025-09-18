@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize tooltips if Bootstrap tooltips are needed
     initializeTooltips();
+    
+    // Initialize add income form
+    handleAddIncomeForm();
 });
 
 /**
@@ -16,6 +19,51 @@ document.addEventListener('DOMContentLoaded', function() {
 function showComingSoonModal() {
     const modal = new bootstrap.Modal(document.getElementById('comingSoonModal'));
     modal.show();
+}
+
+/**
+ * Show add income modal
+ */
+function showAddIncomeModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addIncomeModal'));
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('incomeDate').value = today;
+    
+    modal.show();
+}
+
+/**
+ * Handle add income form submission
+ */
+function handleAddIncomeForm() {
+    const form = document.getElementById('addIncomeForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        const incomeData = {
+            amount: formData.get('amount'),
+            description: formData.get('description'),
+            category: formData.get('category'),
+            date: formData.get('date'),
+            notes: formData.get('notes')
+        };
+        
+        console.log('Income data:', incomeData);
+        
+        // For now, just show a success message and close modal
+        alert('Income added successfully!\n\nAmount: $' + incomeData.amount + '\nDescription: ' + incomeData.description);
+        
+        // Reset form and close modal
+        form.reset();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
+        modal.hide();
+        
+        // TODO: Send data to server when backend is implemented
+    });
 }
 
 /**

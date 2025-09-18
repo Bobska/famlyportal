@@ -8,10 +8,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize tooltips if Bootstrap tooltips are needed
     initializeTooltips();
-    
-    // Add fade-in animation to cards
-    animateCards();
 });
+
+/**
+ * Show coming soon modal
+ */
+function showComingSoonModal() {
+    const modal = new bootstrap.Modal(document.getElementById('comingSoonModal'));
+    modal.show();
+}
 
 /**
  * Initialize mobile sidebar functionality
@@ -71,18 +76,6 @@ function initializeTooltips() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-}
-
-/**
- * Add fade-in animation to cards
- */
-function animateCards() {
-    const cards = document.querySelectorAll('.card');
-    cards.forEach((card, index) => {
-        setTimeout(() => {
-            card.classList.add('fade-in');
-        }, index * 100);
     });
 }
 
@@ -155,7 +148,7 @@ function showMessage(message, type = 'info') {
     const alertContainer = document.querySelector('#main-content');
     if (alertContainer) {
         const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.className = `alert alert-${type} alert-dismissible`;
         alert.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>

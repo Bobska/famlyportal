@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize amount formatting
     initializeAmountFormatting();
     
-    // Initialize transaction row interactions
-    initializeTransactionInteractions();
+    // Initialize active row functionality
+    initializeActiveRows();
 });
 
 /**
@@ -391,6 +391,82 @@ function removeCommasFromAmount(amountStr) {
 }
 
 /**
+ * Initialize active row functionality
+ */
+function initializeActiveRows() {
+    // Add click event listeners to all table rows
+    const tableRows = document.querySelectorAll('.table tbody tr');
+    
+    tableRows.forEach(row => {
+        // Make rows clickable (add pointer cursor)
+        row.style.cursor = 'pointer';
+        
+        // Add click event listener
+        row.addEventListener('click', function(e) {
+            // Don't activate row if clicking on action buttons
+            if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
+                return;
+            }
+            
+            // Remove active class from all rows
+            tableRows.forEach(r => r.classList.remove('table-row-active'));
+            
+            // Add active class to clicked row
+            this.classList.add('table-row-active');
+            
+            // Optional: Store the active row ID for later use
+            const rowData = getRowData(this);
+            if (rowData) {
+                // You can use this data for other functionality
+                console.log('Active row selected:', rowData);
+            }
+        });
+        
+        // Add double-click to edit functionality
+        row.addEventListener('dblclick', function(e) {
+            // Don't trigger if clicking on action buttons
+            if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
+                return;
+            }
+            
+            // Get the income ID and trigger edit modal
+            const editBtn = this.querySelector('[onclick*="showEditIncomeModal"]');
+            if (editBtn) {
+                const onclickAttr = editBtn.getAttribute('onclick');
+                const incomeId = onclickAttr.match(/\d+/)?.[0];
+                if (incomeId) {
+                    showEditIncomeModal(parseInt(incomeId));
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Get data from a table row
+ */
+function getRowData(row) {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 3) {
+        return {
+            date: cells[0].textContent.trim(),
+            payee: cells[1].textContent.trim(),
+            amount: cells[2].textContent.trim(),
+            row: row
+        };
+    }
+    return null;
+}
+
+/**
+ * Clear active row selection
+ */
+function clearActiveRows() {
+    const activeRows = document.querySelectorAll('.table-row-active');
+    activeRows.forEach(row => row.classList.remove('table-row-active'));
+}
+
+/**
  * Get CSRF token from the page
  */
 function getCsrfToken() {
@@ -576,118 +652,6 @@ function validateForm(form) {
     return isValid;
 }
 
-/**
- * Transaction Row Selection Functionality
- */
-
-/**
- * Select a transaction row and update visual state
- */
-function selectTransactionRow(row) {
-    // Remove selected class from all rows
-    const allRows = document.querySelectorAll('.transaction-row');
-    allRows.forEach(r => r.classList.remove('selected'));
-    
-    // Add selected class to clicked row
-    row.classList.add('selected');
-    
-    // Store selected transaction ID for potential future use
-    const transactionId = row.dataset.transactionId;
-    if (transactionId) {
-        // Store in data attribute on table for easy access
-        const table = document.getElementById('transactionTableBody');
-        if (table) {
-            table.dataset.selectedTransaction = transactionId;
-        }
-        
-        // Trigger custom event for other components that might need to know
-        const event = new CustomEvent('transactionSelected', {
-            detail: {
-                transactionId: transactionId,
-                row: row
-            }
-        });
-        document.dispatchEvent(event);
-    }
-}
-
-/**
- * Clear all transaction selections
- */
-function clearTransactionSelection() {
-    const allRows = document.querySelectorAll('.transaction-row');
-    allRows.forEach(row => row.classList.remove('selected'));
-    
-    // Clear stored selection
-    const table = document.getElementById('transactionTableBody');
-    if (table) {
-        delete table.dataset.selectedTransaction;
-    }
-    
-    // Trigger custom event
-    const event = new CustomEvent('transactionSelectionCleared');
-    document.dispatchEvent(event);
-}
-
-/**
- * Get currently selected transaction ID
- */
-function getSelectedTransactionId() {
-    const table = document.getElementById('transactionTableBody');
-    return table ? table.dataset.selectedTransaction : null;
-}
-
-/**
- * Get currently selected transaction row element
- */
-function getSelectedTransactionRow() {
-    return document.querySelector('.transaction-row.selected');
-}
-
-/**
- * Initialize transaction row interactions
- */
-function initializeTransactionInteractions() {
-    // Add keyboard support for selection
-    document.addEventListener('keydown', function(e) {
-        // Clear selection on Escape key
-        if (e.key === 'Escape') {
-            clearTransactionSelection();
-        }
-        
-        // Navigation with arrow keys
-        const selectedRow = getSelectedTransactionRow();
-        if (selectedRow) {
-            let nextRow = null;
-            
-            if (e.key === 'ArrowDown') {
-                nextRow = selectedRow.nextElementSibling;
-                if (nextRow && nextRow.classList.contains('transaction-row')) {
-                    selectTransactionRow(nextRow);
-                    e.preventDefault();
-                }
-            } else if (e.key === 'ArrowUp') {
-                nextRow = selectedRow.previousElementSibling;
-                if (nextRow && nextRow.classList.contains('transaction-row')) {
-                    selectTransactionRow(nextRow);
-                    e.preventDefault();
-                }
-            }
-        }
-    });
-    
-    // Clear selection when clicking outside the table
-    document.addEventListener('click', function(e) {
-        const clickedRow = e.target.closest('.transaction-row');
-        const clickedTable = e.target.closest('.transaction-table');
-        
-        // If click was not on a transaction row or table, clear selection
-        if (!clickedRow && !clickedTable) {
-            clearTransactionSelection();
-        }
-    });
-}
-
 // Export functions for use in other scripts
 window.BudgetBasic = {
     formatCurrency,
@@ -697,9 +661,5 @@ window.BudgetBasic = {
     showErrorMessage,
     validateForm,
     toggleSidebar,
-    closeSidebar,
-    selectTransactionRow,
-    clearTransactionSelection,
-    getSelectedTransactionId,
-    getSelectedTransactionRow
+    closeSidebar
 };

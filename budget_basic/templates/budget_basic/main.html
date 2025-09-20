@@ -34,7 +34,7 @@
             <div class="card-body">
                 <!-- Transaction Table -->
                 <div class="table-responsive">
-                    <table class="table transaction-table">
+                    <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -43,19 +43,19 @@
                                 <th class="text-end" style="width: 120px;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="transactionTableBody">
+                        <tbody>
                             {% if income_entries %}
                                 {% for income in income_entries %}
-                                <tr class="transaction-row" data-transaction-id="{{ income.id }}" onclick="selectTransactionRow(this)">
+                                <tr>
                                     <td>{{ income.date|date:"Y-m-d" }}</td>
                                     <td>{{ income.payee }}</td>
-                                    <td class="text-end amount-value">+${{ income.amount|floatformat:2|intcomma }}</td>
+                                    <td class="text-end">+${{ income.amount|floatformat:2|intcomma }}</td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="event.stopPropagation(); showEditIncomeModal({{ income.id }})" title="Edit Transaction">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
                                                 Edit
                                             </button>
-                                            <button type="button" class="btn btn-outline-secondary" onclick="event.stopPropagation(); showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
                                                 Delete
                                             </button>
                                         </div>

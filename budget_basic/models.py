@@ -27,3 +27,26 @@ class Income(models.Model):
     
     def __str__(self):
         return f"{self.payee} - ${self.amount} ({self.date})"
+
+
+class Expense(models.Model):
+    """Expense transaction model for budget basic app"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    payee = models.CharField(max_length=200)
+    amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']
+        verbose_name = 'Expense'
+        verbose_name_plural = 'Expense Entries'
+    
+    def __str__(self):
+        return f"{self.payee} - ${self.amount} ({self.date})"

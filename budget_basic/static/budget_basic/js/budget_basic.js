@@ -18,6 +18,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize delete income functionality
     handleDeleteIncomeForm();
     
+    // Initialize add expense form
+    handleAddExpenseForm();
+    
+    // Initialize edit expense form
+    handleEditExpenseForm();
+    
+    // Initialize delete expense functionality
+    handleDeleteExpenseForm();
+    
     // Initialize amount formatting
     initializeAmountFormatting();
     
@@ -320,12 +329,292 @@ function handleDeleteIncomeForm() {
     });
 }
 
+// ===== EXPENSE FUNCTIONS =====
+
+/**
+ * Show add expense modal
+ */
+function showAddExpenseModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addExpenseModal'));
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('expenseDate').value = today;
+    
+    modal.show();
+}
+
+/**
+ * Show edit expense modal with data
+ */
+function showEditExpenseModal(expenseId) {
+    // Fetch expense data
+    fetch(`/budget-basic/expense/${expenseId}/get/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate form with existing data
+                document.getElementById('editExpenseId').value = data.expense.id;
+                document.getElementById('editExpenseDate').value = data.expense.date;
+                document.getElementById('editExpensePayee').value = data.expense.payee;
+                document.getElementById('editExpenseAmount').value = addCommasToNumber(data.expense.amount);
+                document.getElementById('editExpenseNotes').value = data.expense.notes;
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+                modal.show();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while loading the expense data. Please try again.');
+        });
+}
+
+/**
+ * Show delete expense confirmation modal
+ */
+function showDeleteExpenseModal(expenseId, payee, amount) {
+    // Set the expense details in the modal
+    document.getElementById('deleteExpenseId').value = expenseId;
+    document.getElementById('deleteExpenseDetails').innerHTML = `
+        <strong>Payee:</strong> ${payee}<br>
+        <strong>Amount:</strong> $${amount}
+    `;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteExpenseModal'));
+    modal.show();
+}
+
+/**
+ * Handle add expense form submission
+ */
+function handleAddExpenseForm() {
+    const form = document.getElementById('addExpenseForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        
+        // Remove commas from amount before validation and submission
+        const amountInput = form.querySelector('[name="amount"]');
+        const cleanAmount = removeCommasFromAmount(amountInput.value);
+        formData.set('amount', cleanAmount);
+        
+        // Validate required fields
+        const date = formData.get('date');
+        const payee = formData.get('payee');
+        const amount = formData.get('amount');
+        
+        if (!date || !payee || !amount) {
+            alert('Please fill in all required fields (Date, Payee, Amount)');
+            return;
+        }
+        
+        // Disable submit button to prevent double submission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        // Send data to server
+        fetch('/budget-basic/expense/add/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close add modal first
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addExpenseModal'));
+                addModal.hide();
+                
+                // Clear form
+                form.reset();
+                
+                // Show success modal after add modal is closed
+                setTimeout(() => {
+                    showSuccessModal(data.message);
+                    
+                    // Reload the page to show the new entry
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 300);
+                
+            } else {
+                // Show error message via alert
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the expense. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
+    });
+}
+
+/**
+ * Handle edit expense form submission
+ */
+function handleEditExpenseForm() {
+    const form = document.getElementById('editExpenseForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        
+        // Remove commas from amount before validation and submission
+        const amountInput = form.querySelector('[name="amount"]');
+        const cleanAmount = removeCommasFromAmount(amountInput.value);
+        formData.set('amount', cleanAmount);
+        
+        // Validate required fields
+        const date = formData.get('date');
+        const payee = formData.get('payee');
+        const amount = formData.get('amount');
+        
+        if (!date || !payee || !amount) {
+            alert('Please fill in all required fields (Date, Payee, Amount)');
+            return;
+        }
+        
+        // Get expense ID
+        const expenseId = document.getElementById('editExpenseId').value;
+        
+        // Disable submit button to prevent double submission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Updating...';
+        
+        // Send data to server
+        fetch(`/budget-basic/expense/${expenseId}/edit/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close edit modal first
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
+                editModal.hide();
+                
+                // Show success modal after edit modal is closed
+                setTimeout(() => {
+                    showSuccessModal(data.message);
+                    
+                    // Reload the page to show the updated entry
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 300);
+                
+            } else {
+                // Show error message via alert
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the expense. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
+    });
+}
+
+/**
+ * Handle delete expense confirmation
+ */
+function handleDeleteExpenseForm() {
+    const confirmBtn = document.getElementById('confirmDeleteExpenseBtn');
+    if (!confirmBtn) return;
+    
+    confirmBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const expenseId = document.getElementById('deleteExpenseId').value;
+        if (!expenseId) {
+            alert('No expense entry selected for deletion');
+            return;
+        }
+        
+        // Disable button to prevent double clicks
+        const originalText = confirmBtn.textContent;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Deleting...';
+        
+        // Send delete request to server
+        fetch(`/budget-basic/expense/${expenseId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close delete modal first
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
+                deleteModal.hide();
+                
+                // Show success modal after delete modal is closed
+                setTimeout(() => {
+                    showSuccessModal(data.message);
+                    
+                    // Reload the page to show the updated list
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 300);
+                
+            } else {
+                // Show error message via alert
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the expense entry. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+        });
+    });
+}
+
 /**
  * Initialize amount field formatting
  */
 function initializeAmountFormatting() {
     // Add formatting to amount inputs
-    const amountInputs = document.querySelectorAll('#incomeAmount, #editIncomeAmount');
+        const amountInputs = document.querySelectorAll('#incomeAmount, #editIncomeAmount, #expenseAmount, #editExpenseAmount');
     
     amountInputs.forEach(input => {
         // Format on input (as user types)

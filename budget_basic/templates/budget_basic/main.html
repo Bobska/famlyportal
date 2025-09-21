@@ -16,7 +16,7 @@
             <button type="button" class="btn btn-outline-secondary" onclick="showAddIncomeModal()">
                 Add Income
             </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+            <button type="button" class="btn btn-outline-secondary" onclick="showAddExpenseModal()">
                 Add Expense
             </button>
         </div>
@@ -37,10 +37,10 @@
             </div>
             <div class="card mb-4">
                 <div class="card-body">
-                    {% if income_entries %}
+                    {% if income_entries or expense_entries %}
                         <!-- Transaction Cards Container -->
                         <div class="transaction-cards-container">
-                            <!-- Transaction Data Rows -->
+                            <!-- Income Transaction Data Rows -->
                             {% for income in income_entries %}
                             <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
                                 <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
@@ -58,6 +58,25 @@
                                 </div>
                             </div>
                             {% endfor %}
+                            
+                            <!-- Expense Transaction Data Rows -->
+                            {% for expense in expense_entries %}
+                            <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}">
+                                <div class="transaction-col transaction-date">{{ expense.date|date:"Y-m-d" }}</div>
+                                <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
+                                <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
+                                <div class="transaction-col transaction-actions">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditExpenseModal({{ expense.id }})" title="Edit Transaction">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteExpenseModal({{ expense.id }}, '{{ expense.payee|escapejs }}', '{{ expense.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     {% else %}
                         <!-- Empty State for Card View -->
@@ -66,7 +85,7 @@
                                 <i class="bi bi-receipt" style="font-size: 3rem;"></i>
                             </div>
                             <p class="mb-0">No transactions yet</p>
-                            <small>Start by adding your first income</small>
+                            <small>Start by adding your first income or expense</small>
                         </div>
                     {% endif %}
                 </div>

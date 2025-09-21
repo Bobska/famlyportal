@@ -162,15 +162,8 @@ function handleAddIncomeForm() {
                 const addIncomeModal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
                 addIncomeModal.hide();
                 
-                // Show success modal after add modal is closed
-                setTimeout(() => {
-                    showSuccessModal(data.message);
-                    
-                    // Reload the page to show the new income entry
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }, 300);
+                // Reload the page immediately to show the new income entry
+                window.location.reload();
                 
             } else {
                 // Show error message via alert (keep alerts for errors)
@@ -239,17 +232,8 @@ function handleEditIncomeForm() {
                 form.reset();
                 const editIncomeModal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
                 editIncomeModal.hide();
-                
-                // Show success modal after edit modal is closed
-                setTimeout(() => {
-                    showSuccessModal(data.message);
-                    
-                    // Reload the page to show the updated income entry
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }, 300);
-                
+                // Reload the page immediately to show the updated income entry
+                window.location.reload();
             } else {
                 // Show error message via alert (keep alerts for errors)
                 alert('Error: ' + data.error);
@@ -302,16 +286,8 @@ function handleDeleteIncomeForm() {
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
                 deleteModal.hide();
                 
-                // Show success modal after delete modal is closed
-                setTimeout(() => {
-                    showSuccessModal(data.message);
-                    
-                    // Reload the page to show the updated list
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }, 300);
-                
+                // Reload the page immediately to show the updated list
+                window.location.reload();
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -441,16 +417,8 @@ function handleAddExpenseForm() {
                 // Clear form
                 form.reset();
                 
-                // Show success modal after add modal is closed
-                setTimeout(() => {
-                    showSuccessModal(data.message);
-                    
-                    // Reload the page to show the new entry
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }, 300);
-                
+                // Reload the page immediately to show the new entry
+                window.location.reload();
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -520,16 +488,8 @@ function handleEditExpenseForm() {
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
                 editModal.hide();
                 
-                // Show success modal after edit modal is closed
-                setTimeout(() => {
-                    showSuccessModal(data.message);
-                    
-                    // Reload the page to show the updated entry
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }, 300);
-                
+                // Reload the page immediately to show the updated entry
+                window.location.reload();
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -582,16 +542,8 @@ function handleDeleteExpenseForm() {
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
                 deleteModal.hide();
                 
-                // Show success modal after delete modal is closed
-                setTimeout(() => {
-                    showSuccessModal(data.message);
-                    
-                    // Reload the page to show the updated list
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                }, 300);
-                
+                // Reload the page immediately to show the updated list
+                window.location.reload();
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);

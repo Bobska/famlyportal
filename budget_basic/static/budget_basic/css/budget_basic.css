@@ -1,3 +1,77 @@
+/* CLEAN SCROLLBAR STYLING - WEBKIT ONLY */
+/* Override base.css scrollbar settings specifically */
+html {
+    overflow-y: auto !important; /* Override base.css scroll setting */
+}
+
+/* Prevent any global scrollbar rules from interfering */
+*::-webkit-scrollbar {
+    /* Reset any global scrollbar width */
+    width: auto;
+}
+
+/* Clean webkit scrollbar styling only */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+main.container::-webkit-scrollbar,
+.budget-basic-main::-webkit-scrollbar,
+.budget-basic-main > .row::-webkit-scrollbar,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+    background: transparent !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+main.container::-webkit-scrollbar-track,
+.budget-basic-main::-webkit-scrollbar-track,
+.budget-basic-main > .row::-webkit-scrollbar-track,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05) !important; /* Subtle background */
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+main.container::-webkit-scrollbar-thumb,
+.budget-basic-main::-webkit-scrollbar-thumb,
+.budget-basic-main > .row::-webkit-scrollbar-thumb,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 6px !important; /* More rounded corners */
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+main.container::-webkit-scrollbar-thumb:hover,
+.budget-basic-main::-webkit-scrollbar-thumb:hover,
+.budget-basic-main > .row::-webkit-scrollbar-thumb:hover,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Remove scrollbar buttons/arrows */
+html::-webkit-scrollbar-button,
+body::-webkit-scrollbar-button,
+main.container::-webkit-scrollbar-button,
+.budget-basic-main::-webkit-scrollbar-button,
+.budget-basic-main > .row::-webkit-scrollbar-button,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+main.container::-webkit-scrollbar-corner,
+.budget-basic-main::-webkit-scrollbar-corner,
+.budget-basic-main > .row::-webkit-scrollbar-corner,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar-corner {
+    background: transparent !important;
+}
+
+/* Specific overrides for our main elements */
 
 .budget-basic-main > .row {
     flex: 1;
@@ -21,49 +95,44 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0; /* Important for flex children */
-    /* Reduce max height to prevent unnecessary scrollbars */
-    max-height: calc(100% - 2px); /* Small buffer */
-    /* Hide scrollbar track until needed */
-    scrollbar-width: thin; /* Firefox */
-}
-
-/* Webkit scrollbar styling for Chrome/Safari */
-.card-body::-webkit-scrollbar {
-    width: 6px; /* Thinner scrollbar */
-}
-
-.card-body::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.card-body::-webkit-scrollbar-thumb {
-    background-color: rgba(222, 226, 230, 0.8); /* Semi-transparent */
-    border-radius: 3px;
-}
-
-.card-body::-webkit-scrollbar-thumb:hover {
-    background-color: #adb5bd;
-}
-
-/* Hide scrollbar when not hovering (modern browsers) */
-.card-body {
+    /* Remove max-height constraint to allow proper scrolling */
+    /* Clean scrollbar layout */
     scrollbar-gutter: stable; /* Prevent layout shift */
 }
 
-/* Hide any inactive scrollbars only on main content areas */
-.budget-basic-main::-webkit-scrollbar,
-.budget-basic-main > .row::-webkit-scrollbar,
-.budget-basic-main > .row > .col-12::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
+/* Consistent scrollbars for card content (matching main page) */
+.card-body::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
 }
 
-.budget-basic-main,
-.budget-basic-main > .row,
-.budget-basic-main > .row > .col-12 {
-    -ms-overflow-style: none !important; /* IE and Edge */
-    scrollbar-width: none !important; /* Firefox */
+.card-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05) !important; /* Subtle background */
 }
+
+.card-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15) !important;
+    border-radius: 6px !important; /* More rounded corners */
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+.card-body::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.card-body::-webkit-scrollbar-corner {
+    background: transparent !important;
+}
+
+/* Allow visible scrollbars on main content areas when needed */
+
+/* Card body scrollbar styling */
+
 /* Prevent page shift when Bootstrap modal opens */
 body.modal-open {
     padding-right: 0 !important;
@@ -71,30 +140,19 @@ body.modal-open {
 
 /* Budget Basic App Styles - Fixed viewport height v9 - Smooth responsive transitions */
 
-/* Completely hide all main page scrollbars */
+/* Allow page scrolling when content overflows */
 html, body {
-    overflow: hidden !important;
-    height: 100vh !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    overflow-y: auto;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
 }
 
-/* Additional scrollbar hiding for main page only - NOT global */
-html::-webkit-scrollbar, body::-webkit-scrollbar {
-    display: none !important;
-}
-
-html, body {
-    -ms-overflow-style: none !important; /* IE and Edge */
-    scrollbar-width: none !important; /* Firefox */
-}
-
-/* Hide main page scrollbars */
+/* Allow page scrolling for content overflow */
 .budget-basic-app {
-    padding-top: 0 !important;
+    padding-top: 0;
     min-height: 100vh;
-    height: 100vh; /* Constrain to viewport */
-    overflow: hidden; /* Hide any body scrollbars */
+    /* Remove height constraint to allow natural content flow */
 }
 
 .budget-basic-main {
@@ -102,12 +160,11 @@ html, body {
     margin-left: 250px; /* Sidebar width */
     padding: 20px;
     /* Use available viewport height with more breathing room */
-    height: calc(100vh - 56px - 4px); /* navbar + larger buffer */
+    min-height: calc(100vh - 56px - 4px); /* navbar + larger buffer */
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    /* Hide main scrollbars completely */
-    overflow: hidden !important;
+    /* Allow natural scrolling when content overflows */
     
     /* Take full available width */
     width: calc(100vw - 250px); /* Use all space minus sidebar */
@@ -136,14 +193,15 @@ html, body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    /* Allow card-body to shrink and scroll */
+    min-height: 0;
 }
 
-/* Force hide any scrollbars on main containers */
+/* Allow natural overflow handling on main containers */
 .budget-basic-main, 
 .budget-basic-main > .row, 
 .budget-basic-main > .row > .col-12 {
-    overflow-x: hidden !important;
-    overflow-y: hidden !important;
+    overflow-x: hidden; /* Only hide horizontal overflow */
 }
 
 /* Navigation */
@@ -176,22 +234,41 @@ html, body {
     z-index: 1000;
 }
 
-/* Restore normal scrollbars for sidebar */
+/* Consistent scrollbars for sidebar (matching main page) */
 .budget-basic-sidebar::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 .budget-basic-sidebar::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: rgba(0, 0, 0, 0.05); /* Subtle background */
 }
 
 .budget-basic-sidebar::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 6px; /* More rounded corners */
+    border: none;
 }
 
 .budget-basic-sidebar::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Remove all arrow buttons and decorative elements */
+.budget-basic-sidebar::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.budget-basic-sidebar::-webkit-scrollbar-corner {
+    background: transparent;
+    display: none;
+}
+
+.budget-basic-sidebar::-webkit-scrollbar-track-piece {
+    background: transparent;
+    display: none;
 }
 
 .sidebar-content {
@@ -240,22 +317,33 @@ html, body {
     overflow-y: auto;
 }
 
-/* Restore normal scrollbars for category list */
+/* Consistent scrollbars for category list (matching our new style) */
 .category-list::-webkit-scrollbar {
     width: 6px;
 }
 
 .category-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: rgba(0, 0, 0, 0.05); /* Subtle background */
 }
 
 .category-list::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px; /* More rounded corners */
 }
 
 .category-list::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Remove scrollbar buttons for category list */
+.category-list::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.category-list::-webkit-scrollbar-corner {
+    background: transparent !important;
 }
 
 .category-item {
@@ -292,9 +380,8 @@ html, body {
     flex-direction: column;
     /* Allow card to grow to fill available space */
     flex: 1;
-    /* Reduce card height slightly to prevent secondary scrollbars */
+    /* Allow card to fit container and scroll properly */
     min-height: 0; /* Important for flexbox */
-    max-height: calc(100% - 4px); /* Small buffer to prevent overflow */
 }
 
 .card-header {
@@ -603,6 +690,7 @@ html, body {
 .transaction-payee {
     flex: 1; /* Flexible width for payee */
     min-width: 150px;
+    margin-left: 16px; /* Add gap between date and payee/merchant */
 }
 
 .transaction-amount {
@@ -630,6 +718,7 @@ html, body {
     .transaction-payee {
         min-width: 120px;
         font-size: 0.875rem;
+        margin-left: 12px; /* Slightly smaller gap on mobile */
     }
     
     .transaction-amount {
@@ -649,4 +738,31 @@ html, body {
     .btn-icon i {
         font-size: 0.6rem; /* Proportionally smaller icon on mobile */
     }
+}
+
+/* Final aggressive scrollbar override - ensure these styles take precedence */
+* {
+    /* Remove any browser-default scrollbar styling */
+    scrollbar-width: auto;
+}
+
+*::-webkit-scrollbar-button:start:decrement,
+*::-webkit-scrollbar-button:end:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+
+
+/* Force all elements to use our custom scrollbar styling */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 3px !important;
+    background: transparent !important;
+}
+
+.card-body::-webkit-scrollbar {
+    width: 2px !important;
+    background: transparent !important;
 }

@@ -37,6 +37,27 @@
                     </button>
                 </div>
             </div>
+            
+            <!-- Week Navigation Card -->
+            <div class="card mb-3 card-week-nav">
+                <div class="card-body py-1">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-action btn-week-nav" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-chevron-left me-1"></i>
+                            <span class="btn-week-text">Previous</span>
+                        </button>
+                        <div class="week-display">
+                            <div class="week-text week-text-large">16 Sep - 22 Sep, 2025</div>
+                            <div class="week-relative">Current Week</div>
+                        </div>
+                        <button type="button" class="btn btn-action btn-week-nav" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <span class="btn-week-text">Next</span>
+                            <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             <div class="card mb-4">
                 <div class="card-body">
                     {% if income_entries or expense_entries %}
@@ -95,4 +116,101 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Week navigation functionality
+let currentWeekOffset = 0; // 0 = current week, -1 = last week, etc.
+
+function previousWeek() {
+    currentWeekOffset--;
+    updateWeekDisplay();
+    // TODO: Implement actual data filtering
+    console.log('Previous week clicked, offset:', currentWeekOffset);
+    showComingSoonModal();
+}
+
+function nextWeek() {
+    currentWeekOffset++;
+    updateWeekDisplay();
+    // TODO: Implement actual data filtering
+    console.log('Next week clicked, offset:', currentWeekOffset);
+    showComingSoonModal();
+}
+
+// Function to get relative week name
+function getRelativeWeekName(offset) {
+    switch(offset) {
+        case -2: return '2 Weeks Ago';
+        case -1: return 'Last Week';
+        case 0: return 'Current Week';
+        case 1: return 'Next Week';
+        case 2: return 'In 2 Weeks';
+        default: 
+            if (offset < -2) return `${Math.abs(offset)} Weeks Ago`;
+            if (offset > 2) return `In ${offset} Weeks`;
+            return 'Unknown Week';
+    }
+}
+
+// Function to format date in NZ format
+function formatNZDate(date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${date.getDate()} ${months[date.getMonth()]}`;
+}
+
+// Function to get week start and end dates
+function getWeekDates(offset) {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Get Monday
+    
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset + (offset * 7));
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    return { start: monday, end: sunday };
+}
+
+// Function to update week display
+function updateWeekDisplay() {
+    const weekRelative = document.querySelector('.week-relative');
+    const weekText = document.querySelector('.week-text');
+    
+    if (weekRelative && weekText) {
+        const { start, end } = getWeekDates(currentWeekOffset);
+        
+        // Update relative week name
+        weekRelative.textContent = getRelativeWeekName(currentWeekOffset);
+        
+        // Update date range in NZ format
+        const startFormatted = formatNZDate(start);
+        const endFormatted = formatNZDate(end);
+        const year = end.getFullYear();
+        
+        // Handle cross-month/year ranges
+        if (start.getMonth() === end.getMonth()) {
+            weekText.textContent = `${startFormatted} - ${endFormatted}, ${year}`;
+        } else {
+            weekText.textContent = `${startFormatted} - ${endFormatted}, ${year}`;
+        }
+    }
+}
+
+// Initialize tooltips for week navigation buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips for week navigation
+    const weekNavButtons = document.querySelectorAll('.btn-week-nav[data-bs-toggle="tooltip"]');
+    weekNavButtons.forEach(function(element) {
+        new bootstrap.Tooltip(element);
+    });
+    
+    // Initialize the week display
+    updateWeekDisplay();
+});
+</script>
 {% endblock %}

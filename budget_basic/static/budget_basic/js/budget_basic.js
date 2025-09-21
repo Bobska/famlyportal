@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize active row functionality
     initializeActiveRows();
+    
+    // Initialize transaction card interactions
+    initializeTransactionCards();
 });
 
 /**
@@ -464,6 +467,75 @@ function getRowData(row) {
 function clearActiveRows() {
     const activeRows = document.querySelectorAll('.table-row-active');
     activeRows.forEach(row => row.classList.remove('table-row-active'));
+}
+
+/**
+ * Initialize transaction card interactions
+ */
+function initializeTransactionCards() {
+    // Add click event listeners to all transaction cards
+    const transactionCards = document.querySelectorAll('.transaction-card-data');
+    
+    transactionCards.forEach(card => {
+        // Add click event listener
+        card.addEventListener('click', function(e) {
+            // Don't activate card if clicking on action buttons
+            if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
+                return;
+            }
+            
+            // Remove active class from all cards
+            transactionCards.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked card
+            this.classList.add('active');
+            
+            // Optional: Store the active card ID for later use
+            const cardData = getCardData(this);
+            if (cardData) {
+                console.log('Active card selected:', cardData);
+            }
+        });
+        
+        // Add double-click to edit functionality
+        card.addEventListener('dblclick', function(e) {
+            // Don't trigger if clicking on action buttons
+            if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
+                return;
+            }
+            
+            // Get the income ID and trigger edit modal
+            const transactionId = this.dataset.transactionId;
+            if (transactionId) {
+                showEditIncomeModal(parseInt(transactionId));
+            }
+        });
+    });
+}
+
+/**
+ * Get data from a transaction card
+ */
+function getCardData(card) {
+    const cols = card.querySelectorAll('.transaction-col');
+    if (cols.length >= 3) {
+        return {
+            transactionId: card.dataset.transactionId,
+            date: cols[0].textContent.trim(),
+            payee: cols[1].textContent.trim(),
+            amount: cols[2].textContent.trim(),
+            card: card
+        };
+    }
+    return null;
+}
+
+/**
+ * Clear active card selection
+ */
+function clearActiveCards() {
+    const activeCards = document.querySelectorAll('.transaction-card-data.active');
+    activeCards.forEach(card => card.classList.remove('active'));
 }
 
 /**

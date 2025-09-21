@@ -18,6 +18,56 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
+        <!-- Card View Transactions -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Transactions</h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+                        <i class="fas fa-sort me-1"></i>Sort
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if income_entries %}
+                    <!-- Transaction Cards Container -->
+                    <div class="transaction-cards-container">
+                        <!-- Transaction Data Rows -->
+                        {% for income in income_entries %}
+                        <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
+                            <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
+                            <div class="transaction-col transaction-payee">{{ income.payee }}</div>
+                            <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
+                            <div class="transaction-col transaction-actions">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Empty State for Card View -->
+                    <div class="text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-0">No transactions yet</p>
+                        <small>Start by adding your first income</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
         <!-- Transactions List -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -52,11 +102,11 @@
                                     <td class="text-end">+${{ income.amount|floatformat:2|intcomma }}</td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
-                                                Edit
+                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
+                                                <i class="bi bi-pencil"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-secondary" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                                Delete
+                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
                                     </td>

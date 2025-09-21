@@ -475,7 +475,8 @@ function clearActiveRows() {
 function initializeTransactionCards() {
     // Add click event listeners to all transaction cards
     const transactionCards = document.querySelectorAll('.transaction-card-data');
-    
+    const cardBody = document.querySelector('.card-body');
+
     transactionCards.forEach(card => {
         // Add click event listener
         card.addEventListener('click', function(e) {
@@ -483,27 +484,22 @@ function initializeTransactionCards() {
             if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
                 return;
             }
-            
             // Remove active class from all cards
             transactionCards.forEach(c => c.classList.remove('active'));
-            
             // Add active class to clicked card
             this.classList.add('active');
-            
             // Optional: Store the active card ID for later use
             const cardData = getCardData(this);
             if (cardData) {
                 console.log('Active card selected:', cardData);
             }
         });
-        
         // Add double-click to edit functionality
         card.addEventListener('dblclick', function(e) {
             // Don't trigger if clicking on action buttons
             if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
                 return;
             }
-            
             // Get the income ID and trigger edit modal
             const transactionId = this.dataset.transactionId;
             if (transactionId) {
@@ -511,6 +507,16 @@ function initializeTransactionCards() {
             }
         });
     });
+
+    // Click outside any card clears selection
+    if (cardBody) {
+        cardBody.addEventListener('click', function(e) {
+            // Only clear if not clicking on a card or its children
+            if (!e.target.closest('.transaction-card-data')) {
+                clearActiveCards();
+            }
+        });
+    }
 }
 
 /**

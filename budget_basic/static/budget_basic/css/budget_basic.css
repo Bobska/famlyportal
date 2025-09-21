@@ -1,18 +1,120 @@
+
+.budget-basic-main > .row {
+    flex: 1;
+    margin: 0;
+    min-height: 0;
+    /* Allow natural sizing without overflow */
+    height: auto;
+}
+
+.budget-basic-main > .row > .col-12 {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    /* Only show scrollbar when actually needed */
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0; /* Important for flex children */
+    /* Reduce max height to prevent unnecessary scrollbars */
+    max-height: calc(100% - 2px); /* Small buffer */
+    /* Hide scrollbar track until needed */
+    scrollbar-width: thin; /* Firefox */
+}
+
+/* Webkit scrollbar styling for Chrome/Safari */
+.card-body::-webkit-scrollbar {
+    width: 6px; /* Thinner scrollbar */
+}
+
+.card-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+    background-color: rgba(222, 226, 230, 0.8); /* Semi-transparent */
+    border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+    background-color: #adb5bd;
+}
+
+/* Hide scrollbar when not hovering (modern browsers) */
+.card-body {
+    scrollbar-gutter: stable; /* Prevent layout shift */
+}
+
+/* Hide any inactive scrollbars only on main content areas */
+.budget-basic-main::-webkit-scrollbar,
+.budget-basic-main > .row::-webkit-scrollbar,
+.budget-basic-main > .row > .col-12::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+
+.budget-basic-main,
+.budget-basic-main > .row,
+.budget-basic-main > .row > .col-12 {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+}
 /* Prevent page shift when Bootstrap modal opens */
 body.modal-open {
     padding-right: 0 !important;
 }
-/* Budget Basic App Styles */
 
-/* Override global body padding */
+/* Budget Basic App Styles - Fixed viewport height v6 - Selective scrollbar hiding */
+
+/* Completely hide all main page scrollbars */
+html, body {
+    overflow: hidden !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Additional scrollbar hiding for main page only - NOT global */
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none !important;
+}
+
+html, body {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+}
+
+/* Hide main page scrollbars */
 .budget-basic-app {
     padding-top: 0 !important;
     min-height: 100vh;
+    height: 100vh; /* Constrain to viewport */
+    overflow: hidden; /* Hide any body scrollbars */
 }
 
 .budget-basic-main {
     margin-left: 250px;
     padding: 20px;
+    /* Use available viewport height with more breathing room */
+    height: calc(100vh - 56px - 4px); /* navbar + larger buffer */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    /* Hide main scrollbars completely */
+    overflow: hidden !important;
+}
+
+/* Force hide any scrollbars on main containers */
+.budget-basic-main, 
+.budget-basic-main > .row, 
+.budget-basic-main > .row > .col-12 {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
 }
 
 /* Navigation */
@@ -41,8 +143,26 @@ body.modal-open {
     height: calc(100vh - 56px);
     background-color: #ffffff;
     border-right: 1px solid #dee2e6;
-    overflow-y: auto;
+    overflow-y: auto; /* Allow sidebar scrolling */
     z-index: 1000;
+}
+
+/* Restore normal scrollbars for sidebar */
+.budget-basic-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.budget-basic-sidebar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.budget-basic-sidebar::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.budget-basic-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 .sidebar-content {
@@ -91,6 +211,24 @@ body.modal-open {
     overflow-y: auto;
 }
 
+/* Restore normal scrollbars for category list */
+.category-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.category-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.category-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.category-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
 .category-item {
     display: flex;
     align-items: center;
@@ -120,6 +258,14 @@ body.modal-open {
 /* Cards */
 .card {
     border: 1px solid #dee2e6;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    /* Allow card to grow to fill available space */
+    flex: 1;
+    /* Reduce card height slightly to prevent secondary scrollbars */
+    min-height: 0; /* Important for flexbox */
+    max-height: calc(100% - 4px); /* Small buffer to prevent overflow */
 }
 
 .card-header {
@@ -320,6 +466,10 @@ body.modal-open {
     display: flex;
     flex-direction: column;
     gap: 12px; /* Increased gap between transaction cards */
+    /* Remove flex: 1 to prevent compression */
+    /* Use auto height to maintain natural size */
+    min-height: min-content; /* Maintain minimum content height */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .transaction-card {
@@ -327,6 +477,9 @@ body.modal-open {
     border: 1px solid #dee2e6;
     border-radius: 0.375rem;
     overflow: hidden;
+    /* Ensure cards maintain their height */
+    flex-shrink: 0; /* Prevent card compression */
+    min-height: 60px; /* Minimum height for transaction cards */
     /* Removed transition animation */
 }
 
@@ -361,6 +514,8 @@ body.modal-open {
     padding: 12px 16px; /* Increased top/bottom padding from 8px to 12px */
     display: flex;
     align-items: center;
+    /* Prevent column compression */
+    flex-shrink: 0;
     /* Removed border-right for clean column separation */
 }
 

@@ -22,7 +22,16 @@ main.container::-webkit-scrollbar,
     background: transparent !important;
 }
 
-html::-webkit-scrollbar-track,
+html::-webkit-scroll/* Fix double border issues in button groups */
+.btn-group .btn-action + .btn-action {
+    border-left: none !important; /* Remove left border on adjacent buttons */
+    margin-left: 0px !important; /* No margin compensation - prevents pixel shifting */
+}
+
+.btn-group .btn-action:not(:first-child) {
+    border-left: none !important; /* Ensure no left border on non-first buttons */
+    margin-left: 0px !important; /* No margin compensation - prevents pixel shifting */
+}
 body::-webkit-scrollbar-track,
 main.container::-webkit-scrollbar-track,
 .budget-basic-main::-webkit-scrollbar-track,
@@ -680,6 +689,147 @@ html, body {
 .btn-icon i {
     font-size: 0.7rem; /* Smaller icon to fit proportionally */
     line-height: 1; /* Tight line height for perfect centering */
+}
+
+/* Small rectangular button styling for action bar */
+.btn-sm-rect {
+    padding: 6px 12px !important; /* Compact padding */
+    font-size: 0.875rem !important; /* Slightly smaller font */
+    height: 32px !important; /* Fixed height for consistency */
+    min-width: 40px !important; /* Minimum width to ensure rectangular shape */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-width: 1px !important;
+    border-radius: 4px !important; /* Slightly rounded corners */
+}
+
+.btn-sm-rect i {
+    font-size: 0.875rem; /* Icon size for rectangular buttons */
+    line-height: 1;
+}
+
+/* Action button styling - consistent grayscale with hover effects */
+.btn-action {
+    padding: 8px 16px !important; /* Slightly wider rectangular buttons */
+    font-size: 0.875rem !important;
+    height: 36px !important; /* Slightly taller for better click target */
+    min-width: 48px !important; /* Wider rectangular shape */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #6c757d !important; /* Standard gray border */
+    background-color: transparent !important; /* Transparent background */
+    color: #495057 !important; /* Dark gray text/icons */
+    transition: all 0.2s ease !important; /* Smooth hover transition */
+}
+
+.btn-action:hover {
+    background-color: #dee2e6 !important; /* Light gray for top action buttons */
+    border-color: #495057 !important; /* Darker border on hover */
+    color: #212529 !important; /* Darker text/icons on hover */
+    transform: none !important; /* No transform effects */
+}
+
+.btn-action:focus,
+.btn-action:active {
+    background-color: #ced4da !important; /* Even darker when clicked */
+    border-color: #495057 !important;
+    color: #212529 !important;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25) !important; /* Subtle focus ring */
+}
+
+.btn-action i {
+    font-size: 0.875rem; /* Icon size for action buttons */
+    line-height: 1;
+}
+
+/* Fix double border issues in button groups */
+.btn-group .btn-action + .btn-action {
+    border-left: none !important; /* Remove left border on adjacent buttons */
+    margin-left: 0px !important; /* No margin compensation - prevents pixel shifting */
+}
+
+.btn-group .btn-action:not(:first-child) {
+    border-left: none !important; /* Ensure no left border on non-first buttons */
+    margin-left: 0px !important; /* No margin compensation - prevents pixel shifting */
+}
+
+.btn-group .btn-action:focus,
+.btn-group .btn-action:active,
+.btn-group .btn-action:hover {
+    z-index: 1; /* Ensure hovered/focused button appears on top */
+    /* No border changes to prevent pixel shifting */
+}
+
+/* Ensure proper border radius for grouped buttons */
+.btn-group .btn-action:first-child {
+    border-top-left-radius: 0.375rem !important;
+    border-bottom-left-radius: 0.375rem !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.btn-group .btn-action:last-child {
+    border-top-right-radius: 0.375rem !important;
+    border-bottom-right-radius: 0.375rem !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.btn-group .btn-action:not(:first-child):not(:last-child) {
+    border-radius: 0 !important;
+}
+
+/* Fix double border issues in transaction list button groups */
+.btn-group .btn-icon + .btn-icon {
+    border-left: none !important; /* Remove left border on adjacent icon buttons */
+    margin-left: 0px !important; /* No margin compensation - prevents pixel shifting */
+}
+
+.btn-group .btn-icon:not(:first-child) {
+    border-left: none !important; /* Ensure no left border on non-first icon buttons */
+    margin-left: 0px !important; /* No margin compensation - prevents pixel shifting */
+}
+
+.btn-group .btn-icon:focus,
+.btn-group .btn-icon:active,
+.btn-group .btn-icon:hover {
+    z-index: 1; /* Ensure hovered/focused icon button appears on top */
+    /* No border changes to prevent pixel shifting */
+}
+
+/* Ensure proper border radius for grouped icon buttons */
+.btn-group .btn-icon:first-child {
+    border-top-left-radius: 0.375rem !important;
+    border-bottom-left-radius: 0.375rem !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.btn-group .btn-icon:last-child {
+    border-top-right-radius: 0.375rem !important;
+    border-bottom-right-radius: 0.375rem !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.btn-group .btn-icon:not(:first-child):not(:last-child) {
+    border-radius: 0 !important;
+}
+
+/* Enhanced hover effects for transaction list icon buttons */
+.btn-icon:hover {
+    background-color: #adb5bd !important; /* Much darker gray to stand out from card hover */
+    border-color: #6c757d !important;
+    color: #212529 !important;
+}
+
+.btn-icon:focus,
+.btn-icon:active {
+    background-color: #9ca3af !important; /* Even darker when clicked */
+    border-color: #6c757d !important;
+    color: #212529 !important;
 }
 
 /* Column Widths - Matching table layout */

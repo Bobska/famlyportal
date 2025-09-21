@@ -12,26 +12,28 @@
     <!-- Page Header inside wrapper -->
     <div class="page-header">
         <h1>Transactions</h1>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-secondary" onclick="showAddIncomeModal()">
-                Add Income
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="showAddExpenseModal()">
-                Add Expense
-            </button>
-        </div>
     </div>
     
     <div class="row">
         <div class="col-12">
-            <!-- Card View Transactions -->
+            <!-- Action Buttons -->
             <div class="d-flex justify-content-end align-items-center mb-2">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                        <i class="bi bi-funnel"></i> Filter
+                <!-- Add buttons group (Income/Expense) -->
+                <div class="btn-group btn-group-sm me-2" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <i class="bi bi-plus-circle"></i>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                        <i class="bi bi-download"></i> Export
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <i class="bi bi-dash-circle"></i>
+                    </button>
+                </div>
+                <!-- Filter/Export buttons group -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showComingSoonModal()" title="Filter Transactions" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showComingSoonModal()" title="Export Transactions" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <i class="bi bi-download"></i>
                     </button>
                 </div>
             </div>

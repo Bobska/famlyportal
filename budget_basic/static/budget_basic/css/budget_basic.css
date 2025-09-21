@@ -69,7 +69,7 @@ body.modal-open {
     padding-right: 0 !important;
 }
 
-/* Budget Basic App Styles - Fixed viewport height v6 - Selective scrollbar hiding */
+/* Budget Basic App Styles - Fixed viewport height v9 - Smooth responsive transitions */
 
 /* Completely hide all main page scrollbars */
 html, body {
@@ -98,7 +98,8 @@ html, body {
 }
 
 .budget-basic-main {
-    margin-left: 250px;
+    /* Center content in the remaining space after sidebar */
+    margin-left: 250px; /* Sidebar width */
     padding: 20px;
     /* Use available viewport height with more breathing room */
     height: calc(100vh - 56px - 4px); /* navbar + larger buffer */
@@ -107,6 +108,34 @@ html, body {
     box-sizing: border-box;
     /* Hide main scrollbars completely */
     overflow: hidden !important;
+    
+    /* Take full available width */
+    width: calc(100vw - 250px); /* Use all space minus sidebar */
+    position: relative;
+}
+
+/* Content wrapper for centering */
+.content-wrapper {
+    max-width: 1200px; /* Default optimal reading width */
+    margin: 0 auto; /* Center the content */
+    width: 100%;
+    flex: 1; /* Take full height */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure row takes full height */
+.content-wrapper > .row {
+    flex: 1;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper > .row > .col-12 {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Force hide any scrollbars on main containers */
@@ -373,12 +402,39 @@ html, body {
     
     .budget-basic-main {
         margin-left: 0;
+        width: 100vw; /* Full width on mobile */
+    }
+    
+    .content-wrapper {
+        max-width: none; /* Full width content on mobile */
+        margin: 0;
     }
     
     .page-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
+    }
+}
+
+/* Medium screens - comfortable content width */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .content-wrapper {
+        max-width: 1000px; /* Smaller screens */
+    }
+}
+
+/* Large screens - smooth transition */
+@media (min-width: 1200px) and (max-width: 1599px) {
+    .content-wrapper {
+        max-width: 1200px; /* Standard large screen width */
+    }
+}
+
+/* Very large screens - gradual increase */
+@media (min-width: 1600px) {
+    .content-wrapper {
+        max-width: 1400px; /* Wider on very large screens */
     }
 }
 

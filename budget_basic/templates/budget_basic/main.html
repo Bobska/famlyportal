@@ -2,70 +2,76 @@
 {% load static %}
 {% load humanize %}
 
-{% block page_title %}Transactions{% endblock %}
-
-{% block page_actions %}
-    <div class="btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary" onclick="showAddIncomeModal()">
-            Add Income
-        </button>
-        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-            Add Expense
-        </button>
-    </div>
+{% block page_header %}
+<!-- Empty - we'll include the header inside content wrapper -->
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <!-- Card View Transactions -->
-        <div class="d-flex justify-content-end align-items-center mb-2">
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                    <i class="bi bi-funnel"></i> Filter
-                </button>
-                <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                    <i class="bi bi-download"></i> Export
-                </button>
-            </div>
+<!-- Content Wrapper for Centering -->
+<div class="content-wrapper">
+    <!-- Page Header inside wrapper -->
+    <div class="page-header">
+        <h1>Transactions</h1>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary" onclick="showAddIncomeModal()">
+                Add Income
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+                Add Expense
+            </button>
         </div>
-        <div class="card mb-4">
-            <div class="card-body">
-                {% if income_entries %}
-                    <!-- Transaction Cards Container -->
-                    <div class="transaction-cards-container">
-                        <!-- Transaction Data Rows -->
-                        {% for income in income_entries %}
-                        <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
-                            <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
-                            <div class="transaction-col transaction-payee">{{ income.payee }}</div>
-                            <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
-                            <div class="transaction-col transaction-actions">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <!-- Card View Transactions -->
+            <div class="d-flex justify-content-end align-items-center mb-2">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if income_entries %}
+                        <!-- Transaction Cards Container -->
+                        <div class="transaction-cards-container">
+                            <!-- Transaction Data Rows -->
+                            {% for income in income_entries %}
+                            <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
+                                <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
+                                <div class="transaction-col transaction-payee">{{ income.payee }}</div>
+                                <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
+                                <div class="transaction-col transaction-actions">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <!-- Empty State for Card View -->
-                    <div class="text-center py-5 text-muted">
-                        <div class="mb-3">
-                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                    {% else %}
+                        <!-- Empty State for Card View -->
+                        <div class="text-center py-5 text-muted">
+                            <div class="mb-3">
+                                <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                            </div>
+                            <p class="mb-0">No transactions yet</p>
+                            <small>Start by adding your first income</small>
                         </div>
-                        <p class="mb-0">No transactions yet</p>
-                        <small>Start by adding your first income</small>
-                    </div>
-                {% endif %}
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}

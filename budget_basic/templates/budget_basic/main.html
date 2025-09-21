@@ -19,15 +19,17 @@
 <div class="row">
     <div class="col-12">
         <!-- Card View Transactions -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Recent Transactions</h5>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                        <i class="fas fa-sort me-1"></i>Sort
-                    </button>
-                </div>
+        <div class="d-flex justify-content-end align-items-center mb-2">
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
+                    <i class="bi bi-download"></i> Export
+                </button>
             </div>
+        </div>
+        <div class="card mb-4">
             <div class="card-body">
                 {% if income_entries %}
                     <!-- Transaction Cards Container -->
@@ -66,84 +68,4 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <!-- Transactions List -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">All Transactions</h5>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                        <i class="fas fa-filter me-1"></i>Filter
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <!-- Transaction Table -->
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Payee</th>
-                                <th class="text-end">Amount</th>
-                                <th class="text-end" style="width: 120px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if income_entries %}
-                                {% for income in income_entries %}
-                                <tr>
-                                    <td>{{ income.date|date:"Y-m-d" }}</td>
-                                    <td>{{ income.payee }}</td>
-                                    <td class="text-end">+${{ income.amount|floatformat:2|intcomma }}</td>
-                                    <td class="text-end">
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <!-- Empty State - Show when no transactions -->
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted">
-                                        <div class="mb-3">
-                                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
-                                        </div>
-                                        <p class="mb-0">No transactions yet</p>
-                                        <small>Start by adding your first income</small>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Pagination - For future use -->
-                <nav aria-label="Transactions pagination" class="mt-3">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1">Previous</a>
-                        </li>
-                        <li class="page-item active">
-                            <a class="page-link" href="#">1</a>
-                        </li>
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#">Next</a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}

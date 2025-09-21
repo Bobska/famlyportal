@@ -1,3 +1,7 @@
+/* Prevent page shift when Bootstrap modal opens */
+body.modal-open {
+    padding-right: 0 !important;
+}
 /* Budget Basic App Styles */
 
 /* Override global body padding */

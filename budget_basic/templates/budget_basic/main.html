@@ -48,7 +48,7 @@
                 <div class="col-md-4">
                     <div class="weekly-stat">
                         <div class="weekly-stat-label">Net Balance</div>
-                        <div class="weekly-stat-value" id="weekly-balance">{% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}</div>
+                        <div class="weekly-stat-value" id="weekly-balance">{% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:"-" }}</div>
                     </div>
                 </div>
             </div>
@@ -60,7 +60,7 @@
         <div class="card-body py-1">
             <div class="d-flex justify-content-center align-items-center">
                 <!-- Add buttons group (Income/Expense) -->
-                <div class="btn-group btn-group-sm" role="group">
+                <div class="btn-group btn-group-sm me-3" role="group">
                     <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
                         <i class="bi bi-plus-circle me-1"></i>
                         <span>Add Income</span>
@@ -69,6 +69,19 @@
                         <i class="bi bi-dash-circle me-1"></i>
                         <span>Add Expense</span>
                     </button>
+                </div>
+                
+                <!-- Filter dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
+                        <i class="bi bi-funnel me-1"></i>
+                        <span id="filterLabel">All</span>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="transactionFilterDropdown">
+                        <li><a class="dropdown-item" href="#" onclick="filterTransactions('all')">All Transactions</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
+                    </ul>
                 </div>
             </div>
         </div>

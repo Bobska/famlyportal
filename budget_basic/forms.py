@@ -8,7 +8,7 @@ class IncomeForm(forms.ModelForm):
     # Add payee selection field
     payee_choice = forms.ModelChoiceField(
         queryset=Payee.objects.none(),  # Will be set in __init__
-        required=False,
+        required=True,  # Make required since manual entry is removed
         empty_label="Select existing payee...",
         widget=forms.Select(attrs={
             'class': 'form-select',
@@ -16,20 +16,9 @@ class IncomeForm(forms.ModelForm):
         })
     )
     
-    # Keep original payee field for manual entry
-    payee = forms.CharField(
-        max_length=200,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Or enter new payee name...',
-            'id': 'id_payee_manual'
-        })
-    )
-    
     class Meta:
         model = Income
-        fields = ['date', 'payee', 'amount', 'notes']
+        fields = ['date', 'amount', 'notes']  # Remove payee from fields
         widgets = {
             'date': forms.DateInput(attrs={
                 'type': 'date',
@@ -58,17 +47,13 @@ class IncomeForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         payee_choice = cleaned_data.get('payee_choice')
-        payee_manual = cleaned_data.get('payee')
         
-        # Must have either a selected payee or manual entry
-        if not payee_choice and not payee_manual:
-            raise forms.ValidationError("Please select a payee or enter a new one.")
+        # Payee choice is now required
+        if not payee_choice:
+            raise forms.ValidationError("Please select a payee.")
         
-        # If both are provided, prioritize manual entry
-        if payee_manual:
-            cleaned_data['payee'] = payee_manual
-        elif payee_choice:
-            cleaned_data['payee'] = payee_choice.name
+        # Set the payee name from the selected choice
+        cleaned_data['payee'] = payee_choice.name
             
         return cleaned_data
     
@@ -86,28 +71,17 @@ class ExpenseForm(forms.ModelForm):
     # Add payee selection field
     payee_choice = forms.ModelChoiceField(
         queryset=Payee.objects.none(),  # Will be set in __init__
-        required=False,
-        empty_label="Select existing payee...",
+        required=True,  # Make required since manual entry is removed
+        empty_label="Select existing merchant...",
         widget=forms.Select(attrs={
             'class': 'form-select',
             'id': 'id_payee_choice'
         })
     )
     
-    # Keep original payee field for manual entry
-    payee = forms.CharField(
-        max_length=200,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Or enter new payee name...',
-            'id': 'id_payee_manual'
-        })
-    )
-    
     class Meta:
         model = Expense
-        fields = ['date', 'payee', 'amount', 'notes']
+        fields = ['date', 'amount', 'notes']  # Remove payee from fields
         widgets = {
             'date': forms.DateInput(attrs={
                 'type': 'date',
@@ -136,17 +110,13 @@ class ExpenseForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         payee_choice = cleaned_data.get('payee_choice')
-        payee_manual = cleaned_data.get('payee')
         
-        # Must have either a selected payee or manual entry
-        if not payee_choice and not payee_manual:
-            raise forms.ValidationError("Please select a payee or enter a new one.")
+        # Payee choice is now required
+        if not payee_choice:
+            raise forms.ValidationError("Please select a merchant.")
         
-        # If both are provided, prioritize manual entry
-        if payee_manual:
-            cleaned_data['payee'] = payee_manual
-        elif payee_choice:
-            cleaned_data['payee'] = payee_choice.name
+        # Set the payee name from the selected choice
+        cleaned_data['payee'] = payee_choice.name
             
         return cleaned_data
     

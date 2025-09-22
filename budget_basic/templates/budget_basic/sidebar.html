@@ -29,7 +29,7 @@
                 <hr class="my-2">
                 <div class="budget-item">
                     <span class="budget-label">Balance:</span>
-                    <span class="budget-value {% if monthly_balance < 0 %}text-danger{% elif monthly_balance > 0 %}text-success{% endif %}">${{ monthly_balance|floatformat:2|intcomma }}</span>
+                    <span class="budget-value {% if monthly_balance < 0 %}text-danger{% elif monthly_balance > 0 %}text-success{% endif %}">{% if monthly_balance >= 0 %}+{% else %}-{% endif %}${{ monthly_balance|floatformat:2|intcomma|cut:"-" }}</span>
                 </div>
             </div>
         </div>

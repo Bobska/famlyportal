@@ -1,5 +1,8 @@
 // Budget Basic App JavaScript
 
+// Global variable to track current filter state (resets on page reload)
+let currentFilterType = 'all';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Budget Basic App Initialized');
     
@@ -35,6 +38,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize payee functionality
     initializePayeeFunctionality();
+    
+    // Initialize filter with default state
+    setTimeout(() => {
+        filterTransactions('all'); // Set default filter to 'all' and highlight it
+    }, 100); // Small delay to ensure DOM is fully rendered
     
     // Note: Transaction card interactions now handled by week_navigation.js
 });
@@ -169,10 +177,10 @@ function handleAddIncomeForm() {
         
         // Validate required fields
         const date = formData.get('date');
-        const payee = formData.get('payee');
+        const payee_choice = formData.get('payee_choice');
         const amount = formData.get('amount');
         
-        if (!date || !payee || !amount) {
+        if (!date || !payee_choice || !amount) {
             alert('Please fill in all required fields (Date, Payee, Amount)');
             return;
         }
@@ -240,10 +248,10 @@ function handleEditIncomeForm() {
         
         // Validate required fields
         const date = formData.get('date');
-        const payee = formData.get('payee');
+        const payee_choice = formData.get('payee_choice');
         const amount = formData.get('amount');
         
-        if (!date || !payee || !amount) {
+        if (!date || !payee_choice || !amount) {
             alert('Please fill in all required fields (Date, Payee, Amount)');
             return;
         }
@@ -463,10 +471,10 @@ function handleAddExpenseForm() {
         
         // Validate required fields
         const date = formData.get('date');
-        const payee = formData.get('payee');
+        const payee_choice = formData.get('payee_choice');
         const amount = formData.get('amount');
         
-        if (!date || !payee || !amount) {
+        if (!date || !payee_choice || !amount) {
             alert('Please fill in all required fields (Date, Payee, Amount)');
             return;
         }
@@ -534,10 +542,10 @@ function handleEditExpenseForm() {
         
         // Validate required fields
         const date = formData.get('date');
-        const payee = formData.get('payee');
+        const payee_choice = formData.get('payee_choice');
         const amount = formData.get('amount');
         
-        if (!date || !payee || !amount) {
+        if (!date || !payee_choice || !amount) {
             alert('Please fill in all required fields (Date, Payee, Amount)');
             return;
         }
@@ -1008,6 +1016,7 @@ function validateForm(form) {
  * Payee Management Functions
  */
 let payeeCache = [];
+let currentBaseModal = null; // Track which modal opened the payee modal
 
 // Load payees from server
 async function loadPayees() {
@@ -1192,6 +1201,7 @@ function initializePayeeFunctionality() {
     const incomeSelect = document.getElementById('incomePayeeSelect');
     const incomeInput = document.getElementById('incomePayee');
     const addPayeeIncomeBtn = document.getElementById('addPayeeIncomeBtn');
+    const addNewPayeeIncomeBtn = document.getElementById('addNewPayeeIncomeBtn');
     const autoDateIncomeBtn = document.getElementById('autoDateIncome');
     
     if (incomeSelect && incomeInput) {
@@ -1215,6 +1225,12 @@ function initializePayeeFunctionality() {
         });
     }
     
+    if (addNewPayeeIncomeBtn) {
+        addNewPayeeIncomeBtn.addEventListener('click', function() {
+            showAddPayeeModal('income');
+        });
+    }
+    
     if (autoDateIncomeBtn) {
         autoDateIncomeBtn.addEventListener('click', function() {
             setAutoDate('incomeDate');
@@ -1225,6 +1241,7 @@ function initializePayeeFunctionality() {
     const expenseSelect = document.getElementById('expensePayeeSelect');
     const expenseInput = document.getElementById('expensePayee');
     const addPayeeExpenseBtn = document.getElementById('addPayeeExpenseBtn');
+    const addNewPayeeExpenseBtn = document.getElementById('addNewPayeeExpenseBtn');
     const autoDateExpenseBtn = document.getElementById('autoDateExpense');
     
     if (expenseSelect && expenseInput) {
@@ -1248,6 +1265,12 @@ function initializePayeeFunctionality() {
         });
     }
     
+    if (addNewPayeeExpenseBtn) {
+        addNewPayeeExpenseBtn.addEventListener('click', function() {
+            showAddPayeeModal('expense');
+        });
+    }
+    
     if (autoDateExpenseBtn) {
         autoDateExpenseBtn.addEventListener('click', function() {
             setAutoDate('expenseDate');
@@ -1258,6 +1281,7 @@ function initializePayeeFunctionality() {
     const editIncomeSelect = document.getElementById('editIncomePayeeSelect');
     const editIncomeInput = document.getElementById('editIncomePayee');
     const addPayeeEditIncomeBtn = document.getElementById('addPayeeEditIncomeBtn');
+    const addNewPayeeEditIncomeBtn = document.getElementById('addNewPayeeEditIncomeBtn');
     
     if (editIncomeSelect && editIncomeInput) {
         handlePayeeSelection(editIncomeSelect, editIncomeInput);
@@ -1280,10 +1304,17 @@ function initializePayeeFunctionality() {
         });
     }
     
+    if (addNewPayeeEditIncomeBtn) {
+        addNewPayeeEditIncomeBtn.addEventListener('click', function() {
+            showAddPayeeModal('edit-income');
+        });
+    }
+    
     // Set up payee selection for edit expense modal
     const editExpenseSelect = document.getElementById('editExpensePayeeSelect');
     const editExpenseInput = document.getElementById('editExpensePayee');
     const addPayeeEditExpenseBtn = document.getElementById('addPayeeEditExpenseBtn');
+    const addNewPayeeEditExpenseBtn = document.getElementById('addNewPayeeEditExpenseBtn');
     
     if (editExpenseSelect && editExpenseInput) {
         handlePayeeSelection(editExpenseSelect, editExpenseInput);
@@ -1304,6 +1335,18 @@ function initializePayeeFunctionality() {
                 }
             }
         });
+    }
+    
+    if (addNewPayeeEditExpenseBtn) {
+        addNewPayeeEditExpenseBtn.addEventListener('click', function() {
+            showAddPayeeModal('edit-expense');
+        });
+    }
+    
+    // Set up the Add Payee modal form submission
+    const addPayeeForm = document.getElementById('addPayeeForm');
+    if (addPayeeForm) {
+        addPayeeForm.addEventListener('submit', handleAddPayeeModalForm);
     }
     
     // Auto-populate date when modals are opened
@@ -1429,6 +1472,316 @@ function checkForTransactionHighlight() {
     }
 }
 
+/**
+ * Stacked Modal Management Functions
+ */
+
+/**
+ * Show the Add Payee modal on top of the current modal
+ */
+function showAddPayeeModal(modalType) {
+    console.log('Opening Add Payee modal for:', modalType);
+    
+    // Store which modal opened this payee modal
+    currentBaseModal = modalType;
+    
+    // Find the currently open modal and add fade effect
+    const openModals = document.querySelectorAll('.modal.show');
+    openModals.forEach(modal => {
+        modal.classList.add('modal-faded');
+    });
+    
+    // Clear the add payee form and alert container
+    const form = document.getElementById('addPayeeForm');
+    if (form) form.reset();
+    
+    const alertContainer = document.getElementById('addPayeeAlertContainer');
+    if (alertContainer) {
+        alertContainer.innerHTML = '';
+    }
+    
+    // Show the add payee modal with stacked styling
+    const addPayeeModal = document.getElementById('addPayeeModal');
+    if (addPayeeModal) {
+        addPayeeModal.classList.add('modal-stacked');
+        const modal = new bootstrap.Modal(addPayeeModal, {
+            backdrop: 'static', // Prevent closing by clicking backdrop
+            keyboard: true
+        });
+        modal.show();
+        
+        // Focus on the name input when modal is shown
+        addPayeeModal.addEventListener('shown.bs.modal', function() {
+            const nameInput = document.getElementById('newPayeeName');
+            if (nameInput) nameInput.focus();
+        }, { once: true });
+        
+        // Handle modal close to remove stacked styling and fade effect
+        addPayeeModal.addEventListener('hidden.bs.modal', function() {
+            addPayeeModal.classList.remove('modal-stacked');
+            
+            // Remove fade effect from base modals
+            const openModals = document.querySelectorAll('.modal.show');
+            openModals.forEach(modal => {
+                modal.classList.remove('modal-faded');
+            });
+            
+            currentBaseModal = null;
+        }, { once: true });
+    }
+}
+
+/**
+ * Show message in payee modal alert container
+ */
+function showPayeeModalMessage(message, type = 'danger') {
+    const alertContainer = document.getElementById('addPayeeAlertContainer');
+    if (!alertContainer) return;
+    
+    // Clear existing alerts
+    alertContainer.innerHTML = '';
+    
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible mb-3`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    alertContainer.appendChild(alert);
+    
+    // Auto-dismiss after 5 seconds for success messages
+    if (type === 'success') {
+        setTimeout(() => {
+            if (alert && alert.parentNode) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+}
+
+/**
+ * Handle Add Payee modal form submission
+ */
+async function handleAddPayeeModalForm(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const payeeName = formData.get('name').trim();
+    
+    // Clear any existing alerts
+    const alertContainer = document.getElementById('addPayeeAlertContainer');
+    if (alertContainer) {
+        alertContainer.innerHTML = '';
+    }
+    
+    if (!payeeName) {
+        showPayeeModalMessage('Please enter a payee name');
+        return;
+    }
+    
+    try {
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adding...';
+        
+        const response = await fetch('/budget-basic/payee/add/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add to cache and update selects
+            payeeCache.push(data.payee);
+            payeeCache.sort((a, b) => a.name.localeCompare(b.name));
+            updatePayeeSelects();
+            
+            // Select the newly added payee in the appropriate modal
+            selectNewlyAddedPayee(data.payee.name);
+            
+            // Close the add payee modal
+            const addPayeeModal = bootstrap.Modal.getInstance(document.getElementById('addPayeeModal'));
+            if (addPayeeModal) {
+                addPayeeModal.hide();
+            }
+            
+            showSuccessMessage(`Payee "${data.payee.name}" added successfully`);
+        } else {
+            showPayeeModalMessage(data.error || 'Failed to add payee');
+        }
+    } catch (error) {
+        console.error('Error adding payee:', error);
+        showPayeeModalMessage('Error adding payee');
+    } finally {
+        // Reset button state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Payee';
+    }
+}
+
+/**
+ * Select the newly added payee in the appropriate modal
+ */
+function selectNewlyAddedPayee(payeeName) {
+    let selectElement;
+    
+    switch (currentBaseModal) {
+        case 'income':
+            selectElement = document.getElementById('incomePayeeSelect');
+            break;
+        case 'expense':
+            selectElement = document.getElementById('expensePayeeSelect');
+            break;
+        case 'edit-income':
+            selectElement = document.getElementById('editIncomePayeeSelect');
+            break;
+        case 'edit-expense':
+            selectElement = document.getElementById('editExpensePayeeSelect');
+            break;
+    }
+    
+    if (selectElement) {
+        // Select the new payee in the dropdown by name
+        selectElement.value = payeeName;
+        
+        // Trigger change event to update any dependent elements
+        selectElement.dispatchEvent(new Event('change'));
+    }
+}
+
+/**
+ * Filter transactions by type (income, expense, or all)
+ */
+function filterTransactions(filterType) {
+    console.log('Filtering transactions by:', filterType);
+    
+    // Update current filter state (both local and global)
+    currentFilterType = filterType;
+    window.currentFilterType = filterType;
+    console.log('Current filter type set to:', currentFilterType);
+    
+    const allCards = document.querySelectorAll('.transaction-card');
+    console.log('Found transaction cards:', allCards.length);
+    
+    // More reliable way to identify income vs expense cards
+    const incomeTransactions = [];
+    const expenseTransactions = [];
+    
+    allCards.forEach(card => {
+        const amountElement = card.querySelector('.transaction-amount');
+        if (amountElement) {
+            const amountText = amountElement.textContent.trim();
+            console.log('Amount text:', amountText);
+            if (amountText.startsWith('+')) {
+                incomeTransactions.push(card);
+            } else if (amountText.startsWith('-')) {
+                expenseTransactions.push(card);
+            }
+        }
+    });
+    
+    console.log('Income transactions:', incomeTransactions.length);
+    console.log('Expense transactions:', expenseTransactions.length);
+    
+    // Update filter label
+    const filterLabel = document.getElementById('filterLabel');
+    
+    // Update dropdown active states
+    updateDropdownActiveState(filterType);
+    
+    switch (filterType) {
+        case 'income':
+            incomeTransactions.forEach(card => card.style.display = 'flex');
+            expenseTransactions.forEach(card => card.style.display = 'none');
+            if (filterLabel) filterLabel.textContent = 'Income';
+            break;
+        case 'expense':
+            incomeTransactions.forEach(card => card.style.display = 'none');
+            expenseTransactions.forEach(card => card.style.display = 'flex');
+            if (filterLabel) filterLabel.textContent = 'Expenses';
+            break;
+        case 'all':
+        default:
+            allCards.forEach(card => card.style.display = 'flex');
+            if (filterLabel) filterLabel.textContent = 'All';
+            break;
+    }
+    
+    // Update empty state message if needed
+    updateEmptyStateMessage(filterType, incomeTransactions.length, expenseTransactions.length);
+}
+
+/**
+ * Update dropdown active state highlighting
+ */
+function updateDropdownActiveState(activeFilter) {
+    const dropdownItems = document.querySelectorAll('#transactionFilterDropdown + .dropdown-menu .dropdown-item');
+    
+    dropdownItems.forEach(item => {
+        item.classList.remove('active');
+        
+        // Check which filter this item represents
+        const onclick = item.getAttribute('onclick');
+        if (onclick) {
+            if (onclick.includes("'all')") && activeFilter === 'all') {
+                item.classList.add('active');
+            } else if (onclick.includes("'income')") && activeFilter === 'income') {
+                item.classList.add('active');
+            } else if (onclick.includes("'expense')") && activeFilter === 'expense') {
+                item.classList.add('active');
+            }
+        }
+    });
+}
+
+/**
+ * Update empty state message based on filter
+ */
+function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
+    const container = document.querySelector('.transaction-cards-container');
+    const emptyMessage = document.querySelector('.no-transactions-message');
+    
+    let showEmpty = false;
+    let message = '';
+    
+    switch (filterType) {
+        case 'income':
+            showEmpty = incomeCount === 0;
+            message = 'No income transactions for this week.';
+            break;
+        case 'expense':
+            showEmpty = expenseCount === 0;
+            message = 'No expense transactions for this week.';
+            break;
+        case 'all':
+            showEmpty = (incomeCount + expenseCount) === 0;
+            message = 'No transactions for this week.';
+            break;
+    }
+    
+    if (showEmpty) {
+        if (!emptyMessage) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'no-transactions-message text-center text-muted py-4';
+            messageDiv.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
+            container.appendChild(messageDiv);
+        } else {
+            emptyMessage.querySelector('p').textContent = message;
+            emptyMessage.style.display = 'block';
+        }
+    } else {
+        if (emptyMessage) {
+            emptyMessage.style.display = 'none';
+        }
+    }
+}
+
 // Export functions for use in other scripts
 window.BudgetBasic = {
     formatCurrency,
@@ -1443,5 +1796,12 @@ window.BudgetBasic = {
     initializePayeeFunctionality,
     navigateToTransactionWeek,
     highlightTransaction,
-    checkForTransactionHighlight
+    checkForTransactionHighlight,
+    showAddPayeeModal,
+    selectNewlyAddedPayee,
+    filterTransactions
 };
+
+// Make filterTransactions and currentFilterType available globally for onclick handlers
+window.filterTransactions = filterTransactions;
+window.currentFilterType = currentFilterType;

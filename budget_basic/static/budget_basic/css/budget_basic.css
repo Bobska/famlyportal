@@ -1106,3 +1106,70 @@ body::-webkit-scrollbar {
         box-shadow: 0 0 0 0 rgba(108, 117, 125, 0);
     }
 }
+
+/* Modal Stacking and Backdrop Management */
+/* Increase z-index for stacked modals */
+.modal {
+    z-index: 1050; /* Bootstrap default */
+}
+
+.modal.modal-stacked {
+    z-index: 1060; /* Higher z-index for stacked modals */
+}
+
+.modal-backdrop {
+    z-index: 1040; /* Bootstrap default backdrop */
+}
+
+.modal-backdrop.modal-backdrop-stacked {
+    z-index: 1055; /* Backdrop for stacked modals - between base modal and stacked modal */
+    background-color: rgba(0, 0, 0, 0.3); /* Lighter backdrop for stacked effect */
+}
+
+/* Fade effect for base modal when stacked modal is open */
+.modal.modal-faded {
+    opacity: 0.4 !important;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Ensure modal dialogs maintain proper positioning when stacked */
+.modal-stacked .modal-dialog {
+    transform: translate(0, -50px); /* Slight offset for visual separation */
+}
+
+/* Fix dropdown z-index to appear above cards */
+.dropdown-menu {
+    z-index: 1020 !important; /* Higher than Bootstrap cards but lower than modals */
+}
+
+/* Ensure the action buttons card doesn't create stacking context issues */
+.card .dropdown {
+    position: relative !important;
+}
+
+/* Make sure the dropdown menu can overflow the card boundaries */
+.card .card-body {
+    overflow: visible !important;
+}
+
+/* Specific fix for action buttons card by adding a class or targeting the structure */
+.card .btn-group + .dropdown,
+.card .d-flex .dropdown {
+    z-index: 1021 !important;
+}
+
+/* Ensure dropdown menu appears above subsequent cards */
+.dropdown-menu.show {
+    z-index: 1021 !important;
+}
+
+/* Style active filter dropdown item */
+.dropdown-item.active {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+.dropdown-item.active:hover {
+    background-color: #0b5ed7 !important;
+    color: white !important;
+}

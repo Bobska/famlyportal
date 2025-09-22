@@ -13,25 +13,19 @@
                     <div class="mb-3">
                         <label for="incomeDate" class="form-label fw-bold">Date</label>
                         <input type="date" class="form-control" id="incomeDate" name="date" required>
-                        <div class="form-text">
-                            <button type="button" id="autoDateIncome" class="btn btn-outline-secondary btn-sm p-1 text-decoration-none">
-                                <i class="bi bi-magic"></i> Use auto date
-                            </button>
-                        </div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="incomePayeeSelect" class="form-label fw-bold">Payee</label>
-                        <select class="form-select mb-2" id="incomePayeeSelect" name="payee_choice">
-                            <option value="">Select existing payee...</option>
-                        </select>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="incomePayee" name="payee" placeholder="Or enter new payee name...">
-                            <button type="button" class="btn btn-outline-secondary" id="addPayeeIncomeBtn" title="Add to payee list">
+                        <div class="d-flex align-items-end mb-2">
+                            <select class="form-select" id="incomePayeeSelect" name="payee_choice" required>
+                                <option value="">Select existing payee...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="addNewPayeeIncomeBtn" title="Add new payee">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
-                        <div class="form-text text-muted small">Select from existing or enter a new payee name</div>
+                        <div class="form-text text-muted small">Select from existing payees or use the + button to add a new one</div>
                     </div>
                     
                     <div class="mb-4">

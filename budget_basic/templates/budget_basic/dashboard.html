@@ -1,5 +1,6 @@
 {% extends 'budget_basic/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block page_title %}Dashboard{% endblock %}
 
@@ -55,7 +56,7 @@
                         <div class="d-flex justify-content-between">
                             <div>
                                 <h5 class="card-title">Balance</h5>
-                                <h3 class="mb-0">$0.00</h3>
+                                <h3 class="mb-0 {% if current_balance < 0 %}text-danger{% elif current_balance > 0 %}text-success{% endif %}">{% if current_balance >= 0 %}+{% else %}-{% endif %}${{ current_balance|floatformat:2|intcomma|cut:"-" }}</h3>
                             </div>
                             <div class="align-self-center">
                                 <i class="fas fa-wallet fa-2x"></i>

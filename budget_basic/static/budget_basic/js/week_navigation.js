@@ -36,11 +36,13 @@ function loadWeekData(offset) {
     weekLabel.textContent = 'Loading...';
     
     console.log(`Loading week data for offset: ${offset}`);
+    console.log('Week data URL:', weekDataUrl);
     
     // Make AJAX request to get week data
     fetch(`${weekDataUrl}?week_offset=${offset}`)
         .then(response => {
             console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -48,6 +50,8 @@ function loadWeekData(offset) {
         })
         .then(data => {
             console.log('Week data received:', data);
+            console.log('Data success flag:', data.success);
+            console.log('Week label from data:', data.week_label);
             if (data.success) {
                 // Clear any existing transaction selection and details panel when changing weeks
                 hideTransactionDetails();
@@ -65,12 +69,20 @@ function loadWeekData(offset) {
                 
                 const balanceElement = document.getElementById('weekly-balance');
                 const balanceValue = data.weekly_balance;
-                balanceElement.textContent = `${balanceValue >= 0 ? '+' : ''}$${Math.abs(balanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+                balanceElement.textContent = `${balanceValue >= 0 ? '+' : '-'}$${Math.abs(balanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
                 balanceElement.className = `weekly-stat-value`; // Remove color classes, use grayscale styling
                 
                 // Update transactions
                 console.log('Updating transactions:', data.income_entries.length + data.expense_entries.length + ' total');
                 updateTransactionsList(data.income_entries, data.expense_entries);
+                
+                // Retain current filter selection when week changes
+                if (window.filterTransactions && window.currentFilterType) {
+                    console.log('Retaining filter:', window.currentFilterType);
+                    window.filterTransactions(window.currentFilterType);
+                } else if (window.filterTransactions) {
+                    window.filterTransactions('all');
+                }
                 
                 // Re-initialize transaction card event listeners after updating
                 initializeTransactionSelection();
@@ -84,12 +96,14 @@ function loadWeekData(offset) {
                 window.currentWeekOffset = data.week_offset; // Keep global reference updated
             } else {
                 console.error('Failed to load week data:', data);
-                weekLabel.textContent = 'Error';
+                console.error('Response structure:', JSON.stringify(data, null, 2));
+                weekLabel.textContent = 'Error Loading Week';
             }
         })
         .catch(error => {
             console.error('Error loading week data:', error);
-            weekLabel.textContent = 'Error';
+            console.error('Error details:', error.message);
+            weekLabel.textContent = 'Network Error';
         });
 }
 

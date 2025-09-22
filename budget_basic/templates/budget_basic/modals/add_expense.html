@@ -13,25 +13,19 @@
                     <div class="mb-3">
                         <label for="expenseDate" class="form-label fw-bold">Date</label>
                         <input type="date" class="form-control" id="expenseDate" name="date" required>
-                        <div class="form-text">
-                            <button type="button" id="autoDateExpense" class="btn btn-outline-secondary btn-sm p-1 text-decoration-none">
-                                <i class="bi bi-magic"></i> Use auto date
-                            </button>
-                        </div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="expensePayeeSelect" class="form-label fw-bold">Merchant</label>
-                        <select class="form-select mb-2" id="expensePayeeSelect" name="payee_choice">
-                            <option value="">Select existing merchant...</option>
-                        </select>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="expensePayee" name="payee" placeholder="Or enter new merchant name...">
-                            <button type="button" class="btn btn-outline-secondary" id="addPayeeExpenseBtn" title="Add to merchant list">
+                        <div class="d-flex align-items-end mb-2">
+                            <select class="form-select" id="expensePayeeSelect" name="payee_choice" required>
+                                <option value="">Select existing merchant...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="addNewPayeeExpenseBtn" title="Add new merchant">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
-                        <div class="form-text text-muted small">Select from existing or enter a new merchant name</div>
+                        <div class="form-text text-muted small">Select from existing merchants or use the + button to add a new one</div>
                     </div>
                     
                     <div class="mb-4">

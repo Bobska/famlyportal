@@ -78,9 +78,22 @@ def get_or_create_payee(user, payee_name):
 @login_required
 def dashboard(request):
     """Budget Basic main dashboard view."""
+    
+    # Calculate total income and expenses for balance
+    total_income = Income.objects.filter(user=request.user).aggregate(
+        total=Sum('amount')
+    )['total'] or Decimal('0.00')
+    
+    total_expenses = Expense.objects.filter(user=request.user).aggregate(
+        total=Sum('amount')
+    )['total'] or Decimal('0.00')
+    
+    current_balance = total_income - total_expenses
+    
     context = {
         'page_title': 'Budget Basic',
         'app_name': 'budget_basic',
+        'current_balance': current_balance,
     }
     return render(request, 'budget_basic/dashboard.html', context)
 
@@ -250,7 +263,7 @@ def add_income(request):
     try:
         # Get form data
         date_str = request.POST.get('date')
-        payee = request.POST.get('payee', '').strip()
+        payee_choice = request.POST.get('payee_choice', '').strip()
         amount_str = request.POST.get('amount', '').strip()
         notes = request.POST.get('notes', '').strip()
         
@@ -258,7 +271,7 @@ def add_income(request):
         if not date_str:
             return JsonResponse({'success': False, 'error': 'Date is required'})
         
-        if not payee:
+        if not payee_choice:
             return JsonResponse({'success': False, 'error': 'Payee is required'})
         
         if not amount_str:
@@ -278,24 +291,30 @@ def add_income(request):
         except (ValueError, InvalidOperation):
             return JsonResponse({'success': False, 'error': 'Invalid amount format'})
         
+        # Get the payee name from payee_choice (this is the payee name, not ID)
+        payee_name = payee_choice
+        
         # Create or get payee (this automatically creates payee if it doesn't exist)
-        get_or_create_payee(request.user, payee)
+        get_or_create_payee(request.user, payee_name)
         
         # Create income entry
         income = Income.objects.create(
             user=request.user,
             date=date,
-            payee=payee,
+            payee=payee_name,
             amount=amount,
             notes=notes
         )
         
         return JsonResponse({
             'success': True,
-            'message': f'Income of ${amount} from {payee} added successfully',
+            'message': f'Income of ${amount} from {payee_name} added successfully',
             'income_id': income.id,
             'date': date.isoformat()
         })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
@@ -314,7 +333,7 @@ def edit_income(request, income_id):
         
         # Get form data
         date_str = request.POST.get('date')
-        payee = request.POST.get('payee', '').strip()
+        payee_choice = request.POST.get('payee_choice', '').strip()
         amount_str = request.POST.get('amount', '').strip()
         notes = request.POST.get('notes', '').strip()
         
@@ -322,7 +341,7 @@ def edit_income(request, income_id):
         if not date_str:
             return JsonResponse({'success': False, 'error': 'Date is required'})
         
-        if not payee:
+        if not payee_choice:
             return JsonResponse({'success': False, 'error': 'Payee is required'})
         
         if not amount_str:
@@ -342,16 +361,22 @@ def edit_income(request, income_id):
         except (ValueError, InvalidOperation):
             return JsonResponse({'success': False, 'error': 'Invalid amount format'})
         
+        # Get the payee name from payee_choice (this is the payee name, not ID)
+        payee_name = payee_choice
+        
+        # Create or get payee (this automatically creates payee if it doesn't exist)
+        get_or_create_payee(request.user, payee_name)
+        
         # Update income entry
         income.date = date
-        income.payee = payee
+        income.payee = payee_name
         income.amount = amount
         income.notes = notes
         income.save()
         
         return JsonResponse({
             'success': True,
-            'message': f'Income entry updated successfully: ${amount} from {payee}',
+            'message': f'Income entry updated successfully: ${amount} from {payee_name}',
             'income_id': income.id,
             'date': income.date.strftime('%Y-%m-%d')
         })
@@ -421,7 +446,7 @@ def add_expense(request):
     try:
         # Get form data
         date_str = request.POST.get('date')
-        payee = request.POST.get('payee', '').strip()
+        payee_choice = request.POST.get('payee_choice', '').strip()
         amount_str = request.POST.get('amount', '').strip()
         notes = request.POST.get('notes', '').strip()
         
@@ -429,7 +454,7 @@ def add_expense(request):
         if not date_str:
             return JsonResponse({'success': False, 'error': 'Date is required'})
         
-        if not payee:
+        if not payee_choice:
             return JsonResponse({'success': False, 'error': 'Payee is required'})
         
         if not amount_str:
@@ -450,24 +475,30 @@ def add_expense(request):
         except (ValueError, InvalidOperation):
             return JsonResponse({'success': False, 'error': 'Invalid amount format'})
         
+        # Get the payee name from payee_choice (this is the payee name, not ID)
+        payee_name = payee_choice
+        
         # Create or get payee (this automatically creates payee if it doesn't exist)
-        get_or_create_payee(request.user, payee)
+        get_or_create_payee(request.user, payee_name)
         
         # Create expense entry
         expense = Expense.objects.create(
             user=request.user,
             date=date,
-            payee=payee,
+            payee=payee_name,
             amount=amount,
             notes=notes
         )
         
         return JsonResponse({
             'success': True,
-            'message': f'Expense of ${amount} to {payee} added successfully',
+            'message': f'Expense of ${amount} to {payee_name} added successfully',
             'expense_id': expense.id,
             'date': date.isoformat()
         })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
@@ -486,7 +517,7 @@ def edit_expense(request, expense_id):
         
         # Get form data
         date_str = request.POST.get('date')
-        payee = request.POST.get('payee', '').strip()
+        payee_choice = request.POST.get('payee_choice', '').strip()
         amount_str = request.POST.get('amount', '').strip()
         notes = request.POST.get('notes', '').strip()
         
@@ -494,7 +525,7 @@ def edit_expense(request, expense_id):
         if not date_str:
             return JsonResponse({'success': False, 'error': 'Date is required'})
         
-        if not payee:
+        if not payee_choice:
             return JsonResponse({'success': False, 'error': 'Payee is required'})
         
         if not amount_str:
@@ -515,16 +546,22 @@ def edit_expense(request, expense_id):
         except (ValueError, InvalidOperation):
             return JsonResponse({'success': False, 'error': 'Invalid amount format'})
         
+        # Get the payee name from payee_choice (this is the payee name, not ID)
+        payee_name = payee_choice
+        
+        # Create or get payee (this automatically creates payee if it doesn't exist)
+        get_or_create_payee(request.user, payee_name)
+        
         # Update expense entry
         expense.date = date
-        expense.payee = payee
+        expense.payee = payee_name
         expense.amount = amount
         expense.notes = notes
         expense.save()
         
         return JsonResponse({
             'success': True,
-            'message': f'Expense entry updated successfully: ${amount} to {payee}',
+            'message': f'Expense entry updated successfully: ${amount} to {payee_name}',
             'expense_id': expense.id,
             'date': expense.date.strftime('%Y-%m-%d')
         })

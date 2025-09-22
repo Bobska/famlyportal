@@ -90,90 +90,98 @@
         </div>
     </div>
     
-    <!-- Transaction Details Panel -->
-    <div class="card mb-3" id="transaction-details-panel" style="display: none;">
-        <div class="card-body py-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">Transaction Details</h6>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideTransactionDetails()">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-            <hr class="my-2">
-            <div class="row">
-                <div class="col-md-3">
-                    <strong>Date:</strong>
-                    <div id="detail-date" class="text-muted">-</div>
-                </div>
-                <div class="col-md-4">
-                    <strong>Payee/Merchant:</strong>
-                    <div id="detail-payee" class="text-muted">-</div>
-                </div>
-                <div class="col-md-3">
-                    <strong>Amount:</strong>
-                    <div id="detail-amount" class="text-muted">-</div>
-                </div>
-                <div class="col-md-2">
-                    <strong>Type:</strong>
-                    <div id="detail-type" class="text-muted">-</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <div class="card" id="transactions-card">
-        <div class="card-body">
-            {% if income_entries or expense_entries %}
-                <!-- Transaction Cards Container -->
-                <div class="transaction-cards-container">
-                    <!-- Income Transaction Data Rows -->
-                    {% for income in income_entries %}
-                    <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
-                        <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
-                        <div class="transaction-col transaction-payee">{{ income.payee }}</div>
-                        <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
-                        <div class="transaction-col transaction-actions">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+        <div class="card-body p-0">
+            <div class="transactions-container d-flex">
+                <!-- Transaction List Section -->
+                <div class="transactions-list-section" id="transactions-list-section">
+                    <div class="p-3">
+                        {% if income_entries or expense_entries %}
+                            <!-- Transaction Cards Container -->
+                            <div class="transaction-cards-container">
+                                <!-- Income Transaction Data Rows -->
+                                {% for income in income_entries %}
+                                <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
+                                    <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
+                                    <div class="transaction-col transaction-payee">{{ income.payee }}</div>
+                                    <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
+                                    <div class="transaction-col transaction-actions">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                <!-- Expense Transaction Data Rows -->
+                                {% for expense in expense_entries %}
+                                <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}">
+                                    <div class="transaction-col transaction-date">{{ expense.date|date:"Y-m-d" }}</div>
+                                    <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
+                                    <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
+                                    <div class="transaction-col transaction-actions">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditExpenseModal({{ expense.id }})" title="Edit Transaction">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteExpenseModal({{ expense.id }}, '{{ expense.payee|escapejs }}', '{{ expense.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
+                        {% else %}
+                            <!-- Empty State for Card View -->
+                            <div class="text-center py-5 text-muted">
+                                <div class="mb-3">
+                                    <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                                </div>
+                                <p class="mb-0">No transactions yet</p>
+                                <small>Start by adding your first income or expense</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Transaction Details Side Panel -->
+                <div class="transaction-details-panel" id="transaction-details-panel">
+                    <div class="panel-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Transaction Details</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideTransactionDetailsPanel()" title="Close Details">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="detail-item">
+                            <label class="detail-label">Date</label>
+                            <div class="detail-value" id="detail-date">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label class="detail-label">Payee/Merchant</label>
+                            <div class="detail-value" id="detail-payee">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label class="detail-label">Amount</label>
+                            <div class="detail-value" id="detail-amount">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label class="detail-label">Type</label>
+                            <div class="detail-value" id="detail-type">-</div>
+                        </div>
+                        <div class="detail-item" id="detail-notes-container" style="display: none;">
+                            <label class="detail-label">Notes</label>
+                            <div class="detail-value" id="detail-notes">-</div>
                         </div>
                     </div>
-                    {% endfor %}
-                    
-                    <!-- Expense Transaction Data Rows -->
-                    {% for expense in expense_entries %}
-                    <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}">
-                        <div class="transaction-col transaction-date">{{ expense.date|date:"Y-m-d" }}</div>
-                        <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
-                        <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
-                        <div class="transaction-col transaction-actions">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditExpenseModal({{ expense.id }})" title="Edit Transaction">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteExpenseModal({{ expense.id }}, '{{ expense.payee|escapejs }}', '{{ expense.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
                 </div>
-            {% else %}
-                <!-- Empty State for Card View -->
-                <div class="text-center py-5 text-muted">
-                    <div class="mb-3">
-                        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
-                    </div>
-                    <p class="mb-0">No transactions yet</p>
-                    <small>Start by adding your first income or expense</small>
-                </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>

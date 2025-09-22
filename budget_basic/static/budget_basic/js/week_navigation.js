@@ -187,10 +187,19 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
     console.log('Transaction list updated successfully');
 }
 
-// Function to show transaction details
+// Function to show transaction details in side panel
 function showTransactionDetails(transactionCard) {
-    const detailsPanel = document.getElementById('transaction-details-panel');
     const transactionId = transactionCard.dataset.transactionId;
+    const container = document.querySelector('.transactions-container');
+    const panel = document.getElementById('transaction-details-panel');
+    
+    // Clear previous selections
+    document.querySelectorAll('.transaction-card-data.selected').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Select the clicked transaction
+    transactionCard.classList.add('selected');
     
     // Extract data from the transaction card
     const date = transactionCard.querySelector('.transaction-col.transaction-date').textContent;
@@ -204,24 +213,26 @@ function showTransactionDetails(transactionCard) {
     document.getElementById('detail-amount').textContent = amount;
     document.getElementById('detail-type').textContent = type;
     
-    // Show the panel
-    detailsPanel.style.display = 'block';
+    // Show the panel with animation
+    container.classList.add('panel-open');
 }
 
-// Function to hide transaction details
-function hideTransactionDetails() {
-    console.log('Hiding transaction details panel');
-    const detailsPanel = document.getElementById('transaction-details-panel');
-    if (detailsPanel) {
-        detailsPanel.style.display = 'none';
-    }
+// Function to hide transaction details side panel
+function hideTransactionDetailsPanel() {
+    const container = document.querySelector('.transactions-container');
     
     // Clear all selections
-    const activeCards = document.querySelectorAll('.transaction-card-data.active');
-    if (activeCards.length > 0) {
-        console.log('Clearing', activeCards.length, 'active transaction selections');
-        activeCards.forEach(card => card.classList.remove('active'));
-    }
+    document.querySelectorAll('.transaction-card-data.selected').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Hide the panel with animation
+    container.classList.remove('panel-open');
+}
+
+// Legacy function name for backward compatibility
+function hideTransactionDetails() {
+    hideTransactionDetailsPanel();
 }
 
 // Initialize transaction selection functionality
@@ -261,17 +272,17 @@ function initializeTransactionSelection() {
         if (clickedCard) {
             console.log('Click on transaction card', clickedCard.dataset.transactionId);
             
-            // Toggle selection: if already active, deselect it; otherwise select it
-            const isCurrentlyActive = clickedCard.classList.contains('active');
-            console.log('Card currently active:', isCurrentlyActive);
+            // Toggle selection: if already selected, deselect it; otherwise select it
+            const isCurrentlySelected = clickedCard.classList.contains('selected');
+            console.log('Card currently selected:', isCurrentlySelected);
             
             // First, clear all selections
-            const activeCards = document.querySelectorAll('.transaction-card-data.active');
-            activeCards.forEach(card => card.classList.remove('active'));
+            const selectedCards = document.querySelectorAll('.transaction-card-data.selected');
+            selectedCards.forEach(card => card.classList.remove('selected'));
             
-            // If it wasn't active, make it active; if it was active, leave it deselected
-            if (!isCurrentlyActive) {
-                clickedCard.classList.add('active');
+            // If it wasn't selected, make it selected; if it was selected, leave it deselected
+            if (!isCurrentlySelected) {
+                clickedCard.classList.add('selected');
                 showTransactionDetails(clickedCard);
                 console.log('Transaction selected');
             } else {
@@ -281,8 +292,8 @@ function initializeTransactionSelection() {
         } else {
             // Clicking elsewhere in the transaction card area (but not on a transaction) - clear selection
             console.log('Click on empty area, clearing selection');
-            const activeCards = document.querySelectorAll('.transaction-card-data.active');
-            activeCards.forEach(card => card.classList.remove('active'));
+            const selectedCards = document.querySelectorAll('.transaction-card-data.selected');
+            selectedCards.forEach(card => card.classList.remove('selected'));
             hideTransactionDetails();
         }
     };

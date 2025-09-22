@@ -1173,6 +1173,134 @@ body::-webkit-scrollbar {
     z-index: 1021 !important;
 }
 
+/* =======================================
+   TRANSACTION SIDE PANEL SYSTEM
+   ======================================= */
+
+/* Main container for transactions with side panel */
+.transactions-container {
+    height: 400px; /* Fixed height for consistent layout */
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Transaction list section - takes full width by default */
+.transactions-list-section {
+    flex: 1;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+    border-right: 1px solid transparent;
+}
+
+/* When panel is open, squash the list */
+.transactions-container.panel-open .transactions-list-section {
+    flex: 0 0 60%; /* Takes 60% width when panel is open */
+    border-right: 1px solid #dee2e6;
+}
+
+/* Transaction details side panel */
+.transaction-details-panel {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    background: #f8f9fa;
+    border-left: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+/* Panel when open */
+.transactions-container.panel-open .transaction-details-panel {
+    width: 40%; /* Takes 40% width when open */
+    opacity: 1;
+    overflow-y: auto;
+}
+
+/* Panel header */
+.transaction-details-panel .panel-header {
+    padding: 1rem;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Panel content */
+.transaction-details-panel .panel-content {
+    padding: 1rem;
+}
+
+/* Detail items */
+.detail-item {
+    margin-bottom: 1rem;
+}
+
+.detail-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.detail-value {
+    font-size: 1rem;
+    color: #495057;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Transaction card selection state for side panel */
+.transaction-card-data.selected {
+    background-color: #e3f2fd !important;
+    border-left: 3px solid #2196f3 !important;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+    .transactions-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .transactions-container.panel-open .transactions-list-section {
+        flex: 1;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .transactions-container.panel-open .transaction-details-panel {
+        width: 100%;
+        flex: 0 0 auto;
+    }
+    
+    .transactions-container {
+        height: auto;
+    }
+}
+
+/* Smooth scrolling for both sections */
+.transactions-list-section::-webkit-scrollbar,
+.transaction-details-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.transactions-list-section::-webkit-scrollbar-track,
+.transaction-details-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.transactions-list-section::-webkit-scrollbar-thumb,
+.transaction-details-panel::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+}
+
 /* Style active filter dropdown item */
 .dropdown-item.active {
     background-color: #0d6efd !important;

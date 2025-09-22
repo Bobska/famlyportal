@@ -4,9 +4,75 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from decimal import Decimal, InvalidOperation
-from datetime import datetime, date
-from django.db.models import Sum
-from .models import Income, Expense
+from datetime import datetime, date, timedelta
+from django.db.models import Sum, Max
+from .models import Income, Expense, Payee
+
+
+def get_auto_date_for_week(user, week_offset, transaction_type=None):
+    """Get the most recent transaction date in the specified week for the given type, or Monday if no transactions."""
+    # Calculate week start and end dates (Monday to Sunday)
+    today = date.today()
+    days_since_monday = (today.weekday()) % 7
+    current_monday = today - timedelta(days=days_since_monday)
+    
+    # Calculate target week based on offset
+    target_monday = current_monday + timedelta(weeks=week_offset)
+    target_sunday = target_monday + timedelta(days=6)
+    
+    most_recent_date = None
+    
+    if transaction_type == 'income':
+        # Get most recent income date only
+        most_recent_date = Income.objects.filter(
+            user=user,
+            date__gte=target_monday,
+            date__lte=target_sunday
+        ).aggregate(max_date=Max('date'))['max_date']
+    elif transaction_type == 'expense':
+        # Get most recent expense date only
+        most_recent_date = Expense.objects.filter(
+            user=user,
+            date__gte=target_monday,
+            date__lte=target_sunday
+        ).aggregate(max_date=Max('date'))['max_date']
+    else:
+        # Legacy behavior: get most recent from both types (for backward compatibility)
+        income_max_date = Income.objects.filter(
+            user=user,
+            date__gte=target_monday,
+            date__lte=target_sunday
+        ).aggregate(max_date=Max('date'))['max_date']
+        
+        expense_max_date = Expense.objects.filter(
+            user=user,
+            date__gte=target_monday,
+            date__lte=target_sunday
+        ).aggregate(max_date=Max('date'))['max_date']
+        
+        # Get the most recent date between income and expense
+        if income_max_date and expense_max_date:
+            most_recent_date = max(income_max_date, expense_max_date)
+        elif income_max_date:
+            most_recent_date = income_max_date
+        elif expense_max_date:
+            most_recent_date = expense_max_date
+    
+    # Return most recent date if found, otherwise Monday of the week
+    return most_recent_date if most_recent_date else target_monday
+
+
+def get_or_create_payee(user, payee_name):
+    """Get or create a payee for the given user."""
+    if not payee_name or not payee_name.strip():
+        return None
+    
+    payee_name = payee_name.strip()
+    payee, created = Payee.objects.get_or_create(
+        user=user,
+        name=payee_name
+    )
+    return payee
 
 
 @login_required
@@ -22,15 +88,42 @@ def dashboard(request):
 @login_required
 def main(request):
     """Budget Basic main transactions view."""
-    # Get current month and year
+    # Get week offset from request (default to 0 for current week)
+    week_offset = int(request.GET.get('week_offset', 0))
+    
+    # Calculate week start and end dates (Monday to Sunday)
+    today = date.today()
+    # Get Monday of current week
+    days_since_monday = (today.weekday()) % 7
+    current_monday = today - timedelta(days=days_since_monday)
+    
+    # Calculate target week based on offset
+    target_monday = current_monday + timedelta(weeks=week_offset)
+    target_sunday = target_monday + timedelta(days=6)
+    
+    # Get income and expense entries for the target week
+    income_entries = Income.objects.filter(
+        user=request.user,
+        date__gte=target_monday,
+        date__lte=target_sunday
+    ).order_by('-date', '-created_at')
+    
+    expense_entries = Expense.objects.filter(
+        user=request.user,
+        date__gte=target_monday,
+        date__lte=target_sunday
+    ).order_by('-date', '-created_at')
+    
+    # Calculate weekly totals
+    weekly_income = income_entries.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    weekly_expenses = expense_entries.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    weekly_balance = weekly_income - weekly_expenses
+    
+    # Get current month and year for monthly totals (for sidebar)
     current_month = date.today().month
     current_year = date.today().year
     
-    # Get income and expense entries for the current user
-    income_entries = Income.objects.filter(user=request.user).order_by('-date', '-created_at')
-    expense_entries = Expense.objects.filter(user=request.user).order_by('-date', '-created_at')
-    
-    # Calculate monthly totals for current month
+    # Calculate monthly totals for sidebar
     monthly_income = Income.objects.filter(
         user=request.user,
         date__month=current_month,
@@ -51,11 +144,103 @@ def main(request):
         'app_name': 'budget_basic',
         'income_entries': income_entries,
         'expense_entries': expense_entries,
+        'weekly_income': weekly_income,
+        'weekly_expenses': weekly_expenses,
+        'weekly_balance': weekly_balance,
         'monthly_income': monthly_income,
         'monthly_expenses': monthly_expenses,
         'monthly_balance': monthly_balance,
+        'week_offset': week_offset,
+        'target_monday': target_monday,
+        'target_sunday': target_sunday,
     }
     return render(request, 'budget_basic/main.html', context)
+
+
+@login_required
+def get_week_data(request):
+    """AJAX endpoint to get week data without page reload."""
+    # Get week offset from request
+    week_offset = int(request.GET.get('week_offset', 0))
+    
+    # Calculate week start and end dates (Monday to Sunday)
+    today = date.today()
+    # Get Monday of current week
+    days_since_monday = (today.weekday()) % 7
+    current_monday = today - timedelta(days=days_since_monday)
+    
+    # Calculate target week based on offset
+    target_monday = current_monday + timedelta(weeks=week_offset)
+    target_sunday = target_monday + timedelta(days=6)
+    
+    # Get income and expense entries for the target week
+    income_entries = Income.objects.filter(
+        user=request.user,
+        date__gte=target_monday,
+        date__lte=target_sunday
+    ).order_by('-date', '-created_at')
+    
+    expense_entries = Expense.objects.filter(
+        user=request.user,
+        date__gte=target_monday,
+        date__lte=target_sunday
+    ).order_by('-date', '-created_at')
+    
+    # Calculate weekly totals
+    weekly_income = income_entries.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    weekly_expenses = expense_entries.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    weekly_balance = weekly_income - weekly_expenses
+    
+    # Helper function to get relative week name
+    def get_week_label(offset):
+        if offset == 0:
+            return 'Current Week'
+        elif offset == -1:
+            return 'Last Week'
+        elif offset == 1:
+            return 'Next Week'
+        elif offset == -2:
+            return '2 Weeks Ago'
+        elif offset == 2:
+            return 'In 2 Weeks'
+        elif offset < 0:
+            return f'{abs(offset)} Weeks Ago'
+        else:
+            return f'In {offset} Weeks'
+    
+    # Format transaction data
+    income_data = []
+    for income in income_entries:
+        income_data.append({
+            'id': income.pk,
+            'date': income.date.strftime('%Y-%m-%d'),
+            'payee': income.payee,
+            'amount': float(income.amount),
+            'amount_display': f"+${income.amount:,.2f}"
+        })
+    
+    expense_data = []
+    for expense in expense_entries:
+        expense_data.append({
+            'id': expense.pk,
+            'date': expense.date.strftime('%Y-%m-%d'),
+            'payee': expense.payee,
+            'amount': float(expense.amount),
+            'amount_display': f"-${expense.amount:,.2f}"
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'week_offset': week_offset,
+        'week_label': get_week_label(week_offset),
+        'week_start': target_monday.strftime('%d %b'),
+        'week_end': target_sunday.strftime('%d %b, %Y'),
+        'weekly_income': float(weekly_income),
+        'weekly_expenses': float(weekly_expenses),
+        'weekly_balance': float(weekly_balance),
+        'income_entries': income_data,
+        'expense_entries': expense_data,
+    })
 
 
 @login_required
@@ -93,6 +278,9 @@ def add_income(request):
         except (ValueError, InvalidOperation):
             return JsonResponse({'success': False, 'error': 'Invalid amount format'})
         
+        # Create or get payee (this automatically creates payee if it doesn't exist)
+        get_or_create_payee(request.user, payee)
+        
         # Create income entry
         income = Income.objects.create(
             user=request.user,
@@ -105,7 +293,8 @@ def add_income(request):
         return JsonResponse({
             'success': True,
             'message': f'Income of ${amount} from {payee} added successfully',
-            'income_id': income.id
+            'income_id': income.id,
+            'date': date.isoformat()
         })
         
     except Exception as e:
@@ -163,7 +352,8 @@ def edit_income(request, income_id):
         return JsonResponse({
             'success': True,
             'message': f'Income entry updated successfully: ${amount} from {payee}',
-            'income_id': income.id
+            'income_id': income.id,
+            'date': income.date.strftime('%Y-%m-%d')
         })
         
     except Exception as e:
@@ -260,6 +450,9 @@ def add_expense(request):
         except (ValueError, InvalidOperation):
             return JsonResponse({'success': False, 'error': 'Invalid amount format'})
         
+        # Create or get payee (this automatically creates payee if it doesn't exist)
+        get_or_create_payee(request.user, payee)
+        
         # Create expense entry
         expense = Expense.objects.create(
             user=request.user,
@@ -272,7 +465,8 @@ def add_expense(request):
         return JsonResponse({
             'success': True,
             'message': f'Expense of ${amount} to {payee} added successfully',
-            'expense_id': expense.id
+            'expense_id': expense.id,
+            'date': date.isoformat()
         })
         
     except Exception as e:
@@ -331,7 +525,8 @@ def edit_expense(request, expense_id):
         return JsonResponse({
             'success': True,
             'message': f'Expense entry updated successfully: ${amount} to {payee}',
-            'expense_id': expense.id
+            'expense_id': expense.id,
+            'date': expense.date.strftime('%Y-%m-%d')
         })
         
     except Exception as e:
@@ -384,6 +579,67 @@ def delete_expense(request, expense_id):
         return JsonResponse({
             'success': True,
             'message': f'Expense entry deleted successfully: ${amount} to {payee}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+def get_payees(request):
+    """Get list of payees for the current user."""
+    try:
+        payees = Payee.objects.filter(user=request.user).order_by('name')
+        payee_list = [{'id': p.id, 'name': p.name} for p in payees]
+        
+        return JsonResponse({
+            'success': True,
+            'payees': payee_list
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+def get_auto_date(request):
+    """Get auto-populated date for a given week offset and transaction type."""
+    try:
+        week_offset = int(request.GET.get('week_offset', 0))
+        transaction_type = request.GET.get('type', None)  # 'income' or 'expense'
+        
+        auto_date = get_auto_date_for_week(request.user, week_offset, transaction_type)
+        
+        return JsonResponse({
+            'success': True,
+            'auto_date': auto_date.strftime('%Y-%m-%d')
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+@require_POST
+def add_payee(request):
+    """Add a new payee for the current user."""
+    try:
+        payee_name = request.POST.get('name', '').strip()
+        
+        if not payee_name:
+            return JsonResponse({'success': False, 'error': 'Payee name is required'})
+        
+        # Check if payee already exists
+        if Payee.objects.filter(user=request.user, name=payee_name).exists():
+            return JsonResponse({'success': False, 'error': 'Payee already exists'})
+        
+        # Create new payee
+        payee = Payee.objects.create(user=request.user, name=payee_name)
+        
+        return JsonResponse({
+            'success': True,
+            'payee': {'id': payee.id, 'name': payee.name},
+            'message': f'Payee "{payee_name}" added successfully'
         })
         
     except Exception as e:

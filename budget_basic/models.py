@@ -6,6 +6,23 @@ from decimal import Decimal
 User = get_user_model()
 
 
+class Payee(models.Model):
+    """Payee/Merchant model for storing frequently used payee names"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Payee'
+        verbose_name_plural = 'Payees'
+        unique_together = ['user', 'name']  # Prevent duplicate payees per user
+    
+    def __str__(self):
+        return self.name
+
+
 class Income(models.Model):
     """Income transaction model for budget basic app"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)

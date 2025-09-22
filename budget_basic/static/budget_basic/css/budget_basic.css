@@ -119,6 +119,38 @@ main.container::-webkit-scrollbar-corner,
     background: rgba(0, 0, 0, 0.05) !important; /* Subtle background */
 }
 
+/* Transaction Cards Container Scrollbar Styling */
+.transaction-cards-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+}
+
+.transaction-cards-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+.transaction-cards-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.transaction-cards-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.transaction-cards-container::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.transaction-cards-container::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 .card-body::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.15) !important;
     border-radius: 6px !important; /* More rounded corners */
@@ -161,6 +193,7 @@ html, body {
 .budget-basic-app {
     padding-top: 0;
     min-height: 100vh;
+    background-color: #f8f9fa; /* Light gray background to make cards stand out */
     /* Remove height constraint to allow natural content flow */
 }
 
@@ -173,6 +206,7 @@ html, body {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    background-color: #f8f9fa; /* Light gray background to make cards stand out */
     /* Allow natural scrolling when content overflows */
     
     /* Take full available width */
@@ -387,10 +421,22 @@ html, body {
     margin-bottom: 0;
     display: flex;
     flex-direction: column;
-    /* Allow card to grow to fill available space */
-    flex: 1;
+    /* Cards should use natural content height, not fill available space */
+    flex: none;
     /* Allow card to fit container and scroll properly */
     min-height: 0; /* Important for flexbox */
+}
+
+/* Transactions card should fill remaining space */
+#transactions-card {
+    flex: 1 !important; /* Override default flex: none for transactions card */
+    min-height: 0; /* Important for flexbox scrolling */
+}
+
+/* Week navigation card should not expand - use natural content height */
+.card-week-nav {
+    flex: none !important; /* Override any flex rules for week navigation card */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .card-header {
@@ -618,10 +664,30 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 12px; /* Increased gap between transaction cards */
-    /* Remove flex: 1 to prevent compression */
-    /* Use auto height to maintain natural size */
-    min-height: min-content; /* Maintain minimum content height */
+    /* Dynamic height calculation - accounts for all page elements */
+    max-height: calc(100vh - 450px); /* Optimized height based on actual page layout */
+    min-height: 200px; /* Set a reasonable minimum height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: hidden; /* Hide horizontal overflow */
+    /* Padding to account for scrollbar */
+    padding-right: 8px;
+    margin-right: -8px;
     flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-height: 600px) {
+    .transaction-cards-container {
+        max-height: calc(100vh - 380px); /* Reduce overhead on small screens */
+        min-height: 150px; /* Smaller minimum on small screens */
+    }
+}
+
+@media (max-height: 500px) {
+    .transaction-cards-container {
+        max-height: calc(100vh - 320px); /* Further reduce on very small screens */
+        min-height: 120px; /* Even smaller minimum */
+    }
 }
 
 .transaction-card {
@@ -832,6 +898,107 @@ html, body {
     color: #212529 !important;
 }
 
+/* Week Navigation Card Styling */
+.btn-week-nav {
+    padding: 6px 12px !important; /* Compact padding for buttons with text */
+    font-size: 0.875rem !important; /* Standard font size for text */
+    height: 36px !important; /* Standard action button height */
+    min-width: 80px !important; /* Wider to accommodate text */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #6c757d !important; /* Standard gray border */
+    background-color: transparent !important; /* Transparent background */
+    color: #495057 !important; /* Dark gray text/icons */
+    transition: all 0.2s ease !important; /* Smooth hover transition */
+}
+
+.btn-week-nav:hover {
+    background-color: #dee2e6 !important; /* Light gray hover */
+    border-color: #495057 !important; /* Darker border on hover */
+    color: #212529 !important; /* Darker text/icons on hover */
+    transform: none !important; /* No transform effects */
+}
+
+.btn-week-nav:focus,
+.btn-week-nav:active {
+    background-color: #ced4da !important; /* Even darker when clicked */
+    border-color: #495057 !important;
+    color: #212529 !important;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25) !important; /* Subtle focus ring */
+}
+
+.btn-week-nav i {
+    font-size: 0.875rem; /* Icon size matching text */
+    line-height: 1;
+}
+
+.btn-week-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.week-display {
+    flex: 1;
+    text-align: center;
+    padding: 0 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Large week label (Current Week, etc) */
+.week-label-large {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+
+/* Large week date */
+.week-date-large {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* Weekly Stats Styling */
+.weekly-stat {
+    padding: 5px 15px; /* Reduced from 10px to 5px */
+}
+
+/* Compact card body styling for weekly stats and action buttons */
+.card-body.py-1 {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+/* Remove extra row margins in compact cards */
+.card-body.py-1 .row {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.weekly-stat-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: 3px; /* Reduced from 5px to 3px */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weekly-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0;
+    /* Override Bootstrap color classes with grayscale */
+    color: #495057 !important; /* Dark gray for all values */
+}
+
 /* Column Widths - Matching table layout */
 .transaction-date {
     flex: 0 0 120px; /* Fixed width for date */
@@ -915,4 +1082,27 @@ body::-webkit-scrollbar {
 .card-body::-webkit-scrollbar {
     width: 2px !important;
     background: transparent !important;
+}
+
+/* Transaction highlighting animation */
+.transaction-highlight {
+    background-color: #f8f9fa !important; /* Light gray background */
+    border: 2px solid #6c757d !important; /* Gray border */
+    animation: highlightPulse 0.5s ease-in-out;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+@keyframes highlightPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(108, 117, 125, 0.4);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 8px rgba(108, 117, 125, 0.2);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(108, 117, 125, 0);
+    }
 }

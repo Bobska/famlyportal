@@ -17,8 +17,17 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="editExpensePayee" class="form-label fw-bold">Merchant</label>
-                        <input type="text" class="form-control" id="editExpensePayee" name="payee" placeholder="e.g., Store, Vendor, Service Provider" required>
+                        <label for="editExpensePayeeSelect" class="form-label fw-bold">Merchant</label>
+                        <select class="form-select mb-2" id="editExpensePayeeSelect" name="payee_choice">
+                            <option value="">Select existing merchant...</option>
+                        </select>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="editExpensePayee" name="payee" placeholder="Or enter new merchant name..." required>
+                            <button type="button" class="btn btn-outline-secondary" id="addPayeeEditExpenseBtn" title="Add to merchant list">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small">Select from existing or enter a new merchant name</div>
                     </div>
                     
                     <div class="mb-4">

@@ -33,8 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize active row functionality
     initializeActiveRows();
     
-    // Initialize transaction card interactions
-    initializeTransactionCards();
+    // Initialize payee functionality
+    initializePayeeFunctionality();
+    
+    // Note: Transaction card interactions now handled by week_navigation.js
 });
 
 /**
@@ -63,16 +65,37 @@ function showEditIncomeModal(incomeId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Populate form with existing data
-                document.getElementById('editIncomeId').value = data.income.id;
-                document.getElementById('editIncomeDate').value = data.income.date;
-                document.getElementById('editIncomePayee').value = data.income.payee;
-                document.getElementById('editIncomeAmount').value = addCommasToNumber(data.income.amount);
-                document.getElementById('editIncomeNotes').value = data.income.notes;
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('editIncomeModal'));
-                modal.show();
+                // Load payees first, then populate form
+                loadPayeesForModal('editIncomePayeeSelect').then(() => {
+                    // Populate form with existing data
+                    document.getElementById('editIncomeId').value = data.income.id;
+                    document.getElementById('editIncomeDate').value = data.income.date;
+                    document.getElementById('editIncomeAmount').value = addCommasToNumber(data.income.amount);
+                    document.getElementById('editIncomeNotes').value = data.income.notes;
+                    
+                    // Handle payee selection - check if it exists in dropdown
+                    const editIncomeSelect = document.getElementById('editIncomePayeeSelect');
+                    const editIncomeInput = document.getElementById('editIncomePayee');
+                    const payeeExists = Array.from(editIncomeSelect.options).some(option => option.value === data.income.payee);
+                    
+                    if (payeeExists) {
+                        // Payee exists in dropdown - select it and make input readonly
+                        editIncomeSelect.value = data.income.payee;
+                        editIncomeInput.value = data.income.payee;
+                        editIncomeInput.setAttribute('readonly', true);
+                        editIncomeInput.classList.add('bg-light');
+                    } else {
+                        // Payee doesn't exist - clear dropdown and allow manual entry
+                        editIncomeSelect.value = '';
+                        editIncomeInput.value = data.income.payee;
+                        editIncomeInput.removeAttribute('readonly');
+                        editIncomeInput.classList.remove('bg-light');
+                    }
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('editIncomeModal'));
+                    modal.show();
+                });
             } else {
                 alert('Error: ' + data.error);
             }
@@ -104,6 +127,20 @@ function showDeleteIncomeModal(incomeId, payee, amount) {
  */
 function showAddIncomeModal() {
     const modal = new bootstrap.Modal(document.getElementById('addIncomeModal'));
+    
+    // Reset form fields
+    const incomeForm = document.getElementById('addIncomeForm');
+    incomeForm.reset();
+    
+    // Reset payee field states
+    const incomeSelect = document.getElementById('incomePayeeSelect');
+    const incomeInput = document.getElementById('incomePayee');
+    if (incomeSelect) incomeSelect.value = '';
+    if (incomeInput) {
+        incomeInput.value = '';
+        incomeInput.removeAttribute('readonly');
+        incomeInput.classList.remove('bg-light');
+    }
     
     // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
@@ -162,8 +199,8 @@ function handleAddIncomeForm() {
                 const addIncomeModal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
                 addIncomeModal.hide();
                 
-                // Reload the page immediately to show the new income entry
-                window.location.reload();
+                // Navigate to the week containing the new transaction and highlight it
+                navigateToTransactionWeek(data.date, data.income_id, 'income');
                 
             } else {
                 // Show error message via alert (keep alerts for errors)
@@ -232,8 +269,9 @@ function handleEditIncomeForm() {
                 form.reset();
                 const editIncomeModal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
                 editIncomeModal.hide();
-                // Reload the page immediately to show the updated income entry
-                window.location.reload();
+                
+                // Navigate to transaction week with highlighting
+                navigateToTransactionWeek(data.date, data.income_id, 'income');
             } else {
                 // Show error message via alert (keep alerts for errors)
                 alert('Error: ' + data.error);
@@ -286,8 +324,13 @@ function handleDeleteIncomeForm() {
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
                 deleteModal.hide();
                 
-                // Reload the page immediately to show the updated list
-                window.location.reload();
+                // Reload current week data instead of full page reload
+                const currentOffset = window.currentWeekOffset || 0;
+                if (typeof loadWeekData === 'function') {
+                    loadWeekData(currentOffset);
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -313,6 +356,20 @@ function handleDeleteIncomeForm() {
 function showAddExpenseModal() {
     const modal = new bootstrap.Modal(document.getElementById('addExpenseModal'));
     
+    // Reset form fields
+    const expenseForm = document.getElementById('addExpenseForm');
+    expenseForm.reset();
+    
+    // Reset payee field states
+    const expenseSelect = document.getElementById('expensePayeeSelect');
+    const expenseInput = document.getElementById('expensePayee');
+    if (expenseSelect) expenseSelect.value = '';
+    if (expenseInput) {
+        expenseInput.value = '';
+        expenseInput.removeAttribute('readonly');
+        expenseInput.classList.remove('bg-light');
+    }
+    
     // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('expenseDate').value = today;
@@ -329,16 +386,37 @@ function showEditExpenseModal(expenseId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Populate form with existing data
-                document.getElementById('editExpenseId').value = data.expense.id;
-                document.getElementById('editExpenseDate').value = data.expense.date;
-                document.getElementById('editExpensePayee').value = data.expense.payee;
-                document.getElementById('editExpenseAmount').value = addCommasToNumber(data.expense.amount);
-                document.getElementById('editExpenseNotes').value = data.expense.notes;
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
-                modal.show();
+                // Load payees first, then populate form
+                loadPayeesForModal('editExpensePayeeSelect').then(() => {
+                    // Populate form with existing data
+                    document.getElementById('editExpenseId').value = data.expense.id;
+                    document.getElementById('editExpenseDate').value = data.expense.date;
+                    document.getElementById('editExpenseAmount').value = addCommasToNumber(data.expense.amount);
+                    document.getElementById('editExpenseNotes').value = data.expense.notes;
+                    
+                    // Handle payee selection - check if it exists in dropdown
+                    const editExpenseSelect = document.getElementById('editExpensePayeeSelect');
+                    const editExpenseInput = document.getElementById('editExpensePayee');
+                    const payeeExists = Array.from(editExpenseSelect.options).some(option => option.value === data.expense.payee);
+                    
+                    if (payeeExists) {
+                        // Payee exists in dropdown - select it and make input readonly
+                        editExpenseSelect.value = data.expense.payee;
+                        editExpenseInput.value = data.expense.payee;
+                        editExpenseInput.setAttribute('readonly', true);
+                        editExpenseInput.classList.add('bg-light');
+                    } else {
+                        // Payee doesn't exist - clear dropdown and allow manual entry
+                        editExpenseSelect.value = '';
+                        editExpenseInput.value = data.expense.payee;
+                        editExpenseInput.removeAttribute('readonly');
+                        editExpenseInput.classList.remove('bg-light');
+                    }
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+                    modal.show();
+                });
             } else {
                 alert('Error: ' + data.error);
             }
@@ -417,8 +495,8 @@ function handleAddExpenseForm() {
                 // Clear form
                 form.reset();
                 
-                // Reload the page immediately to show the new entry
-                window.location.reload();
+                // Navigate to the week containing the new transaction and highlight it
+                navigateToTransactionWeek(data.date, data.expense_id, 'expense');
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -488,8 +566,8 @@ function handleEditExpenseForm() {
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
                 editModal.hide();
                 
-                // Reload the page immediately to show the updated entry
-                window.location.reload();
+                // Navigate to transaction week with highlighting
+                navigateToTransactionWeek(data.date, data.expense_id, 'expense');
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -542,8 +620,13 @@ function handleDeleteExpenseForm() {
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
                 deleteModal.hide();
                 
-                // Reload the page immediately to show the updated list
-                window.location.reload();
+                // Reload current week data instead of full page reload
+                const currentOffset = window.currentWeekOffset || 0;
+                if (typeof loadWeekData === 'function') {
+                    loadWeekData(currentOffset);
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
                 alert('Error: ' + data.error);
@@ -708,56 +791,6 @@ function getRowData(row) {
 function clearActiveRows() {
     const activeRows = document.querySelectorAll('.table-row-active');
     activeRows.forEach(row => row.classList.remove('table-row-active'));
-}
-
-/**
- * Initialize transaction card interactions
- */
-function initializeTransactionCards() {
-    // Add click event listeners to all transaction cards
-    const transactionCards = document.querySelectorAll('.transaction-card-data');
-    const cardBody = document.querySelector('.card-body');
-
-    transactionCards.forEach(card => {
-        // Add click event listener
-        card.addEventListener('click', function(e) {
-            // Don't activate card if clicking on action buttons
-            if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
-                return;
-            }
-            // Remove active class from all cards
-            transactionCards.forEach(c => c.classList.remove('active'));
-            // Add active class to clicked card
-            this.classList.add('active');
-            // Optional: Store the active card ID for later use
-            const cardData = getCardData(this);
-            if (cardData) {
-                console.log('Active card selected:', cardData);
-            }
-        });
-        // Add double-click to edit functionality
-        card.addEventListener('dblclick', function(e) {
-            // Don't trigger if clicking on action buttons
-            if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
-                return;
-            }
-            // Get the income ID and trigger edit modal
-            const transactionId = this.dataset.transactionId;
-            if (transactionId) {
-                showEditIncomeModal(parseInt(transactionId));
-            }
-        });
-    });
-
-    // Click outside any card clears selection
-    if (cardBody) {
-        cardBody.addEventListener('click', function(e) {
-            // Only clear if not clicking on a card or its children
-            if (!e.target.closest('.transaction-card-data')) {
-                clearActiveCards();
-            }
-        });
-    }
 }
 
 /**
@@ -971,6 +1004,431 @@ function validateForm(form) {
     return isValid;
 }
 
+/**
+ * Payee Management Functions
+ */
+let payeeCache = [];
+
+// Load payees from server
+async function loadPayees() {
+    try {
+        const response = await fetch('/budget-basic/payees/');
+        const data = await response.json();
+        
+        if (data.success) {
+            payeeCache = data.payees;
+            updatePayeeSelects();
+        }
+    } catch (error) {
+        console.error('Error loading payees:', error);
+    }
+}
+
+// Load payees for a specific modal
+async function loadPayeesForModal(selectId) {
+    try {
+        const response = await fetch('/budget-basic/payees/');
+        const data = await response.json();
+        
+        if (data.success) {
+            payeeCache = data.payees;
+            updatePayeeSelectById(selectId);
+        }
+    } catch (error) {
+        console.error('Error loading payees for modal:', error);
+    }
+}
+
+// Update a specific payee select element by ID
+function updatePayeeSelectById(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options (except first one)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    // Add payee options
+    payeeCache.forEach(payee => {
+        const option = document.createElement('option');
+        option.value = payee.name;
+        option.textContent = payee.name;
+        select.appendChild(option);
+    });
+}
+
+// Update all payee select elements
+function updatePayeeSelects() {
+    const incomeSelect = document.getElementById('incomePayeeSelect');
+    const expenseSelect = document.getElementById('expensePayeeSelect');
+    const editIncomeSelect = document.getElementById('editIncomePayeeSelect');
+    const editExpenseSelect = document.getElementById('editExpensePayeeSelect');
+    
+    [incomeSelect, expenseSelect, editIncomeSelect, editExpenseSelect].forEach(select => {
+        if (!select) return;
+        
+        // Clear existing options (except first one)
+        while (select.children.length > 1) {
+            select.removeChild(select.lastChild);
+        }
+        
+        // Add payee options
+        payeeCache.forEach(payee => {
+            const option = document.createElement('option');
+            option.value = payee.name;
+            option.textContent = payee.name;
+            select.appendChild(option);
+        });
+    });
+}
+
+// Handle payee selection change
+function handlePayeeSelection(selectElement, inputElement) {
+    selectElement.addEventListener('change', function() {
+        if (this.value) {
+            inputElement.value = this.value;
+            inputElement.setAttribute('readonly', true);
+            inputElement.classList.add('bg-light');
+        } else {
+            inputElement.value = '';
+            inputElement.removeAttribute('readonly');
+            inputElement.classList.remove('bg-light');
+        }
+    });
+}
+
+// Handle manual payee input
+function handlePayeeInput(inputElement, selectElement) {
+    inputElement.addEventListener('input', function() {
+        if (this.value && selectElement.value) {
+            // Clear selection if user types manually
+            selectElement.value = '';
+            this.removeAttribute('readonly');
+            this.classList.remove('bg-light');
+        }
+    });
+}
+
+// Add new payee
+async function addNewPayee(payeeName) {
+    try {
+        const formData = new FormData();
+        formData.append('name', payeeName);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        const response = await fetch('/budget-basic/payee/add/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add to cache and update selects
+            payeeCache.push(data.payee);
+            payeeCache.sort((a, b) => a.name.localeCompare(b.name));
+            updatePayeeSelects();
+            return true;
+        } else {
+            showErrorMessage(data.error || 'Failed to add payee');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error adding payee:', error);
+        showErrorMessage('Error adding payee');
+        return false;
+    }
+}
+
+// Auto-date functionality
+async function getAutoDate(weekOffset = 0, transactionType = null) {
+    try {
+        let url = `/budget-basic/auto-date/?week_offset=${weekOffset}`;
+        if (transactionType) {
+            url += `&type=${transactionType}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.auto_date;
+        }
+    } catch (error) {
+        console.error('Error getting auto date:', error);
+    }
+    return null;
+}
+
+// Set auto date for form
+async function setAutoDate(dateInputId) {
+    const dateInput = document.getElementById(dateInputId);
+    if (!dateInput) return;
+    
+    // Determine transaction type based on input ID
+    let transactionType = null;
+    if (dateInputId.toLowerCase().includes('income')) {
+        transactionType = 'income';
+    } else if (dateInputId.toLowerCase().includes('expense')) {
+        transactionType = 'expense';
+    }
+    
+    // Get current week offset from the global variable
+    const weekOffset = typeof currentWeekOffset !== 'undefined' ? currentWeekOffset : 0;
+    const autoDate = await getAutoDate(weekOffset, transactionType);
+    
+    if (autoDate) {
+        dateInput.value = autoDate;
+    }
+}
+
+// Initialize payee and auto-date functionality
+function initializePayeeFunctionality() {
+    // Load payees on page load
+    loadPayees();
+    
+    // Set up payee selection for income modal
+    const incomeSelect = document.getElementById('incomePayeeSelect');
+    const incomeInput = document.getElementById('incomePayee');
+    const addPayeeIncomeBtn = document.getElementById('addPayeeIncomeBtn');
+    const autoDateIncomeBtn = document.getElementById('autoDateIncome');
+    
+    if (incomeSelect && incomeInput) {
+        handlePayeeSelection(incomeSelect, incomeInput);
+        handlePayeeInput(incomeInput, incomeSelect);
+    }
+    
+    if (addPayeeIncomeBtn && incomeInput) {
+        addPayeeIncomeBtn.addEventListener('click', async function() {
+            const payeeName = incomeInput.value.trim();
+            if (payeeName) {
+                const success = await addNewPayee(payeeName);
+                if (success) {
+                    // Select the newly added payee
+                    incomeSelect.value = payeeName;
+                    incomeInput.value = payeeName;
+                    incomeInput.setAttribute('readonly', true);
+                    incomeInput.classList.add('bg-light');
+                }
+            }
+        });
+    }
+    
+    if (autoDateIncomeBtn) {
+        autoDateIncomeBtn.addEventListener('click', function() {
+            setAutoDate('incomeDate');
+        });
+    }
+    
+    // Set up payee selection for expense modal
+    const expenseSelect = document.getElementById('expensePayeeSelect');
+    const expenseInput = document.getElementById('expensePayee');
+    const addPayeeExpenseBtn = document.getElementById('addPayeeExpenseBtn');
+    const autoDateExpenseBtn = document.getElementById('autoDateExpense');
+    
+    if (expenseSelect && expenseInput) {
+        handlePayeeSelection(expenseSelect, expenseInput);
+        handlePayeeInput(expenseInput, expenseSelect);
+    }
+    
+    if (addPayeeExpenseBtn && expenseInput) {
+        addPayeeExpenseBtn.addEventListener('click', async function() {
+            const payeeName = expenseInput.value.trim();
+            if (payeeName) {
+                const success = await addNewPayee(payeeName);
+                if (success) {
+                    // Select the newly added payee
+                    expenseSelect.value = payeeName;
+                    expenseInput.value = payeeName;
+                    expenseInput.setAttribute('readonly', true);
+                    expenseInput.classList.add('bg-light');
+                }
+            }
+        });
+    }
+    
+    if (autoDateExpenseBtn) {
+        autoDateExpenseBtn.addEventListener('click', function() {
+            setAutoDate('expenseDate');
+        });
+    }
+    
+    // Set up payee selection for edit income modal
+    const editIncomeSelect = document.getElementById('editIncomePayeeSelect');
+    const editIncomeInput = document.getElementById('editIncomePayee');
+    const addPayeeEditIncomeBtn = document.getElementById('addPayeeEditIncomeBtn');
+    
+    if (editIncomeSelect && editIncomeInput) {
+        handlePayeeSelection(editIncomeSelect, editIncomeInput);
+        handlePayeeInput(editIncomeInput, editIncomeSelect);
+    }
+    
+    if (addPayeeEditIncomeBtn && editIncomeInput) {
+        addPayeeEditIncomeBtn.addEventListener('click', async function() {
+            const payeeName = editIncomeInput.value.trim();
+            if (payeeName) {
+                const success = await addNewPayee(payeeName);
+                if (success) {
+                    // Select the newly added payee
+                    editIncomeSelect.value = payeeName;
+                    editIncomeInput.value = payeeName;
+                    editIncomeInput.setAttribute('readonly', true);
+                    editIncomeInput.classList.add('bg-light');
+                }
+            }
+        });
+    }
+    
+    // Set up payee selection for edit expense modal
+    const editExpenseSelect = document.getElementById('editExpensePayeeSelect');
+    const editExpenseInput = document.getElementById('editExpensePayee');
+    const addPayeeEditExpenseBtn = document.getElementById('addPayeeEditExpenseBtn');
+    
+    if (editExpenseSelect && editExpenseInput) {
+        handlePayeeSelection(editExpenseSelect, editExpenseInput);
+        handlePayeeInput(editExpenseInput, editExpenseSelect);
+    }
+    
+    if (addPayeeEditExpenseBtn && editExpenseInput) {
+        addPayeeEditExpenseBtn.addEventListener('click', async function() {
+            const payeeName = editExpenseInput.value.trim();
+            if (payeeName) {
+                const success = await addNewPayee(payeeName);
+                if (success) {
+                    // Select the newly added payee
+                    editExpenseSelect.value = payeeName;
+                    editExpenseInput.value = payeeName;
+                    editExpenseInput.setAttribute('readonly', true);
+                    editExpenseInput.classList.add('bg-light');
+                }
+            }
+        });
+    }
+    
+    // Auto-populate date when modals are opened
+    const addIncomeModal = document.getElementById('addIncomeModal');
+    const addExpenseModal = document.getElementById('addExpenseModal');
+    
+    if (addIncomeModal) {
+        addIncomeModal.addEventListener('shown.bs.modal', function() {
+            setAutoDate('incomeDate');
+        });
+    }
+    
+    if (addExpenseModal) {
+        addExpenseModal.addEventListener('shown.bs.modal', function() {
+            setAutoDate('expenseDate');
+        });
+    }
+}
+
+/**
+ * Calculate week offset from a given date relative to current week
+ */
+function calculateWeekOffset(transactionDate) {
+    const today = new Date();
+    const daysSinceMonday = (today.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0 format
+    const currentMonday = new Date(today);
+    currentMonday.setDate(today.getDate() - daysSinceMonday);
+    currentMonday.setHours(0, 0, 0, 0);
+    
+    const txDate = new Date(transactionDate);
+    const txDaysSinceMonday = (txDate.getDay() + 6) % 7;
+    const txMonday = new Date(txDate);
+    txMonday.setDate(txDate.getDate() - txDaysSinceMonday);
+    txMonday.setHours(0, 0, 0, 0);
+    
+    const diffTime = txMonday.getTime() - currentMonday.getTime();
+    const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+    
+    return diffWeeks;
+}
+
+/**
+ * Navigate to the week containing the given date and highlight the transaction
+ */
+function navigateToTransactionWeek(transactionDate, transactionId, transactionType) {
+    console.log('Navigating to week for transaction:', transactionDate, transactionId, transactionType);
+    
+    const weekOffset = calculateWeekOffset(transactionDate);
+    console.log('Calculated week offset:', weekOffset);
+    
+    // Get current week offset from window or assume 0
+    const currentOffset = window.currentWeekOffset || 0;
+    console.log('Current week offset:', currentOffset);
+    
+    // Check if we need to navigate to a different week
+    if (weekOffset !== currentOffset) {
+        // Store transaction info for highlighting after week loads
+        window.highlightTransactionAfterLoad = {
+            id: transactionId,
+            type: transactionType
+        };
+        
+        // Navigate to the correct week (this will trigger loadWeekData)
+        if (typeof loadWeekData === 'function') {
+            loadWeekData(weekOffset);
+        } else {
+            console.error('loadWeekData function not available');
+        }
+    } else {
+        // We're already on the correct week, but need to reload data to show new transaction
+        window.highlightTransactionAfterLoad = {
+            id: transactionId,
+            type: transactionType
+        };
+        
+        // Reload current week data to include the new transaction
+        if (typeof loadWeekData === 'function') {
+            loadWeekData(currentOffset);
+        } else {
+            console.error('loadWeekData function not available');
+        }
+    }
+}
+
+/**
+ * Highlight a specific transaction with visual feedback
+ */
+function highlightTransaction(transactionId, transactionType) {
+    console.log('Highlighting transaction:', transactionId, transactionType);
+    
+    // Wait a bit for DOM to be ready if we just loaded a new week
+    setTimeout(() => {
+        const transactionCard = document.querySelector(`.transaction-card[data-transaction-id="${transactionId}"]`);
+        if (transactionCard) {
+            // Add highlight class
+            transactionCard.classList.add('transaction-highlight');
+            
+            // Scroll to the transaction
+            transactionCard.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+                transactionCard.classList.remove('transaction-highlight');
+            }, 3000);
+        } else {
+            console.warn('Transaction card not found for ID:', transactionId);
+        }
+    }, 100);
+}
+
+/**
+ * Check if we need to highlight a transaction after week load
+ * This should be called after week data is loaded
+ */
+function checkForTransactionHighlight() {
+    if (window.highlightTransactionAfterLoad) {
+        const { id, type } = window.highlightTransactionAfterLoad;
+        highlightTransaction(id, type);
+        window.highlightTransactionAfterLoad = null; // Clear the flag
+    }
+}
+
 // Export functions for use in other scripts
 window.BudgetBasic = {
     formatCurrency,
@@ -980,5 +1438,10 @@ window.BudgetBasic = {
     showErrorMessage,
     validateForm,
     toggleSidebar,
-    closeSidebar
+    closeSidebar,
+    loadPayees,
+    initializePayeeFunctionality,
+    navigateToTransactionWeek,
+    highlightTransaction,
+    checkForTransactionHighlight
 };

@@ -1,5 +1,25 @@
 from django.contrib import admin
-from .models import Income, Expense
+from .models import Income, Expense, Payee
+
+
+@admin.register(Payee)
+class PayeeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'created_at')
+    list_filter = ('user', 'created_at')
+    search_fields = ('name',)
+    ordering = ('name',)
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(user=request.user)
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Only set user for new objects
+            obj.user = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Income)

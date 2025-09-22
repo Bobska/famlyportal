@@ -6,6 +6,11 @@ app_name = 'budget_basic'
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('transactions/', views.main, name='main'),
+    path('week-data/', views.get_week_data, name='get_week_data'),
+    # Payee URLs
+    path('payees/', views.get_payees, name='get_payees'),
+    path('payee/add/', views.add_payee, name='add_payee'),
+    path('auto-date/', views.get_auto_date, name='get_auto_date'),
     # Income URLs
     path('income/add/', views.add_income, name='add_income'),
     path('income/<int:income_id>/edit/', views.edit_income, name='edit_income'),

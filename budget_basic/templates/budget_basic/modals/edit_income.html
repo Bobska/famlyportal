@@ -17,8 +17,17 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="editIncomePayee" class="form-label fw-bold">Payee</label>
-                        <input type="text" class="form-control" id="editIncomePayee" name="payee" placeholder="e.g., Employer, Client, Bank" required>
+                        <label for="editIncomePayeeSelect" class="form-label fw-bold">Payee</label>
+                        <select class="form-select mb-2" id="editIncomePayeeSelect" name="payee_choice">
+                            <option value="">Select existing payee...</option>
+                        </select>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="editIncomePayee" name="payee" placeholder="Or enter new payee name..." required>
+                            <button type="button" class="btn btn-outline-secondary" id="addPayeeEditIncomeBtn" title="Add to payee list">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small">Select from existing or enter a new payee name</div>
                     </div>
                     
                     <div class="mb-4">

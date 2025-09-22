@@ -13,11 +13,25 @@
                     <div class="mb-3">
                         <label for="incomeDate" class="form-label fw-bold">Date</label>
                         <input type="date" class="form-control" id="incomeDate" name="date" required>
+                        <div class="form-text">
+                            <button type="button" id="autoDateIncome" class="btn btn-outline-secondary btn-sm p-1 text-decoration-none">
+                                <i class="bi bi-magic"></i> Use auto date
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="incomePayee" class="form-label fw-bold">Payee</label>
-                        <input type="text" class="form-control" id="incomePayee" name="payee" placeholder="e.g., Employer, Client, Bank" required>
+                        <label for="incomePayeeSelect" class="form-label fw-bold">Payee</label>
+                        <select class="form-select mb-2" id="incomePayeeSelect" name="payee_choice">
+                            <option value="">Select existing payee...</option>
+                        </select>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="incomePayee" name="payee" placeholder="Or enter new payee name...">
+                            <button type="button" class="btn btn-outline-secondary" id="addPayeeIncomeBtn" title="Add to payee list">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small">Select from existing or enter a new payee name</div>
                     </div>
                     
                     <div class="mb-4">

@@ -9,110 +9,155 @@
 {% block content %}
 <!-- Content Wrapper for Centering -->
 <div class="content-wrapper">
-    <!-- Page Header inside wrapper -->
-    <div class="page-header">
-        <h1>Transactions</h1>
+    <!-- Week Navigation Card - Primary focal point -->
+    <div class="card mb-4 card-week-nav">
+        <div class="card-body py-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-action btn-week-nav btn-lg" style="height:48px;min-width:100px;font-size:1.1rem;" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                    <i class="bi bi-chevron-left me-1"></i>
+                    <span class="btn-week-text">Previous</span>
+                </button>
+                <div class="week-display">
+                    <div class="week-label-large">{% if week_offset == 0 %}Current Week{% elif week_offset == -1 %}Last Week{% elif week_offset == 1 %}Next Week{% elif week_offset == -2 %}2 Weeks Ago{% elif week_offset == 2 %}In 2 Weeks{% else %}{% if week_offset < 0 %}{{ week_offset|add:"0" }} Weeks Ago{% else %}In {{ week_offset }} Weeks{% endif %}{% endif %}</div>
+                    <div class="week-date-large">{{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}</div>
+                </div>
+                <button type="button" class="btn btn-action btn-week-nav btn-lg" style="height:48px;min-width:100px;font-size:1.1rem;" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                    <span class="btn-week-text">Next</span>
+                    <i class="bi bi-chevron-right ms-1"></i>
+                </button>
+            </div>
+        </div>
     </div>
     
-    <div class="row">
-        <div class="col-12">
-            <!-- Action Buttons -->
-            <div class="d-flex justify-content-end align-items-center mb-2">
-                <!-- Add buttons group (Income/Expense) -->
-                <div class="btn-group btn-group-sm me-2" role="group">
-                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-plus-circle"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-dash-circle"></i>
-                    </button>
+    <!-- Weekly Totals Card -->
+    <div class="card mb-3">
+        <div class="card-body py-1">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Total Income</div>
+                        <div class="weekly-stat-value" id="weekly-income">+${{ weekly_income|floatformat:2|intcomma }}</div>
+                    </div>
                 </div>
-                <!-- Filter/Export buttons group -->
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showComingSoonModal()" title="Filter Transactions" data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-funnel"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showComingSoonModal()" title="Export Transactions" data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-download"></i>
-                    </button>
+                <div class="col-md-4">
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Total Expenses</div>
+                        <div class="weekly-stat-value" id="weekly-expenses">-${{ weekly_expenses|floatformat:2|intcomma }}</div>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Week Navigation Card -->
-            <div class="card mb-3 card-week-nav">
-                <div class="card-body py-1">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <button type="button" class="btn btn-action btn-week-nav" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-chevron-left me-1"></i>
-                            <span class="btn-week-text">Previous</span>
-                        </button>
-                        <div class="week-display">
-                            <div class="week-text week-text-large">16 Sep - 22 Sep, 2025</div>
-                            <div class="week-relative">Current Week</div>
-                        </div>
-                        <button type="button" class="btn btn-action btn-week-nav" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <span class="btn-week-text">Next</span>
-                            <i class="bi bi-chevron-right ms-1"></i>
-                        </button>
+                <div class="col-md-4">
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Net Balance</div>
+                        <div class="weekly-stat-value" id="weekly-balance">{% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}</div>
                     </div>
                 </div>
             </div>
-            
-            <div class="card mb-4">
-                <div class="card-body">
-                    {% if income_entries or expense_entries %}
-                        <!-- Transaction Cards Container -->
-                        <div class="transaction-cards-container">
-                            <!-- Income Transaction Data Rows -->
-                            {% for income in income_entries %}
-                            <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
-                                <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
-                                <div class="transaction-col transaction-payee">{{ income.payee }}</div>
-                                <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
-                                <div class="transaction-col transaction-actions">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                            
-                            <!-- Expense Transaction Data Rows -->
-                            {% for expense in expense_entries %}
-                            <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}">
-                                <div class="transaction-col transaction-date">{{ expense.date|date:"Y-m-d" }}</div>
-                                <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
-                                <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
-                                <div class="transaction-col transaction-actions">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditExpenseModal({{ expense.id }})" title="Edit Transaction">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteExpenseModal({{ expense.id }}, '{{ expense.payee|escapejs }}', '{{ expense.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <!-- Empty State for Card View -->
-                        <div class="text-center py-5 text-muted">
-                            <div class="mb-3">
-                                <i class="bi bi-receipt" style="font-size: 3rem;"></i>
-                            </div>
-                            <p class="mb-0">No transactions yet</p>
-                            <small>Start by adding your first income or expense</small>
-                        </div>
-                    {% endif %}
+        </div>
+    </div>
+    
+    <!-- Action Buttons Card -->
+    <div class="card mb-3">
+        <div class="card-body py-1">
+            <div class="d-flex justify-content-center align-items-center">
+                <!-- Add buttons group (Income/Expense) -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        <span>Add Income</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <i class="bi bi-dash-circle me-1"></i>
+                        <span>Add Expense</span>
+                    </button>
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Transaction Details Panel -->
+    <div class="card mb-3" id="transaction-details-panel" style="display: none;">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Transaction Details</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideTransactionDetails()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <hr class="my-2">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Date:</strong>
+                    <div id="detail-date" class="text-muted">-</div>
+                </div>
+                <div class="col-md-4">
+                    <strong>Payee/Merchant:</strong>
+                    <div id="detail-payee" class="text-muted">-</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>Amount:</strong>
+                    <div id="detail-amount" class="text-muted">-</div>
+                </div>
+                <div class="col-md-2">
+                    <strong>Type:</strong>
+                    <div id="detail-type" class="text-muted">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card" id="transactions-card">
+        <div class="card-body">
+            {% if income_entries or expense_entries %}
+                <!-- Transaction Cards Container -->
+                <div class="transaction-cards-container">
+                    <!-- Income Transaction Data Rows -->
+                    {% for income in income_entries %}
+                    <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
+                        <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
+                        <div class="transaction-col transaction-payee">{{ income.payee }}</div>
+                        <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
+                        <div class="transaction-col transaction-actions">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Expense Transaction Data Rows -->
+                    {% for expense in expense_entries %}
+                    <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}">
+                        <div class="transaction-col transaction-date">{{ expense.date|date:"Y-m-d" }}</div>
+                        <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
+                        <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
+                        <div class="transaction-col transaction-actions">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditExpenseModal({{ expense.id }})" title="Edit Transaction">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteExpenseModal({{ expense.id }}, '{{ expense.payee|escapejs }}', '{{ expense.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- Empty State for Card View -->
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3">
+                        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="mb-0">No transactions yet</p>
+                    <small>Start by adding your first income or expense</small>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -120,97 +165,21 @@
 
 {% block extra_js %}
 <script>
-// Week navigation functionality
-let currentWeekOffset = 0; // 0 = current week, -1 = last week, etc.
-
-function previousWeek() {
-    currentWeekOffset--;
-    updateWeekDisplay();
-    // TODO: Implement actual data filtering
-    console.log('Previous week clicked, offset:', currentWeekOffset);
-    showComingSoonModal();
-}
-
-function nextWeek() {
-    currentWeekOffset++;
-    updateWeekDisplay();
-    // TODO: Implement actual data filtering
-    console.log('Next week clicked, offset:', currentWeekOffset);
-    showComingSoonModal();
-}
-
-// Function to get relative week name
-function getRelativeWeekName(offset) {
-    switch(offset) {
-        case -2: return '2 Weeks Ago';
-        case -1: return 'Last Week';
-        case 0: return 'Current Week';
-        case 1: return 'Next Week';
-        case 2: return 'In 2 Weeks';
-        default: 
-            if (offset < -2) return `${Math.abs(offset)} Weeks Ago`;
-            if (offset > 2) return `In ${offset} Weeks`;
-            return 'Unknown Week';
-    }
-}
-
-// Function to format date in NZ format
-function formatNZDate(date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${date.getDate()} ${months[date.getMonth()]}`;
-}
-
-// Function to get week start and end dates
-function getWeekDates(offset) {
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Get Monday
-    
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + mondayOffset + (offset * 7));
-    
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    
-    return { start: monday, end: sunday };
-}
-
-// Function to update week display
-function updateWeekDisplay() {
-    const weekRelative = document.querySelector('.week-relative');
-    const weekText = document.querySelector('.week-text');
-    
-    if (weekRelative && weekText) {
-        const { start, end } = getWeekDates(currentWeekOffset);
-        
-        // Update relative week name
-        weekRelative.textContent = getRelativeWeekName(currentWeekOffset);
-        
-        // Update date range in NZ format
-        const startFormatted = formatNZDate(start);
-        const endFormatted = formatNZDate(end);
-        const year = end.getFullYear();
-        
-        // Handle cross-month/year ranges
-        if (start.getMonth() === end.getMonth()) {
-            weekText.textContent = `${startFormatted} - ${endFormatted}, ${year}`;
-        } else {
-            weekText.textContent = `${startFormatted} - ${endFormatted}, ${year}`;
-        }
-    }
-}
-
-// Initialize tooltips for week navigation buttons
+// Initialize week navigation functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips for week navigation
-    const weekNavButtons = document.querySelectorAll('.btn-week-nav[data-bs-toggle="tooltip"]');
-    weekNavButtons.forEach(function(element) {
-        new bootstrap.Tooltip(element);
-    });
+    // Set configuration from server
+    if (typeof setWeekDataUrl === 'function') {
+        setWeekDataUrl('{% url "budget_basic:get_week_data" %}');
+    }
     
-    // Initialize the week display
-    updateWeekDisplay();
+    if (typeof setCurrentWeekOffset === 'function') {
+        setCurrentWeekOffset({{ week_offset|default:0 }});
+    }
+    
+    // Initialize all week navigation features
+    if (typeof initializeWeekNavigation === 'function') {
+        initializeWeekNavigation();
+    }
 });
 </script>
 {% endblock %}

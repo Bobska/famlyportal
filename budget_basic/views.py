@@ -9,6 +9,58 @@ from django.db.models import Sum, Max
 from .models import Income, Expense, Payee
 
 
+def get_cumulative_balance_up_to_week(user, target_week_offset):
+    """Calculate cumulative balance from the beginning of time up to (and including) the target week."""
+    # Calculate the end date of the target week
+    today = date.today()
+    days_since_monday = (today.weekday()) % 7
+    current_monday = today - timedelta(days=days_since_monday)
+    
+    # Calculate target week end date (Sunday)
+    target_monday = current_monday + timedelta(weeks=target_week_offset)
+    target_sunday = target_monday + timedelta(days=6)
+    
+    # Get all income and expenses up to and including the target week
+    total_income = Income.objects.filter(
+        user=user,
+        date__lte=target_sunday
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    total_expenses = Expense.objects.filter(
+        user=user,
+        date__lte=target_sunday
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    return total_income - total_expenses
+
+
+def get_week_balance_only(user, week_offset):
+    """Calculate balance for a specific week only (not cumulative)."""
+    # Calculate week start and end dates (Monday to Sunday)
+    today = date.today()
+    days_since_monday = (today.weekday()) % 7
+    current_monday = today - timedelta(days=days_since_monday)
+    
+    # Calculate target week based on offset
+    target_monday = current_monday + timedelta(weeks=week_offset)
+    target_sunday = target_monday + timedelta(days=6)
+    
+    # Get income and expense totals for the specific week
+    weekly_income = Income.objects.filter(
+        user=user,
+        date__gte=target_monday,
+        date__lte=target_sunday
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    weekly_expenses = Expense.objects.filter(
+        user=user,
+        date__gte=target_monday,
+        date__lte=target_sunday
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    return weekly_income - weekly_expenses
+
+
 def get_auto_date_for_week(user, week_offset, transaction_type=None):
     """Get the most recent transaction date in the specified week for the given type, or Monday if no transactions."""
     # Calculate week start and end dates (Monday to Sunday)
@@ -199,10 +251,14 @@ def get_week_data(request):
         date__lte=target_sunday
     ).order_by('-date', '-created_at')
     
-    # Calculate weekly totals
+    # Calculate weekly totals (current week only)
     weekly_income = income_entries.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     weekly_expenses = expense_entries.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     weekly_balance = weekly_income - weekly_expenses
+    
+    # Calculate balance carryover data
+    previous_week_balance = get_cumulative_balance_up_to_week(request.user, week_offset - 1) if week_offset != 0 else Decimal('0.00')
+    running_balance = get_cumulative_balance_up_to_week(request.user, week_offset)
     
     # Helper function to get relative week name
     def get_week_label(offset):
@@ -251,6 +307,8 @@ def get_week_data(request):
         'weekly_income': float(weekly_income),
         'weekly_expenses': float(weekly_expenses),
         'weekly_balance': float(weekly_balance),
+        'previous_week_balance': float(previous_week_balance),
+        'running_balance': float(running_balance),
         'income_entries': income_data,
         'expense_entries': expense_data,
     })

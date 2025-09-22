@@ -72,6 +72,12 @@ function loadWeekData(offset) {
                 balanceElement.textContent = `${balanceValue >= 0 ? '+' : '-'}$${Math.abs(balanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
                 balanceElement.className = `weekly-stat-value`; // Remove color classes, use grayscale styling
                 
+                // Update running balance display
+                const runningBalanceElement = document.getElementById('running-balance');
+                const runningBalanceValue = data.running_balance;
+                runningBalanceElement.textContent = `${runningBalanceValue >= 0 ? '+' : '-'}$${Math.abs(runningBalanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+                runningBalanceElement.className = runningBalanceValue >= 0 ? 'text-success' : 'text-danger';
+                
                 // Update transactions
                 console.log('Updating transactions:', data.income_entries.length + data.expense_entries.length + ' total');
                 updateTransactionsList(data.income_entries, data.expense_entries);

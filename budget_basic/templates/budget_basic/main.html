@@ -49,6 +49,9 @@
                     <div class="weekly-stat">
                         <div class="weekly-stat-label">Net Balance</div>
                         <div class="weekly-stat-value" id="weekly-balance">{% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:"-" }}</div>
+                        <div class="weekly-stat-subtext" id="running-balance-info">
+                            <small class="text-muted">Running: <span id="running-balance">$0.00</span></small>
+                        </div>
                     </div>
                 </div>
             </div>

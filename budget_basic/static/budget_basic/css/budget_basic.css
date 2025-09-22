@@ -999,6 +999,16 @@ html, body {
     color: #495057 !important; /* Dark gray for all values */
 }
 
+.weekly-stat-subtext {
+    margin-top: 2px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.weekly-stat-subtext small {
+    color: #6c757d !important;
+}
+
 /* Column Widths - Matching table layout */
 .transaction-date {
     flex: 0 0 120px; /* Fixed width for date */

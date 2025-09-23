@@ -6,6 +6,18 @@ let weekDataUrl = '/budget-basic/get-week-data/'; // Default URL, can be overrid
 // Week navigation functionality
 let currentWeekOffset = 0; // Will be set from template
 
+// Date formatting function
+function formatTransactionDate(dateString) {
+    const date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+    const options = { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short'
+        // Removed year since we know what year we're in
+    };
+    return date.toLocaleDateString('en-US', options);
+}
+
 // Set the week data URL (called from template)
 function setWeekDataUrl(url) {
     weekDataUrl = url;
@@ -116,90 +128,166 @@ function loadWeekData(offset) {
 function updateTransactionsList(incomeEntries, expenseEntries) {
     console.log('Updating transactions container with:', incomeEntries.length, 'income,', expenseEntries.length, 'expense entries');
     
-    const cardBody = document.querySelector('#transactions-card .card-body');
-    if (!cardBody) {
-        console.error('Transaction card body not found');
+    // Look for the new panel structure first
+    let container = document.querySelector('.transactions-with-panel .transaction-cards-container');
+    const transactionsCard = document.querySelector('#transactions-card');
+    
+    if (!transactionsCard) {
+        console.error('Transactions card not found');
         return;
     }
     
     // Check if we have any transactions
     if (incomeEntries.length === 0 && expenseEntries.length === 0) {
-        // Replace the entire card body with empty state
-        cardBody.innerHTML = `
-            <div class="text-center py-5 text-muted">
-                <div class="mb-3">
-                    <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+        // Replace with empty state, add card-body wrapper for proper styling
+        transactionsCard.innerHTML = `
+            <div class="card-body">
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3">
+                        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="mb-0">No transactions for this week</p>
+                    <small>Add your first income or expense using the buttons above</small>
                 </div>
-                <p class="mb-0">No transactions for this week</p>
-                <small>Add your first income or expense using the buttons above</small>
             </div>
         `;
         return;
     }
     
-    // We have transactions, ensure we have the proper container structure
-    let container = cardBody.querySelector('.transaction-cards-container');
+    // We have transactions, ensure we have the proper panel structure
     if (!container) {
-        // Create the container structure
-        cardBody.innerHTML = `
-            <div class="transaction-cards-container">
+        // Create the panel structure
+        transactionsCard.innerHTML = `
+            <div class="transactions-with-panel">
+                <!-- Left Side: Transaction Cards Container -->
+                <div class="transaction-cards-container" id="transaction-list">
+                    <!-- Left Panel Header -->
+                    <div class="panel-header">
+                        <div class="panel-title">Transactions</div>
+                    </div>
+                    
+                    <!-- Transaction List Content -->
+                    <div class="transaction-list-content">
+                    </div>
+                </div>
+                
+                <!-- Right Side: Details Panel -->
+                <div class="transaction-details-panel" id="transaction-details-panel">
+                    <div class="panel-header">
+                        <h6 class="mb-0">Transaction Details</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="detail-section">
+                            <div class="detail-row">
+                                <span class="detail-label">Date:</span>
+                                <span class="detail-value" id="detail-date">Panel is working!</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Payee/Merchant:</span>
+                                <span class="detail-value" id="detail-payee">Testing mode - week changed</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Amount:</span>
+                                <span class="detail-value" id="detail-amount">$0.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Type:</span>
+                                <span class="detail-value" id="detail-type">Test</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Notes:</span>
+                                <span class="detail-value" id="detail-notes">Week navigation successful!</span>
+                            </div>
+                        </div>
+                        <div class="panel-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="edit-transaction-btn" onclick="editSelectedTransaction()">
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="delete-transaction-btn" onclick="deleteSelectedTransaction()">
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
-        container = cardBody.querySelector('.transaction-cards-container');
+        container = document.querySelector('.transactions-with-panel .transaction-cards-container .transaction-list-content');
+    } else {
+        // If container exists, find the transaction-list-content div
+        container = container.querySelector('.transaction-list-content') || container;
     }
     
     // Clear existing content
     container.innerHTML = '';
     
-    // Combine and sort all transactions by date (newest first)
-    const allTransactions = [
-        ...incomeEntries.map(income => ({...income, type: 'income'})),
-        ...expenseEntries.map(expense => ({...expense, type: 'expense'}))
-    ].sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    console.log('Sorted transactions:', allTransactions);
-    
-    // Add all transactions
-    allTransactions.forEach(transaction => {
-        const editFunction = transaction.type === 'income' ? 'showEditIncomeModal' : 'showEditExpenseModal';
-        const deleteFunction = transaction.type === 'income' ? 'showDeleteIncomeModal' : 'showDeleteExpenseModal';
-        
-        const html = `
-            <div class="transaction-card transaction-card-data" data-transaction-id="${transaction.id}">
-                <div class="transaction-col transaction-date">${transaction.date}</div>
-                <div class="transaction-col transaction-payee">${transaction.payee}</div>
-                <div class="transaction-col transaction-amount">${transaction.amount_display}</div>
+    // Add income transactions
+    incomeEntries.forEach(income => {
+        const transactionHtml = `
+            <div class="transaction-card transaction-card-data" 
+                 data-transaction-id="${income.id}" 
+                 data-transaction-type="income"
+                 data-transaction-date="${income.date}"
+                 data-transaction-payee="${income.payee.replace(/"/g, '&quot;')}"
+                 data-transaction-amount="${income.amount}"
+                 data-transaction-notes="${(income.notes || '').replace(/"/g, '&quot;')}"
+                 onclick="selectTransaction(this)">
+                <div class="transaction-col transaction-date">${formatTransactionDate(income.date)}</div>
+                <div class="transaction-col transaction-payee">${income.payee}</div>
+                <div class="transaction-col transaction-amount">+$${parseFloat(income.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
                 <div class="transaction-col transaction-actions">
                     <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="${editFunction}(${transaction.id})" title="Edit Transaction">
+                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showEditIncomeModal(${income.id})" title="Edit Transaction">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="${deleteFunction}(${transaction.id}, '${transaction.payee.replace(/'/g, "\\'")}', '${transaction.amount_display}')" title="Delete Transaction">
+                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showDeleteIncomeModal(${income.id}, '${income.payee.replace(/'/g, "\\'")}', '${parseFloat(income.amount).toFixed(2)}')" title="Delete Transaction">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
                 </div>
             </div>
         `;
-        container.insertAdjacentHTML('beforeend', html);
+        container.insertAdjacentHTML('beforeend', transactionHtml);
     });
     
-    console.log('Transaction list updated successfully');
+    // Add expense transactions
+    expenseEntries.forEach(expense => {
+        const transactionHtml = `
+            <div class="transaction-card transaction-card-data" 
+                 data-transaction-id="${expense.id}" 
+                 data-transaction-type="expense"
+                 data-transaction-date="${expense.date}"
+                 data-transaction-payee="${expense.payee.replace(/"/g, '&quot;')}"
+                 data-transaction-amount="${expense.amount}"
+                 data-transaction-notes="${(expense.notes || '').replace(/"/g, '&quot;')}"
+                 onclick="selectTransaction(this)">
+                <div class="transaction-col transaction-date">${formatTransactionDate(expense.date)}</div>
+                <div class="transaction-col transaction-payee">${expense.payee}</div>
+                <div class="transaction-col transaction-amount">-$${parseFloat(expense.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+                <div class="transaction-col transaction-actions">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showEditExpenseModal(${expense.id})" title="Edit Transaction">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showDeleteExpenseModal(${expense.id}, '${expense.payee.replace(/'/g, "\\'")}', '${parseFloat(expense.amount).toFixed(2)}')" title="Delete Transaction">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', transactionHtml);
+    });
+    
+    console.log('Transactions list updated successfully');
 }
 
-// Function to show transaction details in side panel
+// Function to show transaction details
 function showTransactionDetails(transactionCard) {
+    const detailsPanel = document.getElementById('transaction-details-panel');
     const transactionId = transactionCard.dataset.transactionId;
-    const container = document.querySelector('.transactions-container');
-    const panel = document.getElementById('transaction-details-panel');
-    
-    // Clear previous selections
-    document.querySelectorAll('.transaction-card-data.selected').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Select the clicked transaction
-    transactionCard.classList.add('selected');
     
     // Extract data from the transaction card
     const date = transactionCard.querySelector('.transaction-col.transaction-date').textContent;
@@ -213,95 +301,40 @@ function showTransactionDetails(transactionCard) {
     document.getElementById('detail-amount').textContent = amount;
     document.getElementById('detail-type').textContent = type;
     
-    // Show the panel with animation
-    container.classList.add('panel-open');
+    // Show the panel - use flex instead of block to maintain layout
+    detailsPanel.style.display = 'flex';
 }
 
-// Function to hide transaction details side panel
-function hideTransactionDetailsPanel() {
-    const container = document.querySelector('.transactions-container');
+// Function to hide transaction details
+function hideTransactionDetails() {
+    console.log('Hiding transaction details panel (DISABLED FOR TESTING)');
+    const detailsPanel = document.getElementById('transaction-details-panel');
+    if (detailsPanel) {
+        // TESTING: Don't hide the panel, just clear the data
+        // detailsPanel.style.display = 'none';
+        console.log('Panel hiding disabled for testing');
+        
+        // Reset panel content to test values
+        document.getElementById('detail-date').textContent = 'Panel is working!';
+        document.getElementById('detail-payee').textContent = 'Testing mode - week changed';
+        document.getElementById('detail-amount').textContent = '$0.00';
+        document.getElementById('detail-type').textContent = 'Test';
+        document.getElementById('detail-notes').textContent = 'Week navigation successful!';
+    }
     
     // Clear all selections
-    document.querySelectorAll('.transaction-card-data.selected').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Hide the panel with animation
-    container.classList.remove('panel-open');
-}
-
-// Legacy function name for backward compatibility
-function hideTransactionDetails() {
-    hideTransactionDetailsPanel();
+    const activeCards = document.querySelectorAll('.transaction-card-data.active');
+    if (activeCards.length > 0) {
+        console.log('Clearing', activeCards.length, 'active transaction selections');
+        activeCards.forEach(card => card.classList.remove('active'));
+    }
 }
 
 // Initialize transaction selection functionality
 let transactionClickHandler; // Store the click handler so we can remove it
 
-function initializeTransactionSelection() {
-    console.log('Initializing transaction selection');
-    
-    const transactionsCard = document.getElementById('transactions-card');
-    if (!transactionsCard) {
-        console.error('Transactions card not found!');
-        return;
-    }
-    
-    // Remove existing event listener if it exists
-    if (transactionClickHandler) {
-        transactionsCard.removeEventListener('click', transactionClickHandler);
-        console.log('Removed previous event listener');
-    }
-    
-    // Check if we have any transaction cards
-    const transactionCards = transactionsCard.querySelectorAll('.transaction-card-data');
-    console.log('Found', transactionCards.length, 'transaction cards for selection');
-    
-    // Create new click handler
-    transactionClickHandler = function(e) {
-        console.log('Click detected in transactions card', e.target);
-        
-        // If clicking on buttons, don't handle selection
-        if (e.target.closest('.btn') || e.target.closest('.btn-group')) {
-            console.log('Click on button, ignoring');
-            return;
-        }
-        
-        // If clicking on a transaction card
-        const clickedCard = e.target.closest('.transaction-card-data');
-        if (clickedCard) {
-            console.log('Click on transaction card', clickedCard.dataset.transactionId);
-            
-            // Toggle selection: if already selected, deselect it; otherwise select it
-            const isCurrentlySelected = clickedCard.classList.contains('selected');
-            console.log('Card currently selected:', isCurrentlySelected);
-            
-            // First, clear all selections
-            const selectedCards = document.querySelectorAll('.transaction-card-data.selected');
-            selectedCards.forEach(card => card.classList.remove('selected'));
-            
-            // If it wasn't selected, make it selected; if it was selected, leave it deselected
-            if (!isCurrentlySelected) {
-                clickedCard.classList.add('selected');
-                showTransactionDetails(clickedCard);
-                console.log('Transaction selected');
-            } else {
-                hideTransactionDetails();
-                console.log('Transaction deselected');
-            }
-        } else {
-            // Clicking elsewhere in the transaction card area (but not on a transaction) - clear selection
-            console.log('Click on empty area, clearing selection');
-            const selectedCards = document.querySelectorAll('.transaction-card-data.selected');
-            selectedCards.forEach(card => card.classList.remove('selected'));
-            hideTransactionDetails();
-        }
-    };
-    
-    // Add the new event listener
-    transactionsCard.addEventListener('click', transactionClickHandler);
-    console.log('Added new transaction click event listener');
-}
+// Note: initializeTransactionSelection is now handled entirely by budget_basic.js
+// This was causing a conflict where this stub function was overriding the real implementation
 
 // Function to get relative week name (used for dynamic updates if needed)
 function getRelativeWeekName(offset) {

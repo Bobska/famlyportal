@@ -39,6 +39,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize payee functionality
     initializePayeeFunctionality();
     
+    // Initialize panel resizer functionality
+    initializePanelResizer();
+    
+    // Initialize transaction selection system
+    initializeTransactionSelection();
+    
+    // Initialize panel visibility mode
+    setPanelVisibilityMode(PANEL_CONFIG.emptyPanelMode);
+    
+    // Initialize action button states (hidden by default)
+    hideActionButtons();
+    
     // Initialize filter with default state
     setTimeout(() => {
         filterTransactions('all'); // Set default filter to 'all' and highlight it
@@ -81,23 +93,20 @@ function showEditIncomeModal(incomeId) {
                     document.getElementById('editIncomeAmount').value = addCommasToNumber(data.income.amount);
                     document.getElementById('editIncomeNotes').value = data.income.notes;
                     
-                    // Handle payee selection - check if it exists in dropdown
+                    // Handle payee selection - only use dropdown since there's no text input
                     const editIncomeSelect = document.getElementById('editIncomePayeeSelect');
-                    const editIncomeInput = document.getElementById('editIncomePayee');
-                    const payeeExists = Array.from(editIncomeSelect.options).some(option => option.value === data.income.payee);
-                    
-                    if (payeeExists) {
-                        // Payee exists in dropdown - select it and make input readonly
-                        editIncomeSelect.value = data.income.payee;
-                        editIncomeInput.value = data.income.payee;
-                        editIncomeInput.setAttribute('readonly', true);
-                        editIncomeInput.classList.add('bg-light');
-                    } else {
-                        // Payee doesn't exist - clear dropdown and allow manual entry
-                        editIncomeSelect.value = '';
-                        editIncomeInput.value = data.income.payee;
-                        editIncomeInput.removeAttribute('readonly');
-                        editIncomeInput.classList.remove('bg-light');
+                    if (editIncomeSelect) {
+                        // Check if payee exists in dropdown options
+                        const payeeExists = Array.from(editIncomeSelect.options).some(option => option.value === data.income.payee);
+                        
+                        if (payeeExists) {
+                            // Payee exists in dropdown - select it
+                            editIncomeSelect.value = data.income.payee;
+                        } else {
+                            // Payee doesn't exist - clear selection
+                            editIncomeSelect.value = '';
+                            console.warn('Payee not found in dropdown:', data.income.payee);
+                        }
                     }
                     
                     // Show modal
@@ -402,23 +411,20 @@ function showEditExpenseModal(expenseId) {
                     document.getElementById('editExpenseAmount').value = addCommasToNumber(data.expense.amount);
                     document.getElementById('editExpenseNotes').value = data.expense.notes;
                     
-                    // Handle payee selection - check if it exists in dropdown
+                    // Handle payee selection - only use dropdown since there's no text input
                     const editExpenseSelect = document.getElementById('editExpensePayeeSelect');
-                    const editExpenseInput = document.getElementById('editExpensePayee');
-                    const payeeExists = Array.from(editExpenseSelect.options).some(option => option.value === data.expense.payee);
-                    
-                    if (payeeExists) {
-                        // Payee exists in dropdown - select it and make input readonly
-                        editExpenseSelect.value = data.expense.payee;
-                        editExpenseInput.value = data.expense.payee;
-                        editExpenseInput.setAttribute('readonly', true);
-                        editExpenseInput.classList.add('bg-light');
-                    } else {
-                        // Payee doesn't exist - clear dropdown and allow manual entry
-                        editExpenseSelect.value = '';
-                        editExpenseInput.value = data.expense.payee;
-                        editExpenseInput.removeAttribute('readonly');
-                        editExpenseInput.classList.remove('bg-light');
+                    if (editExpenseSelect) {
+                        // Check if payee exists in dropdown options
+                        const payeeExists = Array.from(editExpenseSelect.options).some(option => option.value === data.expense.payee);
+                        
+                        if (payeeExists) {
+                            // Payee exists in dropdown - select it
+                            editExpenseSelect.value = data.expense.payee;
+                        } else {
+                            // Payee doesn't exist - clear selection
+                            editExpenseSelect.value = '';
+                            console.warn('Payee not found in dropdown:', data.expense.payee);
+                        }
                     }
                     
                     // Show modal
@@ -1279,28 +1285,14 @@ function initializePayeeFunctionality() {
     
     // Set up payee selection for edit income modal
     const editIncomeSelect = document.getElementById('editIncomePayeeSelect');
-    const editIncomeInput = document.getElementById('editIncomePayee');
     const addPayeeEditIncomeBtn = document.getElementById('addPayeeEditIncomeBtn');
     const addNewPayeeEditIncomeBtn = document.getElementById('addNewPayeeEditIncomeBtn');
     
-    if (editIncomeSelect && editIncomeInput) {
-        handlePayeeSelection(editIncomeSelect, editIncomeInput);
-        handlePayeeInput(editIncomeInput, editIncomeSelect);
-    }
+    // Note: Edit modals only have dropdown selects, no text inputs
     
-    if (addPayeeEditIncomeBtn && editIncomeInput) {
+    if (addPayeeEditIncomeBtn) {
         addPayeeEditIncomeBtn.addEventListener('click', async function() {
-            const payeeName = editIncomeInput.value.trim();
-            if (payeeName) {
-                const success = await addNewPayee(payeeName);
-                if (success) {
-                    // Select the newly added payee
-                    editIncomeSelect.value = payeeName;
-                    editIncomeInput.value = payeeName;
-                    editIncomeInput.setAttribute('readonly', true);
-                    editIncomeInput.classList.add('bg-light');
-                }
-            }
+            console.warn('Add payee from edit modal not implemented - use dropdown or add new payee modal');
         });
     }
     
@@ -1312,28 +1304,14 @@ function initializePayeeFunctionality() {
     
     // Set up payee selection for edit expense modal
     const editExpenseSelect = document.getElementById('editExpensePayeeSelect');
-    const editExpenseInput = document.getElementById('editExpensePayee');
     const addPayeeEditExpenseBtn = document.getElementById('addPayeeEditExpenseBtn');
     const addNewPayeeEditExpenseBtn = document.getElementById('addNewPayeeEditExpenseBtn');
     
-    if (editExpenseSelect && editExpenseInput) {
-        handlePayeeSelection(editExpenseSelect, editExpenseInput);
-        handlePayeeInput(editExpenseInput, editExpenseSelect);
-    }
+    // Note: Edit modals only have dropdown selects, no text inputs
     
-    if (addPayeeEditExpenseBtn && editExpenseInput) {
+    if (addPayeeEditExpenseBtn) {
         addPayeeEditExpenseBtn.addEventListener('click', async function() {
-            const payeeName = editExpenseInput.value.trim();
-            if (payeeName) {
-                const success = await addNewPayee(payeeName);
-                if (success) {
-                    // Select the newly added payee
-                    editExpenseSelect.value = payeeName;
-                    editExpenseInput.value = payeeName;
-                    editExpenseInput.setAttribute('readonly', true);
-                    editExpenseInput.classList.add('bg-light');
-                }
-            }
+            console.warn('Add payee from edit modal not implemented - use dropdown or add new payee modal');
         });
     }
     
@@ -1782,6 +1760,261 @@ function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
     }
 }
 
+// =========================
+// TRANSACTION SIDE PANEL
+// =========================
+
+// Transaction panel visibility configuration
+const PANEL_CONFIG = {
+    // Set to 'fade' for faded panel when empty, 'hide' to completely hide panel
+    emptyPanelMode: 'fade' // Options: 'fade' or 'hide'
+};
+
+let selectedTransactionElement = null;
+
+/**
+ * Show and enable the edit/delete action buttons
+ */
+function showActionButtons() {
+    const editBtn = document.getElementById('edit-transaction-btn');
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    
+    if (editBtn) {
+        editBtn.disabled = false;
+    }
+    
+    if (deleteBtn) {
+        deleteBtn.disabled = false;
+    }
+}
+
+/**
+ * Disable the edit/delete action buttons
+ */
+function hideActionButtons() {
+    const editBtn = document.getElementById('edit-transaction-btn');
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    
+    if (editBtn) {
+        editBtn.disabled = true;
+    }
+    
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+    }
+}
+
+/**
+ * Select a transaction and show details in side panel
+ */
+function selectTransaction(element, event) {
+    // Prevent event bubbling to avoid triggering background click handlers
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    
+    // Check if this element is already selected (toggle behavior)
+    if (selectedTransactionElement === element) {
+        // Same element clicked - deselect it
+        clearTransactionSelection();
+        return;
+    }
+    
+    // Clear previous selection
+    if (selectedTransactionElement) {
+        selectedTransactionElement.classList.remove('selected');
+    }
+    
+    // Mark new selection
+    selectedTransactionElement = element;
+    element.classList.add('selected');
+    
+    // Get transaction data from data attributes
+    const transactionData = {
+        id: element.getAttribute('data-transaction-id'),
+        type: element.getAttribute('data-transaction-type'),
+        date: element.getAttribute('data-transaction-date'),
+        payee: element.getAttribute('data-transaction-payee'),
+        amount: element.getAttribute('data-transaction-amount'),
+        notes: element.getAttribute('data-transaction-notes') || 'No notes'
+    };
+    
+    // Show the side panel
+    showTransactionPanel(transactionData);
+}
+
+/**
+ * Clear transaction selection and hide panel
+ */
+function clearTransactionSelection() {
+    // Remove selection styling from previous selection
+    if (selectedTransactionElement) {
+        selectedTransactionElement.classList.remove('selected');
+        selectedTransactionElement = null;
+    }
+    
+    // Hide the panel
+    hideTransactionPanel();
+}
+
+/**
+ * Show the transaction details panel
+ */
+function showTransactionPanel(data) {
+    const container = document.querySelector('.transactions-with-panel');
+    const panel = document.getElementById('transaction-details-panel');
+    
+    if (!container || !panel) {
+        return;
+    }
+    
+    // Activate panel layout
+    container.classList.add('panel-active');
+    panel.classList.add('has-content');
+    
+    // Ensure panel maintains flex display
+    panel.style.display = 'flex';
+    
+    // Populate panel data
+    document.getElementById('detail-date').textContent = data.date;
+    document.getElementById('detail-payee').textContent = data.payee;
+    document.getElementById('detail-amount').textContent = 
+        (data.type === 'income' ? '+' : '-') + '$' + data.amount;
+    document.getElementById('detail-type').textContent = 
+        data.type.charAt(0).toUpperCase() + data.type.slice(1);
+    document.getElementById('detail-notes').textContent = data.notes;
+    
+    // Store transaction data for edit/delete actions
+    panel.setAttribute('data-selected-id', data.id);
+    panel.setAttribute('data-selected-type', data.type);
+    
+    // Show and enable action buttons
+    showActionButtons();
+}
+
+/**
+ * Hide the transaction details panel
+ */
+function hideTransactionPanel() {
+    const container = document.querySelector('.transactions-with-panel');
+    const panel = document.getElementById('transaction-details-panel');
+    
+    if (!container || !panel) return;
+    
+    // Deactivate panel layout
+    container.classList.remove('panel-active');
+    panel.classList.remove('has-content');
+    
+    // Clear the panel content to show it's empty
+    clearPanelContent();
+    
+    // Remove any inline display styles and let CSS handle it
+    panel.style.removeProperty('display');
+    
+    // Clear stored data
+    panel.removeAttribute('data-selected-id');
+    panel.removeAttribute('data-selected-type');
+    
+    // Hide and disable action buttons
+    hideActionButtons();
+}
+
+/**
+ * Clear panel content to show empty state
+ */
+function clearPanelContent() {
+    // Reset panel content to empty/placeholder state
+    document.getElementById('detail-date').textContent = 'No transaction selected';
+    document.getElementById('detail-payee').textContent = 'Select a transaction to view details';
+    document.getElementById('detail-amount').textContent = '$0.00';
+    document.getElementById('detail-type').textContent = '';
+    document.getElementById('detail-notes').textContent = 'No transaction selected';
+}
+
+/**
+ * Set panel visibility mode
+ * @param {string} mode - 'fade' or 'hide'
+ */
+function setPanelVisibilityMode(mode) {
+    const panel = document.getElementById('transaction-details-panel');
+    if (!panel) return;
+    
+    // Remove existing mode classes
+    panel.classList.remove('panel-mode-fade', 'panel-mode-hide');
+    
+    // Add new mode class
+    if (mode === 'hide') {
+        panel.classList.add('panel-mode-hide');
+        PANEL_CONFIG.emptyPanelMode = 'hide';
+    } else {
+        panel.classList.add('panel-mode-fade');
+        PANEL_CONFIG.emptyPanelMode = 'fade';
+    }
+}
+
+/**
+ * Edit the currently selected transaction
+ */
+function editSelectedTransaction() {
+    const panel = document.getElementById('transaction-details-panel');
+    if (!panel) return;
+    
+    const id = panel.getAttribute('data-selected-id');
+    const type = panel.getAttribute('data-selected-type');
+    
+    if (!id || !type) {
+        console.warn('No transaction selected for editing');
+        return;
+    }
+    
+    // Additional safety check - ensure buttons are enabled
+    const editBtn = document.getElementById('edit-transaction-btn');
+    if (editBtn && editBtn.disabled) {
+        console.warn('Edit button is disabled - no valid selection');
+        return;
+    }
+    
+    if (type === 'income') {
+        showEditIncomeModal(parseInt(id));
+    } else if (type === 'expense') {
+        showEditExpenseModal(parseInt(id));
+    }
+}
+
+/**
+ * Delete the currently selected transaction
+ */
+function deleteSelectedTransaction() {
+    const panel = document.getElementById('transaction-details-panel');
+    if (!panel) return;
+    
+    const id = panel.getAttribute('data-selected-id');
+    const type = panel.getAttribute('data-selected-type');
+    
+    if (!id || !type) {
+        console.warn('No transaction selected for deletion');
+        return;
+    }
+    
+    // Additional safety check - ensure buttons are enabled
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    if (deleteBtn && deleteBtn.disabled) {
+        console.warn('Delete button is disabled - no valid selection');
+        return;
+    }
+    
+    // Get transaction data for confirmation
+    const payee = document.getElementById('detail-payee').textContent;
+    const amount = document.getElementById('detail-amount').textContent.replace(/[+\-$]/g, '');
+    
+    if (type === 'income') {
+        showDeleteIncomeModal(parseInt(id), payee, amount);
+    } else if (type === 'expense') {
+        showDeleteExpenseModal(parseInt(id), payee, amount);
+    }
+}
+
 // Export functions for use in other scripts
 window.BudgetBasic = {
     formatCurrency,
@@ -1799,9 +2032,174 @@ window.BudgetBasic = {
     checkForTransactionHighlight,
     showAddPayeeModal,
     selectNewlyAddedPayee,
-    filterTransactions
+    filterTransactions,
+    selectTransaction,
+    clearTransactionSelection,
+    editSelectedTransaction,
+    deleteSelectedTransaction,
+    showActionButtons,
+    hideActionButtons
 };
 
-// Make filterTransactions and currentFilterType available globally for onclick handlers
+// ===== PANEL RESIZER FUNCTIONALITY =====
+
+let isResizing = false;
+let startX = 0;
+let startLeftWidth = 0;
+
+/**
+ * Initialize panel resizer functionality
+ */
+function initializePanelResizer() {
+    const resizer = document.getElementById('panel-resizer');
+    
+    if (!resizer) {
+        console.warn('Panel resizer element not found');
+        return;
+    }
+    
+    resizer.addEventListener('mousedown', startResize);
+    document.addEventListener('mousemove', doResize);
+    document.addEventListener('mouseup', stopResize);
+    
+    // Add additional safety handlers to ensure cleanup
+    document.addEventListener('mouseleave', stopResize);
+    window.addEventListener('blur', stopResize);
+    
+    // Prevent text selection during resize
+    resizer.addEventListener('selectstart', (e) => e.preventDefault());
+}
+
+/**
+ * Initialize transaction selection system with proper event handling
+ */
+function initializeTransactionSelection() {
+    try {
+        const transactionCardsContainer = document.querySelector('.transaction-cards-container');
+        
+        if (!transactionCardsContainer) {
+            console.warn('Transaction cards container not found - selection system not initialized');
+            return;
+        }
+        
+        // Add event listener for background clicks to clear selection
+        transactionCardsContainer.addEventListener('click', function(e) {
+            // Check if click is on a transaction card
+            const transactionCard = e.target.closest('.transaction-card-data');
+            
+            if (!transactionCard) {
+                // Background click detected - clear selection
+                clearTransactionSelection();
+            }
+        }, true); // Use capture phase
+        
+    } catch (error) {
+        console.error('Error initializing transaction selection:', error);
+    }
+}
+
+/**
+ * Start panel resize operation
+ */
+function startResize(e) {
+    isResizing = true;
+    startX = e.clientX;
+    
+    const leftPanel = document.querySelector('.transaction-cards-container');
+    const rightPanel = document.querySelector('.transaction-details-panel');
+    
+    if (leftPanel) {
+        startLeftWidth = leftPanel.offsetWidth;
+        leftPanel.classList.add('resizing');
+    }
+    
+    if (rightPanel) {
+        rightPanel.classList.add('resizing');
+    }
+    
+    // Add dragging state
+    const resizer = document.getElementById('panel-resizer');
+    if (resizer) {
+        resizer.classList.add('dragging');
+    }
+    
+    // Prevent text selection during drag
+    document.body.style.userSelect = 'none';
+    
+    e.preventDefault();
+}
+
+/**
+ * Perform panel resize
+ */
+function doResize(e) {
+    if (!isResizing) return;
+    
+    const container = document.querySelector('.transactions-with-panel');
+    const leftPanel = document.querySelector('.transaction-cards-container');
+    const rightPanel = document.querySelector('.transaction-details-panel');
+    
+    if (!container || !leftPanel || !rightPanel) return;
+    
+    const deltaX = e.clientX - startX;
+    const newLeftWidth = startLeftWidth + deltaX;
+    const containerWidth = container.offsetWidth;
+    const resizerWidth = 6; // Width of the resizer
+    
+    // Set minimum and maximum widths
+    const minLeftWidth = 300; // Minimum width for transaction list
+    const minRightWidth = 250; // Minimum width for details panel
+    const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
+    
+    // Clamp the new width within bounds
+    const clampedLeftWidth = Math.max(minLeftWidth, Math.min(newLeftWidth, maxLeftWidth));
+    const rightWidth = containerWidth - clampedLeftWidth - resizerWidth;
+    
+    // Apply the new widths
+    leftPanel.style.width = clampedLeftWidth + 'px';
+    rightPanel.style.width = rightWidth + 'px';
+    
+    e.preventDefault();
+}
+
+/**
+ * Stop panel resize operation
+ */
+function stopResize() {
+    if (!isResizing) return;
+    
+    isResizing = false;
+    
+    // Remove dragging and resizing states
+    const resizer = document.getElementById('panel-resizer');
+    const leftPanel = document.querySelector('.transaction-cards-container');
+    const rightPanel = document.querySelector('.transaction-details-panel');
+    
+    if (resizer) {
+        resizer.classList.remove('dragging');
+    }
+    
+    if (leftPanel) {
+        leftPanel.classList.remove('resizing');
+    }
+    
+    if (rightPanel) {
+        rightPanel.classList.remove('resizing');
+    }
+    
+    // Restore text selection - use both methods for maximum compatibility
+    document.body.style.removeProperty('user-select');
+    document.body.style.userSelect = '';
+}
+
+// Make functions available globally for onclick handlers
 window.filterTransactions = filterTransactions;
 window.currentFilterType = currentFilterType;
+window.selectTransaction = selectTransaction;
+window.clearTransactionSelection = clearTransactionSelection;
+window.setPanelVisibilityMode = setPanelVisibilityMode;
+window.editSelectedTransaction = editSelectedTransaction;
+window.deleteSelectedTransaction = deleteSelectedTransaction;
+window.initializePanelResizer = initializePanelResizer;
+window.showActionButtons = showActionButtons;
+window.hideActionButtons = hideActionButtons;

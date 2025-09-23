@@ -664,30 +664,12 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 12px; /* Increased gap between transaction cards */
-    /* Dynamic height calculation - accounts for all page elements */
-    max-height: calc(100vh - 450px); /* Optimized height based on actual page layout */
-    min-height: 200px; /* Set a reasonable minimum height */
+    /* Let the parent container control height */
+    height: 100%; /* Fill parent container */
     overflow-y: auto; /* Enable vertical scrolling */
     overflow-x: hidden; /* Hide horizontal overflow */
-    /* Padding to account for scrollbar */
-    padding-right: 8px;
-    margin-right: -8px;
     flex-shrink: 0; /* Prevent shrinking */
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-height: 600px) {
-    .transaction-cards-container {
-        max-height: calc(100vh - 380px); /* Reduce overhead on small screens */
-        min-height: 150px; /* Smaller minimum on small screens */
-    }
-}
-
-@media (max-height: 500px) {
-    .transaction-cards-container {
-        max-height: calc(100vh - 320px); /* Further reduce on very small screens */
-        min-height: 120px; /* Even smaller minimum */
-    }
+    /* Remove padding since it's now handled by parent */
 }
 
 .transaction-card {
@@ -695,9 +677,11 @@ html, body {
     border: 1px solid #dee2e6;
     border-radius: 0.375rem;
     overflow: hidden;
-    /* Ensure cards maintain their height */
+    /* Ensure cards fit within container */
+    width: 100%; /* Take full container width */
+    max-width: 100%; /* Don't exceed container */
     flex-shrink: 0; /* Prevent card compression */
-    min-height: 60px; /* Minimum height for transaction cards */
+    min-height: 44px; /* Reduced minimum height for more compact cards */
     /* Removed transition animation */
 }
 
@@ -718,22 +702,25 @@ html, body {
 }
 
 .transaction-card-data.active {
-    background-color: #e9ecef;
-    outline: 1px solid #82878b;
-    outline-offset: -1px;
+    /* Remove conflicting active styling - defer to selected styling */
+    background-color: inherit;
+    outline: none;
+    outline-offset: 0;
 }
 
 .transaction-card-data.active:hover {
-    background-color: #dee2e6;
+    /* Remove conflicting active hover styling */
+    background-color: #f8f9fa;
 }
 
-/* Column Layout - Remove borders between columns */
+/* Column Layout - Allow columns to shrink to fit panel */
 .transaction-col {
-    padding: 12px 16px; /* Increased top/bottom padding from 8px to 12px */
+    padding: 8px 8px; /* Reduced horizontal padding for more space */
     display: flex;
     align-items: center;
-    /* Prevent column compression */
-    flex-shrink: 0;
+    /* Allow column compression to fit panel */
+    flex-shrink: 1;
+    min-width: 0; /* Allow shrinking below content size */
     /* Removed border-right for clean column separation */
 }
 
@@ -1009,25 +996,33 @@ html, body {
     color: #6c757d !important;
 }
 
-/* Column Widths - Matching table layout */
+/* Column Widths - Optimized for narrow panel */
 .transaction-date {
-    flex: 0 0 120px; /* Fixed width for date */
+    flex: 0 1 100px; /* Smaller base since no year (was 120px) */
+    font-size: 0.8rem; /* Smaller text to fit more content */
+    min-width: 70px; /* Smaller minimum since shorter text */
+    line-height: 1.2; /* Tighter line height */
 }
 
 .transaction-payee {
     flex: 1; /* Flexible width for payee */
-    min-width: 150px;
-    margin-left: 16px; /* Add gap between date and payee/merchant */
+    min-width: 0; /* Allow full shrinking */
+    margin-left: 8px; /* Starting gap */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Show ... for long text */
+    white-space: nowrap; /* Single line */
+    transition: margin-left 0.2s ease; /* Smooth transition when margin changes */
 }
 
 .transaction-amount {
-    flex: 0 0 140px; /* Fixed width for amount */
+    flex: 0 0 90px; /* Smaller fixed width for amount */
     justify-content: flex-end;
     font-weight: 500;
+    font-size: 0.875rem; /* Slightly smaller text */
 }
 
 .transaction-actions {
-    flex: 0 0 140px; /* Fixed width for actions */
+    flex: 0 0 80px; /* Much smaller width for actions */
     justify-content: flex-end;
 }
 
@@ -1038,14 +1033,16 @@ html, body {
     }
     
     .transaction-date {
-        flex: 0 0 100px;
-        font-size: 0.875rem;
+        flex: 0 1 90px; /* Smaller on mobile */
+        font-size: 0.75rem; /* Even smaller text on mobile */
+        min-width: 65px; /* Smaller minimum for mobile */
+        line-height: 1.1; /* Very tight line height */
     }
     
     .transaction-payee {
-        min-width: 120px;
+        min-width: 100px; /* Smaller minimum width on mobile */
         font-size: 0.875rem;
-        margin-left: 12px; /* Slightly smaller gap on mobile */
+        margin-left: 6px; /* Closer to date on mobile */
     }
     
     .transaction-amount {
@@ -1064,6 +1061,27 @@ html, body {
     
     .btn-icon i {
         font-size: 0.6rem; /* Proportionally smaller icon on mobile */
+    }
+}
+
+/* Extra narrow panels (like when side panel is active) */
+@media (max-width: 500px) {
+    .transaction-date {
+        flex: 0 1 70px; /* More aggressive shrinking */
+        font-size: 0.7rem; /* Very small text */
+        min-width: 60px; /* Smaller minimum for very tight spaces */
+    }
+    
+    .transaction-payee {
+        margin-left: 4px; /* Very close to date when space is tight */
+        min-width: 80px; /* Smaller minimum for tight spaces */
+    }
+}
+
+/* Ultra narrow - minimum spacing while maintaining readability */
+@media (max-width: 350px) {
+    .transaction-payee {
+        margin-left: 2px; /* Minimal gap but still some separation */
     }
 }
 
@@ -1173,132 +1191,303 @@ body::-webkit-scrollbar {
     z-index: 1021 !important;
 }
 
-/* =======================================
-   TRANSACTION SIDE PANEL SYSTEM
-   ======================================= */
+/* =========================
+   TRANSACTION SIDE PANEL
+   ========================= */
 
-/* Main container for transactions with side panel */
-.transactions-container {
-    height: 400px; /* Fixed height for consistent layout */
-    overflow: hidden;
-    transition: all 0.3s ease;
+/* Main container for transactions list and side panel */
+.transactions-with-panel {
+    display: flex;
+    gap: 0;
+    max-height: calc(100vh - 56px - 375px); /* Updated calculation */
+    height: -webkit-fill-available; /* Fill available space */
+    position: relative;
+    overflow: hidden; /* Contain internal scrolling */
+    border: 1px solid #dee2e6; /* This becomes the card border */
+    border-radius: 0.375rem; /* Match card border radius */
 }
 
-/* Transaction list section - takes full width by default */
-.transactions-list-section {
-    flex: 1;
-    overflow-y: auto;
-    transition: all 0.3s ease;
-    border-right: 1px solid transparent;
+/* Remove card styling when transactions panel is present */
+#transactions-card {
+    border: none !important;
+    background: transparent !important;
 }
 
-/* When panel is open, squash the list */
-.transactions-container.panel-open .transactions-list-section {
-    flex: 0 0 60%; /* Takes 60% width when panel is open */
-    border-right: 1px solid #dee2e6;
+#transactions-card .card-body {
+    padding: 0 !important;
 }
 
-/* Transaction details side panel */
-.transaction-details-panel {
-    width: 0;
-    opacity: 0;
-    overflow: hidden;
+/* Left side: Transaction list container */
+.transactions-with-panel .transaction-cards-container {
+    width: 50%; /* Use width instead of flex */
+    min-width: 0; /* Prevents flex item from shrinking below content size */
+    overflow-y: auto; /* Allow internal scrolling */
+    display: flex;
+    flex-direction: column;
+    padding: 0; /* Remove padding from container */
+    border-right: 1px solid #dee2e6; /* Vertical separator */
+    background: white; /* White background */
+    flex-shrink: 0; /* Prevent automatic shrinking */
+}
+
+/* Panel Resizer - Always visible and functional */
+.panel-resizer {
+    width: 6px;
     background: #f8f9fa;
-    border-left: 1px solid #dee2e6;
-    transition: all 0.3s ease;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
     flex-shrink: 0;
+    border-left: 1px solid #dee2e6;
+    border-right: 1px solid #dee2e6;
+    transition: background-color 0.2s ease;
+    z-index: 20; /* Ensure it's above other elements */
 }
 
-/* Panel when open */
-.transactions-container.panel-open .transaction-details-panel {
-    width: 40%; /* Takes 40% width when open */
+.panel-resizer:hover {
+    background: #e9ecef;
+}
+
+.panel-resizer.dragging {
+    background: #6c757d; /* Changed from blue to gray */
+}
+
+.resizer-handle {
+    width: 2px;
+    height: 40px;
+    background: #6c757d;
+    border-radius: 1px;
+    opacity: 0.6;
+}
+
+.panel-resizer:hover .resizer-handle {
+    opacity: 1;
+}
+
+.panel-resizer.dragging .resizer-handle {
+    background: white;
+    opacity: 1;
+}
+
+/* Smooth transitions for panel width changes (but not during dragging) */
+.transactions-list:not(.resizing),
+.transaction-details-panel:not(.resizing) {
+    transition: width 0.2s ease;
+}
+
+/* Left panel header styling */
+.transaction-cards-container .panel-header {
+    background: #f8f9fa; /* Light gray background for header distinction */
+    border-bottom: 1px solid #dee2e6;
+    padding: 0 16px; /* Remove vertical padding */
+    height: 48px; /* Fixed height */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0; /* Don't shrink this header */
+}
+
+.transaction-cards-container .panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: #495057; /* Darker text for better contrast */
+    line-height: 1.2; /* Consistent line height */
+}
+
+/* Transaction list content area */
+.transaction-list-content {
+    flex: 1; /* Take remaining space */
+    overflow-y: auto; /* Allow scrolling */
+    overflow-x: hidden; /* Hide horizontal overflow */
+    padding: 12px; /* Reduced padding for more content space */
+    display: flex;
+    flex-direction: column;
+    gap: 6px; /* Smaller gap for more compact layout */
+    min-height: 0; /* Allow shrinking for flex container */
+}
+
+/* Right side: Details panel */
+.transaction-details-panel {
+    width: 50%; /* Use width instead of flex */
+    overflow-y: auto; /* Allow internal scrolling */
+    background: white;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    padding: 0; /* Remove padding, will be added to internal elements */
+    flex-shrink: 0; /* Prevent automatic shrinking */
+}
+
+/* When panel is active */
+.transactions-with-panel.panel-active .transaction-details-panel {
+    /* Remove width/flex overrides - use manual width from JavaScript */
     opacity: 1;
     overflow-y: auto;
 }
 
 /* Panel header */
 .transaction-details-panel .panel-header {
-    padding: 1rem;
-    background: #fff;
+    padding: 0 16px; /* Remove vertical padding */
+    height: 48px; /* Fixed height to match left panel */
     border-bottom: 1px solid #dee2e6;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    background: #f8f9fa; /* Light gray background to match left panel */
+    display: flex !important; /* Force flex display to override any inherited styles */
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.transaction-details-panel .panel-header h6 {
+    font-size: 1rem; /* Make it same size as left panel title */
+    font-weight: 600;
+    margin: 0;
+    color: #495057; /* Darker text for better contrast */
+    line-height: 1.2; /* Consistent line height */
+}
+
+.transaction-details-panel .panel-header .btn {
+    padding: 6px 10px; /* Fit button within header height */
+    font-size: 0.875rem;
+    line-height: 1;
+    height: 32px; /* Fixed button height that fits in 48px header */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Panel content */
 .transaction-details-panel .panel-content {
-    padding: 1rem;
+    padding: 16px; /* Internal padding */
+    flex: 1;
+    display: flex !important; /* Force flex display to override any inherited styles */
+    flex-direction: column;
+    overflow-y: auto; /* Allow content scrolling */
+    min-height: 0; /* Allow shrinking */
 }
 
-/* Detail items */
-.detail-item {
-    margin-bottom: 1rem;
+/* Detail sections */
+.detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 0 1 auto; /* Don't grow, shrink if needed, auto size */
+    margin-bottom: 16px; /* Space before buttons */
+}
+
+.detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .detail-label {
-    font-size: 0.875rem;
     font-weight: 600;
+    font-size: 0.875rem;
     color: #6c757d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 0.25rem;
-    display: block;
 }
 
 .detail-value {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #495057;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e9ecef;
+    word-break: break-word;
 }
 
-/* Transaction card selection state for side panel */
+/* Panel actions */
+.panel-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid #dee2e6;
+}
+
+.panel-actions .btn {
+    flex: 1;
+}
+
+/* Panel content visibility states */
+.transaction-details-panel .panel-content {
+    display: flex;
+    opacity: 0.4; /* Faded by default when no content */
+    transition: opacity 0.3s ease;
+}
+
+.transaction-details-panel.has-content .panel-content {
+    display: flex;
+    opacity: 1; /* Full opacity when content is selected */
+}
+
+/* Panel visibility modes */
+/* Fade mode (default) - panel stays visible but faded */
+.transaction-details-panel.panel-mode-fade .panel-content {
+    display: flex;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+
+.transaction-details-panel.panel-mode-fade.has-content .panel-content {
+    opacity: 1;
+}
+
+/* Hide mode - panel content completely hidden when no selection */
+.transaction-details-panel.panel-mode-hide .panel-content {
+    display: none;
+    transition: all 0.3s ease;
+}
+
+.transaction-details-panel.panel-mode-hide.has-content .panel-content {
+    display: flex;
+}
+
+/* Transaction card selection styling - Updated custom style */
+.transaction-card-data {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.transaction-card-data:hover {
+    background-color: #f8f9fa;
+}
+
+/* Custom selected styling (your original style) - Higher specificity */
 .transaction-card-data.selected {
-    background-color: #e3f2fd !important;
-    border-left: 3px solid #2196f3 !important;
-    transform: translateX(2px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #e3f2fd !important; /* Light blue background */
+    border-left: 4px solid #2196f3 !important; /* Blue left border */
+    position: relative;
+    box-shadow: 0 1px 3px rgba(33, 150, 243, 0.2); /* Subtle blue shadow */
+}
+
+.transaction-card-data.selected:hover {
+    background-color: #bbdefb !important; /* Slightly darker blue on hover */
 }
 
 /* Responsive behavior */
 @media (max-width: 768px) {
-    .transactions-container {
+    .transactions-with-panel {
         flex-direction: column;
-        height: auto;
+        max-height: calc(100vh - 56px - 375px); /* Use same calculation as desktop */
+        height: -webkit-fill-available; /* Also apply to mobile */
     }
     
-    .transactions-container.panel-open .transactions-list-section {
+    .transactions-with-panel .transaction-cards-container {
         flex: 1;
-        border-right: none;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .transactions-container.panel-open .transaction-details-panel {
         width: 100%;
-        flex: 0 0 auto;
+        overflow-y: auto; /* Ensure scrolling on mobile */
+        border-right: none; /* Remove vertical border on mobile */
+        border-bottom: 1px solid #dee2e6; /* Add horizontal separator */
     }
     
-    .transactions-container {
-        height: auto;
+    .transactions-with-panel .transaction-details-panel {
+        width: 100%;
+        flex: 0 0 300px; /* Fixed height on mobile */
+        max-height: 300px;
+        overflow-y: auto; /* Add scrolling for detail panel on mobile */
     }
-}
-
-/* Smooth scrolling for both sections */
-.transactions-list-section::-webkit-scrollbar,
-.transaction-details-panel::-webkit-scrollbar {
-    width: 6px;
-}
-
-.transactions-list-section::-webkit-scrollbar-track,
-.transaction-details-panel::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-}
-
-.transactions-list-section::-webkit-scrollbar-thumb,
-.transaction-details-panel::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
 }
 
 /* Style active filter dropdown item */
@@ -1310,4 +1499,20 @@ body::-webkit-scrollbar {
 .dropdown-item.active:hover {
     background-color: #0b5ed7 !important;
     color: white !important;
+}
+
+/* Disabled/faded button state for better UX feedback */
+.btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transition: opacity 0.2s ease;
+}
+
+.btn:not(:disabled) {
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.panel-actions .btn {
+    transition: all 0.2s ease;
 }

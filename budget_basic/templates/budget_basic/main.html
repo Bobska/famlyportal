@@ -90,98 +90,113 @@
         </div>
     </div>
     
+    <!-- Transactions card with integrated side panel will replace standalone panel -->
+    
     <div class="card" id="transactions-card">
-        <div class="card-body p-0">
-            <div class="transactions-container d-flex">
-                <!-- Transaction List Section -->
-                <div class="transactions-list-section" id="transactions-list-section">
-                    <div class="p-3">
-                        {% if income_entries or expense_entries %}
-                            <!-- Transaction Cards Container -->
-                            <div class="transaction-cards-container">
-                                <!-- Income Transaction Data Rows -->
-                                {% for income in income_entries %}
-                                <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}">
-                                    <div class="transaction-col transaction-date">{{ income.date|date:"Y-m-d" }}</div>
-                                    <div class="transaction-col transaction-payee">{{ income.payee }}</div>
-                                    <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
-                                    <div class="transaction-col transaction-actions">
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditIncomeModal({{ income.id }})" title="Edit Transaction">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteIncomeModal({{ income.id }}, '{{ income.payee|escapejs }}', '{{ income.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                                
-                                <!-- Expense Transaction Data Rows -->
-                                {% for expense in expense_entries %}
-                                <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}">
-                                    <div class="transaction-col transaction-date">{{ expense.date|date:"Y-m-d" }}</div>
-                                    <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
-                                    <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
-                                    <div class="transaction-col transaction-actions">
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showEditExpenseModal({{ expense.id }})" title="Edit Transaction">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-icon" onclick="showDeleteExpenseModal({{ expense.id }}, '{{ expense.payee|escapejs }}', '{{ expense.amount|floatformat:2|intcomma }}')" title="Delete Transaction">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <!-- Empty State for Card View -->
-                            <div class="text-center py-5 text-muted">
-                                <div class="mb-3">
-                                    <i class="bi bi-receipt" style="font-size: 3rem;"></i>
-                                </div>
-                                <p class="mb-0">No transactions yet</p>
-                                <small>Start by adding your first income or expense</small>
-                            </div>
-                        {% endif %}
+        {% if income_entries or expense_entries %}
+            <!-- Flexbox Container for List and Side Panel - Now directly in card -->
+            <div class="transactions-with-panel">
+                <!-- Left Side: Transaction Cards Container -->
+                <div class="transaction-cards-container" id="transaction-list">
+                    <!-- Left Panel Header -->
+                    <div class="panel-header">
+                        <div class="panel-title">Transactions</div>
                     </div>
+                    
+                    <!-- Transaction List Content -->
+                    <div class="transaction-list-content">
+                    <!-- Income Transaction Data Rows -->
+                    {% for income in income_entries %}
+                    <div class="transaction-card transaction-card-data" 
+                         data-transaction-id="{{ income.id }}" 
+                         data-transaction-type="income"
+                         data-transaction-date="{{ income.date|date:"Y-m-d" }}"
+                         data-transaction-payee="{{ income.payee|escapejs }}"
+                         data-transaction-amount="{{ income.amount|floatformat:2|intcomma }}"
+                         data-transaction-notes="{{ income.notes|default:""|escapejs }}"
+                         onclick="selectTransaction(this, event)">>
+                        <div class="transaction-col transaction-date">{{ income.date|date:"D, j M" }}</div>
+                        <div class="transaction-col transaction-payee">{{ income.payee }}</div>
+                        <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Expense Transaction Data Rows -->
+                    {% for expense in expense_entries %}
+                    <div class="transaction-card transaction-card-data" 
+                         data-transaction-id="{{ expense.id }}" 
+                         data-transaction-type="expense"
+                         data-transaction-date="{{ expense.date|date:"Y-m-d" }}"
+                         data-transaction-payee="{{ expense.payee|escapejs }}"
+                         data-transaction-amount="{{ expense.amount|floatformat:2|intcomma }}"
+                         data-transaction-notes="{{ expense.notes|default:""|escapejs }}"
+                         onclick="selectTransaction(this, event)">>
+                        <div class="transaction-col transaction-date">{{ expense.date|date:"D, j M" }}</div>
+                        <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
+                        <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
+                    </div>
+                    {% endfor %}
+                    </div> <!-- Close transaction-list-content -->
                 </div>
                 
-                <!-- Transaction Details Side Panel -->
+                <!-- Resizable Divider -->
+                <div class="panel-resizer" id="panel-resizer">
+                    <div class="resizer-handle"></div>
+                </div>
+                
+                <!-- Right Side: Details Panel -->
                 <div class="transaction-details-panel" id="transaction-details-panel">
-                    <div class="panel-header d-flex justify-content-between align-items-center">
+                    <div class="panel-header">
                         <h6 class="mb-0">Transaction Details</h6>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideTransactionDetailsPanel()" title="Close Details">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
                     <div class="panel-content">
-                        <div class="detail-item">
-                            <label class="detail-label">Date</label>
-                            <div class="detail-value" id="detail-date">-</div>
+                        <div class="detail-section">
+                            <div class="detail-row">
+                                <span class="detail-label">Date:</span>
+                                <span class="detail-value" id="detail-date">Panel is working!</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Payee/Merchant:</span>
+                                <span class="detail-value" id="detail-payee">Testing mode</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Amount:</span>
+                                <span class="detail-value" id="detail-amount">$0.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Type:</span>
+                                <span class="detail-value" id="detail-type">Test</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Notes:</span>
+                                <span class="detail-value" id="detail-notes">Panel should remain visible when changing weeks</span>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <label class="detail-label">Payee/Merchant</label>
-                            <div class="detail-value" id="detail-payee">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">Amount</label>
-                            <div class="detail-value" id="detail-amount">-</div>
-                        </div>
-                        <div class="detail-item">
-                            <label class="detail-label">Type</label>
-                            <div class="detail-value" id="detail-type">-</div>
-                        </div>
-                        <div class="detail-item" id="detail-notes-container" style="display: none;">
-                            <label class="detail-label">Notes</label>
-                            <div class="detail-value" id="detail-notes">-</div>
+                        <div class="panel-actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+        {% else %}
+            <!-- Empty State for Card View -->
+            <div class="card-body">
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3">
+                        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="mb-0">No transactions yet</p>
+                    <small>Start by adding your first income or expense</small>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

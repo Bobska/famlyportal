@@ -58,53 +58,47 @@
         </div>
     </div>
     
-    <!-- Action Buttons Card -->
-    <div class="card mb-3">
-        <div class="card-body py-1">
-            <div class="d-flex justify-content-center align-items-center">
-                <!-- Add buttons group (Income/Expense) -->
-                <div class="btn-group btn-group-sm me-3" role="group">
-                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-plus-circle me-1"></i>
-                        <span>Add Income</span>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-action" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-dash-circle me-1"></i>
-                        <span>Add Expense</span>
-                    </button>
-                </div>
-                
-                <!-- Filter dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
-                        <i class="bi bi-funnel me-1"></i>
-                        <span id="filterLabel">All</span>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="transactionFilterDropdown">
-                        <li><a class="dropdown-item" href="#" onclick="filterTransactions('all')">All Transactions</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Transactions card with integrated side panel will replace standalone panel -->
     
     <div class="card" id="transactions-card">
-        {% if income_entries or expense_entries %}
-            <!-- Flexbox Container for List and Side Panel - Now directly in card -->
-            <div class="transactions-with-panel">
-                <!-- Left Side: Transaction Cards Container -->
-                <div class="transaction-cards-container" id="transaction-list">
-                    <!-- Left Panel Header -->
-                    <div class="panel-header">
-                        <div class="panel-title">Transactions</div>
+        <!-- Always show the panel structure for consistent layout -->
+        <div class="transactions-with-panel">
+            <!-- Left Side: Transaction Cards Container -->
+            <div class="transaction-cards-container" id="transaction-list">
+                <!-- Left Panel Header -->
+                <div class="panel-header">
+                    <div class="panel-title">Transactions</div>
+                    <div class="panel-header-actions">
+                        <!-- Add buttons group (Income/Expense) -->
+                        <div class="btn-group btn-group-sm me-2" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                <span>Income</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
+                                <i class="bi bi-dash-circle me-1"></i>
+                                <span>Expense</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Filter dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
+                                <i class="bi bi-funnel me-1"></i>
+                                <span id="filterLabel">All</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="transactionFilterDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="filterTransactions('all')">All Transactions</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
+                            </ul>
+                        </div>
                     </div>
-                    
-                    <!-- Transaction List Content -->
-                    <div class="transaction-list-content">
+                </div>
+                
+                <!-- Transaction List Content -->
+                <div class="transaction-list-content">
+                {% if income_entries or expense_entries %}
                     <!-- Income Transaction Data Rows -->
                     {% for income in income_entries %}
                     <div class="transaction-card transaction-card-data" 
@@ -136,67 +130,66 @@
                         <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
                     </div>
                     {% endfor %}
-                    </div> <!-- Close transaction-list-content -->
-                </div>
-                
-                <!-- Resizable Divider -->
-                <div class="panel-resizer" id="panel-resizer">
-                    <div class="resizer-handle"></div>
-                </div>
-                
-                <!-- Right Side: Details Panel -->
-                <div class="transaction-details-panel" id="transaction-details-panel">
-                    <div class="panel-header">
-                        <h6 class="mb-0">Transaction Details</h6>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
-                            <i class="bi bi-x"></i>
-                        </button>
+                {% else %}
+                    <!-- Empty State within the panel structure -->
+                    <div class="text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-0">No transactions yet</p>
+                        <small>Start by adding your first income or expense</small>
                     </div>
-                    <div class="panel-content">
-                        <div class="detail-section">
-                            <div class="detail-row">
-                                <span class="detail-label">Date:</span>
-                                <span class="detail-value" id="detail-date">Panel is working!</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Payee/Merchant:</span>
-                                <span class="detail-value" id="detail-payee">Testing mode</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Amount:</span>
-                                <span class="detail-value" id="detail-amount">$0.00</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Type:</span>
-                                <span class="detail-value" id="detail-type">Test</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Notes:</span>
-                                <span class="detail-value" id="detail-notes">Panel should remain visible when changing weeks</span>
-                            </div>
+                {% endif %}
+                </div> <!-- Close transaction-list-content -->
+            </div>
+            
+            <!-- Resizable Divider -->
+            <div class="panel-resizer" id="panel-resizer">
+                <div class="resizer-handle"></div>
+            </div>
+            
+            <!-- Right Side: Details Panel -->
+            <div class="transaction-details-panel" id="transaction-details-panel">
+                <div class="panel-header">
+                    <h6 class="mb-0">Transaction Details</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <div class="detail-section">
+                        <div class="detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value" id="detail-date">Select a transaction</span>
                         </div>
-                        <div class="panel-actions">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
-                                <i class="bi bi-pencil me-1"></i>Edit
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
-                                <i class="bi bi-trash me-1"></i>Delete
-                            </button>
+                        <div class="detail-row">
+                            <span class="detail-label">Payee/Merchant:</span>
+                            <span class="detail-value" id="detail-payee">to view details</span>
                         </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Amount:</span>
+                            <span class="detail-value" id="detail-amount">$0.00</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Type:</span>
+                            <span class="detail-value" id="detail-type">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Notes:</span>
+                            <span class="detail-value" id="detail-notes">-</span>
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
                     </div>
                 </div>
             </div>
-        {% else %}
-            <!-- Empty State for Card View -->
-            <div class="card-body">
-                <div class="text-center py-5 text-muted">
-                    <div class="mb-3">
-                        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
-                    </div>
-                    <p class="mb-0">No transactions yet</p>
-                    <small>Start by adding your first income or expense</small>
-                </div>
-            {% endif %}
+        </div>
         </div>
     </div>
 </div>

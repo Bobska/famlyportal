@@ -128,100 +128,31 @@ function loadWeekData(offset) {
 function updateTransactionsList(incomeEntries, expenseEntries) {
     console.log('Updating transactions container with:', incomeEntries.length, 'income,', expenseEntries.length, 'expense entries');
     
-    // Look for the new panel structure first
-    let container = document.querySelector('.transactions-with-panel .transaction-cards-container');
-    const transactionsCard = document.querySelector('#transactions-card');
+    // Find the transaction list content container (always exists now)
+    const container = document.querySelector('.transaction-list-content');
     
-    if (!transactionsCard) {
-        console.error('Transactions card not found');
-        return;
-    }
-    
-    // Check if we have any transactions
-    if (incomeEntries.length === 0 && expenseEntries.length === 0) {
-        // Replace with empty state, add card-body wrapper for proper styling
-        transactionsCard.innerHTML = `
-            <div class="card-body">
-                <div class="text-center py-5 text-muted">
-                    <div class="mb-3">
-                        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
-                    </div>
-                    <p class="mb-0">No transactions for this week</p>
-                    <small>Add your first income or expense using the buttons above</small>
-                </div>
-            </div>
-        `;
-        return;
-    }
-    
-    // We have transactions, ensure we have the proper panel structure
     if (!container) {
-        // Create the panel structure
-        transactionsCard.innerHTML = `
-            <div class="transactions-with-panel">
-                <!-- Left Side: Transaction Cards Container -->
-                <div class="transaction-cards-container" id="transaction-list">
-                    <!-- Left Panel Header -->
-                    <div class="panel-header">
-                        <div class="panel-title">Transactions</div>
-                    </div>
-                    
-                    <!-- Transaction List Content -->
-                    <div class="transaction-list-content">
-                    </div>
-                </div>
-                
-                <!-- Right Side: Details Panel -->
-                <div class="transaction-details-panel" id="transaction-details-panel">
-                    <div class="panel-header">
-                        <h6 class="mb-0">Transaction Details</h6>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                    <div class="panel-content">
-                        <div class="detail-section">
-                            <div class="detail-row">
-                                <span class="detail-label">Date:</span>
-                                <span class="detail-value" id="detail-date">Panel is working!</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Payee/Merchant:</span>
-                                <span class="detail-value" id="detail-payee">Testing mode - week changed</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Amount:</span>
-                                <span class="detail-value" id="detail-amount">$0.00</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Type:</span>
-                                <span class="detail-value" id="detail-type">Test</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Notes:</span>
-                                <span class="detail-value" id="detail-notes">Week navigation successful!</span>
-                            </div>
-                        </div>
-                        <div class="panel-actions">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="edit-transaction-btn" onclick="editSelectedTransaction()">
-                                <i class="bi bi-pencil me-1"></i>Edit
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="delete-transaction-btn" onclick="deleteSelectedTransaction()">
-                                <i class="bi bi-trash me-1"></i>Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        container = document.querySelector('.transactions-with-panel .transaction-cards-container .transaction-list-content');
-    } else {
-        // If container exists, find the transaction-list-content div
-        container = container.querySelector('.transaction-list-content') || container;
+        console.error('Transaction list content container not found');
+        return;
     }
     
     // Clear existing content
     container.innerHTML = '';
+    
+    // Check if we have any transactions
+    if (incomeEntries.length === 0 && expenseEntries.length === 0) {
+        // Show empty state within the existing panel structure
+        container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <div class="mb-3">
+                    <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                </div>
+                <p class="mb-0">No transactions for this week</p>
+                <small>Add your first income or expense using the buttons above</small>
+            </div>
+        `;
+        return;
+    }
     
     // Add income transactions
     incomeEntries.forEach(income => {
@@ -287,26 +218,28 @@ function showTransactionDetails(transactionCard) {
 
 // Function to hide transaction details
 function hideTransactionDetails() {
-    console.log('Hiding transaction details panel (DISABLED FOR TESTING)');
+    console.log('Resetting transaction details panel');
     const detailsPanel = document.getElementById('transaction-details-panel');
     if (detailsPanel) {
-        // TESTING: Don't hide the panel, just clear the data
-        // detailsPanel.style.display = 'none';
-        console.log('Panel hiding disabled for testing');
-        
-        // Reset panel content to test values
-        document.getElementById('detail-date').textContent = 'Panel is working!';
-        document.getElementById('detail-payee').textContent = 'Testing mode - week changed';
+        // Reset panel content to default values
+        document.getElementById('detail-date').textContent = 'Select a transaction';
+        document.getElementById('detail-payee').textContent = 'to view details';
         document.getElementById('detail-amount').textContent = '$0.00';
-        document.getElementById('detail-type').textContent = 'Test';
-        document.getElementById('detail-notes').textContent = 'Week navigation successful!';
+        document.getElementById('detail-type').textContent = '-';
+        document.getElementById('detail-notes').textContent = '-';
+        
+        // Disable action buttons
+        const editBtn = document.getElementById('edit-transaction-btn');
+        const deleteBtn = document.getElementById('delete-transaction-btn');
+        if (editBtn) editBtn.disabled = true;
+        if (deleteBtn) deleteBtn.disabled = true;
     }
     
     // Clear all selections
-    const activeCards = document.querySelectorAll('.transaction-card-data.active');
+    const activeCards = document.querySelectorAll('.transaction-card-data.selected');
     if (activeCards.length > 0) {
-        console.log('Clearing', activeCards.length, 'active transaction selections');
-        activeCards.forEach(card => card.classList.remove('active'));
+        console.log('Clearing', activeCards.length, 'selected transaction cards');
+        activeCards.forEach(card => card.classList.remove('selected'));
     }
 }
 

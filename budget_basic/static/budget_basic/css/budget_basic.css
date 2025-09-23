@@ -1199,7 +1199,7 @@ body::-webkit-scrollbar {
 .transactions-with-panel {
     display: flex;
     gap: 0;
-    max-height: calc(100vh - 56px - 375px); /* Updated calculation */
+    max-height: calc(100vh - 56px - 302px); /* Updated calculation */
     height: -webkit-fill-available; /* Fill available space */
     position: relative;
     overflow: hidden; /* Contain internal scrolling */
@@ -1295,6 +1295,20 @@ body::-webkit-scrollbar {
     margin: 0;
     color: #495057; /* Darker text for better contrast */
     line-height: 1.2; /* Consistent line height */
+}
+
+.panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-header-actions .btn-group {
+    flex-shrink: 0;
+}
+
+.panel-header-actions .dropdown {
+    flex-shrink: 0;
 }
 
 /* Transaction list content area */

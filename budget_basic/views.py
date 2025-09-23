@@ -555,6 +555,169 @@ def add_payee(request):
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
 
 
+# ==============================================================================
+# PAYEE MANAGEMENT VIEWS
+# ==============================================================================
+
+@login_required
+def payee_list(request):
+    """Display list of all payees for the current user."""
+    payees = Payee.objects.filter(user=request.user).order_by('name')
+    
+    context = {
+        'page_title': 'Manage Payees',
+        'payees': payees,
+    }
+    return render(request, 'budget_basic/payees.html', context)
 
 
+@login_required
+@require_POST
+def payee_create(request):
+    """Create a new payee via AJAX."""
+    try:
+        payee_name = request.POST.get('name', '').strip()
+        
+        if not payee_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Payee name is required'
+            })
+        
+        # Check if payee already exists
+        if Payee.objects.filter(user=request.user, name=payee_name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Payee "{payee_name}" already exists'
+            })
+        
+        # Create new payee
+        payee = Payee.objects.create(
+            user=request.user,
+            name=payee_name
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'payee': {
+                'id': payee.id,
+                'name': payee.name,
+                'created_at': payee.created_at.strftime('%Y-%m-%d %H:%M')
+            },
+            'message': f'Payee "{payee_name}" created successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        })
 
+
+@login_required
+@require_POST
+def payee_update(request, payee_id):
+    """Update an existing payee via AJAX."""
+    try:
+        payee = Payee.objects.get(id=payee_id, user=request.user)
+        new_name = request.POST.get('name', '').strip()
+        
+        if not new_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Payee name is required'
+            })
+        
+        # Check if another payee with this name already exists
+        if Payee.objects.filter(user=request.user, name=new_name).exclude(id=payee_id).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Payee "{new_name}" already exists'
+            })
+        
+        old_name = payee.name
+        payee.name = new_name
+        payee.save()
+        
+        return JsonResponse({
+            'success': True,
+            'payee': {
+                'id': payee.id,
+                'name': payee.name,
+                'updated_at': payee.updated_at.strftime('%Y-%m-%d %H:%M')
+            },
+            'message': f'Payee updated from "{old_name}" to "{new_name}"'
+        })
+        
+    except Payee.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Payee not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        })
+
+
+@login_required
+@require_POST
+def payee_delete(request, payee_id):
+    """Delete a payee via AJAX."""
+    try:
+        payee = Payee.objects.get(id=payee_id, user=request.user)
+        
+        # Check if payee is being used in transactions
+        income_count = Income.objects.filter(user=request.user, payee=payee.name).count()
+        expense_count = Expense.objects.filter(user=request.user, payee=payee.name).count()
+        total_transactions = income_count + expense_count
+        
+        if total_transactions > 0:
+            return JsonResponse({
+                'success': False,
+                'error': f'Cannot delete "{payee.name}" - it is used in {total_transactions} transaction(s). Delete those transactions first.'
+            })
+        
+        payee_name = payee.name
+        payee.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Payee "{payee_name}" deleted successfully'
+        })
+        
+    except Payee.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Payee not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        })
+
+
+@login_required
+def payee_search(request):
+    """Search payees for autocomplete functionality."""
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return JsonResponse({'payees': []})
+    
+    payees = Payee.objects.filter(
+        user=request.user,
+        name__icontains=query
+    ).order_by('name')[:10]
+    
+    payee_list = [
+        {
+            'id': payee.id,
+            'name': payee.name
+        }
+        for payee in payees
+    ]
+    
+    return JsonResponse({'payees': payee_list})

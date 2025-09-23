@@ -1,0 +1,614 @@
+{% extends 'budget_basic/base.html' %}
+{% load static %}
+
+{% block page_header %}
+<!-- Empty - we'll include the header inside content wrapper -->
+{% endblock %}
+
+{% block content %}
+<!-- Content Wrapper for Centering -->
+<div class="content-wrapper">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Manage Payees</h2>
+            <p class="text-muted mb-0">Add, edit, and organize your merchants and payees</p>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="showAddPayeeModal()">
+            <i class="bi bi-plus-circle me-1"></i>
+            Add Payee
+        </button>
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="payee-stat">
+                        <div class="payee-stat-value" id="total-payees">{{ payees|length }}</div>
+                        <div class="payee-stat-label">Total Payees</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="payee-stat">
+                        <div class="payee-stat-value" id="active-payees">{{ payees|length }}</div>
+                        <div class="payee-stat-label">Active Payees</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="payee-stat">
+                        <div class="payee-stat-value">{{ payees|length|add:"0" }}</div>
+                        <div class="payee-stat-label">This Month</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="payee-search" placeholder="Search payees..." onkeyup="filterPayees()">
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="sortPayees('name')" id="sort-name">
+                            <i class="bi bi-sort-alpha-down me-1"></i>Name
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="sortPayees('date')" id="sort-date">
+                            <i class="bi bi-sort-numeric-down me-1"></i>Date Added
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payees List -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if payees %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="payees-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Date Added</th>
+                                <th scope="col">Last Updated</th>
+                                <th scope="col" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payee in payees %}
+                            <tr data-payee-id="{{ payee.id }}" class="payee-row">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="payee-avatar me-2">
+                                            <i class="bi bi-person-circle text-muted"></i>
+                                        </div>
+                                        <div>
+                                            <div class="payee-name fw-medium">{{ payee.name }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-muted">
+                                    <small>{{ payee.created_at|date:"M j, Y" }}</small>
+                                </td>
+                                <td class="text-muted">
+                                    <small>{{ payee.updated_at|date:"M j, Y" }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="showEditPayeeModal({{ payee.id }}, '{{ payee.name|escapejs }}')" title="Edit Payee">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" onclick="showDeletePayeeModal({{ payee.id }}, '{{ payee.name|escapejs }}')" title="Delete Payee">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-people" style="font-size: 3rem; color: #6c757d;"></i>
+                    </div>
+                    <h5 class="text-muted mb-2">No Payees Yet</h5>
+                    <p class="text-muted mb-3">Add your first payee to start organizing your transactions</p>
+                    <button type="button" class="btn btn-primary" onclick="showAddPayeeModal()">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Add Your First Payee
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div id="message-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+<!-- Add Payee Modal -->
+<div class="modal fade" id="addPayeeModal" tabindex="-1" aria-labelledby="addPayeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPayeeModalLabel">Add New Payee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addPayeeForm" onsubmit="submitAddPayee(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="add-payee-name" class="form-label">Payee Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="add-payee-name" name="name" required>
+                        <div class="form-text">Enter the name of the merchant, company, or person</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Add Payee</span>
+                        <span class="btn-loading d-none">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            Adding...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Payee Modal -->
+<div class="modal fade" id="editPayeeModal" tabindex="-1" aria-labelledby="editPayeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editPayeeModalLabel">Edit Payee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editPayeeForm" onsubmit="submitEditPayee(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit-payee-name" class="form-label">Payee Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit-payee-name" name="name" required>
+                        <div class="form-text">Update the name of this payee</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Update Payee</span>
+                        <span class="btn-loading d-none">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            Updating...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Payee Modal -->
+<div class="modal fade" id="deletePayeeModal" tabindex="-1" aria-labelledby="deletePayeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletePayeeModalLabel">Delete Payee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Are you sure you want to delete <strong id="delete-payee-name"></strong>?
+                </div>
+                <p class="text-muted mb-0">This action cannot be undone. The payee can only be deleted if it's not being used in any transactions.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeletePayee()">
+                    <span class="btn-text">Delete Payee</span>
+                    <span class="btn-loading d-none">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        Deleting...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables
+let currentEditPayeeId = null;
+let currentDeletePayeeId = null;
+
+// Show add payee modal
+function showAddPayeeModal() {
+    document.getElementById('add-payee-name').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('addPayeeModal'));
+    modal.show();
+    
+    // Focus on name input after modal is shown
+    setTimeout(() => {
+        document.getElementById('add-payee-name').focus();
+    }, 200);
+}
+
+// Show edit payee modal
+function showEditPayeeModal(payeeId, payeeName) {
+    currentEditPayeeId = payeeId;
+    document.getElementById('edit-payee-name').value = payeeName;
+    const modal = new bootstrap.Modal(document.getElementById('editPayeeModal'));
+    modal.show();
+    
+    // Focus on name input after modal is shown
+    setTimeout(() => {
+        document.getElementById('edit-payee-name').select();
+    }, 200);
+}
+
+// Show delete payee modal
+function showDeletePayeeModal(payeeId, payeeName) {
+    currentDeletePayeeId = payeeId;
+    document.getElementById('delete-payee-name').textContent = payeeName;
+    const modal = new bootstrap.Modal(document.getElementById('deletePayeeModal'));
+    modal.show();
+}
+
+// Submit add payee form
+function submitAddPayee(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.querySelector('#addPayeeForm button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(document.getElementById('addPayeeForm'));
+    
+    fetch('{% url "budget_basic:payee_create" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('addPayeeModal')).hide();
+            
+            // Show success message
+            showMessage(data.message, 'success');
+            
+            // Add payee to table if table exists
+            if (document.getElementById('payees-table')) {
+                addPayeeToTable(data.payee);
+            } else {
+                // Reload page if no table (empty state)
+                location.reload();
+            }
+            
+            // Update stats
+            updatePayeeStats();
+            
+        } else {
+            showMessage(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Network error. Please try again.', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset loading state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+    });
+}
+
+// Submit edit payee form
+function submitEditPayee(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.querySelector('#editPayeeForm button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(document.getElementById('editPayeeForm'));
+    
+    fetch(`/budget-basic/payee/${currentEditPayeeId}/update/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('editPayeeModal')).hide();
+            
+            // Show success message
+            showMessage(data.message, 'success');
+            
+            // Update payee in table
+            updatePayeeInTable(currentEditPayeeId, data.payee);
+            
+        } else {
+            showMessage(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Network error. Please try again.', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset loading state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+        currentEditPayeeId = null;
+    });
+}
+
+// Confirm delete payee
+function confirmDeletePayee() {
+    const submitBtn = document.querySelector('#deletePayeeModal .btn-danger');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    
+    fetch(`/budget-basic/payee/${currentDeletePayeeId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('deletePayeeModal')).hide();
+            
+            // Show success message
+            showMessage(data.message, 'success');
+            
+            // Remove payee from table
+            removePayeeFromTable(currentDeletePayeeId);
+            
+            // Update stats
+            updatePayeeStats();
+            
+        } else {
+            showMessage(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Network error. Please try again.', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset loading state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+        currentDeletePayeeId = null;
+    });
+}
+
+// Add payee to table
+function addPayeeToTable(payee) {
+    const tbody = document.querySelector('#payees-table tbody');
+    const row = document.createElement('tr');
+    row.setAttribute('data-payee-id', payee.id);
+    row.className = 'payee-row';
+    
+    const now = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+    });
+    
+    row.innerHTML = `
+        <td>
+            <div class="d-flex align-items-center">
+                <div class="payee-avatar me-2">
+                    <i class="bi bi-person-circle text-muted"></i>
+                </div>
+                <div>
+                    <div class="payee-name fw-medium">${payee.name}</div>
+                </div>
+            </div>
+        </td>
+        <td class="text-muted">
+            <small>${now}</small>
+        </td>
+        <td class="text-muted">
+            <small>${now}</small>
+        </td>
+        <td class="text-center">
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary" onclick="showEditPayeeModal(${payee.id}, '${payee.name.replace(/'/g, "\\'")}')">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="showDeletePayeeModal(${payee.id}, '${payee.name.replace(/'/g, "\\'")}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+}
+
+// Update payee in table
+function updatePayeeInTable(payeeId, payeeData) {
+    const row = document.querySelector(`tr[data-payee-id="${payeeId}"]`);
+    if (row) {
+        const nameCell = row.querySelector('.payee-name');
+        nameCell.textContent = payeeData.name;
+        
+        // Update last updated cell
+        const updatedCell = row.querySelector('td:nth-child(3) small');
+        const now = new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        updatedCell.textContent = now;
+        
+        // Update action buttons with new name
+        const editBtn = row.querySelector('.btn-outline-secondary');
+        const deleteBtn = row.querySelector('.btn-outline-danger');
+        const escapedName = payeeData.name.replace(/'/g, "\\'");
+        
+        editBtn.setAttribute('onclick', `showEditPayeeModal(${payeeId}, '${escapedName}')`);
+        deleteBtn.setAttribute('onclick', `showDeletePayeeModal(${payeeId}, '${escapedName}')`);
+    }
+}
+
+// Remove payee from table
+function removePayeeFromTable(payeeId) {
+    const row = document.querySelector(`tr[data-payee-id="${payeeId}"]`);
+    if (row) {
+        row.remove();
+        
+        // Check if table is now empty
+        const tbody = document.querySelector('#payees-table tbody');
+        if (tbody && tbody.children.length === 0) {
+            // Reload to show empty state
+            location.reload();
+        }
+    }
+}
+
+// Update payee statistics
+function updatePayeeStats() {
+    const totalPayees = document.querySelectorAll('.payee-row').length;
+    document.getElementById('total-payees').textContent = totalPayees;
+    document.getElementById('active-payees').textContent = totalPayees;
+}
+
+// Filter payees
+function filterPayees() {
+    const searchTerm = document.getElementById('payee-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.payee-row');
+    
+    rows.forEach(row => {
+        const payeeName = row.querySelector('.payee-name').textContent.toLowerCase();
+        if (payeeName.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Sort payees
+function sortPayees(sortBy) {
+    const table = document.getElementById('payees-table');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('.payee-row'));
+    
+    // Update active button
+    document.querySelectorAll('[id^="sort-"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`sort-${sortBy}`).classList.add('active');
+    
+    rows.sort((a, b) => {
+        if (sortBy === 'name') {
+            const nameA = a.querySelector('.payee-name').textContent.toLowerCase();
+            const nameB = b.querySelector('.payee-name').textContent.toLowerCase();
+            return nameA.localeCompare(nameB);
+        } else if (sortBy === 'date') {
+            // For date sorting, we'd need actual timestamps, but for now use the reverse order
+            return 0; // Keep existing order for date
+        }
+        return 0;
+    });
+    
+    // Reorder rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Show message helper
+function showMessage(message, type) {
+    const container = document.getElementById('message-container');
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const icon = type === 'error' ? 'bi-exclamation-triangle' : 'bi-check-circle';
+    
+    const alert = document.createElement('div');
+    alert.className = `alert ${alertClass} alert-dismissible fade show`;
+    alert.setAttribute('role', 'alert');
+    alert.innerHTML = `
+        <i class="bi ${icon} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    container.appendChild(alert);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.classList.remove('show');
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Add CSRF token to all forms if not present
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        if (!form.querySelector('[name=csrfmiddlewaretoken]')) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+            form.appendChild(csrfInput);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -7,9 +7,16 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('transactions/', views.main, name='main'),
     path('week-data/', views.get_week_data, name='get_week_data'),
-    # Payee URLs
+    # Payee URLs (existing)
     path('payees/', views.get_payees, name='get_payees'),
     path('payee/add/', views.add_payee, name='add_payee'),
+    # Payee Management URLs (new)
+    path('payees-manage/', views.payee_list, name='payee_list'),
+    path('payee/create/', views.payee_create, name='payee_create'),
+    path('payee/<int:payee_id>/update/', views.payee_update, name='payee_update'),
+    path('payee/<int:payee_id>/delete/', views.payee_delete, name='payee_delete'),
+    path('payee/search/', views.payee_search, name='payee_search'),
+    # Other URLs
     path('auto-date/', views.get_auto_date, name='get_auto_date'),
     # Income URLs
     path('income/add/', views.add_income, name='add_income'),

@@ -237,16 +237,6 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
                 <div class="transaction-col transaction-date">${formatTransactionDate(income.date)}</div>
                 <div class="transaction-col transaction-payee">${income.payee}</div>
                 <div class="transaction-col transaction-amount">+$${parseFloat(income.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
-                <div class="transaction-col transaction-actions">
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showEditIncomeModal(${income.id})" title="Edit Transaction">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showDeleteIncomeModal(${income.id}, '${income.payee.replace(/'/g, "\\'")}', '${parseFloat(income.amount).toFixed(2)}')" title="Delete Transaction">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
@@ -266,16 +256,6 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
                 <div class="transaction-col transaction-date">${formatTransactionDate(expense.date)}</div>
                 <div class="transaction-col transaction-payee">${expense.payee}</div>
                 <div class="transaction-col transaction-amount">-$${parseFloat(expense.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
-                <div class="transaction-col transaction-actions">
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showEditExpenseModal(${expense.id})" title="Edit Transaction">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-icon" onclick="event.stopPropagation(); showDeleteExpenseModal(${expense.id}, '${expense.payee.replace(/'/g, "\\'")}', '${parseFloat(expense.amount).toFixed(2)}')" title="Delete Transaction">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);

@@ -6,6 +6,28 @@ from decimal import Decimal
 User = get_user_model()
 
 
+class Category(models.Model):
+    """Transaction category scoped to a single user.
+    
+    Categories help organize transactions by type (Food, Transport, Entertainment, etc.)
+    and provide better reporting and budgeting capabilities.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
+        unique_together = ['user', 'name']  # Prevent duplicate categories per user
+    
+    def __str__(self):
+        return self.name
+
+
 class Payee(models.Model):
     """Canonical payee/merchant entry scoped to a single user.
 

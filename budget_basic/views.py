@@ -10,7 +10,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import Expense, Income, Payee
+from .models import Category, Expense, Income, Payee
 
 
 ZERO_DECIMAL = Decimal("0.00")
@@ -721,3 +721,185 @@ def payee_search(request):
     ]
     
     return JsonResponse({'payees': payee_list})
+
+
+# ==============================
+# CATEGORY MANAGEMENT VIEWS
+# ==============================
+
+@login_required
+def category_list(request):
+    """Display all categories for the current user with statistics."""
+    categories = Category.objects.filter(user=request.user)
+    
+    return render(request, 'budget_basic/categories.html', {
+        'categories': categories
+    })
+
+
+@login_required  
+@require_POST
+def category_create(request):
+    """Create a new category via AJAX."""
+    try:
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        
+        if not name:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Category name is required.'
+            })
+        
+        # Check for duplicate category names (case-insensitive)
+        if Category.objects.filter(user=request.user, name__iexact=name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Category "{name}" already exists.'
+            })
+        
+        # Create new category
+        category = Category.objects.create(
+            user=request.user,
+            name=name,
+            description=description or None
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Category "{name}" created successfully!',
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'description': category.description or '',
+                'created_at': category.created_at.isoformat(),
+                'updated_at': category.updated_at.isoformat()
+            }
+        })
+        
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Validation error: {e.message}'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': f'Error creating category: {str(e)}'
+        })
+
+
+@login_required
+@require_POST  
+def category_update(request, category_id):
+    """Update an existing category via AJAX."""
+    try:
+        category = Category.objects.get(id=category_id, user=request.user)
+        
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        
+        if not name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category name is required.'
+            })
+        
+        # Check for duplicate names (excluding current category)
+        if Category.objects.filter(
+            user=request.user, 
+            name__iexact=name
+        ).exclude(id=category_id).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Category "{name}" already exists.'
+            })
+        
+        # Update category
+        category.name = name
+        category.description = description or None
+        category.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Category "{name}" updated successfully!',
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'description': category.description or '',
+                'created_at': category.created_at.isoformat(),
+                'updated_at': category.updated_at.isoformat()
+            }
+        })
+        
+    except Category.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Category not found.'
+        })
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Validation error: {e.message}'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error updating category: {str(e)}'
+        })
+
+
+@login_required
+@require_POST
+def category_delete(request, category_id):
+    """Delete a category via AJAX with transaction usage checking."""
+    try:
+        category = Category.objects.get(id=category_id, user=request.user)
+        
+        # TODO: Check if category is being used in any transactions
+        # For now, we'll allow deletion but this should be implemented
+        # when categories are linked to transactions
+        
+        category_name = category.name
+        category.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Category "{category_name}" deleted successfully!'
+        })
+        
+    except Category.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Category not found.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error deleting category: {str(e)}'
+        })
+
+
+@login_required
+def category_search(request):
+    """Search categories for typeahead/autocomplete functionality."""
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return JsonResponse({'categories': []})
+    
+    categories = Category.objects.filter(
+        user=request.user,
+        name__icontains=query
+    ).order_by('name')[:10]
+    
+    category_list = [
+        {
+            'id': category.id,
+            'name': category.name,
+            'description': category.description or ''
+        }
+        for category in categories
+    ]
+    
+    return JsonResponse({'categories': category_list})

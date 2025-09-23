@@ -28,4 +28,10 @@ urlpatterns = [
     path('expense/<int:expense_id>/edit/', views.edit_expense, name='edit_expense'),
     path('expense/<int:expense_id>/get/', views.get_expense, name='get_expense'),
     path('expense/<int:expense_id>/delete/', views.delete_expense, name='delete_expense'),
+    # Category Management URLs
+    path('categories/', views.category_list, name='category_list'),
+    path('category/create/', views.category_create, name='category_create'),
+    path('category/<int:category_id>/update/', views.category_update, name='category_update'),
+    path('category/<int:category_id>/delete/', views.category_delete, name='category_delete'),
+    path('category/search/', views.category_search, name='category_search'),
 ]

@@ -1587,6 +1587,32 @@ body::-webkit-scrollbar {
     background-color: #e9ecef !important;
 }
 
+/* CATEGORY MANAGEMENT STYLES */
+
+/* Category card styling - inherits from transaction cards */
+.category-card .category-icon {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-card .category-name {
+    color: #212529;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+/* Ensure category cards use same selection styling as transaction cards */
+.category-card.selected {
+    background-color: #f8f9fa !important;
+    border: 2px solid #6c757d !important;
+}
+
+.category-card.selected:hover {
+    background-color: #e9ecef !important;
+}
+
 /* Search input group styling in header */
 .panel-header-actions .input-group {
     border-radius: 0.375rem;

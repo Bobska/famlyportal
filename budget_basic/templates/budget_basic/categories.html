@@ -153,6 +153,12 @@
                             <span class="detail-label">Status:</span>
                             <span class="detail-value" id="detail-category-status">Active</span>
                         </div>
+                        <div class="detail-row" id="linked-payees-section" style="display: none;">
+                            <span class="detail-label">Payees:</span>
+                            <div class="detail-value" id="detail-category-payees">
+                                <!-- Linked payees will be shown here -->
+                            </div>
+                        </div>
                     </div>
                     <div class="panel-actions">
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-category-btn" onclick="editSelectedCategory()" disabled>
@@ -318,9 +324,15 @@ function selectCategory(card, event) {
     });
     document.getElementById('detail-category-status').textContent = 'Active';
     
+    // Show linked payees for this category
+    updateLinkedPayeesDisplay(categoryId, categoryName);
+    
     // Enable action buttons
     document.getElementById('edit-category-btn').disabled = false;
     document.getElementById('delete-category-btn').disabled = false;
+    
+    // Make detail panel active (remove faded state)
+    document.getElementById('category-details-panel').classList.add('has-content');
 }
 
 // Clear category selection
@@ -337,9 +349,15 @@ function clearCategorySelection() {
     document.getElementById('detail-category-updated').textContent = '-';
     document.getElementById('detail-category-status').textContent = 'Active';
     
+    // Clear linked payees display
+    clearLinkedPayeesDisplay();
+    
     // Disable action buttons
     document.getElementById('edit-category-btn').disabled = true;
     document.getElementById('delete-category-btn').disabled = true;
+    
+    // Make detail panel faded (remove has-content class)
+    document.getElementById('category-details-panel').classList.remove('has-content');
 }
 
 // Edit selected category
@@ -756,6 +774,44 @@ function showMessage(message, type) {
     }, 5000);
 }
 
+// Update linked payees display in detail panel
+function updateLinkedPayeesDisplay(categoryId, categoryName) {
+    const section = document.getElementById('linked-payees-section');
+    const container = document.getElementById('detail-category-payees');
+    
+    // For this demo, show a simple message about the relationship
+    // In a full implementation, we'd fetch the actual linked payees
+    container.innerHTML = `
+        <small class="text-muted d-block mb-2">
+            <i class="bi bi-info-circle me-1"></i>
+            This category can be linked to payees on the Payees page
+        </small>
+        <a href="{% url 'budget_basic:payee_list' %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-right me-1"></i>
+            Manage Payee Links
+        </a>
+    `;
+    section.style.display = 'block';
+}
+
+// Clear linked payees display
+function clearLinkedPayeesDisplay() {
+    const section = document.getElementById('linked-payees-section');
+    const container = document.getElementById('detail-category-payees');
+    
+    section.style.display = 'none';
+    container.innerHTML = '';
+}
+
+// Highlight a payee by ID (for navigation to payees page)
+function highlightPayeeById(payeeId) {
+    // For now, just show a message about the relationship
+    const payeeName = document.querySelector(`[data-payee-id="${payeeId}"]`)?.textContent?.trim();
+    if (payeeName) {
+        showMessage(`This category is linked to payee: ${payeeName}`, 'info');
+    }
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     // Add CSRF token to all forms if not present
@@ -767,6 +823,20 @@ document.addEventListener('DOMContentLoaded', function() {
             csrfInput.name = 'csrfmiddlewaretoken';
             csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
             form.appendChild(csrfInput);
+        }
+    });
+    
+    // Add background click handler for deselection
+    document.addEventListener('click', function(event) {
+        // Check if click is outside category cards and detail panel
+        const clickedCard = event.target.closest('.category-card');
+        const clickedDetailPanel = event.target.closest('.transaction-details-panel');
+        const clickedModal = event.target.closest('.modal');
+        const clickedButton = event.target.closest('button');
+        
+        // If clicked outside cards, detail panel, modals, and buttons, clear selection
+        if (!clickedCard && !clickedDetailPanel && !clickedModal && !clickedButton && selectedCategoryCard) {
+            clearCategorySelection();
         }
     });
 });

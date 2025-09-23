@@ -158,6 +158,12 @@
                             <span class="detail-label">Status:</span>
                             <span class="detail-value" id="detail-payee-status">Active</span>
                         </div>
+                        <div class="detail-row" id="linked-categories-section" style="display: none;">
+                            <span class="detail-label">Categories:</span>
+                            <div class="detail-value" id="detail-payee-categories">
+                                <!-- Linked categories will be shown here -->
+                            </div>
+                        </div>
                     </div>
                     <div class="panel-actions">
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-payee-btn" onclick="editSelectedPayee()" disabled>
@@ -341,9 +347,15 @@ function selectPayee(card, event) {
     document.getElementById('detail-payee-transactions').textContent = '0'; // TODO: Get actual count
     document.getElementById('detail-payee-status').textContent = 'Active';
     
+    // Show linked categories
+    updateLinkedCategoriesDisplay(payeeCategories, currentPayeeData.categoryIds);
+    
     // Enable action buttons
     document.getElementById('edit-payee-btn').disabled = false;
     document.getElementById('delete-payee-btn').disabled = false;
+    
+    // Make detail panel active (remove faded state)
+    document.getElementById('payee-details-panel').classList.add('has-content');
 }
 
 // Clear payee selection
@@ -360,9 +372,18 @@ function clearPayeeSelection() {
     document.getElementById('detail-payee-transactions').textContent = '0';
     document.getElementById('detail-payee-status').textContent = 'Active';
     
+    // Clear linked categories display
+    clearLinkedCategoriesDisplay();
+    
     // Disable action buttons
     document.getElementById('edit-payee-btn').disabled = true;
     document.getElementById('delete-payee-btn').disabled = true;
+    
+    // Make detail panel faded (remove has-content class)
+    document.getElementById('payee-details-panel').classList.remove('has-content');
+    
+    // Clear current payee data
+    currentPayeeData = null;
 }
 
 // Edit selected payee
@@ -816,6 +837,52 @@ function showMessage(message, type) {
     }, 5000);
 }
 
+// Update linked categories display in detail panel
+function updateLinkedCategoriesDisplay(categoriesText, categoryIds) {
+    const section = document.getElementById('linked-categories-section');
+    const container = document.getElementById('detail-payee-categories');
+    
+    if (!categoriesText || categoriesText === 'No categories' || categoryIds.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    // Create clickable category badges
+    const categoryNames = categoriesText.split(', ');
+    const badgesHtml = categoryNames.map((name, index) => {
+        const categoryId = categoryIds[index];
+        return `<span class="badge bg-light text-dark me-1 mb-1 linked-category-badge" 
+                      data-category-id="${categoryId}" 
+                      style="cursor: pointer;" 
+                      onclick="highlightCategoryById('${categoryId}')" 
+                      title="Click to highlight this category">
+                    ${name}
+                </span>`;
+    }).join('');
+    
+    container.innerHTML = badgesHtml;
+    section.style.display = 'block';
+}
+
+// Clear linked categories display
+function clearLinkedCategoriesDisplay() {
+    const section = document.getElementById('linked-categories-section');
+    const container = document.getElementById('detail-payee-categories');
+    
+    section.style.display = 'none';
+    container.innerHTML = '';
+}
+
+// Highlight a category by ID (for navigation to categories page)
+function highlightCategoryById(categoryId) {
+    // If we're on the categories page, we could highlight the category
+    // For now, just show a message about the relationship
+    const categoryName = document.querySelector(`[data-category-id="${categoryId}"]`)?.textContent?.trim();
+    if (categoryName) {
+        showMessage(`This payee is linked to category: ${categoryName}`, 'info');
+    }
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     // Add CSRF token to all forms if not present
@@ -827,6 +894,20 @@ document.addEventListener('DOMContentLoaded', function() {
             csrfInput.name = 'csrfmiddlewaretoken';
             csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
             form.appendChild(csrfInput);
+        }
+    });
+    
+    // Add background click handler for deselection
+    document.addEventListener('click', function(event) {
+        // Check if click is outside payee cards and detail panel
+        const clickedCard = event.target.closest('.payee-card');
+        const clickedDetailPanel = event.target.closest('.transaction-details-panel');
+        const clickedModal = event.target.closest('.modal');
+        const clickedButton = event.target.closest('button');
+        
+        // If clicked outside cards, detail panel, modals, and buttons, clear selection
+        if (!clickedCard && !clickedDetailPanel && !clickedModal && !clickedButton && selectedPayeeCard) {
+            clearPayeeSelection();
         }
     });
 });

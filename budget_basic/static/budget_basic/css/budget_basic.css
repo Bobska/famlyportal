@@ -1590,6 +1590,21 @@ body::-webkit-scrollbar {
     font-weight: normal;
 }
 
+/* Linked relationship badges in detail panels */
+.linked-category-badge,
+.linked-payee-badge {
+    transition: all 0.2s ease;
+    cursor: pointer !important;
+}
+
+.linked-category-badge:hover,
+.linked-payee-badge:hover {
+    background-color: #6c757d !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 /* Ensure payee cards use same selection styling as transaction cards */
 .payee-card.selected {
     background-color: #f8f9fa !important;

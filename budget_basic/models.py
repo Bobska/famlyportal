@@ -26,16 +26,37 @@ class Category(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def get_payees_count(self):
+        """Return the number of payees associated with this category."""
+        return self.payees.count()
+    
+    def get_payees_list(self):
+        """Return a list of payee names for display purposes."""
+        return [payee.name for payee in self.payees.all()]
+    
+    def get_payees_display(self):
+        """Return a comma-separated string of payee names."""
+        payees = self.get_payees_list()
+        if not payees:
+            return "No payees"
+        return ", ".join(payees)
 
 
 class Payee(models.Model):
     """Canonical payee/merchant entry scoped to a single user.
 
     The unique constraint prevents duplicate payees per user so dropdowns stay clean
-    across the UI.
+    across the UI. Many-to-many relationship with categories allows flexible categorization.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
+    categories = models.ManyToManyField(
+        Category, 
+        blank=True, 
+        related_name='payees',
+        help_text="Categories that this payee/merchant is associated with"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -47,6 +68,17 @@ class Payee(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def get_categories_list(self):
+        """Return a list of category names for display purposes."""
+        return [category.name for category in self.categories.all()]
+    
+    def get_categories_display(self):
+        """Return a comma-separated string of category names."""
+        categories = self.get_categories_list()
+        if not categories:
+            return "No categories"
+        return ", ".join(categories)
 
 
 class Income(models.Model):

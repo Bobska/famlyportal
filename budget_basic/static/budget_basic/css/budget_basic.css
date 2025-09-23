@@ -1577,6 +1577,19 @@ body::-webkit-scrollbar {
     font-weight: 500;
 }
 
+/* Payee category badges */
+.payee-card .payee-categories {
+    margin-top: 4px;
+    line-height: 1.2;
+}
+
+.payee-card .payee-categories .badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: normal;
+}
+
 /* Ensure payee cards use same selection styling as transaction cards */
 .payee-card.selected {
     background-color: #f8f9fa !important;

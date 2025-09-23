@@ -94,6 +94,8 @@
                                     <div class="category-name">{{ category.name }}</div>
                                     {% if category.description %}
                                         <small class="text-muted">{{ category.description|truncatechars:50 }}</small>
+                                    {% else %}
+                                        <small class="text-muted">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</small>
                                     {% endif %}
                                 </div>
                             </div>

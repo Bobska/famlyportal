@@ -562,11 +562,13 @@ def add_payee(request):
 @login_required
 def payee_list(request):
     """Display list of all payees for the current user."""
-    payees = Payee.objects.filter(user=request.user).order_by('name')
+    payees = Payee.objects.filter(user=request.user).prefetch_related('categories').order_by('name')
+    categories = Category.objects.filter(user=request.user).order_by('name')
     
     context = {
         'page_title': 'Manage Payees',
         'payees': payees,
+        'categories': categories,
     }
     return render(request, 'budget_basic/payees.html', context)
 
@@ -577,6 +579,7 @@ def payee_create(request):
     """Create a new payee via AJAX."""
     try:
         payee_name = request.POST.get('name', '').strip()
+        category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not payee_name:
             return JsonResponse({
@@ -597,11 +600,19 @@ def payee_create(request):
             name=payee_name
         )
         
+        # Add categories if provided
+        if category_ids:
+            # Validate that all category IDs belong to the current user
+            valid_categories = Category.objects.filter(user=request.user, id__in=category_ids)
+            payee.categories.set(valid_categories)
+        
         return JsonResponse({
             'success': True,
             'payee': {
                 'id': payee.id,
                 'name': payee.name,
+                'categories_display': payee.get_categories_display(),
+                'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()],
                 'created_at': payee.created_at.strftime('%Y-%m-%d %H:%M')
             },
             'message': f'Payee "{payee_name}" created successfully'
@@ -621,6 +632,7 @@ def payee_update(request, payee_id):
     try:
         payee = Payee.objects.get(id=payee_id, user=request.user)
         new_name = request.POST.get('name', '').strip()
+        category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not new_name:
             return JsonResponse({
@@ -639,11 +651,22 @@ def payee_update(request, payee_id):
         payee.name = new_name
         payee.save()
         
+        # Update categories
+        if category_ids:
+            # Validate that all category IDs belong to the current user
+            valid_categories = Category.objects.filter(user=request.user, id__in=category_ids)
+            payee.categories.set(valid_categories)
+        else:
+            # Clear all categories if none provided
+            payee.categories.clear()
+        
         return JsonResponse({
             'success': True,
             'payee': {
                 'id': payee.id,
                 'name': payee.name,
+                'categories_display': payee.get_categories_display(),
+                'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()],
                 'updated_at': payee.updated_at.strftime('%Y-%m-%d %H:%M')
             },
             'message': f'Payee updated from "{old_name}" to "{new_name}"'
@@ -710,12 +733,14 @@ def payee_search(request):
     payees = Payee.objects.filter(
         user=request.user,
         name__icontains=query
-    ).order_by('name')[:10]
+    ).prefetch_related('categories').order_by('name')[:10]
     
     payee_list = [
         {
             'id': payee.id,
-            'name': payee.name
+            'name': payee.name,
+            'categories_display': payee.get_categories_display(),
+            'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()]
         }
         for payee in payees
     ]
@@ -730,7 +755,7 @@ def payee_search(request):
 @login_required
 def category_list(request):
     """Display all categories for the current user with statistics."""
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user).prefetch_related('payees')
     
     return render(request, 'budget_basic/categories.html', {
         'categories': categories
@@ -772,6 +797,8 @@ def category_create(request):
                 'id': category.id,
                 'name': category.name,
                 'description': category.description or '',
+                'payees_count': category.get_payees_count(),
+                'payees_display': category.get_payees_display(),
                 'created_at': category.created_at.isoformat(),
                 'updated_at': category.updated_at.isoformat()
             }
@@ -827,6 +854,8 @@ def category_update(request, category_id):
                 'id': category.id,
                 'name': category.name,
                 'description': category.description or '',
+                'payees_count': category.get_payees_count(),
+                'payees_display': category.get_payees_display(),
                 'created_at': category.created_at.isoformat(),
                 'updated_at': category.updated_at.isoformat()
             }

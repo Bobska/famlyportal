@@ -8,132 +8,154 @@
 {% block content %}
 <!-- Content Wrapper for Centering -->
 <div class="content-wrapper">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">Manage Payees</h2>
-            <p class="text-muted mb-0">Add, edit, and organize your merchants and payees</p>
-        </div>
-        <button type="button" class="btn btn-primary" onclick="showAddPayeeModal()">
-            <i class="bi bi-plus-circle me-1"></i>
-            Add Payee
-        </button>
-    </div>
-
-    <!-- Statistics Card -->
-    <div class="card mb-4">
-        <div class="card-body py-3">
+    <!-- Payee Stats Card - matches the weekly totals card from transactions -->
+    <div class="card mb-3">
+        <div class="card-body py-1">
             <div class="row text-center">
                 <div class="col-md-4">
-                    <div class="payee-stat">
-                        <div class="payee-stat-value" id="total-payees">{{ payees|length }}</div>
-                        <div class="payee-stat-label">Total Payees</div>
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Total Payees</div>
+                        <div class="weekly-stat-value" id="total-payees">{{ payees|length }}</div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="payee-stat">
-                        <div class="payee-stat-value" id="active-payees">{{ payees|length }}</div>
-                        <div class="payee-stat-label">Active Payees</div>
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Active Payees</div>
+                        <div class="weekly-stat-value" id="active-payees">{{ payees|length }}</div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="payee-stat">
-                        <div class="payee-stat-value">{{ payees|length|add:"0" }}</div>
-                        <div class="payee-stat-label">This Month</div>
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Recently Added</div>
+                        <div class="weekly-stat-value">{{ payees|length }}</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Search and Filter -->
-    <div class="card mb-4">
-        <div class="card-body py-2">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" class="form-control" id="payee-search" placeholder="Search payees..." onkeyup="filterPayees()">
+    
+    <!-- Payees card with integrated side panel - matches transactions structure -->
+    <div class="card" id="payees-card">
+        <!-- Always show the panel structure for consistent layout -->
+        <div class="transactions-with-panel">
+            <!-- Left Side: Payee Cards Container -->
+            <div class="transaction-cards-container" id="payee-list">
+                <!-- Left Panel Header -->
+                <div class="panel-header">
+                    <div class="panel-title">Payees</div>
+                    <div class="panel-header-actions">
+                        <!-- Add payee button -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddPayeeModal()" title="Add New Payee" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add Payee</span>
+                        </button>
+                        
+                        <!-- Search input -->
+                        <div class="input-group input-group-sm" style="max-width: 200px;">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="payee-search" placeholder="Search..." onkeyup="filterPayees()">
+                        </div>
+                        
+                        <!-- Sort dropdown -->
+                        <div class="dropdown ms-2">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="payeeSortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Payees">
+                                <i class="bi bi-sort-alpha-down me-1"></i>
+                                <span id="sortLabel">Name</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="payeeSortDropdown">
+                                <li><a class="dropdown-item active" href="#" onclick="sortPayees('name')">Sort by Name</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="sortPayees('date')">Sort by Date Added</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6 text-end">
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary active" onclick="sortPayees('name')" id="sort-name">
-                            <i class="bi bi-sort-alpha-down me-1"></i>Name
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="sortPayees('date')" id="sort-date">
-                            <i class="bi bi-sort-numeric-down me-1"></i>Date Added
-                        </button>
+                
+                <!-- Payee List Content -->
+                <div class="transaction-list-content">
+                {% if payees %}
+                    <!-- Payee Data Rows -->
+                    {% for payee in payees %}
+                    <div class="transaction-card transaction-card-data payee-card" 
+                         data-payee-id="{{ payee.id }}" 
+                         data-payee-name="{{ payee.name|escapejs }}"
+                         data-payee-created="{{ payee.created_at|date:"Y-m-d" }}"
+                         data-payee-updated="{{ payee.updated_at|date:"Y-m-d" }}"
+                         onclick="selectPayee(this, event)">
+                        <div class="transaction-col transaction-date">{{ payee.created_at|date:"D, j M" }}</div>
+                        <div class="transaction-col transaction-payee">
+                            <div class="d-flex align-items-center">
+                                <div class="payee-avatar me-2">
+                                    <i class="bi bi-person-circle text-muted"></i>
+                                </div>
+                                <div class="payee-name">{{ payee.name }}</div>
+                            </div>
+                        </div>
+                        <div class="transaction-col transaction-amount">
+                            <small class="text-muted">{{ payee.updated_at|date:"j M" }}</small>
+                        </div>
                     </div>
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Empty State within the panel structure -->
+                    <div class="text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-people" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-0">No payees yet</p>
+                        <small>Start by adding your first payee or merchant</small>
+                    </div>
+                {% endif %}
+                </div> <!-- Close transaction-list-content -->
             </div>
-        </div>
-    </div>
-
-    <!-- Payees List -->
-    <div class="card">
-        <div class="card-body p-0">
-            {% if payees %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="payees-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">Date Added</th>
-                                <th scope="col">Last Updated</th>
-                                <th scope="col" class="text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for payee in payees %}
-                            <tr data-payee-id="{{ payee.id }}" class="payee-row">
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="payee-avatar me-2">
-                                            <i class="bi bi-person-circle text-muted"></i>
-                                        </div>
-                                        <div>
-                                            <div class="payee-name fw-medium">{{ payee.name }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-muted">
-                                    <small>{{ payee.created_at|date:"M j, Y" }}</small>
-                                </td>
-                                <td class="text-muted">
-                                    <small>{{ payee.updated_at|date:"M j, Y" }}</small>
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="showEditPayeeModal({{ payee.id }}, '{{ payee.name|escapejs }}')" title="Edit Payee">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline-danger" onclick="showDeletePayeeModal({{ payee.id }}, '{{ payee.name|escapejs }}')" title="Delete Payee">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <!-- Empty State -->
-                <div class="text-center py-5">
-                    <div class="mb-3">
-                        <i class="bi bi-people" style="font-size: 3rem; color: #6c757d;"></i>
-                    </div>
-                    <h5 class="text-muted mb-2">No Payees Yet</h5>
-                    <p class="text-muted mb-3">Add your first payee to start organizing your transactions</p>
-                    <button type="button" class="btn btn-primary" onclick="showAddPayeeModal()">
-                        <i class="bi bi-plus-circle me-1"></i>
-                        Add Your First Payee
+            
+            <!-- Resizable Divider -->
+            <div class="panel-resizer" id="panel-resizer">
+                <div class="resizer-handle"></div>
+            </div>
+            
+            <!-- Right Side: Details Panel -->
+            <div class="transaction-details-panel" id="payee-details-panel">
+                <div class="panel-header">
+                    <h6 class="mb-0">Payee Details</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearPayeeSelection()">
+                        <i class="bi bi-x"></i>
                     </button>
                 </div>
-            {% endif %}
+                <div class="panel-content">
+                    <div class="detail-section">
+                        <div class="detail-row">
+                            <span class="detail-label">Name:</span>
+                            <span class="detail-value" id="detail-payee-name">Select a payee</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date Added:</span>
+                            <span class="detail-value" id="detail-payee-created">to view details</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Last Updated:</span>
+                            <span class="detail-value" id="detail-payee-updated">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Transactions:</span>
+                            <span class="detail-value" id="detail-payee-transactions">0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value" id="detail-payee-status">Active</span>
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-payee-btn" onclick="editSelectedPayee()" disabled>
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-payee-btn" onclick="deleteSelectedPayee()" disabled>
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -238,6 +260,88 @@
 // Global variables
 let currentEditPayeeId = null;
 let currentDeletePayeeId = null;
+let selectedPayeeCard = null;
+
+// Payee selection functionality - matches transaction selection pattern
+function selectPayee(card, event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    // Remove previous selection
+    if (selectedPayeeCard) {
+        selectedPayeeCard.classList.remove('selected');
+    }
+    
+    // Select new card
+    selectedPayeeCard = card;
+    card.classList.add('selected');
+    
+    // Get payee data from attributes
+    const payeeId = card.getAttribute('data-payee-id');
+    const payeeName = card.getAttribute('data-payee-name');
+    const payeeCreated = card.getAttribute('data-payee-created');
+    const payeeUpdated = card.getAttribute('data-payee-updated');
+    
+    // Update details panel
+    document.getElementById('detail-payee-name').textContent = payeeName;
+    document.getElementById('detail-payee-created').textContent = new Date(payeeCreated).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    document.getElementById('detail-payee-updated').textContent = new Date(payeeUpdated).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    document.getElementById('detail-payee-transactions').textContent = '0'; // TODO: Get actual count
+    document.getElementById('detail-payee-status').textContent = 'Active';
+    
+    // Enable action buttons
+    document.getElementById('edit-payee-btn').disabled = false;
+    document.getElementById('delete-payee-btn').disabled = false;
+}
+
+// Clear payee selection
+function clearPayeeSelection() {
+    if (selectedPayeeCard) {
+        selectedPayeeCard.classList.remove('selected');
+        selectedPayeeCard = null;
+    }
+    
+    // Reset details panel
+    document.getElementById('detail-payee-name').textContent = 'Select a payee';
+    document.getElementById('detail-payee-created').textContent = 'to view details';
+    document.getElementById('detail-payee-updated').textContent = '-';
+    document.getElementById('detail-payee-transactions').textContent = '0';
+    document.getElementById('detail-payee-status').textContent = 'Active';
+    
+    // Disable action buttons
+    document.getElementById('edit-payee-btn').disabled = true;
+    document.getElementById('delete-payee-btn').disabled = true;
+}
+
+// Edit selected payee
+function editSelectedPayee() {
+    if (!selectedPayeeCard) return;
+    
+    const payeeId = selectedPayeeCard.getAttribute('data-payee-id');
+    const payeeName = selectedPayeeCard.getAttribute('data-payee-name');
+    
+    showEditPayeeModal(payeeId, payeeName);
+}
+
+// Delete selected payee
+function deleteSelectedPayee() {
+    if (!selectedPayeeCard) return;
+    
+    const payeeId = selectedPayeeCard.getAttribute('data-payee-id');
+    const payeeName = selectedPayeeCard.getAttribute('data-payee-name');
+    
+    showDeletePayeeModal(payeeId, payeeName);
+}
 
 // Show add payee modal
 function showAddPayeeModal() {
@@ -303,11 +407,11 @@ function submitAddPayee(event) {
             // Show success message
             showMessage(data.message, 'success');
             
-            // Add payee to table if table exists
-            if (document.getElementById('payees-table')) {
-                addPayeeToTable(data.payee);
+            // Add payee to list if list exists
+            if (document.querySelector('.transaction-list-content')) {
+                addPayeeToList(data.payee);
             } else {
-                // Reload page if no table (empty state)
+                // Reload page if no list (empty state)
                 location.reload();
             }
             
@@ -361,8 +465,8 @@ function submitEditPayee(event) {
             // Show success message
             showMessage(data.message, 'success');
             
-            // Update payee in table
-            updatePayeeInTable(currentEditPayeeId, data.payee);
+            // Update payee in list
+            updatePayeeInList(currentEditPayeeId, data.payee);
             
         } else {
             showMessage(data.error, 'error');
@@ -407,8 +511,8 @@ function confirmDeletePayee() {
             // Show success message
             showMessage(data.message, 'success');
             
-            // Remove payee from table
-            removePayeeFromTable(currentDeletePayeeId);
+            // Remove payee from list
+            removePayeeFromList(currentDeletePayeeId);
             
             // Update stats
             updatePayeeStats();
@@ -430,95 +534,102 @@ function confirmDeletePayee() {
     });
 }
 
-// Add payee to table
-function addPayeeToTable(payee) {
-    const tbody = document.querySelector('#payees-table tbody');
-    const row = document.createElement('tr');
-    row.setAttribute('data-payee-id', payee.id);
-    row.className = 'payee-row';
+// Add payee to list
+function addPayeeToList(payee) {
+    const listContent = document.querySelector('.transaction-list-content');
     
-    const now = new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+    // Remove empty state if present
+    const emptyState = listContent.querySelector('.text-center.py-5');
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    const payeeCard = document.createElement('div');
+    payeeCard.className = 'transaction-card transaction-card-data payee-card';
+    payeeCard.setAttribute('data-payee-id', payee.id);
+    payeeCard.setAttribute('data-payee-name', payee.name);
+    
+    const now = new Date();
+    payeeCard.setAttribute('data-payee-created', now.toISOString().split('T')[0]);
+    payeeCard.setAttribute('data-payee-updated', now.toISOString().split('T')[0]);
+    
+    payeeCard.onclick = function(event) { selectPayee(this, event); };
+    
+    const nowFormatted = now.toLocaleDateString('en-US', { 
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
     });
     
-    row.innerHTML = `
-        <td>
+    payeeCard.innerHTML = `
+        <div class="transaction-col transaction-date">${nowFormatted}</div>
+        <div class="transaction-col transaction-payee">
             <div class="d-flex align-items-center">
                 <div class="payee-avatar me-2">
                     <i class="bi bi-person-circle text-muted"></i>
                 </div>
-                <div>
-                    <div class="payee-name fw-medium">${payee.name}</div>
-                </div>
+                <div class="payee-name">${payee.name}</div>
             </div>
-        </td>
-        <td class="text-muted">
-            <small>${now}</small>
-        </td>
-        <td class="text-muted">
-            <small>${now}</small>
-        </td>
-        <td class="text-center">
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary" onclick="showEditPayeeModal(${payee.id}, '${payee.name.replace(/'/g, "\\'")}')">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger" onclick="showDeletePayeeModal(${payee.id}, '${payee.name.replace(/'/g, "\\'")}')">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </td>
+        </div>
+        <div class="transaction-col transaction-amount">
+            <small class="text-muted">${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small>
+        </div>
     `;
     
-    tbody.appendChild(row);
+    listContent.appendChild(payeeCard);
 }
 
-// Update payee in table
-function updatePayeeInTable(payeeId, payeeData) {
-    const row = document.querySelector(`tr[data-payee-id="${payeeId}"]`);
-    if (row) {
-        const nameCell = row.querySelector('.payee-name');
-        nameCell.textContent = payeeData.name;
+// Update payee in list
+function updatePayeeInList(payeeId, payeeData) {
+    const payeeCard = document.querySelector(`[data-payee-id="${payeeId}"]`);
+    if (payeeCard) {
+        // Update data attributes
+        payeeCard.setAttribute('data-payee-name', payeeData.name);
         
-        // Update last updated cell
-        const updatedCell = row.querySelector('td:nth-child(3) small');
-        const now = new Date().toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-        });
-        updatedCell.textContent = now;
+        // Update displayed name
+        const nameElement = payeeCard.querySelector('.payee-name');
+        nameElement.textContent = payeeData.name;
         
-        // Update action buttons with new name
-        const editBtn = row.querySelector('.btn-outline-secondary');
-        const deleteBtn = row.querySelector('.btn-outline-danger');
-        const escapedName = payeeData.name.replace(/'/g, "\\'");
-        
-        editBtn.setAttribute('onclick', `showEditPayeeModal(${payeeId}, '${escapedName}')`);
-        deleteBtn.setAttribute('onclick', `showDeletePayeeModal(${payeeId}, '${escapedName}')`);
+        // If this is the selected payee, update details panel
+        if (payeeCard === selectedPayeeCard) {
+            document.getElementById('detail-payee-name').textContent = payeeData.name;
+        }
     }
 }
 
-// Remove payee from table
-function removePayeeFromTable(payeeId) {
-    const row = document.querySelector(`tr[data-payee-id="${payeeId}"]`);
-    if (row) {
-        row.remove();
+// Remove payee from list
+function removePayeeFromList(payeeId) {
+    const payeeCard = document.querySelector(`[data-payee-id="${payeeId}"]`);
+    if (payeeCard) {
+        // Clear selection if this payee was selected
+        if (payeeCard === selectedPayeeCard) {
+            clearPayeeSelection();
+        }
         
-        // Check if table is now empty
-        const tbody = document.querySelector('#payees-table tbody');
-        if (tbody && tbody.children.length === 0) {
-            // Reload to show empty state
-            location.reload();
+        payeeCard.remove();
+        
+        // Check if list is now empty
+        const listContent = document.querySelector('.transaction-list-content');
+        const remainingPayees = listContent.querySelectorAll('.payee-card');
+        
+        if (remainingPayees.length === 0) {
+            // Add empty state
+            listContent.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3">
+                        <i class="bi bi-people" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="mb-0">No payees yet</p>
+                    <small>Start by adding your first payee or merchant</small>
+                </div>
+            `;
         }
     }
 }
 
 // Update payee statistics
 function updatePayeeStats() {
-    const totalPayees = document.querySelectorAll('.payee-row').length;
+    const totalPayees = document.querySelectorAll('.payee-card').length;
     document.getElementById('total-payees').textContent = totalPayees;
     document.getElementById('active-payees').textContent = totalPayees;
 }
@@ -526,44 +637,46 @@ function updatePayeeStats() {
 // Filter payees
 function filterPayees() {
     const searchTerm = document.getElementById('payee-search').value.toLowerCase();
-    const rows = document.querySelectorAll('.payee-row');
+    const payeeCards = document.querySelectorAll('.payee-card');
     
-    rows.forEach(row => {
-        const payeeName = row.querySelector('.payee-name').textContent.toLowerCase();
+    payeeCards.forEach(card => {
+        const payeeName = card.getAttribute('data-payee-name').toLowerCase();
         if (payeeName.includes(searchTerm)) {
-            row.style.display = '';
+            card.style.display = '';
         } else {
-            row.style.display = 'none';
+            card.style.display = 'none';
         }
     });
 }
 
 // Sort payees
 function sortPayees(sortBy) {
-    const table = document.getElementById('payees-table');
-    if (!table) return;
+    const listContent = document.querySelector('.transaction-list-content');
+    if (!listContent) return;
     
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('.payee-row'));
+    const payeeCards = Array.from(listContent.querySelectorAll('.payee-card'));
     
-    // Update active button
-    document.querySelectorAll('[id^="sort-"]').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`sort-${sortBy}`).classList.add('active');
+    // Update dropdown label and active state
+    document.getElementById('sortLabel').textContent = sortBy === 'name' ? 'Name' : 'Date Added';
+    document.querySelectorAll('#payeeSortDropdown + .dropdown-menu .dropdown-item').forEach(item => {
+        item.classList.remove('active');
+    });
     
-    rows.sort((a, b) => {
+    payeeCards.sort((a, b) => {
         if (sortBy === 'name') {
-            const nameA = a.querySelector('.payee-name').textContent.toLowerCase();
-            const nameB = b.querySelector('.payee-name').textContent.toLowerCase();
+            const nameA = a.getAttribute('data-payee-name').toLowerCase();
+            const nameB = b.getAttribute('data-payee-name').toLowerCase();
             return nameA.localeCompare(nameB);
         } else if (sortBy === 'date') {
-            // For date sorting, we'd need actual timestamps, but for now use the reverse order
-            return 0; // Keep existing order for date
+            const dateA = new Date(a.getAttribute('data-payee-created'));
+            const dateB = new Date(b.getAttribute('data-payee-created'));
+            return dateB - dateA; // Newest first
         }
         return 0;
     });
     
-    // Reorder rows
-    rows.forEach(row => tbody.appendChild(row));
+    // Reorder cards
+    payeeCards.forEach(card => listContent.appendChild(card));
 }
 
 // Show message helper

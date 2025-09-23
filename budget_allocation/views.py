@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.urls import reverse_lazy, reverse
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
-from django.utils.decorators import method_decorator
+from django.urls import reverse
+from django.views import View
 from django.db.models import Sum, Q, Count, Max
 from django.core.paginator import Paginator
 from django.http import JsonResponse
@@ -218,199 +218,162 @@ def dashboard(request):
 
 
 # Account Views
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def account_list(request):
-    """Account list view with same layout as dashboard"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to access accounts.")
-        return redirect('accounts:dashboard')
-    
-    # Ensure default accounts exist
-    from .utils import ensure_default_accounts_exist
-    ensure_default_accounts_exist(family)
-    
-    # Get accounts organized by type (same as dashboard)
-    # Get children of root accounts (hide the root Income/Expense accounts)
-    root_income = Account.objects.filter(
-        family=family, 
-        account_type='income',
-        parent__isnull=True
-    ).first()
-    
-    root_expense = Account.objects.filter(
-        family=family, 
-        account_type='expense',
-        parent__isnull=True
-    ).first()
-    
-    # Get children of root accounts instead of root accounts themselves
-    # Order by number of children (descending), then by name
-    income_accounts = Account.objects.filter(
-        family=family, 
-        parent=root_income,
-        is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').annotate(
-        children_count=Count('children', filter=Q(children__is_active=True))
-    ).order_by('-children_count', 'name') if root_income else Account.objects.none()
-    
-    expense_accounts = Account.objects.filter(
-        family=family, 
-        parent=root_expense,
-        is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').annotate(
-        children_count=Count('children', filter=Q(children__is_active=True))
-    ).order_by('-children_count', 'name') if root_expense else Account.objects.none()
-    
-    # Get current week and calculate overall balance (same as dashboard)
-    current_week = get_current_week(family)
-    overall_balance = calculate_overall_balance(family, current_week)
-    
-    context = {
-        'title': 'Account Management',
-        'income_accounts': income_accounts,
-        'expense_accounts': expense_accounts,
-        'overall_balance': overall_balance,
-        'current_week': current_week,
-        'show_management_tools': True,  # Differentiate from dashboard
-        'family': family,
-    }
-    return render(request, 'budget_allocation/account/list.html', context)
+
+class BudgetAllocationAccessMixin(LoginRequiredMixin):
+    """Ensure the signed-in user belongs to a family before using Budget Allocation.
+
+    Centralises the permission check and caches the Family instance so downstream
+    views can focus on presenting account information.
+    """
+
+    redirect_url = 'accounts:dashboard'
+    permission_error_message = (
+        "You must be part of a family to access budget allocation."
+    )
+
+    def dispatch(self, request, *args, **kwargs):
+        """Validate family membership before invoking the view."""
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
+        family = get_user_family(request.user)
+        if not family:
+            messages.error(request, self.permission_error_message)
+            return redirect(self.redirect_url)
+
+        # Cache the resolved family for downstream helpers and context builders.
+        self.family: Family = family
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_family(self):
+        """Return the resolved Family instance for reuse in subclasses."""
+        return self.family
 
 
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def account_list_all(request):
-    """Duplicated All Accounts view for Budget Allocation"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to access accounts.")
-        return redirect('accounts:dashboard')
+def get_top_level_accounts(family):
+    """Return the user-facing top-level income and expense accounts.
 
-    from .utils import ensure_default_accounts_exist
-    ensure_default_accounts_exist(family)
-
+    The templates hide the artificial Income/Expense root nodes, so we fetch their
+    direct children and prefetch nested descendants to avoid N+1 queries when
+    rendering the tree.
+    """
     root_income = Account.objects.filter(
         family=family,
         account_type='income',
-        parent__isnull=True
+        parent__isnull=True,
     ).first()
     root_expense = Account.objects.filter(
         family=family,
         account_type='expense',
-        parent__isnull=True
+        parent__isnull=True,
     ).first()
 
-    income_accounts = Account.objects.filter(
-        family=family,
-        parent=root_income,
-        is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').annotate(
-        children_count=Count('children', filter=Q(children__is_active=True))
-    ).order_by('-children_count', 'name') if root_income else Account.objects.none()
+    def _children(root):
+        if not root:
+            return Account.objects.none()
+        return (
+            Account.objects.filter(family=family, parent=root, is_active=True)
+            .select_related('parent')
+            # Prefetch grandchildren so templates can render nested trees without N+1 queries.
+            .prefetch_related('children__children__children')
+            .annotate(children_count=Count('children', filter=Q(children__is_active=True)))
+            .order_by('-children_count', 'name')
+        )
 
-    expense_accounts = Account.objects.filter(
-        family=family,
-        parent=root_expense,
-        is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').annotate(
-        children_count=Count('children', filter=Q(children__is_active=True))
-    ).order_by('-children_count', 'name') if root_expense else Account.objects.none()
-
-    current_week = get_current_week(family)
-    overall_balance = calculate_overall_balance(family, current_week)
-
-    context = {
-        'title': 'All Accounts (Duplicate)',
-        'income_accounts': income_accounts,
-        'expense_accounts': expense_accounts,
-        'overall_balance': overall_balance,
-        'current_week': current_week,
-        'show_management_tools': True,
-        'family': family,
-    }
-    return render(request, 'budget_allocation/account/list_all_accounts.html', context)
+    return _children(root_income), _children(root_expense)
 
 
-@login_required
-@family_required
-@app_permission_required('budget_allocation')
-def account_list_weekly(request):
-    """Weekly view of All Accounts with week navigation"""
-    family = get_user_family(request.user)
-    if not family:
-        messages.error(request, "You must be part of a family to access accounts.")
-        return redirect('accounts:dashboard')
+class AccountHierarchyBaseView(BudgetAllocationAccessMixin, View):
+    """Provide shared mechanics for account hierarchy pages and summaries."""
 
-    # Ensure default accounts exist
-    from .utils import ensure_default_accounts_exist
-    ensure_default_accounts_exist(family)
+    template_name = ''
+    page_title = ''
+    show_management_tools = True
 
-    # Determine current week from query or today
-    week_param = request.GET.get('week')
-    if week_param:
-        try:
-            parsed_date = datetime.strptime(week_param, '%Y-%m-%d').date()
-        except ValueError:
-            parsed_date = date.today()
-    else:
-        parsed_date = date.today()
+    def get(self, request, *args, **kwargs):
+        """Render the configured template with aggregated account hierarchy context."""
+        from .utils import ensure_default_accounts_exist
 
-    current_week = get_or_create_week_for_date(family, parsed_date)
+        # Ensure the standard root accounts exist before building the hierarchy.
+        ensure_default_accounts_exist(self.family)
 
-    # Compute previous and next weeks
-    prev_start = current_week.start_date - timedelta(days=7)
-    next_start = current_week.start_date + timedelta(days=7)
-    prev_week = get_or_create_week_for_date(family, prev_start)
-    next_week = get_or_create_week_for_date(family, next_start)
+        current_week = self.get_current_week()
+        income_accounts, expense_accounts = get_top_level_accounts(self.family)
+        overall_balance = calculate_overall_balance(self.family, current_week)
 
-    # Same account trees as regular list (children of root accounts)
-    root_income = Account.objects.filter(
-        family=family,
-        account_type='income',
-        parent__isnull=True
-    ).first()
+        context = {
+            'title': self.page_title,
+            'family': self.family,
+            'current_week': current_week,
+            'income_accounts': income_accounts,
+            'expense_accounts': expense_accounts,
+            'overall_balance': overall_balance,
+            'show_management_tools': self.show_management_tools,
+        }
+        context.update(self.get_additional_context(current_week))
+        return render(request, self.template_name, context)
 
-    root_expense = Account.objects.filter(
-        family=family,
-        account_type='expense',
-        parent__isnull=True
-    ).first()
+    def get_current_week(self):
+        """Return the WeeklyPeriod used to calculate balances."""
+        return get_current_week(self.family)
 
-    income_accounts = Account.objects.filter(
-        family=family,
-        parent=root_income,
-        is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').annotate(
-        children_count=Count('children', filter=Q(children__is_active=True))
-    ).order_by('-children_count', 'name') if root_income else Account.objects.none()
+    def get_additional_context(self, current_week):
+        """Allow subclasses to extend the context without duplicating logic."""
+        return {}
 
-    expense_accounts = Account.objects.filter(
-        family=family,
-        parent=root_expense,
-        is_active=True
-    ).select_related('parent').prefetch_related('children__children__children').annotate(
-        children_count=Count('children', filter=Q(children__is_active=True))
-    ).order_by('-children_count', 'name') if root_expense else Account.objects.none()
 
-    # Use helper to compute balances for this week
-    overall_balance = calculate_overall_balance(family, current_week)
+class AccountListView(AccountHierarchyBaseView):
+    """Main account list with the same layout as the dashboard."""
 
-    context = {
-        'title': 'Weekly Accounts',
-        'income_accounts': income_accounts,
-        'expense_accounts': expense_accounts,
-        'overall_balance': overall_balance,
-        'current_week': current_week,
-        'prev_week': prev_week,
-        'next_week': next_week,
-        'show_management_tools': True,
-        'family': family,
-    }
-    return render(request, 'budget_allocation/account/list_weekly.html', context)
+    template_name = 'budget_allocation/account/list.html'
+    page_title = 'Account Management'
+
+
+class AccountListAllView(AccountHierarchyBaseView):
+    """Alternate view that mirrors the legacy 'All Accounts' layout."""
+
+    template_name = 'budget_allocation/account/list_all_accounts.html'
+    page_title = 'All Accounts (Duplicate)'
+
+
+class WeeklyAccountListView(AccountHierarchyBaseView):
+    """Weekly view of the hierarchy with navigation helpers."""
+
+    template_name = 'budget_allocation/account/list_weekly.html'
+    page_title = 'Weekly Accounts'
+
+    def get_current_week(self):
+        """Resolve the requested week from the query string, defaulting to today."""
+        week_param = self.request.GET.get('week')
+        if week_param:
+            try:
+                target_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+            except ValueError:
+                target_date = date.today()
+        else:
+            target_date = date.today()
+        return get_or_create_week_for_date(self.family, target_date)
+
+    def get_additional_context(self, current_week):
+        """Add previous/next week references for template navigation."""
+        prev_week = get_or_create_week_for_date(
+            self.family,
+            current_week.start_date - timedelta(days=7),
+        )
+        next_week = get_or_create_week_for_date(
+            self.family,
+            current_week.start_date + timedelta(days=7),
+        )
+        return {
+            'prev_week': prev_week,
+            'next_week': next_week,
+        }
+
+
+# Preserve legacy callables for URL configuration imports.
+account_list = AccountListView.as_view()
+account_list_all = AccountListAllView.as_view()
+account_list_weekly = WeeklyAccountListView.as_view()
 
 
 @login_required

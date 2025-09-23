@@ -7,7 +7,11 @@ User = get_user_model()
 
 
 class Payee(models.Model):
-    """Payee/Merchant model for storing frequently used payee names"""
+    """Canonical payee/merchant entry scoped to a single user.
+
+    The unique constraint prevents duplicate payees per user so dropdowns stay clean
+    across the UI.
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -24,7 +28,7 @@ class Payee(models.Model):
 
 
 class Income(models.Model):
-    """Income transaction model for budget basic app"""
+    """Income transaction captured within the Budget Basic module."""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     payee = models.CharField(max_length=200)
@@ -47,7 +51,7 @@ class Income(models.Model):
 
 
 class Expense(models.Model):
-    """Expense transaction model for budget basic app"""
+    """Expense transaction captured within the Budget Basic module."""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     payee = models.CharField(max_length=200)

@@ -287,44 +287,6 @@ function hideTransactionDetails() {
     }
 }
 
-document.getElementById('detail-payee').textContent = 'Select a transaction';
-    document.getElementById('detail-date').textContent = '-';
-    document.getElementById('detail-amount').textContent = '$0.00';
-    document.getElementById('detail-type').textContent = '-';
-    document.getElementById('detail-notes').textContent = '-';
-
-    const editBtn = document.getElementById('edit-transaction-btn');
-    const deleteBtn = document.getElementById('delete-transaction-btn');
-    if (editBtn) editBtn.disabled = true;
-    if (deleteBtn) deleteBtn.disabled = true;
-
-    const activeCards = document.querySelectorAll('.transaction-card-data.selected');
-    if (activeCards.length > 0) {
-        activeCards.forEach(card => card.classList.remove('selected'));
-    }
-}
-
-    if (detailsPanel) {
-        detailsPanel.style.display = '';
-    }
-
-    document.getElementById('detail-payee').textContent = 'Select a transaction';
-    document.getElementById('detail-date').textContent = '-';
-    document.getElementById('detail-amount').textContent = '$0.00';
-    document.getElementById('detail-type').textContent = '-';
-    document.getElementById('detail-notes').textContent = '-';
-
-    const editBtn = document.getElementById('edit-transaction-btn');
-    const deleteBtn = document.getElementById('delete-transaction-btn');
-    if (editBtn) editBtn.disabled = true;
-    if (deleteBtn) deleteBtn.disabled = true;
-
-    const activeCards = document.querySelectorAll('.transaction-card-data.selected');
-    if (activeCards.length > 0) {
-        activeCards.forEach(card => card.classList.remove('selected'));
-    }
-}
-
 // Initialize transaction selection functionality
 let transactionClickHandler; // Store the click handler so we can remove it
 

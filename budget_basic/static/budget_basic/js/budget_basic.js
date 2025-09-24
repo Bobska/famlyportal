@@ -2180,21 +2180,9 @@ function doResize(e) {
     const clampedLeftWidth = Math.max(minLeftWidth, Math.min(newLeftWidth, maxLeftWidth));
     const rightWidth = containerWidth - clampedLeftWidth - resizerWidth;
 
-    let targetLeft = Math.max(minLeftWidth, Math.min(newLeftWidth, containerWidth - minRightWidth - resizerWidth));
-    let targetRight = containerWidth - targetLeft - resizerWidth;
-
-    if (targetRight < minRightWidth) {
-        targetRight = Math.max(minRightWidth, containerWidth - resizerWidth - minLeftWidth);
-        targetLeft = containerWidth - targetRight - resizerWidth;
-    }
-
-    if (targetLeft < minLeftWidth) {
-        targetLeft = minLeftWidth;
-        targetRight = Math.max(minRightWidth, containerWidth - targetLeft - resizerWidth);
-    }
-
-    targetLeft = Math.max(0, targetLeft);
-    targetRight = Math.max(0, targetRight);
+    const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
+    const targetLeft = Math.min(maxLeftWidth, Math.max(minLeftWidth, newLeftWidth));
+    const targetRight = containerWidth - resizerWidth - targetLeft;
 
     if (leftPanel) {
         leftPanel.style.width = `${targetLeft}px`;
@@ -2202,8 +2190,9 @@ function doResize(e) {
     }
 
     if (rightPanel) {
-        rightPanel.style.width = `${targetRight}px`;
-        rightPanel.style.flex = `0 0 ${targetRight}px`;
+        rightPanel.style.width = '';
+        rightPanel.style.flex = '1 1 auto';
+        rightPanel.style.minWidth = `${minRightWidth}px`;
     }
 
     e.preventDefault();

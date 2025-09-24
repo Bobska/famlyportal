@@ -2166,23 +2166,24 @@ function doResize(e) {
     if (!container || !leftPanel || !rightPanel) return;
     
     const deltaX = e.clientX - startX;
-    const newLeftWidth = startLeftWidth + deltaX;
-    const containerWidth = container.offsetWidth;
+    const desiredLeftWidth = startLeftWidth + deltaX;
+
+    const containerStyles = getComputedStyle(container);
+    const paddingLeft = parseFloat(containerStyles.paddingLeft) || 0;
+    const paddingRight = parseFloat(containerStyles.paddingRight) || 0;
+    const containerWidth = container.clientWidth;
+    const availableWidth = containerWidth - paddingLeft - paddingRight;
+
     const resizer = document.getElementById('panel-resizer');
     const resizerWidth = resizer ? resizer.offsetWidth : 6;
 
     const isPayeesPage = document.body.classList.contains('payees-page');
     const minLeftWidth = isPayeesPage ? 200 : 300; // ensure list stays readable
     const minRightWidth = isPayeesPage ? 200 : 250; // keep detail panel legible
-    const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
-    
-    // Clamp the new width within bounds
-    const clampedLeftWidth = Math.max(minLeftWidth, Math.min(newLeftWidth, maxLeftWidth));
-    const rightWidth = containerWidth - clampedLeftWidth - resizerWidth;
+    const maxLeftWidth = availableWidth - minRightWidth - resizerWidth;
 
-    const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
-    const targetLeft = Math.min(maxLeftWidth, Math.max(minLeftWidth, newLeftWidth));
-    const targetRight = containerWidth - resizerWidth - targetLeft;
+    const targetLeft = Math.max(minLeftWidth, Math.min(desiredLeftWidth, maxLeftWidth));
+    const targetRight = availableWidth - targetLeft - resizerWidth;
 
     if (leftPanel) {
         leftPanel.style.width = `${targetLeft}px`;
@@ -2190,9 +2191,9 @@ function doResize(e) {
     }
 
     if (rightPanel) {
-        rightPanel.style.width = '';
-        rightPanel.style.flex = '1 1 auto';
-        rightPanel.style.minWidth = `${minRightWidth}px`;
+        const appliedRightWidth = Math.max(minRightWidth, targetRight);
+        rightPanel.style.width = `${appliedRightWidth}px`;
+        rightPanel.style.flex = `0 0 ${appliedRightWidth}px`;
     }
 
     e.preventDefault();

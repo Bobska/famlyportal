@@ -126,27 +126,27 @@
                     {% if income_entries or expense_entries %}
                         {% for income in income_entries %}
                         <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date }}" data-transaction-payee="{{ income.payee|default_if_none:'' }}" data-transaction-amount="{{ income.amount }}" data-transaction-notes="{{ income.notes|default_if_none:'' }}" onclick="selectTransaction(this)">
-                            <div class="transaction-col transaction-date">{{ income.date|date:"D, j M" }}</div>
-                            <div class="transaction-col transaction-payee">
-                                <span class="transaction-payee-name">{{ income.payee|default:'Unnamed Income' }}</span>
+                            <div class="transaction-col transaction-cell transaction-date">{{ income.date|date:"D, j M" }}</div>
+                            <div class="transaction-col transaction-cell transaction-cell-info transaction-payee">
+                                <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
                                 {% if income.notes %}
-                                <small class="transaction-note text-muted d-none d-xl-inline">{{ income.notes }}</small>
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ income.notes }}</small>
                                 {% endif %}
                             </div>
-                            <div class="transaction-col transaction-amount text-success">+${{ income.amount|floatformat:2|intcomma }}</div>
+                            <div class="transaction-col transaction-cell transaction-amount text-success">+${{ income.amount|floatformat:2|intcomma }}</div>
                         </div>
                         {% endfor %}
 
                         {% for expense in expense_entries %}
                         <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date }}" data-transaction-payee="{{ expense.payee|default_if_none:'' }}" data-transaction-amount="{{ expense.amount }}" data-transaction-notes="{{ expense.notes|default_if_none:'' }}" onclick="selectTransaction(this)">
-                            <div class="transaction-col transaction-date">{{ expense.date|date:"D, j M" }}</div>
-                            <div class="transaction-col transaction-payee">
-                                <span class="transaction-payee-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
+                            <div class="transaction-col transaction-cell transaction-date">{{ expense.date|date:"D, j M" }}</div>
+                            <div class="transaction-col transaction-cell transaction-cell-info transaction-payee">
+                                <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
                                 {% if expense.notes %}
-                                <small class="transaction-note text-muted d-none d-xl-inline">{{ expense.notes }}</small>
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ expense.notes }}</small>
                                 {% endif %}
                             </div>
-                            <div class="transaction-col transaction-amount text-danger">-${{ expense.amount|floatformat:2|intcomma }}</div>
+                            <div class="transaction-col transaction-cell transaction-amount text-danger">-${{ expense.amount|floatformat:2|intcomma }}</div>
                         </div>
                         {% endfor %}
                     {% else %}

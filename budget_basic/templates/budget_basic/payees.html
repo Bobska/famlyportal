@@ -868,6 +868,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add background click handler for deselection
+    document.addEventListener('click', function(event) {
+        // Check if click is outside payee cards and detail panel
+        const clickedCard = event.target.closest('.payee-card');
+        const clickedDetailPanel = event.target.closest('.payee-detail-panel');
+        const clickedModal = event.target.closest('.modal');
+        const clickedButton = event.target.closest('button');
+        
+        // If clicked outside cards, detail panel, modals, and buttons, clear selection
+        if (!clickedCard && !clickedDetailPanel && !clickedModal && !clickedButton && selectedPayeeCard) {
+            clearPayeeSelection();
+        }
+    });
 });
 </script>
 {% endblock %}

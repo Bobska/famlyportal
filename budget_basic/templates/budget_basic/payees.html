@@ -50,30 +50,43 @@
                 <div class="panel-header">
                     <div class="panel-title">Payees</div>
                     <div class="panel-header-actions">
-                        <!-- Add payee button -->
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddPayeeModal()" title="Add New Payee" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddPayeeModal()" title="Add New Payee" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-plus-circle me-1"></i>
                             <span>Add Payee</span>
                         </button>
-                        
-                        <!-- Search input -->
-                        <div class="input-group input-group-sm" style="max-width: 200px;">
-                            <span class="input-group-text">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" class="form-control" id="payee-search" placeholder="Search..." onkeyup="filterPayees()">
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" onclick="showAddPayeeModal()" title="Add New Payee" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                        <div class="d-none d-lg-block" style="max-width: 200px;">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="payee-search" placeholder="Search..." onkeyup="filterPayees()">
+                            </div>
                         </div>
-                        
-                        <!-- Sort dropdown -->
                         <div class="dropdown ms-2">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="payeeSortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Payees">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-none d-lg-inline-flex" type="button" id="payeeSortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Payees">
                                 <i class="bi bi-sort-alpha-down me-1"></i>
                                 <span id="sortLabel">Name</span>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm action-btn dropdown-toggle d-lg-none" type="button" id="payeeSortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Payees">
+                                <i class="bi bi-sort-alpha-down"></i>
+                                <span class="visually-hidden" id="sortLabel">Name</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="payeeSortDropdown">
                                 <li><a class="dropdown-item active" href="#" onclick="sortPayees('name')">Sort by Name</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="sortPayees('date')">Sort by Date Added</a></li>
                             </ul>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-bs-toggle="collapse" data-bs-target="#payeeSearchBar" aria-expanded="false" aria-controls="payeeSearchBar" title="Search Payees">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="collapse d-lg-none" id="payeeSearchBar">
+                    <div class="search-bar-wrapper">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="payee-search" placeholder="Search..." onkeyup="filterPayees()">
                         </div>
                     </div>
                 </div>

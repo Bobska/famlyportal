@@ -105,8 +105,6 @@
                                                 <span class="badge bg-light text-dark me-1">{{ category.name }}</span>
                                             {% endfor %}
                                         </div>
-                                    {% else %}
-                                        <small class="text-muted">No categories</small>
                                     {% endif %}
                                 </div>
                             </div>
@@ -116,71 +114,50 @@
                         </div>
                     </div>
                     {% endfor %}
-                {% else %}
-                    <!-- Empty State within the panel structure -->
-                    <div class="text-center py-5 text-muted">
-                        <div class="mb-3">
-                            <i class="bi bi-people" style="font-size: 3rem;"></i>
-                        </div>
-                        <p class="mb-0">No payees yet</p>
-                        <small>Start by adding your first payee or merchant</small>
-                    </div>
                 {% endif %}
                 </div> <!-- Close transaction-list-content -->
-            </div>
-            
-            <!-- Resizable Divider -->
-            <div class="panel-resizer" id="panel-resizer">
-                <div class="resizer-handle"></div>
             </div>
             
             <!-- Right Side: Details Panel -->
             <div class="transaction-details-panel" id="payee-details-panel">
                 <div class="panel-header">
                     <h6 class="mb-0">Payee Details</h6>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearPayeeSelection()">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearPayeeSelection()" aria-label="Clear selection">
                         <i class="bi bi-x"></i>
                     </button>
                 </div>
                 <div class="panel-content">
-                    <div class="detail-section">
-                        <div class="detail-row">
-                            <span class="detail-label">Name:</span>
-                            <span class="detail-value" id="detail-payee-name">Select a payee</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Date Added:</span>
-                            <span class="detail-value" id="detail-payee-created">to view details</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Last Updated:</span>
-                            <span class="detail-value" id="detail-payee-updated">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Transactions:</span>
-                            <span class="detail-value" id="detail-payee-transactions">0</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Status:</span>
-                            <span class="detail-value" id="detail-payee-status">Active</span>
-                        </div>
-                        <div class="detail-row" id="linked-categories-section" style="display: none;">
-                            <span class="detail-label">Categories:</span>
-                            <div class="detail-value" id="detail-payee-categories">
-                                <!-- Linked categories will be shown here -->
+                    <div id="payee-detail-content" class="detail-content" hidden>
+                        <div class="detail-heading">
+                            <h2 class="detail-name" id="detail-payee-name"></h2>
+                            <div class="detail-meta">
+                                <div class="detail-meta-item">
+                                    <span class="detail-meta-label">Date added</span>
+                                    <span class="detail-meta-value" id="detail-payee-created"></span>
+                                </div>
+                                <div class="detail-meta-item">
+                                    <span class="detail-meta-label">Last updated</span>
+                                    <span class="detail-meta-value" id="detail-payee-updated"></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-payee-btn" onclick="editSelectedPayee()" disabled>
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-payee-btn" onclick="deleteSelectedPayee()" disabled>
-                            <i class="bi bi-trash me-1"></i>Delete
-                        </button>
+                        <div class="detail-section" id="linked-categories-section" hidden>
+                            <span class="detail-section-label">Categories</span>
+                            <div class="detail-section-body" id="detail-payee-categories"></div>
+                        </div>
+                        <div class="detail-actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-payee-btn" onclick="editSelectedPayee()" disabled>
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-payee-btn" onclick="deleteSelectedPayee()" disabled>
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+
         </div>
     </div>
 </div>
@@ -306,63 +283,70 @@ let currentDeletePayeeId = null;
 let selectedPayeeCard = null;
 let currentPayeeData = null;
 
+function formatDate(value) {
+    if (!value) {
+        return '';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return '';
+    }
+
+    return parsed.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
 // Payee selection functionality - matches transaction selection pattern
 function selectPayee(card, event) {
-    // Prevent event bubbling
     if (event) {
         event.stopPropagation();
     }
-    
-    // Remove previous selection
+
+    if (selectedPayeeCard === card) {
+        clearPayeeSelection();
+        return;
+    }
+
     if (selectedPayeeCard) {
         selectedPayeeCard.classList.remove('selected');
     }
-    
-    // Select new card
+
     selectedPayeeCard = card;
     card.classList.add('selected');
-    
-    // Get payee data from attributes
+
     const payeeId = card.getAttribute('data-payee-id');
     const payeeName = card.getAttribute('data-payee-name');
     const payeeCreated = card.getAttribute('data-payee-created');
     const payeeUpdated = card.getAttribute('data-payee-updated');
     const payeeCategories = card.getAttribute('data-payee-categories');
     const payeeCategoryIds = card.getAttribute('data-payee-category-ids');
-    
-    // Store current payee data for editing
+
     currentPayeeData = {
         id: payeeId,
         name: payeeName,
         categories: payeeCategories,
         categoryIds: payeeCategoryIds ? payeeCategoryIds.split(',').filter(id => id.trim()) : []
     };
-    
-    // Update details panel
+
+    const detailContent = document.getElementById('payee-detail-content');
+    if (detailContent) {
+        detailContent.hidden = false;
+    }
+
     document.getElementById('detail-payee-name').textContent = payeeName;
-    document.getElementById('detail-payee-created').textContent = new Date(payeeCreated).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-    document.getElementById('detail-payee-updated').textContent = new Date(payeeUpdated).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-    document.getElementById('detail-payee-transactions').textContent = '0'; // TODO: Get actual count
-    document.getElementById('detail-payee-status').textContent = 'Active';
-    
-    // Show linked categories
+    document.getElementById('detail-payee-created').textContent = formatDate(payeeCreated);
+    document.getElementById('detail-payee-updated').textContent = formatDate(payeeUpdated);
+
     updateLinkedCategoriesDisplay(payeeCategories, currentPayeeData.categoryIds);
-    
-    // Enable action buttons
+
     document.getElementById('edit-payee-btn').disabled = false;
     document.getElementById('delete-payee-btn').disabled = false;
-    
-    // Make detail panel active (remove faded state)
-    document.getElementById('payee-details-panel').classList.add('has-content');
 }
+
 
 // Clear payee selection
 function clearPayeeSelection() {
@@ -370,27 +354,24 @@ function clearPayeeSelection() {
         selectedPayeeCard.classList.remove('selected');
         selectedPayeeCard = null;
     }
-    
-    // Reset details panel
-    document.getElementById('detail-payee-name').textContent = 'Select a payee';
-    document.getElementById('detail-payee-created').textContent = 'to view details';
-    document.getElementById('detail-payee-updated').textContent = '-';
-    document.getElementById('detail-payee-transactions').textContent = '0';
-    document.getElementById('detail-payee-status').textContent = 'Active';
-    
-    // Clear linked categories display
+
+    const detailContent = document.getElementById('payee-detail-content');
+    if (detailContent) {
+        detailContent.hidden = true;
+    }
+
+    document.getElementById('detail-payee-name').textContent = '';
+    document.getElementById('detail-payee-created').textContent = '';
+    document.getElementById('detail-payee-updated').textContent = '';
+
     clearLinkedCategoriesDisplay();
-    
-    // Disable action buttons
+
     document.getElementById('edit-payee-btn').disabled = true;
     document.getElementById('delete-payee-btn').disabled = true;
-    
-    // Make detail panel faded (remove has-content class)
-    document.getElementById('payee-details-panel').classList.remove('has-content');
-    
-    // Clear current payee data
+
     currentPayeeData = null;
 }
+
 
 // Edit selected payee
 function editSelectedPayee() {
@@ -623,45 +604,40 @@ function confirmDeletePayee() {
 // Add payee to list
 function addPayeeToList(payee) {
     const listContent = document.querySelector('.transaction-list-content');
-    
-    // Remove empty state if present
-    const emptyState = listContent.querySelector('.text-center.py-5');
-    if (emptyState) {
-        emptyState.remove();
-    }
-    
+
     const payeeCard = document.createElement('div');
     payeeCard.className = 'transaction-card transaction-card-data payee-card';
     payeeCard.setAttribute('data-payee-id', payee.id);
     payeeCard.setAttribute('data-payee-name', payee.name);
     payeeCard.setAttribute('data-payee-categories', payee.categories_display || 'No categories');
     payeeCard.setAttribute('data-payee-category-ids', payee.categories ? payee.categories.map(c => c.id).join(',') : '');
-    
-    const now = new Date();
-    payeeCard.setAttribute('data-payee-created', now.toISOString().split('T')[0]);
-    payeeCard.setAttribute('data-payee-updated', now.toISOString().split('T')[0]);
-    
+
+    const createdAt = payee.created_at || new Date().toISOString();
+    const updatedAt = payee.updated_at || createdAt;
+    payeeCard.setAttribute('data-payee-created', createdAt);
+    payeeCard.setAttribute('data-payee-updated', updatedAt);
+
     payeeCard.onclick = function(event) { selectPayee(this, event); };
-    
-    const nowFormatted = now.toLocaleDateString('en-US', { 
+
+    const createdDate = new Date(createdAt);
+    const formattedDate = Number.isNaN(createdDate.getTime()) ? '' : createdDate.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric'
     });
-    
-    // Build categories HTML
+
     let categoriesHtml = '';
     if (payee.categories && payee.categories.length > 0) {
-        const categoryBadges = payee.categories.map(cat => 
+        const categoryBadges = payee.categories.map(cat =>
             `<span class="badge bg-light text-dark me-1">${cat.name}</span>`
         ).join('');
         categoriesHtml = `<div class="payee-categories">${categoryBadges}</div>`;
     } else {
         categoriesHtml = `<small class="text-muted">No categories</small>`;
     }
-    
+
     payeeCard.innerHTML = `
-        <div class="transaction-col transaction-date">${nowFormatted}</div>
+        <div class="transaction-col transaction-date">${formattedDate}</div>
         <div class="transaction-col transaction-payee">
             <div class="d-flex align-items-center">
                 <div class="payee-avatar me-2">
@@ -674,92 +650,86 @@ function addPayeeToList(payee) {
             </div>
         </div>
         <div class="transaction-col transaction-amount">
-            <small class="text-muted">${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small>
+            <small class="text-muted">${formattedDate}</small>
         </div>
     `;
-    
+
     listContent.appendChild(payeeCard);
 }
+
 
 // Update payee in list
 function updatePayeeInList(payeeId, payeeData) {
     const payeeCard = document.querySelector(`[data-payee-id="${payeeId}"]`);
     if (payeeCard) {
-        // Update data attributes
         payeeCard.setAttribute('data-payee-name', payeeData.name);
         payeeCard.setAttribute('data-payee-categories', payeeData.categories_display || 'No categories');
         payeeCard.setAttribute('data-payee-category-ids', payeeData.categories ? payeeData.categories.map(c => c.id).join(',') : '');
-        
-        // Update displayed name
+
+        if (payeeData.created_at) {
+            payeeCard.setAttribute('data-payee-created', payeeData.created_at);
+        }
+        if (payeeData.updated_at) {
+            payeeCard.setAttribute('data-payee-updated', payeeData.updated_at);
+        }
+
         const nameElement = payeeCard.querySelector('.payee-name');
-        nameElement.textContent = payeeData.name;
-        
-        // Update categories display
+        if (nameElement) {
+            nameElement.textContent = payeeData.name;
+        }
+
         const payeeContainer = payeeCard.querySelector('.transaction-col.transaction-payee > .d-flex > div:last-child');
         if (payeeContainer) {
             let categoriesHtml = '';
             if (payeeData.categories && payeeData.categories.length > 0) {
-                const categoryBadges = payeeData.categories.map(cat => 
+                const categoryBadges = payeeData.categories.map(cat =>
                     `<span class="badge bg-light text-dark me-1">${cat.name}</span>`
                 ).join('');
                 categoriesHtml = `<div class="payee-categories">${categoryBadges}</div>`;
             } else {
                 categoriesHtml = `<small class="text-muted">No categories</small>`;
             }
-            
-            // Remove existing categories
+
             const existingCategories = payeeContainer.querySelector('.payee-categories, small');
             if (existingCategories) {
                 existingCategories.remove();
             }
-            
-            // Add updated categories
+
             payeeContainer.insertAdjacentHTML('beforeend', categoriesHtml);
         }
-        
-        // If this is the selected payee, update details panel
+
         if (payeeCard === selectedPayeeCard) {
             document.getElementById('detail-payee-name').textContent = payeeData.name;
-            // Update currentPayeeData for future edits
+            document.getElementById('detail-payee-created').textContent = formatDate(payeeCard.getAttribute('data-payee-created'));
+            document.getElementById('detail-payee-updated').textContent = formatDate(payeeCard.getAttribute('data-payee-updated'));
+
             currentPayeeData = {
                 id: payeeId,
                 name: payeeData.name,
                 categories: payeeData.categories_display,
                 categoryIds: payeeData.categories ? payeeData.categories.map(c => c.id.toString()) : []
             };
+
+            updateLinkedCategoriesDisplay(payeeData.categories_display, currentPayeeData.categoryIds);
         }
     }
 }
 
+
 // Remove payee from list
 function removePayeeFromList(payeeId) {
     const payeeCard = document.querySelector(`[data-payee-id="${payeeId}"]`);
-    if (payeeCard) {
-        // Clear selection if this payee was selected
-        if (payeeCard === selectedPayeeCard) {
-            clearPayeeSelection();
-        }
-        
-        payeeCard.remove();
-        
-        // Check if list is now empty
-        const listContent = document.querySelector('.transaction-list-content');
-        const remainingPayees = listContent.querySelectorAll('.payee-card');
-        
-        if (remainingPayees.length === 0) {
-            // Add empty state
-            listContent.innerHTML = `
-                <div class="text-center py-5 text-muted">
-                    <div class="mb-3">
-                        <i class="bi bi-people" style="font-size: 3rem;"></i>
-                    </div>
-                    <p class="mb-0">No payees yet</p>
-                    <small>Start by adding your first payee or merchant</small>
-                </div>
-            `;
-        }
+    if (!payeeCard) {
+        return;
     }
+
+    if (payeeCard === selectedPayeeCard) {
+        clearPayeeSelection();
+    }
+
+    payeeCard.remove();
 }
+
 
 // Update payee statistics
 function updatePayeeStats() {
@@ -847,37 +817,43 @@ function showMessage(message, type) {
 function updateLinkedCategoriesDisplay(categoriesText, categoryIds) {
     const section = document.getElementById('linked-categories-section');
     const container = document.getElementById('detail-payee-categories');
-    
-    if (!categoriesText || categoriesText === 'No categories' || categoryIds.length === 0) {
-        section.style.display = 'none';
+
+    if (!section || !container) {
         return;
     }
-    
-    // Create clickable category badges
+
+    const hasCategories = categoriesText && categoriesText !== 'No categories' && categoryIds && categoryIds.length > 0;
+
+    if (!hasCategories) {
+        section.hidden = true;
+        container.innerHTML = '';
+        return;
+    }
+
     const categoryNames = categoriesText.split(', ');
     const badgesHtml = categoryNames.map((name, index) => {
         const categoryId = categoryIds[index];
-        return `<span class="badge bg-light text-dark me-1 mb-1 linked-category-badge" 
-                      data-category-id="${categoryId}" 
-                      style="cursor: pointer;" 
-                      onclick="highlightCategoryById('${categoryId}')" 
-                      title="Click to highlight this category">
-                    ${name}
-                </span>`;
+        return `<span class="badge bg-light text-dark me-1 mb-1 linked-category-badge" data-category-id="${categoryId}" style="cursor: pointer;" onclick="highlightCategoryById('${categoryId}')" title="Click to highlight this category">${name}</span>`;
     }).join('');
-    
+
     container.innerHTML = badgesHtml;
-    section.style.display = 'block';
+    section.hidden = false;
 }
+
 
 // Clear linked categories display
 function clearLinkedCategoriesDisplay() {
     const section = document.getElementById('linked-categories-section');
     const container = document.getElementById('detail-payee-categories');
-    
-    section.style.display = 'none';
+
+    if (!section || !container) {
+        return;
+    }
+
+    section.hidden = true;
     container.innerHTML = '';
 }
+
 
 // Highlight a category by ID (for navigation to categories page)
 function highlightCategoryById(categoryId) {

@@ -107,12 +107,9 @@
     min-width: 260px;
     max-width: 360px;
     min-height: 0;
-    overflow-y: auto;
-}
-
-/* Remove draggable divider for simplified layout */
-.payees-page .panel-resizer {
-    display: none !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .payees-page .panel-header {
@@ -215,45 +212,69 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
     background-color: #ffffff;
 }
 
-.payees-page .detail-section {
+.payees-page .detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.payees-page .detail-heading {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.payees-page .detail-row {
+.payees-page .detail-name {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.payees-page .detail-meta {
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #e3e3e3;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
-.payees-page .detail-row:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+.payees-page .detail-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.payees-page .detail-label {
-    font-size: 0.8rem;
+.payees-page .detail-meta-label,
+.payees-page .detail-section-label {
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #5d5d5d;
 }
 
-.payees-page .detail-value {
+.payees-page .detail-meta-value {
     font-weight: 500;
     color: #1f1f1f;
 }
 
-.payees-page #detail-payee-categories {
+.payees-page .detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.payees-page .detail-section-body {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+}
+
+.payees-page .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .payees-page .badge {

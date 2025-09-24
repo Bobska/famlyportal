@@ -932,3 +932,45 @@ def category_search(request):
     ]
     
     return JsonResponse({'categories': category_list})
+
+
+@login_required
+def category_payees(request, category_id):
+    """Get payees linked to a specific category."""
+    try:
+        category = Category.objects.get(id=category_id, user=request.user)
+        
+        # Get all payees linked to this category
+        payees = category.payees.all().order_by('name')
+        
+        payee_list = [
+            {
+                'id': payee.id,
+                'name': payee.name,
+                'categories_display': payee.get_categories_display(),
+                'created_at': payee.created_at.isoformat(),
+                'updated_at': payee.updated_at.isoformat(),
+            }
+            for payee in payees
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'category': {
+                'id': category.id,
+                'name': category.name,
+            },
+            'payees': payee_list,
+            'count': len(payee_list)
+        })
+        
+    except Category.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Category not found or access denied.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error fetching payees: {str(e)}'
+        })

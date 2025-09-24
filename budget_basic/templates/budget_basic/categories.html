@@ -34,12 +34,23 @@
         </div>
     </div>
     
-    <!-- Categories card with integrated side panel - matches transactions structure -->
+    <!-- Categories card with three-panel layout -->
     <div class="card" id="categories-card">
-        <!-- Always show the panel structure for consistent layout -->
-        <div class="transactions-with-panel">
-            <!-- Left Side: Category Cards Container -->
-            <div class="transaction-cards-container" id="category-list">
+        <!-- Three-panel structure: Categories | Payees | Details -->
+        <div class="three-panel-layout">
+            <!-- Panel 1: Categories List -->
+            <div class="panel panel-categories" id="categories-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Categories</div>
+                    <div class="panel-header-actions">
+                        <!-- Add category button -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content" id="category-list">
                 <!-- Left Panel Header -->
                 <div class="panel-header">
                     <div class="panel-title">Categories</div>
@@ -68,6 +79,16 @@
                                 <li><a class="dropdown-item active" href="#" onclick="sortCategories('name')">Sort by Name</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="sortCategories('date')">Sort by Date Added</a></li>
                             </ul>
+                        </div>
+                        
+                        <!-- Action buttons for selected category -->
+                        <div class="ms-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="edit-category-btn" onclick="editSelectedCategory()" disabled title="Edit Selected Category">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" id="delete-category-btn" onclick="deleteSelectedCategory()" disabled title="Delete Selected Category">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -115,58 +136,41 @@
                         <small>Start by adding your first category to organize transactions</small>
                     </div>
                 {% endif %}
-                </div> <!-- Close transaction-list-content -->
+                </div> <!-- Close categories list -->
             </div>
             
-            <!-- Resizable Divider -->
-            <div class="panel-resizer" id="panel-resizer">
-                <div class="resizer-handle"></div>
-            </div>
-            
-            <!-- Right Side: Details Panel -->
-            <div class="transaction-details-panel" id="category-details-panel">
+            <!-- Panel 2: Payees List (shows when category is selected) -->
+            <div class="panel panel-payees" id="payees-panel">
                 <div class="panel-header">
-                    <h6 class="mb-0">Category Details</h6>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCategorySelection()">
+                    <div class="panel-title">Payees</div>
+                    <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
+                </div>
+                <div class="panel-content" id="payees-list">
+                    <div class="empty-state text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                        </div>
+                        <p class="mb-0">Select a category</p>
+                        <small>to see its linked payees</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel 3: Details Panel -->
+            <div class="panel panel-details" id="details-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Details</div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllSelections()" id="clear-selection-btn" style="display: none;">
                         <i class="bi bi-x"></i>
                     </button>
                 </div>
-                <div class="panel-content">
-                    <div class="detail-section">
-                        <div class="detail-row">
-                            <span class="detail-label">Name:</span>
-                            <span class="detail-value" id="detail-category-name">Select a category</span>
+                <div class="panel-content" id="details-content">
+                    <div class="empty-state text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-info-circle" style="font-size: 3rem; opacity: 0.3;"></i>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Description:</span>
-                            <span class="detail-value" id="detail-category-description">to view details</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Date Added:</span>
-                            <span class="detail-value" id="detail-category-created">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Last Updated:</span>
-                            <span class="detail-value" id="detail-category-updated">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Status:</span>
-                            <span class="detail-value" id="detail-category-status">Active</span>
-                        </div>
-                        <div class="detail-row" id="linked-payees-section" style="display: none;">
-                            <span class="detail-label">Payees:</span>
-                            <div class="detail-value" id="detail-category-payees">
-                                <!-- Linked payees will be shown here -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-category-btn" onclick="editSelectedCategory()" disabled>
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-category-btn" onclick="deleteSelectedCategory()" disabled>
-                            <i class="bi bi-trash me-1"></i>Delete
-                        </button>
+                        <p class="mb-0">Select an item</p>
+                        <small>to view detailed information</small>
                     </div>
                 </div>
             </div>
@@ -285,18 +289,20 @@
 let currentEditCategoryId = null;
 let currentDeleteCategoryId = null;
 let selectedCategoryCard = null;
+let selectedPayeeCard = null;
 
-// Category selection functionality - matches transaction selection pattern
+// Category selection functionality - three panel layout
 function selectCategory(card, event) {
     // Prevent event bubbling
     if (event) {
         event.stopPropagation();
     }
     
-    // Remove previous selection
+    // Remove previous selections
     if (selectedCategoryCard) {
         selectedCategoryCard.classList.remove('selected');
     }
+    clearPayeeSelection();
     
     // Select new card
     selectedCategoryCard = card;
@@ -306,33 +312,270 @@ function selectCategory(card, event) {
     const categoryId = card.getAttribute('data-category-id');
     const categoryName = card.getAttribute('data-category-name');
     const categoryDescription = card.getAttribute('data-category-description');
-    const categoryCreated = card.getAttribute('data-category-created');
-    const categoryUpdated = card.getAttribute('data-category-updated');
     
-    // Update details panel
-    document.getElementById('detail-category-name').textContent = categoryName;
-    document.getElementById('detail-category-description').textContent = categoryDescription || 'No description provided';
-    document.getElementById('detail-category-created').textContent = new Date(categoryCreated).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-    document.getElementById('detail-category-updated').textContent = new Date(categoryUpdated).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-    document.getElementById('detail-category-status').textContent = 'Active';
+    // Load payees for this category in Panel 2
+    loadPayeesForCategory(categoryId, categoryName);
     
-    // Show linked payees for this category
-    updateLinkedPayeesDisplay(categoryId, categoryName);
+    // Show category details in Panel 3
+    showCategoryDetails(categoryId, categoryName, categoryDescription);
     
     // Enable action buttons
     document.getElementById('edit-category-btn').disabled = false;
     document.getElementById('delete-category-btn').disabled = false;
+}
+
+// Load payees linked to selected category
+function loadPayeesForCategory(categoryId, categoryName) {
+    const payeesPanel = document.getElementById('payees-list');
+    const payeesPanelElement = document.querySelector('.panel-payees');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
     
-    // Make detail panel active (remove faded state)
-    document.getElementById('category-details-panel').classList.add('has-content');
+    if (!payeesPanel) {
+        console.error('Payees panel not found');
+        return;
+    }
+    
+    // Update subtitle
+    if (payeesSubtitle) {
+        payeesSubtitle.textContent = `Linked to ${categoryName}`;
+    }
+    
+    // Show loading state
+    payeesPanel.innerHTML = `
+        <div class="panel-empty">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Loading payees...
+        </div>
+    `;
+    payeesPanelElement.classList.add('has-content');
+    
+    // Make AJAX call to fetch payees
+    fetch(`/budget-basic/category/${categoryId}/payees/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPayees(data.payees, categoryName);
+        } else {
+            showPayeesError(data.error, categoryName);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching payees:', error);
+        showPayeesError('Network error. Please try again.', categoryName);
+    });
+}
+
+// Display payees in Panel 2
+function displayPayees(payees, categoryName) {
+    const payeesPanel = document.getElementById('payees-list');
+    
+    if (payees.length === 0) {
+        // No payees linked
+        payeesPanel.innerHTML = `
+            <div class="panel-empty">
+                <div class="text-muted text-center py-4">
+                    <i class="bi bi-person-plus mb-2" style="font-size: 2rem;"></i>
+                    <p class="mb-1">No payees linked</p>
+                    <small>Link payees to "${categoryName}" on the Payees page</small>
+                    <div class="mt-3">
+                        <a href="{% url 'budget_basic:payee_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-arrow-right me-1"></i>
+                            Go to Payees
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Display payees as cards
+    let payeesHtml = '';
+    payees.forEach(payee => {
+        const createdDate = new Date(payee.created_at).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        payeesHtml += `
+            <div class="transaction-card transaction-card-data payee-card" 
+                 data-payee-id="${payee.id}"
+                 data-payee-name="${payee.name}"
+                 data-payee-categories="${payee.categories_display}"
+                 data-payee-created="${payee.created_at}"
+                 data-payee-updated="${payee.updated_at}"
+                 onclick="selectPayee(this, event)">
+                <div class="transaction-col transaction-date">${createdDate}</div>
+                <div class="transaction-col transaction-payee">
+                    <div class="d-flex align-items-center">
+                        <div class="payee-icon me-2">
+                            <i class="bi bi-person-fill text-muted"></i>
+                        </div>
+                        <div>
+                            <div class="payee-name">${payee.name}</div>
+                            <small class="text-muted">${payee.categories_display}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="transaction-col transaction-amount">
+                    <small class="text-muted">Linked</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    payeesPanel.innerHTML = payeesHtml;
+}
+
+// Show error message in payees panel
+function showPayeesError(errorMessage, categoryName) {
+    const payeesPanel = document.getElementById('payees-list');
+    
+    payeesPanel.innerHTML = `
+        <div class="panel-empty">
+            <div class="text-muted text-center py-4">
+                <i class="bi bi-exclamation-triangle mb-2" style="font-size: 2rem; color: #dc3545;"></i>
+                <p class="mb-1">Error loading payees</p>
+                <small>${errorMessage}</small>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="loadPayeesForCategory(${selectedCategoryCard.getAttribute('data-category-id')}, '${categoryName}')">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Show category details in Panel 3
+function showCategoryDetails(categoryId, categoryName, categoryDescription) {
+    const detailsPanel = document.getElementById('details-content');
+    const detailsPanelElement = document.querySelector('.panel-details');
+    
+    if (!detailsPanel) {
+        console.error('Details panel not found');
+        return;
+    }
+    
+    const created = selectedCategoryCard.getAttribute('data-category-created');
+    const updated = selectedCategoryCard.getAttribute('data-category-updated');
+    
+    detailsPanel.innerHTML = `
+        <div class="detail-content">
+            <h5 class="mb-3">${categoryName}</h5>
+            <div class="mb-3">
+                <label class="form-label text-muted small">Description</label>
+                <p class="mb-0">${categoryDescription || 'No description provided'}</p>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Created</label>
+                    <p class="mb-0">${new Date(created).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Updated</label>
+                    <p class="mb-0">${new Date(updated).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="badge bg-success">Active</span>
+            </div>
+        </div>
+    `;
+    
+    detailsPanelElement.classList.add('has-content');
+}
+
+// Payee selection in Panel 2
+function selectPayee(card, event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    // Remove previous payee selection
+    if (selectedPayeeCard) {
+        selectedPayeeCard.classList.remove('selected');
+    }
+    
+    // Select new payee card
+    selectedPayeeCard = card;
+    card.classList.add('selected');
+    
+    // Get payee data from attributes
+    const payeeName = card.getAttribute('data-payee-name');
+    const payeeCategories = card.getAttribute('data-payee-categories');
+    const payeeCreated = card.getAttribute('data-payee-created');
+    const payeeUpdated = card.getAttribute('data-payee-updated');
+    
+    // Show payee details in Panel 3
+    showPayeeDetails(payeeName, payeeCategories, payeeCreated, payeeUpdated);
+}
+
+// Show payee details in Panel 3
+function showPayeeDetails(payeeName, payeeCategories, payeeCreated, payeeUpdated) {
+    const detailsPanel = document.getElementById('details-content');
+    const detailsPanelElement = document.querySelector('.panel-details');
+    
+    if (!detailsPanel) {
+        console.error('Details panel not found');
+        return;
+    }
+    
+    detailsPanel.innerHTML = `
+        <div class="detail-content">
+            <h5 class="mb-3">${payeeName}</h5>
+            <div class="mb-3">
+                <label class="form-label text-muted small">Categories</label>
+                <p class="mb-0">${payeeCategories || 'No categories assigned'}</p>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Created</label>
+                    <p class="mb-0">${new Date(payeeCreated).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Updated</label>
+                    <p class="mb-0">${new Date(payeeUpdated).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="badge bg-primary">Linked to ${selectedCategoryCard.getAttribute('data-category-name')}</span>
+            </div>
+        </div>
+    `;
+    
+    detailsPanelElement.classList.add('has-content');
+}
+
+// Clear all selections
+function clearAllSelections() {
+    clearCategorySelection();
+    clearPayeeSelection();
+    clearDetailsPanel();
 }
 
 // Clear category selection
@@ -342,22 +585,64 @@ function clearCategorySelection() {
         selectedCategoryCard = null;
     }
     
-    // Reset details panel
-    document.getElementById('detail-category-name').textContent = 'Select a category';
-    document.getElementById('detail-category-description').textContent = 'to view details';
-    document.getElementById('detail-category-created').textContent = '-';
-    document.getElementById('detail-category-updated').textContent = '-';
-    document.getElementById('detail-category-status').textContent = 'Active';
-    
-    // Clear linked payees display
-    clearLinkedPayeesDisplay();
-    
     // Disable action buttons
     document.getElementById('edit-category-btn').disabled = true;
     document.getElementById('delete-category-btn').disabled = true;
+}
+
+// Clear payee selection
+function clearPayeeSelection() {
+    if (selectedPayeeCard) {
+        selectedPayeeCard.classList.remove('selected');
+        selectedPayeeCard = null;
+    }
     
-    // Make detail panel faded (remove has-content class)
-    document.getElementById('category-details-panel').classList.remove('has-content');
+    // Clear payees panel
+    const payeesPanel = document.getElementById('payees-list');
+    const payeesPanelElement = document.querySelector('.panel-payees');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    
+    if (payeesSubtitle) {
+        payeesSubtitle.textContent = 'Select a category';
+    }
+    
+    if (payeesPanel) {
+        payeesPanel.innerHTML = `
+            <div class="empty-state text-center py-5 text-muted">
+                <div class="mb-3">
+                    <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                </div>
+                <p class="mb-0">Select a category</p>
+                <small>to see its linked payees</small>
+            </div>
+        `;
+    }
+    
+    if (payeesPanelElement) {
+        payeesPanelElement.classList.remove('has-content');
+    }
+}
+
+// Clear details panel
+function clearDetailsPanel() {
+    const detailsPanel = document.getElementById('details-content');
+    const detailsPanelElement = document.querySelector('.panel-details');
+    
+    if (detailsPanel) {
+        detailsPanel.innerHTML = `
+            <div class="empty-state text-center py-5 text-muted">
+                <div class="mb-3">
+                    <i class="bi bi-info-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                </div>
+                <p class="mb-0">Select an item</p>
+                <small>to view detailed information</small>
+            </div>
+        `;
+    }
+    
+    if (detailsPanelElement) {
+        detailsPanelElement.classList.remove('has-content');
+    }
 }
 
 // Edit selected category
@@ -654,8 +939,7 @@ function updateCategoryInList(categoryId, categoryData) {
         
         // If this is the selected category, update details panel
         if (categoryCard === selectedCategoryCard) {
-            document.getElementById('detail-category-name').textContent = categoryData.name;
-            document.getElementById('detail-category-description').textContent = categoryData.description || 'No description provided';
+            showCategoryDetails(categoryId, categoryData.name, categoryData.description);
         }
     }
 }
@@ -666,7 +950,7 @@ function removeCategoryFromList(categoryId) {
     if (categoryCard) {
         // Clear selection if this category was selected
         if (categoryCard === selectedCategoryCard) {
-            clearCategorySelection();
+            clearAllSelections();
         }
         
         categoryCard.remove();
@@ -774,35 +1058,6 @@ function showMessage(message, type) {
     }, 5000);
 }
 
-// Update linked payees display in detail panel
-function updateLinkedPayeesDisplay(categoryId, categoryName) {
-    const section = document.getElementById('linked-payees-section');
-    const container = document.getElementById('detail-category-payees');
-    
-    // For this demo, show a simple message about the relationship
-    // In a full implementation, we'd fetch the actual linked payees
-    container.innerHTML = `
-        <small class="text-muted d-block mb-2">
-            <i class="bi bi-info-circle me-1"></i>
-            This category can be linked to payees on the Payees page
-        </small>
-        <a href="{% url 'budget_basic:payee_list' %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-arrow-right me-1"></i>
-            Manage Payee Links
-        </a>
-    `;
-    section.style.display = 'block';
-}
-
-// Clear linked payees display
-function clearLinkedPayeesDisplay() {
-    const section = document.getElementById('linked-payees-section');
-    const container = document.getElementById('detail-category-payees');
-    
-    section.style.display = 'none';
-    container.innerHTML = '';
-}
-
 // Highlight a payee by ID (for navigation to payees page)
 function highlightPayeeById(payeeId) {
     // For now, just show a message about the relationship
@@ -828,15 +1083,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add background click handler for deselection
     document.addEventListener('click', function(event) {
-        // Check if click is outside category cards and detail panel
-        const clickedCard = event.target.closest('.category-card');
-        const clickedDetailPanel = event.target.closest('.transaction-details-panel');
+        // Check if click is inside any panel or interactive element
+        const clickedPanel = event.target.closest('.panel');
         const clickedModal = event.target.closest('.modal');
         const clickedButton = event.target.closest('button');
+        const clickedForm = event.target.closest('form');
         
-        // If clicked outside cards, detail panel, modals, and buttons, clear selection
-        if (!clickedCard && !clickedDetailPanel && !clickedModal && !clickedButton && selectedCategoryCard) {
-            clearCategorySelection();
+        // If clicked outside all panels, modals, buttons, and forms, clear all selections
+        if (!clickedPanel && !clickedModal && !clickedButton && !clickedForm && (selectedCategoryCard || selectedPayeeCard)) {
+            clearAllSelections();
         }
     });
 });

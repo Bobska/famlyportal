@@ -51,9 +51,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize action button states (hidden by default)
     hideActionButtons();
     
-    // Initialize filter with default state
+    // Initialize filter with default state (only on pages with transactions)
     setTimeout(() => {
-        filterTransactions('all'); // Set default filter to 'all' and highlight it
+        const transactionContainer = document.querySelector('.transaction-cards-container');
+        if (transactionContainer) {
+            filterTransactions('all'); // Set default filter to 'all' and highlight it
+        }
     }, 100); // Small delay to ensure DOM is fully rendered
     
     // Note: Transaction card interactions now handled by week_navigation.js
@@ -1723,6 +1726,12 @@ function updateDropdownActiveState(activeFilter) {
  */
 function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
     const container = document.querySelector('.transaction-cards-container');
+    
+    // Only proceed if we're on a page with transaction container
+    if (!container) {
+        return;
+    }
+    
     const emptyMessage = document.querySelector('.no-transactions-message');
     
     let showEmpty = false;

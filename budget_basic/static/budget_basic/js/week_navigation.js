@@ -161,11 +161,11 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
         const payeeAttr = escapeHtml(income.payee || '');
         const notesAttr = escapeHtml(income.notes || '');
         const payeeName = escapeHtml(income.payee || 'Unnamed Income');
-        const noteMarkup = income.notes ? `<small class="transaction-note text-muted d-none d-xl-inline">${escapeHtml(income.notes)}</small>` : '';
+        const noteMarkup = income.notes ? `<small class="transaction-note transaction-meta text-muted d-none d-xl-inline">${escapeHtml(income.notes)}</small>` : '';
         const amountDisplay = escapeHtml(income.amount_display || `+$${Number(income.amount || 0).toFixed(2)}`);
 
         const transactionHtml = `
-            <div class="transaction-card transaction-card-data" 
+            <div class="transaction-card transaction-card-data payee-row payee-card" 
                  data-transaction-id="${income.id}" 
                  data-transaction-type="income"
                  data-transaction-date="${income.date}"
@@ -173,12 +173,14 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
                  data-transaction-amount="${income.amount}"
                  data-transaction-notes="${notesAttr}"
                  onclick="selectTransaction(this)">
-                <div class="transaction-col transaction-date">${formatTransactionDate(income.date)}</div>
-                <div class="transaction-col transaction-payee">
-                    <span class="transaction-payee-name">${payeeName}</span>
+                <div class="payee-cell transaction-date-cell text-muted">${formatTransactionDate(income.date)}</div>
+                <div class="payee-cell payee-cell-info transaction-info-cell">
+                    <span class="transaction-payee-name transaction-name">${payeeName}</span>
                     ${noteMarkup}
                 </div>
-                <div class="transaction-col transaction-amount text-success">${amountDisplay}</div>
+                <div class="payee-cell transaction-amount-cell text-end">
+                    <span class="transaction-amount text-success">${amountDisplay}</span>
+                </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
@@ -189,11 +191,11 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
         const payeeAttr = escapeHtml(expense.payee || '');
         const notesAttr = escapeHtml(expense.notes || '');
         const payeeName = escapeHtml(expense.payee || 'Unnamed Expense');
-        const noteMarkup = expense.notes ? `<small class="transaction-note text-muted d-none d-xl-inline">${escapeHtml(expense.notes)}</small>` : '';
+        const noteMarkup = expense.notes ? `<small class="transaction-note transaction-meta text-muted d-none d-xl-inline">${escapeHtml(expense.notes)}</small>` : '';
         const amountDisplay = escapeHtml(expense.amount_display || `-$${Number(expense.amount || 0).toFixed(2)}`);
 
         const transactionHtml = `
-            <div class="transaction-card transaction-card-data" 
+            <div class="transaction-card transaction-card-data payee-row payee-card" 
                  data-transaction-id="${expense.id}" 
                  data-transaction-type="expense"
                  data-transaction-date="${expense.date}"
@@ -201,12 +203,14 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
                  data-transaction-amount="${expense.amount}"
                  data-transaction-notes="${notesAttr}"
                  onclick="selectTransaction(this)">
-                <div class="transaction-col transaction-date">${formatTransactionDate(expense.date)}</div>
-                <div class="transaction-col transaction-payee">
-                    <span class="transaction-payee-name">${payeeName}</span>
+                <div class="payee-cell transaction-date-cell text-muted">${formatTransactionDate(expense.date)}</div>
+                <div class="payee-cell payee-cell-info transaction-info-cell">
+                    <span class="transaction-payee-name transaction-name">${payeeName}</span>
                     ${noteMarkup}
                 </div>
-                <div class="transaction-col transaction-amount text-danger">${amountDisplay}</div>
+                <div class="payee-cell transaction-amount-cell text-end">
+                    <span class="transaction-amount text-danger">${amountDisplay}</span>
+                </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
@@ -218,47 +222,91 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
 // Function to show transaction details
 function showTransactionDetails(transactionCard) {
     const detailsPanel = document.getElementById('transaction-details-panel');
-    const transactionId = transactionCard.dataset.transactionId;
-    
-    // Extract data from the transaction card
-    const date = transactionCard.querySelector('.transaction-col.transaction-date').textContent;
-    const payee = transactionCard.querySelector('.transaction-col.transaction-payee').textContent;
-    const amount = transactionCard.querySelector('.transaction-col.transaction-amount').textContent;
-    const type = amount.startsWith('+') ? 'Income' : 'Expense';
-    
-    // Update the details panel
-    document.getElementById('detail-date').textContent = date;
-    document.getElementById('detail-payee').textContent = payee;
-    document.getElementById('detail-amount').textContent = amount;
-    document.getElementById('detail-type').textContent = type;
-    
-    // Show the panel - use flex instead of block to maintain layout
-    detailsPanel.style.display = 'flex';
+    const detailContent = document.getElementById('transaction-detail-content');
+
+    if (detailContent) {
+        detailContent.hidden = false;
+    }
+
+    if (detailsPanel) {
+        detailsPanel.style.display = 'flex';
+    }
+
+    const payeeName = (transactionCard.dataset.transactionPayee || transactionCard.querySelector('.transaction-payee-name')?.textContent || 'Transaction').trim() || 'Transaction';
+    const notes = (transactionCard.dataset.transactionNotes || '').trim();
+    const rawDate = transactionCard.dataset.transactionDate || '-';
+    const type = (transactionCard.dataset.transactionType || '-').toLowerCase();
+    const numericAmount = Number(transactionCard.dataset.transactionAmount || 0);
+    const formattedAmount = typeof formatCurrency === 'function' ? formatCurrency(Math.abs(numericAmount)) : `$${Math.abs(numericAmount).toFixed(2)}`;
+    let amountDisplay = formattedAmount;
+    if (type === 'expense' && numericAmount >= 0) {
+        amountDisplay = '-' + formattedAmount;
+    } else if (type === 'income' && numericAmount >= 0) {
+        amountDisplay = '+' + formattedAmount;
+    }
+
+    document.getElementById('detail-payee').textContent = payeeName;
+    const formattedDate = typeof formatTransactionDate === 'function' ? formatTransactionDate(rawDate) : rawDate;
+    document.getElementById('detail-date').textContent = formattedDate || '-';
+    document.getElementById('detail-type').textContent = type ? type.charAt(0).toUpperCase() + type.slice(1) : '-';
+    document.getElementById('detail-amount').textContent = amountDisplay;
+    document.getElementById('detail-notes').textContent = notes || '-';
+}
+
+    if (detailsPanel) {
+        detailsPanel.style.display = 'flex';
+    }
+
 }
 
 // Function to hide transaction details
 function hideTransactionDetails() {
     console.log('Resetting transaction details panel');
     const detailsPanel = document.getElementById('transaction-details-panel');
-    if (detailsPanel) {
-        // Reset panel content to default values
-        document.getElementById('detail-date').textContent = 'Select a transaction';
-        document.getElementById('detail-payee').textContent = 'to view details';
-        document.getElementById('detail-amount').textContent = '$0.00';
-        document.getElementById('detail-type').textContent = '-';
-        document.getElementById('detail-notes').textContent = '-';
-        
-        // Disable action buttons
-        const editBtn = document.getElementById('edit-transaction-btn');
-        const deleteBtn = document.getElementById('delete-transaction-btn');
-        if (editBtn) editBtn.disabled = true;
-        if (deleteBtn) deleteBtn.disabled = true;
+    const detailContent = document.getElementById('transaction-detail-content');
+
+    if (detailContent) {
+        detailContent.hidden = true;
     }
-    
-    // Clear all selections
+
+    if (detailsPanel) {
+        detailsPanel.style.display = '';
+    }
+
+    document.getElementById('detail-payee').textContent = 'Select a transaction';
+    document.getElementById('detail-date').textContent = '-';
+    document.getElementById('detail-amount').textContent = '$0.00';
+    document.getElementById('detail-type').textContent = '-';
+    document.getElementById('detail-notes').textContent = '-';
+
+    const editBtn = document.getElementById('edit-transaction-btn');
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    if (editBtn) editBtn.disabled = true;
+    if (deleteBtn) deleteBtn.disabled = true;
+
     const activeCards = document.querySelectorAll('.transaction-card-data.selected');
     if (activeCards.length > 0) {
-        console.log('Clearing', activeCards.length, 'selected transaction cards');
+        activeCards.forEach(card => card.classList.remove('selected'));
+    }
+}
+
+    if (detailsPanel) {
+        detailsPanel.style.display = '';
+    }
+
+    document.getElementById('detail-payee').textContent = 'Select a transaction';
+    document.getElementById('detail-date').textContent = '-';
+    document.getElementById('detail-amount').textContent = '$0.00';
+    document.getElementById('detail-type').textContent = '-';
+    document.getElementById('detail-notes').textContent = '-';
+
+    const editBtn = document.getElementById('edit-transaction-btn');
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    if (editBtn) editBtn.disabled = true;
+    if (deleteBtn) deleteBtn.disabled = true;
+
+    const activeCards = document.querySelectorAll('.transaction-card-data.selected');
+    if (activeCards.length > 0) {
         activeCards.forEach(card => card.classList.remove('selected'));
     }
 }

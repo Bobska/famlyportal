@@ -1900,19 +1900,40 @@ function showTransactionPanel(data) {
     panel.style.display = 'flex';
     
     // Populate panel data
-    document.getElementById('detail-date').textContent = data.date;
-    document.getElementById('detail-payee').textContent = data.payee;
-    document.getElementById('detail-amount').textContent = 
-        (data.type === 'income' ? '+' : '-') + '$' + data.amount;
-    document.getElementById('detail-type').textContent = 
-        data.type.charAt(0).toUpperCase() + data.type.slice(1);
-    document.getElementById('detail-notes').textContent = data.notes;
-    
-    // Store transaction data for edit/delete actions
+    const detailContent = document.getElementById('transaction-detail-content');
+    if (detailContent) {
+        detailContent.hidden = false;
+    }
+
+    const payeeName = (data.payee || 'Transaction').trim() || 'Transaction';
+    const notes = (data.notes || '').trim();
+    const numericAmount = Number(data.amount || 0);
+    const formattedAmount = formatCurrency(Math.abs(numericAmount));
+    let amountDisplay = formattedAmount;
+    if (data.type === 'expense' && numericAmount >= 0) {
+        amountDisplay = '-' + formattedAmount;
+    } else if (data.type === 'income' && numericAmount >= 0) {
+        amountDisplay = '+' + formattedAmount;
+    }
+
+    document.getElementById('detail-payee').textContent = payeeName;
+    let displayDate = '-';
+    if (data.date) {
+        const dateCandidate = new Date(`${data.date}T00:00:00`);
+        if (!Number.isNaN(dateCandidate.getTime())) {
+            displayDate = dateCandidate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        } else {
+            displayDate = data.date;
+        }
+    }
+    document.getElementById('detail-date').textContent = displayDate;
+    document.getElementById('detail-type').textContent = (data.type || '-').charAt(0).toUpperCase() + (data.type || '-').slice(1);
+    document.getElementById('detail-amount').textContent = amountDisplay;
+    document.getElementById('detail-notes').textContent = notes || 'No notes';
+
     panel.setAttribute('data-selected-id', data.id);
     panel.setAttribute('data-selected-type', data.type);
-    
-    // Show and enable action buttons
+
     showActionButtons();
 }
 
@@ -1948,11 +1969,15 @@ function hideTransactionPanel() {
  */
 function clearPanelContent() {
     // Reset panel content to empty/placeholder state
-    document.getElementById('detail-date').textContent = 'No transaction selected';
-    document.getElementById('detail-payee').textContent = 'Select a transaction to view details';
+    const detailContent = document.getElementById('transaction-detail-content');
+    if (detailContent) {
+        detailContent.hidden = true;
+    }
+    document.getElementById('detail-payee').textContent = 'Select a transaction';
+    document.getElementById('detail-date').textContent = '-';
     document.getElementById('detail-amount').textContent = '$0.00';
-    document.getElementById('detail-type').textContent = '';
-    document.getElementById('detail-notes').textContent = 'No transaction selected';
+    document.getElementById('detail-type').textContent = '-';
+    document.getElementById('detail-notes').textContent = '-';
 }
 
 /**

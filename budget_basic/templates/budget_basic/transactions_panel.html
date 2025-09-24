@@ -3,17 +3,18 @@
 {% load humanize %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'budget_basic/css/payees.css' %}">
 <link rel="stylesheet" href="{% static 'budget_basic/css/transactions_panel.css' %}">
 {% endblock %}
 
-{% block body_class %}transactions-panel-page{% endblock %}
+{% block body_class %}transactions-panel-page payees-page{% endblock %}
 
 {% block page_header %}
 <!-- Page header handled inside content wrapper -->
 {% endblock %}
 
 {% block content %}
-<div class="content-wrapper transactions-content">
+<div class="content-wrapper transactions-content payees-content">
     <!-- Week Navigation -->
     <div class="card mb-3 card-week-nav">
         <div class="card-body py-4">
@@ -65,25 +66,23 @@
 
     <!-- Transactions Panel Layout -->
     <div class="card flex-grow-1" id="transactions-card">
-        <div class="transactions-with-panel">
+        <div class="transactions-with-panel payees-panel">
             <!-- Left Panel -->
-            <div class="transaction-cards-container" id="transaction-list">
+            <div class="transaction-cards-container payee-list-panel" id="transaction-list">
                 <div class="panel-header">
                     <div class="panel-title">
                         <i class="bi bi-receipt me-2"></i>
                         <span>Transactions</span>
                     </div>
                     <div class="panel-header-actions">
-                        <div class="btn-group btn-group-sm d-none d-lg-inline-flex" role="group" aria-label="Add transaction">
-                            <button type="button" class="btn btn-outline-secondary" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-                                <i class="bi bi-plus-circle me-1"></i>
-                                <span>Income</span>
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-                                <i class="bi bi-dash-circle me-1"></i>
-                                <span>Expense</span>
-                            </button>
-                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add Income</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-dash-circle me-1"></i>
+                            <span>Add Expense</span>
+                        </button>
                         <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-plus-circle"></i>
                         </button>
@@ -121,11 +120,11 @@
                     </div>
                 </div>
 
-                <div class="transaction-list-scroll">
-                    <div class="transaction-list-content">
+                <div class="transaction-list-scroll payee-list-scroll">
+                    <div class="transaction-list-content payee-list-content">
                     {% if income_entries or expense_entries %}
                         {% for income in income_entries %}
-                        <div class="transaction-card transaction-card-data" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date }}" data-transaction-payee="{{ income.payee|default_if_none:'' }}" data-transaction-amount="{{ income.amount }}" data-transaction-notes="{{ income.notes|default_if_none:'' }}" onclick="selectTransaction(this)">
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date }}" data-transaction-payee="{{ income.payee|default_if_none:'' }}" data-transaction-amount="{{ income.amount }}" data-transaction-notes="{{ income.notes|default_if_none:'' }}" onclick="selectTransaction(this)">
                             <div class="transaction-col transaction-cell transaction-date">{{ income.date|date:"D, j M" }}</div>
                             <div class="transaction-col transaction-cell transaction-cell-info transaction-payee">
                                 <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
@@ -138,7 +137,7 @@
                         {% endfor %}
 
                         {% for expense in expense_entries %}
-                        <div class="transaction-card transaction-card-data" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date }}" data-transaction-payee="{{ expense.payee|default_if_none:'' }}" data-transaction-amount="{{ expense.amount }}" data-transaction-notes="{{ expense.notes|default_if_none:'' }}" onclick="selectTransaction(this)">
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date }}" data-transaction-payee="{{ expense.payee|default_if_none:'' }}" data-transaction-amount="{{ expense.amount }}" data-transaction-notes="{{ expense.notes|default_if_none:'' }}" onclick="selectTransaction(this)">
                             <div class="transaction-col transaction-cell transaction-date">{{ expense.date|date:"D, j M" }}</div>
                             <div class="transaction-col transaction-cell transaction-cell-info transaction-payee">
                                 <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
@@ -168,7 +167,7 @@
             </div>
 
             <!-- Detail Panel -->
-            <div class="transaction-details-panel" id="transaction-details-panel">
+            <div class="transaction-details-panel payee-detail-panel" id="transaction-details-panel">
                 <div class="panel-header">
                     <div class="panel-title">Transaction Details</div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">

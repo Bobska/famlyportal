@@ -1725,10 +1725,19 @@ function updateDropdownActiveState(activeFilter) {
  * Update empty state message based on filter
  */
 function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
-    const container = document.querySelector('.transaction-cards-container');
+    const container = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
     
     // Only proceed if we're on a page with transaction container
     if (!container) {
+        return;
+    }
+
+    // Skip empty-state handling for payees page
+    if (document.body.classList.contains('payees-page')) {
+        const existingMessage = container.querySelector('.no-transactions-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
         return;
     }
     

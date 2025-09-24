@@ -23,10 +23,9 @@
     height: 100%;
     max-width: 1120px;
     margin: 0 auto;
-    padding: 32px 16px 32px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
     overflow: hidden;
 }
 
@@ -69,9 +68,10 @@
     display: flex;
     flex-direction: column;
     padding: 0;
+    min-height: 0;
 }
 
-.payees-page .transactions-with-panel {
+.payees-page .payees-panel {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -84,8 +84,8 @@
     overflow: hidden;
 }
 
-.payees-page .transactions-with-panel .transaction-cards-container,
-.payees-page .transactions-with-panel .transaction-details-panel {
+.payees-page .payees-panel .payee-list-panel,
+.payees-page .payees-panel .payee-detail-panel {
     border: 1px solid #d3d3d3;
     border-radius: 4px;
     background-color: #ffffff;
@@ -94,14 +94,14 @@
     overflow: hidden;
 }
 
-.payees-page .transactions-with-panel .transaction-cards-container {
+.payees-page .payees-panel .payee-list-panel {
     flex: 1 1 auto;
     min-width: 0;
     width: auto;
     overflow: hidden;
 }
 
-.payees-page .transactions-with-panel .transaction-details-panel {
+.payees-page .payees-panel .payee-detail-panel {
     flex: 0 0 320px;
     width: 320px;
     min-width: 260px;
@@ -136,7 +136,7 @@
     gap: 8px;
 }
 
-.payees-page .transaction-list-content {
+.payees-page .payee-list-scroll {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -147,7 +147,39 @@
     gap: 0;
 }
 
-.payees-page .transaction-card {
+.payees-page .payee-list-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.payees-page .payee-list-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 999px;
+    border-left: 1px solid #d3d3d3;
+}
+
+.payees-page .payee-list-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: 999px;
+}
+
+
+
+.payees-page .payee-detail-panel .panel-content::-webkit-scrollbar {
+    width: 5px;
+}
+
+.payees-page .payee-detail-panel .panel-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 999px;
+    border-left: 1px solid #d3d3d3;
+}
+
+.payees-page .payee-detail-panel .panel-content::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: 999px;
+}
+
+.payees-page .payee-row {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -161,32 +193,28 @@
     transition: background-color 0.15s ease;
 }
 
-.payees-page .transaction-card:last-of-type {
+.payees-page .payee-row:last-of-type {
     border-bottom: none;
 }
 
-.payees-page .transaction-card:hover {
+.payees-page .payee-row:hover {
     background-color: #f0f0f0;
 }
 
-.payees-page .transaction-card-data {
-    border: none !important;
-}
-
-.payees-page .transaction-card-data.selected {
+.payees-page .payee-row.selected {
     background-color: #e0e0e0 !important;
-    box-shadow: inset 0 0 0 1px #4a4a4a;
+    border: 1px solid #4a4a4a !important;
 }
 
-.payees-page .transaction-col {
+.payees-page .payee-cell {
     font-size: 0.9rem;
 }
 
-.payees-page .transaction-col.transaction-date {
+.payees-page .payee-cell.payee-cell-date {
     color: #5a5a5a;
 }
 
-.payees-page .transaction-col.transaction-amount {
+.payees-page .payee-cell.payee-cell-meta {
     margin-left: auto;
     font-weight: 600;
     color: #262626;
@@ -205,7 +233,8 @@
     color: #6a6a6a;
 }
 
-.payees-page .transaction-details-panel .panel-content {
+.payees-page .payee-detail-panel .panel-content {
+    opacity: 1;
     flex: 1;
     min-height: 0;
     padding: 16px;
@@ -218,7 +247,8 @@
 .payees-page .detail-content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    flex: 1;
+    min-height: 0;
 }
 
 .payees-page .detail-heading {
@@ -273,8 +303,15 @@
 
 .payees-page .detail-actions {
     display: flex;
-    flex-wrap: wrap;
     gap: 8px;
+    margin-top: auto;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid #d4d4d4;
+}
+
+.payees-page .detail-actions .btn {
+    flex: 1 1 0;
 }
 
 .payees-page .badge {
@@ -375,11 +412,11 @@
 
 /* Responsive tweaks */
 @media (max-width: 1024px) {
-    .payees-page .transactions-with-panel {
+    .payees-page .payees-panel {
         flex-direction: column;
     }
 
-    .payees-page .transactions-with-panel .transaction-details-panel {
+    .payees-page .payees-panel .payee-detail-panel {
         width: 100%;
         min-width: 0;
         max-width: none;
@@ -408,17 +445,17 @@
         margin-bottom: 12px;
     }
 
-    .payees-page .transaction-card {
+    .payees-page .payee-row {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .payees-page .transaction-col.transaction-amount {
+    .payees-page .payee-cell.payee-cell-meta {
         margin-left: 0;
         text-align: left;
     }
 
-    .payees-page .transactions-with-panel .transaction-details-panel {
+    .payees-page .payees-panel .payee-detail-panel {
         height: auto;
     }
 }

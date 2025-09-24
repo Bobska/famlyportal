@@ -43,9 +43,9 @@
     <!-- Payees card with integrated side panel - matches transactions structure -->
     <div class="card" id="payees-card">
         <!-- Always show the panel structure for consistent layout -->
-        <div class="transactions-with-panel">
+        <div class="payees-panel">
             <!-- Left Side: Payee Cards Container -->
-            <div class="transaction-cards-container" id="payee-list">
+            <div class="payee-list-panel" id="payee-list">
                 <!-- Left Panel Header -->
                 <div class="panel-header">
                     <div class="panel-title">Payees</div>
@@ -79,11 +79,11 @@
                 </div>
                 
                 <!-- Payee List Content -->
-                <div class="transaction-list-content">
+                <div class="payee-list-scroll">
                 {% if payees %}
                     <!-- Payee Data Rows -->
                     {% for payee in payees %}
-                    <div class="transaction-card transaction-card-data payee-card" 
+                    <div class="payee-row payee-card" 
                          data-payee-id="{{ payee.id }}" 
                          data-payee-name="{{ payee.name|escapejs }}"
                          data-payee-categories="{{ payee.get_categories_display|escapejs }}"
@@ -91,8 +91,8 @@
                          data-payee-created="{{ payee.created_at|date:"Y-m-d" }}"
                          data-payee-updated="{{ payee.updated_at|date:"Y-m-d" }}"
                          onclick="selectPayee(this, event)">
-                        <div class="transaction-col transaction-date">{{ payee.created_at|date:"D, j M" }}</div>
-                        <div class="transaction-col transaction-payee">
+                        <div class="payee-cell payee-cell-date">{{ payee.created_at|date:"D, j M" }}</div>
+                        <div class="payee-cell payee-cell-info">
                             <div class="d-flex align-items-center">
                                 <div class="payee-avatar me-2">
                                     <i class="bi bi-person-circle text-muted"></i>
@@ -109,17 +109,17 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="transaction-col transaction-amount">
+                        <div class="payee-cell payee-cell-meta">
                             <small class="text-muted">{{ payee.updated_at|date:"j M" }}</small>
                         </div>
                     </div>
                     {% endfor %}
                 {% endif %}
-                </div> <!-- Close transaction-list-content -->
+                </div> <!-- Close payee-list-scroll -->
             </div>
             
             <!-- Right Side: Details Panel -->
-            <div class="transaction-details-panel" id="payee-details-panel">
+            <div class="payee-detail-panel" id="payee-details-panel">
                 <div class="panel-header">
                     <h6 class="mb-0">Payee Details</h6>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearPayeeSelection()" aria-label="Clear selection">
@@ -475,7 +475,7 @@ function submitAddPayee(event) {
             showMessage(data.message, 'success');
             
             // Add payee to list if list exists
-            if (document.querySelector('.transaction-list-content')) {
+            if (document.querySelector('.payee-list-scroll')) {
                 addPayeeToList(data.payee);
             } else {
                 // Reload page if no list (empty state)
@@ -603,10 +603,10 @@ function confirmDeletePayee() {
 
 // Add payee to list
 function addPayeeToList(payee) {
-    const listContent = document.querySelector('.transaction-list-content');
+    const listContent = document.querySelector('.payee-list-scroll');
 
     const payeeCard = document.createElement('div');
-    payeeCard.className = 'transaction-card transaction-card-data payee-card';
+    payeeCard.className = 'payee-row payee-card';
     payeeCard.setAttribute('data-payee-id', payee.id);
     payeeCard.setAttribute('data-payee-name', payee.name);
     payeeCard.setAttribute('data-payee-categories', payee.categories_display || 'No categories');
@@ -637,8 +637,8 @@ function addPayeeToList(payee) {
     }
 
     payeeCard.innerHTML = `
-        <div class="transaction-col transaction-date">${formattedDate}</div>
-        <div class="transaction-col transaction-payee">
+        <div class="payee-cell payee-cell-date">${formattedDate}</div>
+        <div class="payee-cell payee-cell-info">
             <div class="d-flex align-items-center">
                 <div class="payee-avatar me-2">
                     <i class="bi bi-person-circle text-muted"></i>
@@ -649,7 +649,7 @@ function addPayeeToList(payee) {
                 </div>
             </div>
         </div>
-        <div class="transaction-col transaction-amount">
+        <div class="payee-cell payee-cell-meta">
             <small class="text-muted">${formattedDate}</small>
         </div>
     `;
@@ -678,7 +678,7 @@ function updatePayeeInList(payeeId, payeeData) {
             nameElement.textContent = payeeData.name;
         }
 
-        const payeeContainer = payeeCard.querySelector('.transaction-col.transaction-payee > .d-flex > div:last-child');
+        const payeeContainer = payeeCard.querySelector('.payee-cell.payee-cell-info > .d-flex > div:last-child');
         if (payeeContainer) {
             let categoriesHtml = '';
             if (payeeData.categories && payeeData.categories.length > 0) {
@@ -755,7 +755,7 @@ function filterPayees() {
 
 // Sort payees
 function sortPayees(sortBy) {
-    const listContent = document.querySelector('.transaction-list-content');
+    const listContent = document.querySelector('.payee-list-scroll');
     if (!listContent) return;
     
     const payeeCards = Array.from(listContent.querySelectorAll('.payee-card'));
@@ -883,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(event) {
         // Check if click is outside payee cards and detail panel
         const clickedCard = event.target.closest('.payee-card');
-        const clickedDetailPanel = event.target.closest('.transaction-details-panel');
+        const clickedDetailPanel = event.target.closest('.payee-detail-panel');
         const clickedModal = event.target.closest('.modal');
         const clickedButton = event.target.closest('button');
         

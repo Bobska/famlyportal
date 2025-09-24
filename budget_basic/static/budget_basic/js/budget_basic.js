@@ -2172,8 +2172,8 @@ function doResize(e) {
     const resizerWidth = resizer ? resizer.offsetWidth : 6;
 
     const isPayeesPage = document.body.classList.contains('payees-page');
-    const minLeftWidth = isPayeesPage ? 260 : 300; // ensure list stays readable
-    const minRightWidth = isPayeesPage ? 280 : 250; // keep detail panel legible
+    const minLeftWidth = isPayeesPage ? 220 : 300; // ensure list stays readable
+    const minRightWidth = isPayeesPage ? 220 : 250; // keep detail panel legible
     const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
     
     // Clamp the new width within bounds

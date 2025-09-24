@@ -2182,17 +2182,15 @@ function doResize(e) {
 
     // Apply the new widths
     if (leftPanel) {
-        leftPanel.style.width = clampedLeftWidth + 'px';
+        leftPanel.style.width = `${clampedLeftWidth}px`;
         leftPanel.style.flex = `0 0 ${clampedLeftWidth}px`;
     }
 
     if (rightPanel) {
-        const appliedRightWidth = Math.max(minRightWidth, rightWidth);
-        rightPanel.style.width = appliedRightWidth + 'px';
-        rightPanel.style.flex = `0 0 ${appliedRightWidth}px`;
+        rightPanel.style.width = '';
+        rightPanel.style.flex = '1 1 auto';
+        rightPanel.style.minWidth = `${minRightWidth}px`;
     }
-
-    container.classList.add('panel-active');
 
     e.preventDefault();
 }

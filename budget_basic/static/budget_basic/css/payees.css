@@ -102,10 +102,10 @@
 }
 
 .payees-page .payees-panel .payee-detail-panel {
-    flex: 0 0 320px;
-    width: 320px;
-    min-width: 260px;
-    max-width: 360px;
+    flex: 0 1 320px;
+    width: auto;
+    min-width: 280px;
+    max-width: 640px;
     min-height: 0;
     display: flex;
     flex-direction: column;

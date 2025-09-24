@@ -2179,11 +2179,21 @@ function doResize(e) {
     // Clamp the new width within bounds
     const clampedLeftWidth = Math.max(minLeftWidth, Math.min(newLeftWidth, maxLeftWidth));
     const rightWidth = containerWidth - clampedLeftWidth - resizerWidth;
-    
+
     // Apply the new widths
-    leftPanel.style.width = clampedLeftWidth + 'px';
-    rightPanel.style.width = rightWidth + 'px';
-    
+    if (leftPanel) {
+        leftPanel.style.width = clampedLeftWidth + 'px';
+        leftPanel.style.flex = `0 0 ${clampedLeftWidth}px`;
+    }
+
+    if (rightPanel) {
+        const appliedRightWidth = Math.max(minRightWidth, rightWidth);
+        rightPanel.style.width = appliedRightWidth + 'px';
+        rightPanel.style.flex = `0 0 ${appliedRightWidth}px`;
+    }
+
+    container.classList.add('panel-active');
+
     e.preventDefault();
 }
 

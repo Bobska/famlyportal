@@ -325,6 +325,31 @@ function selectPayee(card, event) {
     const payeeCategories = card.getAttribute('data-payee-categories');
     const payeeCategoryIds = card.getAttribute('data-payee-category-ids');
 
+    if (document.body.classList.contains('payees-page')) {
+        const container = document.querySelector('.payees-panel');
+        const leftPanel = document.querySelector('.payee-list-panel');
+        const rightPanel = document.querySelector('.payee-detail-panel');
+        const resizer = document.getElementById('panel-resizer');
+
+        if (container && leftPanel && rightPanel && !rightPanel.style.width) {
+            const styles = getComputedStyle(container);
+            const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+            const paddingRight = parseFloat(styles.paddingRight) || 0;
+            const containerWidth = container.clientWidth - paddingLeft - paddingRight;
+            const resizerWidth = resizer ? resizer.offsetWidth : 6;
+            const minPanelWidth = 200;
+            const maxRightWidth = containerWidth - minPanelWidth - resizerWidth;
+            const currentRightWidth = rightPanel.getBoundingClientRect().width;
+            const appliedRightWidth = Math.max(minPanelWidth, Math.min(currentRightWidth, maxRightWidth));
+            const appliedLeftWidth = Math.max(minPanelWidth, containerWidth - appliedRightWidth - resizerWidth);
+
+            leftPanel.style.width = `${appliedLeftWidth}px`;
+            leftPanel.style.flex = `0 0 ${appliedLeftWidth}px`;
+            rightPanel.style.width = `${appliedRightWidth}px`;
+            rightPanel.style.flex = `0 0 ${appliedRightWidth}px`;
+        }
+    }
+
     currentPayeeData = {
         id: payeeId,
         name: payeeName,

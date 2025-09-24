@@ -1880,7 +1880,7 @@ function clearTransactionSelection() {
  * Show the transaction details panel
  */
 function showTransactionPanel(data) {
-    const container = document.querySelector('.transactions-with-panel');
+    const container = document.querySelector('.transactions-with-panel') || document.querySelector('.payees-panel');
     const panel = document.getElementById('transaction-details-panel');
     
     if (!container || !panel) {
@@ -1915,7 +1915,7 @@ function showTransactionPanel(data) {
  * Hide the transaction details panel
  */
 function hideTransactionPanel() {
-    const container = document.querySelector('.transactions-with-panel');
+    const container = document.querySelector('.transactions-with-panel') || document.querySelector('.payees-panel');
     const panel = document.getElementById('transaction-details-panel');
     
     if (!container || !panel) return;
@@ -2093,7 +2093,7 @@ function initializePanelResizer() {
  */
 function initializeTransactionSelection() {
     try {
-        const transactionCardsContainer = document.querySelector('.transaction-cards-container');
+        const transactionCardsContainer = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
         
         if (!transactionCardsContainer) {
             console.warn('Transaction cards container not found - selection system not initialized');

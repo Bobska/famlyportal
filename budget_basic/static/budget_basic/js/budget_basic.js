@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize filter with default state (only on pages with transactions)
     setTimeout(() => {
-        const transactionContainer = document.querySelector('.transaction-cards-container');
+        const transactionContainer = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
         if (transactionContainer) {
             filterTransactions('all'); // Set default filter to 'all' and highlight it
         }

@@ -1207,16 +1207,6 @@ body::-webkit-scrollbar {
     border-radius: 0.375rem; /* Match card border radius */
 }
 
-/* Remove card styling when transactions panel is present */
-#transactions-card {
-    border: none !important;
-    background: transparent !important;
-}
-
-#transactions-card .card-body {
-    padding: 0 !important;
-}
-
 /* Left side: Transaction list container */
 .transactions-with-panel .transaction-cards-container {
     width: 50%; /* Use width instead of flex */

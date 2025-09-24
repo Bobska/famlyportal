@@ -129,7 +129,7 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
     console.log('Updating transactions container with:', incomeEntries.length, 'income,', expenseEntries.length, 'expense entries');
     
     // Find the transaction list content container (always exists now)
-    const container = document.querySelector('.transaction-list-content');
+    const container = document.querySelector('.transaction-list-content') || document.querySelector('.payee-list-content');
     
     if (!container) {
         console.error('Transaction list content container not found');

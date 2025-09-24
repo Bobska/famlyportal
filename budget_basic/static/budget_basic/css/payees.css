@@ -76,7 +76,7 @@
     min-height: 0;
     display: flex;
     align-items: stretch;
-    gap: 16px;
+    gap: 0;
     padding: 16px;
     background-color: #f7f7f7;
     border-radius: 4px;
@@ -110,6 +110,41 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+
+.payees-page .panel-resizer {
+    width: 16px;
+    background: transparent;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.payees-page .panel-resizer:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.payees-page .panel-resizer.dragging {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.payees-page .panel-resizer .resizer-handle {
+    width: 4px;
+    height: 32px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #bfc5cc 0%, #9da5ad 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.payees-page .panel-resizer:hover .resizer-handle,
+.payees-page .panel-resizer.dragging .resizer-handle {
+    opacity: 1;
 }
 
 .payees-page .panel-header {
@@ -267,7 +302,7 @@
 .payees-page .detail-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 0;
 }
 
 .payees-page .detail-meta-item {

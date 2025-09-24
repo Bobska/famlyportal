@@ -2116,21 +2116,29 @@ function initializeTransactionSelection() {
     }
 }
 
+
+function getResizablePanels() {
+    const container = document.querySelector('.transactions-with-panel') || document.querySelector('.payees-panel');
+    const leftPanel = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
+    const rightPanel = document.querySelector('.transaction-details-panel') || document.querySelector('.payee-detail-panel');
+
+    return { container, leftPanel, rightPanel };
+}
+
 /**
  * Start panel resize operation
  */
 function startResize(e) {
     isResizing = true;
     startX = e.clientX;
-    
-    const leftPanel = document.querySelector('.transaction-cards-container');
-    const rightPanel = document.querySelector('.transaction-details-panel');
-    
+
+    const { leftPanel, rightPanel } = getResizablePanels();
+
     if (leftPanel) {
         startLeftWidth = leftPanel.offsetWidth;
         leftPanel.classList.add('resizing');
     }
-    
+
     if (rightPanel) {
         rightPanel.classList.add('resizing');
     }
@@ -2152,11 +2160,9 @@ function startResize(e) {
  */
 function doResize(e) {
     if (!isResizing) return;
-    
-    const container = document.querySelector('.transactions-with-panel');
-    const leftPanel = document.querySelector('.transaction-cards-container');
-    const rightPanel = document.querySelector('.transaction-details-panel');
-    
+
+    const { container, leftPanel, rightPanel } = getResizablePanels();
+
     if (!container || !leftPanel || !rightPanel) return;
     
     const deltaX = e.clientX - startX;
@@ -2185,13 +2191,12 @@ function doResize(e) {
  */
 function stopResize() {
     if (!isResizing) return;
-    
+
     isResizing = false;
-    
+
     // Remove dragging and resizing states
     const resizer = document.getElementById('panel-resizer');
-    const leftPanel = document.querySelector('.transaction-cards-container');
-    const rightPanel = document.querySelector('.transaction-details-panel');
+    const { leftPanel, rightPanel } = getResizablePanels();
     
     if (resizer) {
         resizer.classList.remove('dragging');

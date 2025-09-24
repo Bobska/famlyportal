@@ -266,7 +266,28 @@ function hideTransactionDetails() {
         detailContent.hidden = true;
     }
 
+    if (detailsPanel) {
+        detailsPanel.style.display = '';
+    }
+
     document.getElementById('detail-payee').textContent = 'Select a transaction';
+    document.getElementById('detail-date').textContent = '-';
+    document.getElementById('detail-amount').textContent = '$0.00';
+    document.getElementById('detail-type').textContent = '-';
+    document.getElementById('detail-notes').textContent = '-';
+
+    const editBtn = document.getElementById('edit-transaction-btn');
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    if (editBtn) editBtn.disabled = true;
+    if (deleteBtn) deleteBtn.disabled = true;
+
+    const activeCards = document.querySelectorAll('.transaction-card-data.selected');
+    if (activeCards.length > 0) {
+        activeCards.forEach(card => card.classList.remove('selected'));
+    }
+}
+
+document.getElementById('detail-payee').textContent = 'Select a transaction';
     document.getElementById('detail-date').textContent = '-';
     document.getElementById('detail-amount').textContent = '$0.00';
     document.getElementById('detail-type').textContent = '-';

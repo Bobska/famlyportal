@@ -155,43 +155,63 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
     }
     
     // Add income transactions
+    const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     incomeEntries.forEach(income => {
+        const payeeAttr = escapeHtml(income.payee || '');
+        const notesAttr = escapeHtml(income.notes || '');
+        const payeeName = escapeHtml(income.payee || 'Unnamed Income');
+        const noteMarkup = income.notes ? `<small class="transaction-note text-muted d-none d-xl-inline">${escapeHtml(income.notes)}</small>` : '';
+        const amountDisplay = escapeHtml(income.amount_display || `+$${Number(income.amount || 0).toFixed(2)}`);
+
         const transactionHtml = `
             <div class="transaction-card transaction-card-data" 
                  data-transaction-id="${income.id}" 
                  data-transaction-type="income"
                  data-transaction-date="${income.date}"
-                 data-transaction-payee="${income.payee.replace(/"/g, '&quot;')}"
+                 data-transaction-payee="${payeeAttr}"
                  data-transaction-amount="${income.amount}"
-                 data-transaction-notes="${(income.notes || '').replace(/"/g, '&quot;')}"
+                 data-transaction-notes="${notesAttr}"
                  onclick="selectTransaction(this)">
                 <div class="transaction-col transaction-date">${formatTransactionDate(income.date)}</div>
-                <div class="transaction-col transaction-payee">${income.payee}</div>
-                <div class="transaction-col transaction-amount">+$${parseFloat(income.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+                <div class="transaction-col transaction-payee">
+                    <span class="transaction-payee-name">${payeeName}</span>
+                    ${noteMarkup}
+                </div>
+                <div class="transaction-col transaction-amount text-success">${amountDisplay}</div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
     });
-    
+
     // Add expense transactions
     expenseEntries.forEach(expense => {
+        const payeeAttr = escapeHtml(expense.payee || '');
+        const notesAttr = escapeHtml(expense.notes || '');
+        const payeeName = escapeHtml(expense.payee || 'Unnamed Expense');
+        const noteMarkup = expense.notes ? `<small class="transaction-note text-muted d-none d-xl-inline">${escapeHtml(expense.notes)}</small>` : '';
+        const amountDisplay = escapeHtml(expense.amount_display || `-$${Number(expense.amount || 0).toFixed(2)}`);
+
         const transactionHtml = `
             <div class="transaction-card transaction-card-data" 
                  data-transaction-id="${expense.id}" 
                  data-transaction-type="expense"
                  data-transaction-date="${expense.date}"
-                 data-transaction-payee="${expense.payee.replace(/"/g, '&quot;')}"
+                 data-transaction-payee="${payeeAttr}"
                  data-transaction-amount="${expense.amount}"
-                 data-transaction-notes="${(expense.notes || '').replace(/"/g, '&quot;')}"
+                 data-transaction-notes="${notesAttr}"
                  onclick="selectTransaction(this)">
                 <div class="transaction-col transaction-date">${formatTransactionDate(expense.date)}</div>
-                <div class="transaction-col transaction-payee">${expense.payee}</div>
-                <div class="transaction-col transaction-amount">-$${parseFloat(expense.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+                <div class="transaction-col transaction-payee">
+                    <span class="transaction-payee-name">${payeeName}</span>
+                    ${noteMarkup}
+                </div>
+                <div class="transaction-col transaction-amount text-danger">${amountDisplay}</div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
     });
-    
+
     console.log('Transactions list updated successfully');
 }
 

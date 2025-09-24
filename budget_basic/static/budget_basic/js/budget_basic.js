@@ -2,6 +2,7 @@
 
 // Global variable to track current filter state (resets on page reload)
 let currentFilterType = 'all';
+let currentTransactionSearch = '';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Budget Basic App Initialized');
@@ -1640,67 +1641,67 @@ function selectNewlyAddedPayee(payeeName) {
  * Filter transactions by type (income, expense, or all)
  */
 function filterTransactions(filterType) {
-    console.log('Filtering transactions by:', filterType);
-    
-    // Update current filter state (both local and global)
     currentFilterType = filterType;
     window.currentFilterType = filterType;
-    console.log('Current filter type set to:', currentFilterType);
-    
-    const allCards = document.querySelectorAll('.transaction-card');
-    console.log('Found transaction cards:', allCards.length);
-    
-    // More reliable way to identify income vs expense cards
-    const incomeTransactions = [];
-    const expenseTransactions = [];
-    
-    allCards.forEach(card => {
-        const amountElement = card.querySelector('.transaction-amount');
-        if (amountElement) {
-            const amountText = amountElement.textContent.trim();
-            console.log('Amount text:', amountText);
-            if (amountText.startsWith('+')) {
-                incomeTransactions.push(card);
-            } else if (amountText.startsWith('-')) {
-                expenseTransactions.push(card);
-            }
-        }
-    });
-    
-    console.log('Income transactions:', incomeTransactions.length);
-    console.log('Expense transactions:', expenseTransactions.length);
-    
-    // Update filter label
+
     const filterLabel = document.getElementById('filterLabel');
-    
-    // Update dropdown active states
-    updateDropdownActiveState(filterType);
-    
-    switch (filterType) {
-        case 'income':
-            incomeTransactions.forEach(card => card.style.display = 'flex');
-            expenseTransactions.forEach(card => card.style.display = 'none');
-            if (filterLabel) filterLabel.textContent = 'Income';
-            break;
-        case 'expense':
-            incomeTransactions.forEach(card => card.style.display = 'none');
-            expenseTransactions.forEach(card => card.style.display = 'flex');
-            if (filterLabel) filterLabel.textContent = 'Expenses';
-            break;
-        case 'all':
-        default:
-            allCards.forEach(card => card.style.display = 'flex');
-            if (filterLabel) filterLabel.textContent = 'All';
-            break;
+    if (filterLabel) {
+        switch (filterType) {
+            case 'income':
+                filterLabel.textContent = 'Income';
+                break;
+            case 'expense':
+                filterLabel.textContent = 'Expenses';
+                break;
+            default:
+                filterLabel.textContent = 'All';
+        }
     }
-    
-    // Update empty state message if needed
-    updateEmptyStateMessage(filterType, incomeTransactions.length, expenseTransactions.length);
+
+    updateDropdownActiveState(filterType);
+    applyTransactionFilters();
 }
 
 /**
  * Update dropdown active state highlighting
  */
+function applyTransactionFilters() {
+    const cards = document.querySelectorAll('.transaction-card');
+    const normalizedSearch = currentTransactionSearch.trim().toLowerCase();
+    let visibleIncome = 0;
+    let visibleExpense = 0;
+
+    cards.forEach(card => {
+        const { transactionType = '', transactionPayee = '', transactionNotes = '', transactionAmount = '' } = card.dataset || {};
+        const type = transactionType;
+        const payee = transactionPayee.toLowerCase();
+        const notes = transactionNotes.toLowerCase();
+        const amount = transactionAmount.toString().toLowerCase();
+
+        const matchesType = currentFilterType === 'all' || currentFilterType === type;
+        const matchesSearch = !normalizedSearch || payee.includes(normalizedSearch) || notes.includes(normalizedSearch) || amount.includes(normalizedSearch);
+
+        const shouldShow = matchesType && matchesSearch;
+        card.style.display = shouldShow ? 'flex' : 'none';
+
+        if (shouldShow) {
+            if (type === 'income') {
+                visibleIncome += 1;
+            } else if (type === 'expense') {
+                visibleExpense += 1;
+            }
+        }
+    });
+
+    updateEmptyStateMessage(currentFilterType, visibleIncome, visibleExpense);
+}
+
+function handleTransactionSearch(query) {
+    currentTransactionSearch = (query || '').toString();
+    window.currentTransactionSearch = currentTransactionSearch;
+    applyTransactionFilters();
+}
+
 function updateDropdownActiveState(activeFilter) {
     const dropdownItems = document.querySelectorAll('#transactionFilterDropdown + .dropdown-menu .dropdown-item');
     
@@ -1726,13 +1727,11 @@ function updateDropdownActiveState(activeFilter) {
  */
 function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
     const container = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
-    
-    // Only proceed if we're on a page with transaction container
+
     if (!container) {
         return;
     }
 
-    // Skip empty-state handling for payees page
     if (document.body.classList.contains('payees-page')) {
         const existingMessage = container.querySelector('.no-transactions-message');
         if (existingMessage) {
@@ -1740,41 +1739,47 @@ function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
         }
         return;
     }
-    
-    const emptyMessage = document.querySelector('.no-transactions-message');
-    
+
+    const listHost = container.querySelector('.transaction-list-content') || container;
+    let emptyMessage = listHost.querySelector('.no-transactions-message');
+
+    const hasSearch = typeof currentTransactionSearch === 'string' && currentTransactionSearch.trim() !== '';
+
     let showEmpty = false;
     let message = '';
-    
+
     switch (filterType) {
         case 'income':
             showEmpty = incomeCount === 0;
-            message = 'No income transactions for this week.';
+            message = hasSearch ? 'No income transactions match your search.' : 'No income transactions for this week.';
             break;
         case 'expense':
             showEmpty = expenseCount === 0;
-            message = 'No expense transactions for this week.';
+            message = hasSearch ? 'No expense transactions match your search.' : 'No expense transactions for this week.';
             break;
-        case 'all':
+        default:
             showEmpty = (incomeCount + expenseCount) === 0;
-            message = 'No transactions for this week.';
+            message = hasSearch ? 'No transactions match your search.' : 'No transactions for this week.';
             break;
     }
-    
+
     if (showEmpty) {
         if (!emptyMessage) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'no-transactions-message text-center text-muted py-4';
-            messageDiv.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
-            container.appendChild(messageDiv);
+            emptyMessage = document.createElement('div');
+            emptyMessage.className = 'no-transactions-message text-center text-muted py-4';
+            emptyMessage.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
+            listHost.appendChild(emptyMessage);
         } else {
-            emptyMessage.querySelector('p').textContent = message;
+            const paragraph = emptyMessage.querySelector('p');
+            if (paragraph) {
+                paragraph.textContent = message;
+            } else {
+                emptyMessage.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
+            }
             emptyMessage.style.display = 'block';
         }
-    } else {
-        if (emptyMessage) {
-            emptyMessage.style.display = 'none';
-        }
+    } else if (emptyMessage) {
+        emptyMessage.style.display = 'none';
     }
 }
 
@@ -2231,6 +2236,8 @@ function stopResize() {
 // Make functions available globally for onclick handlers
 window.filterTransactions = filterTransactions;
 window.currentFilterType = currentFilterType;
+window.currentTransactionSearch = currentTransactionSearch;
+window.handleTransactionSearch = handleTransactionSearch;
 window.selectTransaction = selectTransaction;
 window.clearTransactionSelection = clearTransactionSelection;
 window.setPanelVisibilityMode = setPanelVisibilityMode;
@@ -2239,3 +2246,4 @@ window.deleteSelectedTransaction = deleteSelectedTransaction;
 window.initializePanelResizer = initializePanelResizer;
 window.showActionButtons = showActionButtons;
 window.hideActionButtons = hideActionButtons;
+

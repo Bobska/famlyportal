@@ -150,16 +150,12 @@ def get_cumulative_balance_up_to_week(user, target_week_offset):
     total_expenses = cumulative_total(Expense, user, end_date=window.end)
     return total_income - total_expenses
 
-
-
 def get_week_balance_only(user, week_offset):
     """Return the net balance for a single week window."""
     window = resolve_week_window(week_offset)
     weekly_income = amount_sum(weekly_transactions(Income, user, window))
     weekly_expenses = amount_sum(weekly_transactions(Expense, user, window))
     return weekly_income - weekly_expenses
-
-
 
 def get_auto_date_for_week(user, week_offset, transaction_type=None):
     """Return the latest transaction date for the resolved week and type."""
@@ -181,8 +177,6 @@ def get_auto_date_for_week(user, week_offset, transaction_type=None):
 
     latest_candidates = [d for d in (latest_for_model(Income), latest_for_model(Expense)) if d]
     return max(latest_candidates) if latest_candidates else window.start
-
-
 
 def get_or_create_payee(user, payee_name):
     """Get or create a payee for the given user."""
@@ -214,10 +208,8 @@ def dashboard(request):
     return render(request, 'budget_basic/dashboard.html', context)
 
 
-@login_required
-def main(request):
-    """Budget Basic main transactions view."""
-
+def build_transactions_context(request):
+    """Return the base context payload for transaction-driven pages."""
     week_offset = int(request.GET.get('week_offset', 0))
     week_window = resolve_week_window(week_offset)
 
@@ -237,9 +229,7 @@ def main(request):
     )
     monthly_balance = monthly_income - monthly_expenses
 
-    context = {
-        'page_title': 'Transactions',
-        'app_name': 'budget_basic',
+    return {
         'income_entries': income_entries,
         'expense_entries': expense_entries,
         'weekly_income': weekly_income,
@@ -252,7 +242,27 @@ def main(request):
         'target_monday': week_window.start,
         'target_sunday': week_window.end,
     }
+
+@login_required
+def main(request):
+    """Budget Basic main transactions view."""
+    context = {
+        'page_title': 'Transactions',
+        'app_name': 'budget_basic',
+        **build_transactions_context(request),
+    }
     return render(request, 'budget_basic/main.html', context)
+
+
+@login_required
+def transactions_panel(request):
+    """Transactions page using the panel layout refresh."""
+    context = {
+        'page_title': 'Transactions',
+        'app_name': 'budget_basic',
+        **build_transactions_context(request),
+    }
+    return render(request, 'budget_basic/transactions_panel.html', context)
 
 
 @login_required
@@ -296,8 +306,6 @@ def get_week_data(request):
     }
     return JsonResponse(response)
 
-
-
 @login_required
 @require_POST
 def add_income(request):
@@ -321,8 +329,6 @@ def add_income(request):
         'income_id': income.id,
         'date': income.date.isoformat(),
     })
-
-
 
 @login_required
 @require_POST
@@ -352,8 +358,6 @@ def edit_income(request, income_id):
         'date': income.date.strftime('%Y-%m-%d'),
     })
 
-
-
 @login_required
 def get_income(request, income_id):
     """Get income entry data for editing via AJAX."""
@@ -373,8 +377,6 @@ def get_income(request, income_id):
         },
     })
 
-
-
 @login_required
 @require_POST
 def delete_income(request, income_id):
@@ -392,8 +394,6 @@ def delete_income(request, income_id):
         'success': True,
         'message': f'Income entry deleted successfully: ${amount_display} from {payee}',
     })
-
-
 
 # ===== EXPENSE VIEWS =====
 
@@ -420,8 +420,6 @@ def add_expense(request):
         'expense_id': expense.id,
         'date': expense.date.isoformat(),
     })
-
-
 
 @login_required
 @require_POST
@@ -451,8 +449,6 @@ def edit_expense(request, expense_id):
         'date': expense.date.strftime('%Y-%m-%d'),
     })
 
-
-
 @login_required
 def get_expense(request, expense_id):
     """Get expense entry data for editing via AJAX."""
@@ -472,8 +468,6 @@ def get_expense(request, expense_id):
         },
     })
 
-
-
 @login_required
 @require_POST
 def delete_expense(request, expense_id):
@@ -491,8 +485,6 @@ def delete_expense(request, expense_id):
         'success': True,
         'message': f'Expense entry deleted successfully: ${amount_display} to {payee}',
     })
-
-
 
 @login_required
 def get_payees(request):
@@ -974,3 +966,4 @@ def category_payees(request, category_id):
             'success': False,
             'error': f'Error fetching payees: {str(e)}'
         })
+

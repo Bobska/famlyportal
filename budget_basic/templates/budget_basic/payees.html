@@ -83,15 +83,14 @@
                 {% if payees %}
                     <!-- Payee Data Rows -->
                     {% for payee in payees %}
-                    <div class="payee-row payee-card" 
-                         data-payee-id="{{ payee.id }}" 
+                    <div class="payee-row payee-card"
+                         data-payee-id="{{ payee.id }}"
                          data-payee-name="{{ payee.name|escapejs }}"
                          data-payee-categories="{{ payee.get_categories_display|escapejs }}"
                          data-payee-category-ids="{% for cat in payee.categories.all %}{{ cat.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
                          data-payee-created="{{ payee.created_at|date:"Y-m-d" }}"
                          data-payee-updated="{{ payee.updated_at|date:"Y-m-d" }}"
                          onclick="selectPayee(this, event)">
-                        <div class="payee-cell payee-cell-date">{{ payee.created_at|date:"D, j M" }}</div>
                         <div class="payee-cell payee-cell-info">
                             <div class="d-flex align-items-center">
                                 <div class="payee-avatar me-2">
@@ -108,9 +107,6 @@
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
-                        <div class="payee-cell payee-cell-meta">
-                            <small class="text-muted">{{ payee.updated_at|date:"j M" }}</small>
                         </div>
                     </div>
                     {% endfor %}
@@ -622,14 +618,6 @@ function addPayeeToList(payee) {
     payeeCard.setAttribute('data-payee-updated', updatedAt);
 
     payeeCard.onclick = function(event) { selectPayee(this, event); };
-
-    const createdDate = new Date(createdAt);
-    const formattedDate = Number.isNaN(createdDate.getTime()) ? '' : createdDate.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-    });
-
     let categoriesHtml = '';
     if (payee.categories && payee.categories.length > 0) {
         const categoryBadges = payee.categories.map(cat =>
@@ -641,7 +629,6 @@ function addPayeeToList(payee) {
     }
 
     payeeCard.innerHTML = `
-        <div class="payee-cell payee-cell-date">${formattedDate}</div>
         <div class="payee-cell payee-cell-info">
             <div class="d-flex align-items-center">
                 <div class="payee-avatar me-2">
@@ -652,9 +639,6 @@ function addPayeeToList(payee) {
                     ${categoriesHtml}
                 </div>
             </div>
-        </div>
-        <div class="payee-cell payee-cell-meta">
-            <small class="text-muted">${formattedDate}</small>
         </div>
     `;
 

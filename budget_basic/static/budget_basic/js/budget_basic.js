@@ -2168,11 +2168,12 @@ function doResize(e) {
     const deltaX = e.clientX - startX;
     const newLeftWidth = startLeftWidth + deltaX;
     const containerWidth = container.offsetWidth;
-    const resizerWidth = 6; // Width of the resizer
-    
-    // Set minimum and maximum widths
-    const minLeftWidth = 300; // Minimum width for transaction list
-    const minRightWidth = 250; // Minimum width for details panel
+    const resizer = document.getElementById('panel-resizer');
+    const resizerWidth = resizer ? resizer.offsetWidth : 6;
+
+    const isPayeesPage = document.body.classList.contains('payees-page');
+    const minLeftWidth = isPayeesPage ? 260 : 300; // ensure list stays readable
+    const minRightWidth = isPayeesPage ? 280 : 250; // keep detail panel legible
     const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
     
     // Clamp the new width within bounds

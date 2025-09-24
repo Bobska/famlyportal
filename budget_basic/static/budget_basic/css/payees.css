@@ -242,18 +242,23 @@
 }
 
 .payees-page .payee-cell {
+    flex: 1;
+    min-width: 0;
     font-size: 0.9rem;
 }
 
-.payees-page .payee-cell.payee-cell-date {
-    color: #5a5a5a;
+.payees-page .payee-cell.payee-cell-info {
+    display: flex;
+    align-items: center;
 }
 
-.payees-page .payee-cell.payee-cell-meta {
-    margin-left: auto;
+.payees-page .payee-name {
     font-weight: 600;
-    color: #262626;
-    text-align: right;
+    color: #1f1f1f;
+}
+
+.payees-page .payee-categories {
+    margin-top: 2px;
 }
 
 .payees-page .payee-avatar {
@@ -483,11 +488,6 @@
     .payees-page .payee-row {
         flex-direction: column;
         align-items: flex-start;
-    }
-
-    .payees-page .payee-cell.payee-cell-meta {
-        margin-left: 0;
-        text-align: left;
     }
 
     .payees-page .payees-panel .payee-detail-panel {

@@ -123,7 +123,7 @@
                     <div class="transaction-list-content payee-list-content">
                     {% if income_entries or expense_entries %}
                         {% for income in income_entries %}
-                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date }}" data-transaction-payee="{{ income.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ income.amount }}" data-transaction-notes="{{ income.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date|date:"Y-m-d" }}" data-transaction-payee="{{ income.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ income.amount|floatformat:'2' }}" data-transaction-notes="{{ income.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
                             <div class="payee-cell transaction-date-cell text-muted">{{ income.date|date:"D, j M" }}</div>
                             <div class="payee-cell payee-cell-info transaction-info-cell">
                                 <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
@@ -138,7 +138,7 @@
                         {% endfor %}
 
                         {% for expense in expense_entries %}
-                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date }}" data-transaction-payee="{{ expense.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ expense.amount }}" data-transaction-notes="{{ expense.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date|date:"Y-m-d" }}" data-transaction-payee="{{ expense.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ expense.amount|floatformat:'2' }}" data-transaction-notes="{{ expense.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
                             <div class="payee-cell transaction-date-cell text-muted">{{ expense.date|date:"D, j M" }}</div>
                             <div class="payee-cell payee-cell-info transaction-info-cell">
                                 <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>

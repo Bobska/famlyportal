@@ -246,17 +246,14 @@ function showTransactionDetails(transactionCard) {
     }
 
     document.getElementById('detail-payee').textContent = payeeName;
-    const formattedDate = typeof formatTransactionDate === 'function' ? formatTransactionDate(rawDate) : rawDate;
+    let formattedDate = '-';
+    if (rawDate && rawDate !== '-') {
+        formattedDate = typeof formatTransactionDate === 'function' ? formatTransactionDate(rawDate) : rawDate;
+    }
     document.getElementById('detail-date').textContent = formattedDate || '-';
     document.getElementById('detail-type').textContent = type ? type.charAt(0).toUpperCase() + type.slice(1) : '-';
     document.getElementById('detail-amount').textContent = amountDisplay;
     document.getElementById('detail-notes').textContent = notes || '-';
-}
-
-    if (detailsPanel) {
-        detailsPanel.style.display = 'flex';
-    }
-
 }
 
 // Function to hide transaction details
@@ -267,10 +264,6 @@ function hideTransactionDetails() {
 
     if (detailContent) {
         detailContent.hidden = true;
-    }
-
-    if (detailsPanel) {
-        detailsPanel.style.display = '';
     }
 
     document.getElementById('detail-payee').textContent = 'Select a transaction';

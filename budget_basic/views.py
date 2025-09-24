@@ -255,17 +255,6 @@ def main(request):
 
 
 @login_required
-def transactions_panel(request):
-    """Transactions page using the panel layout refresh."""
-    context = {
-        'page_title': 'Transactions',
-        'app_name': 'budget_basic',
-        **build_transactions_context(request),
-    }
-    return render(request, 'budget_basic/transactions_panel.html', context)
-
-
-@login_required
 def get_week_data(request):
     """Return week-specific transaction data for async updates."""
 

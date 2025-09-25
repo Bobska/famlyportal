@@ -3,6 +3,26 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+<style>
+.payee-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.payee-item:hover {
+    background-color: #f8f9fa;
+}
+
+.payee-item.selected {
+    background-color: #e3f2fd;
+    border-left: 3px solid #2196f3;
+}
+
+.payees-list {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+</style>
 {% endblock %}
 
 {% block body_class %}payees-page{% endblock %}
@@ -41,7 +61,7 @@
     </div>
     
     <!-- Categories card with integrated side panel - matches transactions structure -->
-    <div class="card" id="categories-card">
+    <div class="card flex-grow-1" id="categories-card">
         <!-- Always show the panel structure for consistent layout -->
         <div class="payees-panel">
             <!-- Left Side: Category List Panel -->
@@ -101,7 +121,6 @@
                              data-category-created="{{ category.created_at|date:"Y-m-d" }}"
                              data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
                              onclick="selectCategory(this)">
-                            <div class="payee-cell transaction-date-cell text-muted">{{ category.created_at|date:"D, j M" }}</div>
                             <div class="payee-cell payee-cell-info transaction-info-cell">
                                 <span class="transaction-payee-name transaction-name">{{ category.name }}</span>
                                 {% if category.description %}
@@ -109,9 +128,6 @@
                                 {% else %}
                                 <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</small>
                                 {% endif %}
-                            </div>
-                            <div class="payee-cell transaction-amount-cell text-end">
-                                <small class="text-muted">{{ category.updated_at|date:"j M" }}</small>
                             </div>
                         </div>
                         {% endfor %}
@@ -128,13 +144,35 @@
                 </div>
             </div>
 
-            <div class="panel-resizer" id="panel-resizer">
+            <div class="panel-resizer" id="panel-resizer-1">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <div class="payee-detail-panel" id="payees-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Payees in Category</div>
+                    <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
+                </div>
+                <div class="panel-content">
+                    <div id="payees-list-content" class="detail-content">
+                        <div class="empty-state text-center text-muted py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                            </div>
+                            <p class="mb-0">Select a category</p>
+                            <small>to see its linked payees</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-resizer" id="panel-resizer-2">
                 <div class="resizer-handle"></div>
             </div>
 
             <div class="payee-detail-panel" id="category-details-panel">
                 <div class="panel-header">
-                    <div class="panel-title">Category Details</div>
+                    <div class="panel-title">Details</div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCategorySelection()">
                         <i class="bi bi-x"></i>
                     </button>
@@ -248,8 +286,10 @@ function selectCategory(element) {
     element.classList.add('selected');
     selectedCategoryCard = element;
     
-    // Show category details
-    showCategoryPanel(getCategoryData(element));
+    // Show category details and payees
+    const data = getCategoryData(element);
+    showCategoryPanel(data);
+    loadPayeesForCategory(data);
     
     // Enable action buttons
     enableActionButtons();
@@ -289,14 +329,101 @@ function clearCategorySelection() {
         panel.classList.remove('has-content');
     }
     
-    // Reset panel content
+    // Reset details panel content
     document.getElementById('detail-category-name').textContent = 'Select a category';
     document.getElementById('detail-category-description').textContent = '-';
     document.getElementById('detail-category-created').textContent = '-';
     document.getElementById('detail-category-updated').textContent = '-';
     
+    // Clear payees panel
+    clearPayeesPanel();
+    
     // Disable action buttons
     disableActionButtons();
+}
+
+function loadPayeesForCategory(data) {
+    const payeesPanel = document.getElementById('payees-panel');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    const payeesContent = document.getElementById('payees-list-content');
+    
+    if (!payeesPanel) return;
+    
+    // Show loading
+    payeesSubtitle.textContent = 'Loading payees...';
+    payeesContent.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
+    payeesPanel.classList.add('has-content');
+    
+    // Mock data - replace with actual fetch to your backend
+    setTimeout(() => {
+        // Simulate API response - replace with actual fetch
+        const mockPayees = [
+            { id: 1, name: 'Example Payee 1', transaction_count: 5 },
+            { id: 2, name: 'Example Payee 2', transaction_count: 3 }
+        ];
+        
+        payeesSubtitle.textContent = `${mockPayees.length} payee${mockPayees.length !== 1 ? 's' : ''} in ${data.name}`;
+        
+        if (mockPayees.length === 0) {
+            payeesContent.innerHTML = `
+                <div class="empty-state text-center text-muted py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-person-plus" style="font-size: 2rem; opacity: 0.3;"></i>
+                    </div>
+                    <p class="mb-0">No payees in this category</p>
+                    <small>Payees will appear here when transactions are categorized</small>
+                </div>
+            `;
+        } else {
+            let payeesHtml = '<div class="payees-list">';
+            mockPayees.forEach(payee => {
+                payeesHtml += `
+                    <div class="payee-item p-2 border-bottom" data-payee-id="${payee.id}" onclick="selectPayee(this)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="payee-name">${payee.name}</div>
+                                <small class="text-muted">${payee.transaction_count} transaction${payee.transaction_count !== 1 ? 's' : ''}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            payeesHtml += '</div>';
+            payeesContent.innerHTML = payeesHtml;
+        }
+    }, 500);
+}
+
+function clearPayeesPanel() {
+    const payeesPanel = document.getElementById('payees-panel');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    const payeesContent = document.getElementById('payees-list-content');
+    
+    if (payeesPanel) {
+        payeesPanel.classList.remove('has-content');
+        payeesSubtitle.textContent = 'Select a category';
+        payeesContent.innerHTML = `
+            <div class="empty-state text-center text-muted py-5">
+                <div class="mb-3">
+                    <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                </div>
+                <p class="mb-0">Select a category</p>
+                <small>to see its linked payees</small>
+            </div>
+        `;
+    }
+}
+
+function selectPayee(element) {
+    // Remove previous payee selection
+    document.querySelectorAll('.payee-item.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Add selection to current element
+    element.classList.add('selected');
+    
+    // You can add payee details functionality here if needed
 }
 
 function enableActionButtons() {

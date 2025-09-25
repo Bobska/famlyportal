@@ -562,39 +562,53 @@ document.addEventListener('DOMContentLoaded', function() {
         try { persisted = JSON.parse(localStorage.getItem('categoriesLayout')||'null'); } catch(e) {}
         if (persisted && typeof persisted.cat==='number' && typeof persisted.pay==='number' && typeof persisted.det==='number') {
             // Apply persisted pixel widths
-            const total = persisted.cat + persisted.pay + persisted.det;
-            catEl.style.flex = `0 0 ${persisted.cat}px`; catEl.style.width = persisted.cat + 'px';
-            payEl.style.flex = `0 0 ${persisted.pay}px`; payEl.style.width = persisted.pay + 'px';
-            detEl.style.flex = `0 0 ${persisted.det}px`; detEl.style.width = persisted.det + 'px';
-            if (total > 0) {
-                document.documentElement.style.setProperty('--categories-panel-width', (persisted.cat/total*100).toFixed(2)+'%');
-                document.documentElement.style.setProperty('--payees-panel-width', (persisted.pay/total*100).toFixed(2)+'%');
-                document.documentElement.style.setProperty('--details-panel-width', (persisted.det/total*100).toFixed(2)+'%');
+            const container = catEl.parentElement;
+            const metrics = CategoryPanelLayoutMetrics.calc(container);
+            const totalRaw = persisted.cat + persisted.pay + persisted.det;
+            let scale = 1;
+            if (metrics.availablePanels > 0 && totalRaw > 0) {
+                scale = metrics.availablePanels / totalRaw;
             }
+            let catW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, persisted.cat * scale);
+            let payW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, persisted.pay * scale);
+            let detW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, persisted.det * scale);
+            let sum = catW + payW + detW;
+            if (sum !== metrics.availablePanels) {
+                detW += (metrics.availablePanels - sum);
+            }
+            catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+            payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+            detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+            const total = catW + payW + detW;
+            document.documentElement.style.setProperty('--categories-panel-width', (catW/total*100).toFixed(2)+'%');
+            document.documentElement.style.setProperty('--payees-panel-width', (payW/total*100).toFixed(2)+'%');
+            document.documentElement.style.setProperty('--details-panel-width', (detW/total*100).toFixed(2)+'%');
             document.body.dataset.categoriesWidthLocked = 'true';
         } else {
-            // No persisted layout: enforce equal thirds baseline (instead of content-based widths)
-            const container = catEl.parentElement; // flex container
-            const containerWidth = container ? container.getBoundingClientRect().width : (catEl.offsetWidth + payEl.offsetWidth + detEl.offsetWidth);
-            if (containerWidth > 0) {
-                const MIN_PX = 180;
-                let third = Math.floor(containerWidth / 3);
-                if (third < MIN_PX) third = MIN_PX; // respect minimums
+            // No persisted layout: enforce equal thirds within available panel space (minus resizers & padding)
+            const metrics = CategoryPanelLayoutMetrics.calc(catEl.parentElement);
+            if (metrics.availablePanels > 0) {
+                let third = Math.floor(metrics.availablePanels / 3);
+                if (third < CategoryPanelLayoutMetrics.MIN_PX) third = CategoryPanelLayoutMetrics.MIN_PX;
                 let catW = third;
                 let payW = third;
-                let detW = containerWidth - (catW + payW);
-                if (detW < MIN_PX) { // adjust if last fell below min
-                    detW = MIN_PX;
-                    const remaining = containerWidth - detW;
-                    catW = Math.max(MIN_PX, Math.floor(remaining / 2));
-                    payW = Math.max(MIN_PX, remaining - catW);
+                let detW = metrics.availablePanels - (catW + payW);
+                if (detW < CategoryPanelLayoutMetrics.MIN_PX) {
+                    detW = CategoryPanelLayoutMetrics.MIN_PX;
+                    const remaining = metrics.availablePanels - detW;
+                    catW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, Math.floor(remaining / 2));
+                    payW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, remaining - catW);
                 }
+                // Normalize again
+                let sum = catW + payW + detW;
+                if (sum !== metrics.availablePanels) detW += (metrics.availablePanels - sum);
                 catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
                 payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
                 detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
-                document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
-                document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
-                document.documentElement.style.setProperty('--details-panel-width', '33.33%');
+                const total = catW + payW + detW;
+                document.documentElement.style.setProperty('--categories-panel-width', (catW/total*100).toFixed(2)+'%');
+                document.documentElement.style.setProperty('--payees-panel-width', (payW/total*100).toFixed(2)+'%');
+                document.documentElement.style.setProperty('--details-panel-width', (detW/total*100).toFixed(2)+'%');
                 document.body.dataset.categoriesWidthLocked = 'true';
             }
         }
@@ -613,7 +627,11 @@ const CategoryPanelResizer = (() => {
     let handle = null;
     let startX = 0;
     let startCat = 0, startPay = 0, startDet = 0, totalWidth = 0;
-    const MIN_PX = 180; // minimum pixel width per panel
+    const MIN_PX = 200; // duplicate constant (also in metrics helper, synced with CSS min-width)
+
+    function getPanelAvailableWidth(container){
+        return CategoryPanelLayoutMetrics.calc(container).availablePanels;
+    }
 
     function syncCssVars(cat, pay, det) {
         const total = cat + pay + det;
@@ -650,7 +668,11 @@ const CategoryPanelResizer = (() => {
         startCat = catEl.offsetWidth;
         startPay = payEl.offsetWidth;
         startDet = detEl.offsetWidth;
-        totalWidth = startCat + startPay + startDet;
+        // Base total available width on container interior minus padding and resizers
+        totalWidth = getPanelAvailableWidth(container);
+        if(totalWidth <= 0){
+            totalWidth = startCat + startPay + startDet; // fallback
+        }
         resizing = true;
         handle = which;
         startX = e.clientX;
@@ -689,6 +711,9 @@ const CategoryPanelResizer = (() => {
             det = remaining;
             cat = startCat; // unchanged
         }
+        // Comprehensive normalization respecting available width
+        const norm = CategoryPanelLayoutMetrics.normalize(cat, pay, det, totalWidth);
+        cat = norm.cat; pay = norm.pay; det = norm.det;
         apply(cat, pay, det);
         e.preventDefault();
     }
@@ -720,7 +745,20 @@ const CategoryPanelResizer = (() => {
     function applyPersistedIfAny(){
         const p = loadPersisted();
         if(!p) return false;
-        apply(p.cat, p.pay, p.det);
+        const container = document.querySelector('.panel-layout-3');
+        const avail = getPanelAvailableWidth(container);
+        if(avail > 0){
+            const total = p.cat + p.pay + p.det;
+            const scale = total > 0 ? (avail / total) : 1;
+            let cat = p.cat * scale;
+            let pay = p.pay * scale;
+            let det = p.det * scale;
+            const norm = CategoryPanelLayoutMetrics.normalize(cat, pay, det, avail);
+            apply(norm.cat, norm.pay, norm.det);
+        } else {
+            const norm = CategoryPanelLayoutMetrics.normalize(p.cat, p.pay, p.det, p.cat + p.pay + p.det);
+            apply(norm.cat, norm.pay, norm.det);
+        }
         return true;
     }
     function init() {
@@ -755,17 +793,19 @@ function resetCategoryLayout(){
     const payEl = document.getElementById('payees-panel');
     const detEl = document.getElementById('category-details-panel');
     if(!catEl || !payEl || !detEl) return;
-    const container = catEl.parentElement; // flex row
-    const total = catEl.offsetWidth + payEl.offsetWidth + detEl.offsetWidth || container.getBoundingClientRect().width;
-    const third = Math.max(180, Math.floor(total/3));
-    // Ensure sum = total (adjust last)
-    const det = total - (third*2);
-    catEl.style.flex = `0 0 ${third}px`; catEl.style.width = third + 'px';
-    payEl.style.flex = `0 0 ${third}px`; payEl.style.width = third + 'px';
-    detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det + 'px';
-    document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
-    document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
-    document.documentElement.style.setProperty('--details-panel-width', '33.33%');
+    const metrics = CategoryPanelLayoutMetrics.calc(catEl.parentElement);
+    const total = metrics.availablePanels;
+    let third = Math.max(CategoryPanelLayoutMetrics.MIN_PX, Math.floor(total/3));
+    let catW = third, payW = third, detW = total - (catW + payW);
+    const norm = CategoryPanelLayoutMetrics.normalize(catW, payW, detW, total);
+    catW = norm.cat; payW = norm.pay; detW = norm.det;
+    catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+    payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+    detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+    const overall = catW + payW + detW;
+    document.documentElement.style.setProperty('--categories-panel-width', (catW/overall*100).toFixed(2)+'%');
+    document.documentElement.style.setProperty('--payees-panel-width', (payW/overall*100).toFixed(2)+'%');
+    document.documentElement.style.setProperty('--details-panel-width', (detW/overall*100).toFixed(2)+'%');
     try { localStorage.removeItem('categoriesLayout'); } catch(e) {}
 }
 
@@ -778,18 +818,17 @@ window.addEventListener('resize', () => {
     if(!catEl || !payEl || !detEl) return;
     const container = catEl.parentElement;
     if(!container) return;
-    const width = container.getBoundingClientRect().width;
+    // Use same available width logic as resizer (subtract padding + resizers)
+    const width = CategoryPanelLayoutMetrics.calc(container).availablePanels;
     if(stored){
         const total = stored.cat + stored.pay + stored.det;
         if(total > 0){
             const scale = width / total;
-            const cat = Math.max(180, stored.cat * scale);
-            const pay = Math.max(180, stored.pay * scale);
-            let det = Math.max(180, stored.det * scale);
-            let sum = cat + pay + det;
-            if (sum !== width){
-                det += (width - sum); // adjust last panel
-            }
+            let cat = stored.cat * scale;
+            let pay = stored.pay * scale;
+            let det = stored.det * scale;
+            const norm = CategoryPanelLayoutMetrics.normalize(cat, pay, det, width);
+            cat = norm.cat; pay = norm.pay; det = norm.det;
             catEl.style.flex = `0 0 ${cat}px`; catEl.style.width = cat+'px';
             payEl.style.flex = `0 0 ${pay}px`; payEl.style.width = pay+'px';
             detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det+'px';
@@ -826,5 +865,50 @@ function selectCategoryWithToggle(element) {
     
     selectCategory(element);
 }
+
+// Unified layout metrics helper to avoid duplication & overflow errors
+const CategoryPanelLayoutMetrics = {
+    RESIZER_WIDTH: 16,
+    RESIZER_COUNT: 2,
+    MIN_PX: 200,
+    calc(container){
+        if(!container) return {availablePanels:0, innerWidth:0, paddingLeft:0, paddingRight:0};
+        const style = getComputedStyle(container);
+        const paddingLeft = parseFloat(style.paddingLeft)||0;
+        const paddingRight = parseFloat(style.paddingRight)||0;
+        const innerWidth = container.clientWidth - paddingLeft - paddingRight; // includes resizers
+        const reserved = this.RESIZER_WIDTH * this.RESIZER_COUNT;
+        const availablePanels = Math.max(0, innerWidth - reserved);
+        return {availablePanels, innerWidth, paddingLeft, paddingRight};
+    },
+    normalize(cat, pay, det, available){
+        cat = Math.max(this.MIN_PX, cat);
+        pay = Math.max(this.MIN_PX, pay);
+        det = Math.max(this.MIN_PX, det);
+        if(available <= 0) return {cat, pay, det};
+        let sum = cat + pay + det;
+        if(sum === available) return {cat, pay, det};
+        if(sum > available){
+            const excess = sum - available;
+            let adjustable = (cat - this.MIN_PX)+(pay - this.MIN_PX)+(det - this.MIN_PX);
+            if(adjustable > 0){
+                const rc = (cat - this.MIN_PX)/adjustable * excess;
+                const rp = (pay - this.MIN_PX)/adjustable * excess;
+                const rd = (det - this.MIN_PX)/adjustable * excess;
+                cat -= rc; pay -= rp; det -= rd;
+            } else {
+                det -= excess; // fallback
+            }
+            cat = Math.max(this.MIN_PX, Math.round(cat));
+            pay = Math.max(this.MIN_PX, Math.round(pay));
+            det = Math.max(this.MIN_PX, Math.round(det));
+            sum = cat + pay + det;
+            if(sum !== available) det += (available - sum);
+        } else if(sum < available){
+            det += (available - sum); // give slack to details
+        }
+        return {cat, pay, det};
+    }
+};
 </script>
 {% endblock %}

@@ -289,15 +289,6 @@ function showCategoryPanel(data) {
     const panel = document.getElementById('category-details-panel');
     if (!panel) return;
     
-    // Lock current panel widths to prevent layout shift
-    const currentCategoriesWidth = getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33.33%';
-    const currentPayeesWidth = getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width') || '33.33%';
-    const currentDetailsWidth = getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width') || '33.33%';
-    
-    document.documentElement.style.setProperty('--categories-panel-width', currentCategoriesWidth);
-    document.documentElement.style.setProperty('--payees-panel-width', currentPayeesWidth);
-    document.documentElement.style.setProperty('--details-panel-width', currentDetailsWidth);
-    
     panel.classList.add('has-content');
     
     // Populate panel data
@@ -337,15 +328,6 @@ function loadPayeesForCategory(data) {
     const payeesContent = document.getElementById('payees-list-content');
     
     if (!payeesPanel) return;
-    
-    // Lock current panel widths to prevent layout shift during content loading
-    const currentCategoriesWidth = getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33.33%';
-    const currentPayeesWidth = getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width') || '33.33%';
-    const currentDetailsWidth = getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width') || '33.33%';
-    
-    document.documentElement.style.setProperty('--categories-panel-width', currentCategoriesWidth);
-    document.documentElement.style.setProperty('--payees-panel-width', currentPayeesWidth);
-    document.documentElement.style.setProperty('--details-panel-width', currentDetailsWidth);
     
     // Show loading
     payeesSubtitle.textContent = 'Loading payees...';
@@ -567,10 +549,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
     
-    // Initialize panel widths to prevent reflow on first interaction
-    document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
-    document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
-    document.documentElement.style.setProperty('--details-panel-width', '33.33%');
+    // One-time width lock: capture actual rendered pixel widths then freeze as flex-basis
+    const catEl = document.querySelector('.categories-panel');
+    const payEl = document.getElementById('payees-panel');
+    const detEl = document.getElementById('category-details-panel');
+    if (catEl && payEl && detEl && !document.body.dataset.categoriesWidthLocked) {
+        const catW = catEl.offsetWidth;
+        const payW = payEl.offsetWidth;
+        const detW = detEl.offsetWidth;
+        const total = catW + payW + detW;
+        if (total > 0) {
+            catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+            payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+            detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+            document.documentElement.style.setProperty('--categories-panel-width', (catW/total*100).toFixed(2)+'%');
+            document.documentElement.style.setProperty('--payees-panel-width', (payW/total*100).toFixed(2)+'%');
+            document.documentElement.style.setProperty('--details-panel-width', (detW/total*100).toFixed(2)+'%');
+            document.body.dataset.categoriesWidthLocked = 'true';
+        }
+    }
     
     // Initialize panel resizers
     initializePanelResizers();

@@ -3,29 +3,9 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
-<style>
-.payee-item {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.payee-item:hover {
-    background-color: #f8f9fa;
-}
-
-.payee-item.selected {
-    background-color: #e3f2fd;
-    border-left: 3px solid #2196f3;
-}
-
-.payees-list {
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-}
-</style>
 {% endblock %}
 
-{% block body_class %}categories-page{% endblock %}
+{% block body_class %}payees-page categories-page{% endblock %}
 
 {% block page_header %}
 <!-- Empty - we'll include the header inside content wrapper -->
@@ -89,8 +69,8 @@
                                 <span class="d-none d-lg-inline" id="sortLabel">Name</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="categorySortDropdown">
-                                <li><a class="dropdown-item active" href="#" onclick="sortCategories('name')">Sort by Name</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="sortCategories('date')">Sort by Date Added</a></li>
+                                <li><a class="dropdown-item active" href="#" onclick="sortCategories('name', event)">Sort by Name</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="sortCategories('date', event)">Sort by Date Added</a></li>
                             </ul>
                         </div>
                         
@@ -219,7 +199,7 @@
                 <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addCategoryForm" method="post" action="{% url 'budget_basic:category_create' %}">>
+            <form id="addCategoryForm" method="post" action="{% url 'budget_basic:category_create' %}">
                 <div class="modal-body">
                     {% csrf_token %}
                     <div class="mb-3">
@@ -426,11 +406,6 @@ function loadPayeesForCategory(data) {
     });
 }
 
-function selectPayee(element) {
-    // Handle payee selection for third panel
-    // TODO: Implement payee details panel when needed
-    console.log('Payee selected:', element.dataset.payeeId);
-}
 
 function clearPayeesPanel() {
     const payeesPanel = document.getElementById('payees-panel');
@@ -505,7 +480,7 @@ function handleCategorySearch(searchTerm) {
     });
 }
 
-function sortCategories(sortType) {
+function sortCategories(sortType, ev) {
     const container = document.querySelector('.payee-list-content');
     const cards = Array.from(container.querySelectorAll('.payee-card'));
     
@@ -531,7 +506,9 @@ function sortCategories(sortType) {
     document.querySelectorAll('#categorySortDropdown + .dropdown-menu .dropdown-item').forEach(item => {
         item.classList.remove('active');
     });
-    event.target.classList.add('active');
+    if (ev && ev.target) {
+        ev.target.classList.add('active');
+    }
 }
 
 function editSelectedCategory() {
@@ -591,16 +568,9 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
     
     // Initialize panel widths to prevent reflow on first interaction
-    console.log('Setting initial panel widths...');
     document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
     document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
     document.documentElement.style.setProperty('--details-panel-width', '33.33%');
-    
-    console.log('Panel widths set:', {
-        categories: getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width'),
-        payees: getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width'),
-        details: getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width')
-    });
     
     // Initialize panel resizers
     initializePanelResizers();
@@ -609,113 +579,121 @@ document.addEventListener('DOMContentLoaded', function() {
     addDeselectionHandlers();
 });
 
-// Panel resizer functionality for 3-panel layout - wrapped to avoid global conflicts
-const CategoryPanelResizer = {
-    isResizing: false,
-    currentResizer: null,
+// Pixel-based 3-panel resizer (consistent with 2-panel implementation patterns)
+const CategoryPanelResizer = (() => {
+    let resizing = false;
+    let handle = null;
+    let startX = 0;
+    let startCat = 0, startPay = 0, startDet = 0, totalWidth = 0;
+    const MIN_PX = 180; // minimum pixel width per panel
 
-    initialize() {
-        console.log('Initializing CategoryPanelResizer...');
-        const resizer1 = document.getElementById('panel-resizer-1');
-        const resizer2 = document.getElementById('panel-resizer-2');
-        
-        console.log('Resizer 1:', resizer1);
-        console.log('Resizer 2:', resizer2);
-        
-        if (resizer1) {
-            console.log('Adding event listener to resizer-1');
-            resizer1.addEventListener('mousedown', (e) => this.startResize(e, 'resizer-1'));
-        }
-        if (resizer2) {
-            console.log('Adding event listener to resizer-2');
-            resizer2.addEventListener('mousedown', (e) => this.startResize(e, 'resizer-2'));
-        }
-        
-        document.addEventListener('mousemove', (e) => this.doResize(e));
-        document.addEventListener('mouseup', () => this.stopResize());
-        document.addEventListener('mouseleave', () => this.stopResize());
-        window.addEventListener('blur', () => this.stopResize());
-    },
-
-    startResize(e, resizerType) {
-        console.log('Starting resize for:', resizerType);
-        e.preventDefault();
-        this.isResizing = true;
-        this.currentResizer = resizerType;
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-        
-        const resizer = document.getElementById(`panel-${resizerType}`);
-        if (resizer) {
-            resizer.classList.add('dragging');
-        }
-    },
-
-    doResize(e) {
-        if (!this.isResizing || !this.currentResizer) return;
-        
-        console.log('Resizing:', this.currentResizer);
-        e.preventDefault();
-        const container = document.querySelector('.panel-layout-3');
-        console.log('Container:', container);
-        if (!container) return;
-        
-        const containerRect = container.getBoundingClientRect();
-        const relativeX = e.clientX - containerRect.left;
-        const containerWidth = containerRect.width;
-        const percentage = (relativeX / containerWidth) * 100;
-        
-        if (this.currentResizer === 'resizer-1') {
-            // Resize first panel, adjust others proportionally
-            const newFirstPanel = Math.max(15, Math.min(70, percentage));
-            const remainingSpace = 100 - newFirstPanel;
-            const currentSecond = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width') || '33.33');
-            const currentThird = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width') || '33.33');
-            const totalOther = currentSecond + currentThird;
-            
-            // Maintain proportions between second and third panels
-            const newSecond = totalOther > 0 ? (currentSecond / totalOther) * remainingSpace : remainingSpace / 2;
-            const newThird = remainingSpace - newSecond;
-            
-            document.documentElement.style.setProperty('--categories-panel-width', `${newFirstPanel}%`);
-            document.documentElement.style.setProperty('--payees-panel-width', `${newSecond}%`);
-            document.documentElement.style.setProperty('--details-panel-width', `${newThird}%`);
-            
-        } else if (this.currentResizer === 'resizer-2') {
-            // Find the position of resizer-2 relative to its position after first panel
-            const firstPanelWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33.33');
-            const firstPanelPixels = (firstPanelWidth / 100) * containerWidth;
-            const resizer1Width = 16; // resizer width in pixels
-            const availableStart = firstPanelPixels + resizer1Width;
-            
-            if (relativeX > availableStart) {
-                const availableWidth = containerWidth - availableStart - 16; // subtract second resizer width
-                const secondPanelRelative = relativeX - availableStart;
-                const secondPanelPercentage = (secondPanelRelative / containerWidth) * 100;
-                const newSecond = Math.max(15, Math.min(70, secondPanelPercentage));
-                const remainingForThird = 100 - firstPanelWidth - newSecond;
-                const newThird = Math.max(15, remainingForThird);
-                
-                document.documentElement.style.setProperty('--payees-panel-width', `${newSecond}%`);
-                document.documentElement.style.setProperty('--details-panel-width', `${newThird}%`);
-            }
-        }
-    },
-
-    stopResize() {
-        this.isResizing = false;
-        this.currentResizer = null;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        
-        document.querySelectorAll('.panel-resizer').forEach(resizer => {
-            resizer.classList.remove('dragging');
-        });
+    function syncCssVars(cat, pay, det) {
+        const total = cat + pay + det;
+        if (total <= 0) return;
+        document.documentElement.style.setProperty('--categories-panel-width', (cat / total * 100).toFixed(2) + '%');
+        document.documentElement.style.setProperty('--payees-panel-width', (pay / total * 100).toFixed(2) + '%');
+        document.documentElement.style.setProperty('--details-panel-width', (det / total * 100).toFixed(2) + '%');
     }
-};
 
-function initializePanelResizers() {
-    CategoryPanelResizer.initialize();
+    function apply(cat, pay, det) {
+        const catEl = document.querySelector('.categories-panel');
+        const payEl = document.getElementById('payees-panel');
+        const detEl = document.getElementById('category-details-panel');
+        if (!catEl || !payEl || !detEl) return;
+        catEl.style.flex = `0 0 ${cat}px`; catEl.style.width = cat + 'px';
+        payEl.style.flex = `0 0 ${pay}px`; payEl.style.width = pay + 'px';
+        detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det + 'px';
+        syncCssVars(cat, pay, det);
+    }
+
+    function onDown(e, which) {
+        const catEl = document.querySelector('.categories-panel');
+        const payEl = document.getElementById('payees-panel');
+        const detEl = document.getElementById('category-details-panel');
+        const container = document.querySelector('.panel-layout-3');
+        if (!catEl || !payEl || !detEl || !container) return;
+
+        // Ensure explicit pixel widths (fallback if none yet)
+        if (!catEl.style.width) catEl.style.width = catEl.offsetWidth + 'px';
+        if (!payEl.style.width) payEl.style.width = payEl.offsetWidth + 'px';
+        if (!detEl.style.width) detEl.style.width = detEl.offsetWidth + 'px';
+
+        startCat = catEl.offsetWidth;
+        startPay = payEl.offsetWidth;
+        startDet = detEl.offsetWidth;
+        totalWidth = startCat + startPay + startDet;
+        resizing = true;
+        handle = which;
+        startX = e.clientX;
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    }
+
+    function onMove(e) {
+        if (!resizing) return;
+        const dx = e.clientX - startX;
+        let cat = startCat, pay = startPay, det = startDet;
+
+        if (handle === 'panel-resizer-1') {
+            cat = Math.max(MIN_PX, startCat + dx);
+            let remaining = totalWidth - cat;
+            if (remaining < MIN_PX * 2) {
+                cat = totalWidth - MIN_PX * 2;
+                remaining = MIN_PX * 2;
+            }
+            // Preserve pay:det ratio
+            const ratio = startPay / (startPay + startDet || 1);
+            pay = Math.max(MIN_PX, remaining * ratio);
+            det = Math.max(MIN_PX, remaining - pay);
+            if (pay + det !== remaining) det = remaining - pay; // minor correction
+            // Re-adjust if one fell below min
+            if (pay < MIN_PX) { pay = MIN_PX; det = remaining - pay; }
+            if (det < MIN_PX) { det = MIN_PX; pay = remaining - det; }
+        } else if (handle === 'panel-resizer-2') {
+            pay = Math.max(MIN_PX, startPay + dx);
+            let remaining = totalWidth - startCat - pay;
+            if (remaining < MIN_PX) {
+                pay = totalWidth - startCat - MIN_PX;
+                remaining = MIN_PX;
+            }
+            det = remaining;
+            cat = startCat; // unchanged
+        }
+        apply(cat, pay, det);
+        e.preventDefault();
+    }
+
+    function onUp() {
+        if (!resizing) return;
+        resizing = false;
+        handle = null;
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+    }
+
+    function init() {
+        const r1 = document.getElementById('panel-resizer-1');
+        const r2 = document.getElementById('panel-resizer-2');
+        if (!r1 && !r2) return;
+        r1 && r1.addEventListener('mousedown', (e)=>onDown(e,'panel-resizer-1'));
+        r2 && r2.addEventListener('mousedown', (e)=>onDown(e,'panel-resizer-2'));
+        // Touch support
+        r1 && r1.addEventListener('touchstart', (e)=>onDown(e.touches[0],'panel-resizer-1'), {passive:false});
+        r2 && r2.addEventListener('touchstart', (e)=>onDown(e.touches[0],'panel-resizer-2'), {passive:false});
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        document.addEventListener('mouseleave', onUp);
+        window.addEventListener('blur', onUp);
+        document.addEventListener('touchmove', (e)=>{ if(resizing) onMove(e.touches[0]); }, {passive:false});
+        document.addEventListener('touchend', onUp);
+        document.addEventListener('touchcancel', onUp);
+    }
+    return { init };
+})();
+
+function initializePanelResizers(){
+    CategoryPanelResizer.init();
 }
 
 // Global functions for onclick handlers

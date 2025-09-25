@@ -711,3 +711,41 @@
     opacity: 1;
 }
 
+/* Category page list + payees list item styling (aligned with grayscale aesthetic) */
+.categories-page .payee-item {
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e0e0e0;
+    background: transparent;
+}
+
+.categories-page .payee-item:hover {
+    background-color: #f0f0f0;
+}
+
+.categories-page .payee-item.selected {
+    background-color: #e0e0e0 !important;
+    border-left: 4px solid #4a4a4a;
+}
+
+.categories-page .payees-list {
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+}
+
+.categories-page .payees-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.categories-page .payees-list::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+    border-radius: 999px;
+    border-left: 1px solid #d3d3d3;
+}
+
+.categories-page .payees-list::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.35);
+    border-radius: 999px;
+}
+

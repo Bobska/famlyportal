@@ -557,18 +557,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const payEl = document.getElementById('payees-panel');
     const detEl = document.getElementById('category-details-panel');
     if (catEl && payEl && detEl && !document.body.dataset.categoriesWidthLocked) {
-        const catW = catEl.offsetWidth;
-        const payW = payEl.offsetWidth;
-        const detW = detEl.offsetWidth;
-        const total = catW + payW + detW;
-        if (total > 0) {
-            catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
-            payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
-            detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
-            document.documentElement.style.setProperty('--categories-panel-width', (catW/total*100).toFixed(2)+'%');
-            document.documentElement.style.setProperty('--payees-panel-width', (payW/total*100).toFixed(2)+'%');
-            document.documentElement.style.setProperty('--details-panel-width', (detW/total*100).toFixed(2)+'%');
+        // Try persisted layout first
+        let persisted = null;
+        try { persisted = JSON.parse(localStorage.getItem('categoriesLayout')||'null'); } catch(e) {}
+        if (persisted && typeof persisted.cat==='number' && typeof persisted.pay==='number' && typeof persisted.det==='number') {
+            // Apply persisted pixel widths
+            const total = persisted.cat + persisted.pay + persisted.det;
+            catEl.style.flex = `0 0 ${persisted.cat}px`; catEl.style.width = persisted.cat + 'px';
+            payEl.style.flex = `0 0 ${persisted.pay}px`; payEl.style.width = persisted.pay + 'px';
+            detEl.style.flex = `0 0 ${persisted.det}px`; detEl.style.width = persisted.det + 'px';
+            if (total > 0) {
+                document.documentElement.style.setProperty('--categories-panel-width', (persisted.cat/total*100).toFixed(2)+'%');
+                document.documentElement.style.setProperty('--payees-panel-width', (persisted.pay/total*100).toFixed(2)+'%');
+                document.documentElement.style.setProperty('--details-panel-width', (persisted.det/total*100).toFixed(2)+'%');
+            }
             document.body.dataset.categoriesWidthLocked = 'true';
+        } else {
+            // No persisted layout: enforce equal thirds baseline (instead of content-based widths)
+            const container = catEl.parentElement; // flex container
+            const containerWidth = container ? container.getBoundingClientRect().width : (catEl.offsetWidth + payEl.offsetWidth + detEl.offsetWidth);
+            if (containerWidth > 0) {
+                const MIN_PX = 180;
+                let third = Math.floor(containerWidth / 3);
+                if (third < MIN_PX) third = MIN_PX; // respect minimums
+                let catW = third;
+                let payW = third;
+                let detW = containerWidth - (catW + payW);
+                if (detW < MIN_PX) { // adjust if last fell below min
+                    detW = MIN_PX;
+                    const remaining = containerWidth - detW;
+                    catW = Math.max(MIN_PX, Math.floor(remaining / 2));
+                    payW = Math.max(MIN_PX, remaining - catW);
+                }
+                catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+                payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+                detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+                document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
+                document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
+                document.documentElement.style.setProperty('--details-panel-width', '33.33%');
+                document.body.dataset.categoriesWidthLocked = 'true';
+            }
         }
     }
     

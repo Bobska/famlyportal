@@ -927,6 +927,15 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+function formatSignedCurrency(amount) {
+    const numeric = Number(amount) || 0;
+    const formatted = formatCurrency(numeric);
+    if (numeric > 0) {
+        return `+${formatted}`;
+    }
+    return formatted;
+}
+
 /**
  * Update budget summary in sidebar
  */
@@ -1670,6 +1679,8 @@ function applyTransactionFilters() {
     const normalizedSearch = currentTransactionSearch.trim().toLowerCase();
     let visibleIncome = 0;
     let visibleExpense = 0;
+    let incomeTotal = 0;
+    let expenseTotal = 0;
 
     cards.forEach(card => {
         const { transactionType = '', transactionPayee = '', transactionNotes = '', transactionAmount = '' } = card.dataset || {};
@@ -1677,6 +1688,7 @@ function applyTransactionFilters() {
         const payee = transactionPayee.toLowerCase();
         const notes = transactionNotes.toLowerCase();
         const amount = transactionAmount.toString().toLowerCase();
+        const numericAmount = Number.parseFloat(transactionAmount || '0');
 
         const matchesType = currentFilterType === 'all' || currentFilterType === type;
         const matchesSearch = !normalizedSearch || payee.includes(normalizedSearch) || notes.includes(normalizedSearch) || amount.includes(normalizedSearch);
@@ -1687,13 +1699,78 @@ function applyTransactionFilters() {
         if (shouldShow) {
             if (type === 'income') {
                 visibleIncome += 1;
+                if (Number.isFinite(numericAmount)) {
+                    incomeTotal += numericAmount;
+                }
             } else if (type === 'expense') {
                 visibleExpense += 1;
+                if (Number.isFinite(numericAmount)) {
+                    expenseTotal += numericAmount;
+                }
             }
         }
     });
 
+    updateTransactionTotalsDisplay(currentFilterType, {
+        incomeTotal,
+        expenseTotal,
+        visibleCount: visibleIncome + visibleExpense
+    });
+
     updateEmptyStateMessage(currentFilterType, visibleIncome, visibleExpense);
+}
+
+function updateTransactionTotalsDisplay(filterType, totals = {}) {
+    const bar = document.getElementById('transaction-total-bar');
+    if (!bar) {
+        return;
+    }
+
+    const { incomeTotal = 0, expenseTotal = 0, visibleCount = 0 } = totals;
+    const labelElement = document.getElementById('transaction-total-label');
+    const valueElement = document.getElementById('transaction-total-value');
+    const subtextElement = document.getElementById('transaction-total-subtext');
+
+    let label = 'Net Balance';
+    let numericValue = incomeTotal - expenseTotal;
+
+    if (filterType === 'income') {
+        label = 'Total Income';
+        numericValue = incomeTotal;
+    } else if (filterType === 'expense') {
+        label = 'Total Expenses';
+        numericValue = -expenseTotal;
+    }
+
+    if (labelElement) {
+        labelElement.textContent = label;
+    }
+
+    if (valueElement) {
+        valueElement.textContent = formatSignedCurrency(numericValue);
+        valueElement.classList.remove('is-positive', 'is-negative', 'is-neutral');
+        if (numericValue > 0) {
+            valueElement.classList.add('is-positive');
+        } else if (numericValue < 0) {
+            valueElement.classList.add('is-negative');
+        } else {
+            valueElement.classList.add('is-neutral');
+        }
+    }
+
+    bar.dataset.income = incomeTotal.toFixed(2);
+    bar.dataset.expense = expenseTotal.toFixed(2);
+    bar.dataset.net = (incomeTotal - expenseTotal).toFixed(2);
+    bar.dataset.currentFilter = filterType;
+
+    if (subtextElement) {
+        const runningValue = Number.parseFloat(bar.dataset.running || '0');
+        if (Number.isFinite(runningValue)) {
+            subtextElement.textContent = `Running balance: ${formatSignedCurrency(runningValue)}`;
+        } else {
+            subtextElement.textContent = '';
+        }
+    }
 }
 
 function handleTransactionSearch(query) {
@@ -2271,4 +2348,6 @@ window.deleteSelectedTransaction = deleteSelectedTransaction;
 window.initializePanelResizer = initializePanelResizer;
 window.showActionButtons = showActionButtons;
 window.hideActionButtons = hideActionButtons;
+window.updateTransactionTotalsDisplay = updateTransactionTotalsDisplay;
+window.formatSignedCurrency = formatSignedCurrency;
 

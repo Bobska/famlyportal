@@ -75,20 +75,14 @@ function loadWeekData(offset) {
                 weekLabel.textContent = data.week_label;
                 weekDate.textContent = `${data.week_start} - ${data.week_end}`;
                 
-                // Update weekly totals
-                document.getElementById('weekly-income').textContent = `+$${data.weekly_income.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                document.getElementById('weekly-expenses').textContent = `-$${data.weekly_expenses.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                
-                const balanceElement = document.getElementById('weekly-balance');
-                const balanceValue = data.weekly_balance;
-                balanceElement.textContent = `${balanceValue >= 0 ? '+' : '-'}$${Math.abs(balanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                balanceElement.className = `weekly-stat-value`; // Remove color classes, use grayscale styling
-                
-                // Update running balance display
-                const runningBalanceElement = document.getElementById('running-balance');
-                const runningBalanceValue = data.running_balance;
-                runningBalanceElement.textContent = `${runningBalanceValue >= 0 ? '+' : '-'}$${Math.abs(runningBalanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                runningBalanceElement.className = runningBalanceValue >= 0 ? 'text-success' : 'text-danger';
+                // Update transaction total bar data
+                const totalBar = document.getElementById('transaction-total-bar');
+                if (totalBar) {
+                    totalBar.dataset.income = data.weekly_income.toFixed(2);
+                    totalBar.dataset.expense = data.weekly_expenses.toFixed(2);
+                    totalBar.dataset.net = data.weekly_balance.toFixed(2);
+                    totalBar.dataset.running = data.running_balance.toFixed(2);
+                }
                 
                 // Update transactions
                 console.log('Updating transactions:', data.income_entries.length + data.expense_entries.length + ' total');
@@ -100,6 +94,16 @@ function loadWeekData(offset) {
                     window.filterTransactions(window.currentFilterType);
                 } else if (window.filterTransactions) {
                     window.filterTransactions('all');
+                }
+                
+                // Update total bar display after filtering
+                if (window.updateTransactionTotalsDisplay && totalBar) {
+                    const currentFilter = window.currentFilterType || 'all';
+                    window.updateTransactionTotalsDisplay(currentFilter, {
+                        incomeTotal: data.weekly_income,
+                        expenseTotal: data.weekly_expenses,
+                        visibleCount: data.income_entries.length + data.expense_entries.length
+                    });
                 }
                 
                 // Re-initialize transaction card event listeners after updating

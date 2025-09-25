@@ -606,3 +606,82 @@
     }
 }
 
+/* 3-Panel Layout Support for Categories */
+:root {
+    --categories-panel-width: 33%;
+    --payees-panel-width: 33%;
+}
+
+.categories-page .panel-layout-3 {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.categories-page .categories-panel {
+    width: var(--categories-panel-width);
+    min-width: 200px;
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.categories-page .payees-panel-3 {
+    width: var(--payees-panel-width);
+    min-width: 200px;
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.categories-page .details-panel {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Panel Resizer Support for Multiple Resizers */
+.categories-page #panel-resizer-1,
+.categories-page #panel-resizer-2 {
+    width: 16px;
+    background: transparent;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.categories-page #panel-resizer-1:hover,
+.categories-page #panel-resizer-2:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.categories-page #panel-resizer-1.dragging,
+.categories-page #panel-resizer-2.dragging {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.categories-page #panel-resizer-1 .resizer-handle,
+.categories-page #panel-resizer-2 .resizer-handle {
+    width: 4px;
+    height: 32px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #bfc5cc 0%, #9da5ad 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.categories-page #panel-resizer-1:hover .resizer-handle,
+.categories-page #panel-resizer-1.dragging .resizer-handle,
+.categories-page #panel-resizer-2:hover .resizer-handle,
+.categories-page #panel-resizer-2.dragging .resizer-handle {
+    opacity: 1;
+}
+

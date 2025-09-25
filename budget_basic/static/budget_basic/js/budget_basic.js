@@ -2162,10 +2162,22 @@ let startLeftWidth = 0;
  * Initialize panel resizer functionality
  */
 function initializePanelResizer() {
+    // Check for 3-panel layout first (categories page)
+    const resizer1 = document.getElementById('panel-resizer-1');
+    const resizer2 = document.getElementById('panel-resizer-2');
+    
+    if (resizer1 || resizer2) {
+        // 3-panel layout detected, skip single panel resizer
+        return;
+    }
+    
     const resizer = document.getElementById('panel-resizer');
     
     if (!resizer) {
-        console.warn('Panel resizer element not found');
+        // Not a warning on categories page since it uses different resizers
+        if (!document.querySelector('.categories-page')) {
+            console.warn('Panel resizer element not found');
+        }
         return;
     }
     

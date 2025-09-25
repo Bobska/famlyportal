@@ -120,7 +120,7 @@
                              data-category-description="{{ category.description|default:""|escapejs }}"
                              data-category-created="{{ category.created_at|date:"Y-m-d" }}"
                              data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
-                             onclick="selectCategory(this)">
+                             onclick="selectCategoryWithToggle(this)">
                             <div class="payee-cell payee-cell-info transaction-info-cell">
                                 <span class="transaction-payee-name transaction-name">{{ category.name }}</span>
                                 {% if category.description %}
@@ -354,44 +354,64 @@ function loadPayeesForCategory(data) {
     payeesContent.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
     payeesPanel.classList.add('has-content');
     
-    // Mock data - replace with actual fetch to your backend
-    setTimeout(() => {
-        // Simulate API response - replace with actual fetch
-        const mockPayees = [
-            { id: 1, name: 'Example Payee 1', transaction_count: 5 },
-            { id: 2, name: 'Example Payee 2', transaction_count: 3 }
-        ];
-        
-        payeesSubtitle.textContent = `${mockPayees.length} payee${mockPayees.length !== 1 ? 's' : ''} in ${data.name}`;
-        
-        if (mockPayees.length === 0) {
-            payeesContent.innerHTML = `
-                <div class="empty-state text-center text-muted py-4">
-                    <div class="mb-3">
-                        <i class="bi bi-person-plus" style="font-size: 2rem; opacity: 0.3;"></i>
-                    </div>
-                    <p class="mb-0">No payees in this category</p>
-                    <small>Payees will appear here when transactions are categorized</small>
-                </div>
-            `;
-        } else {
-            let payeesHtml = '<div class="payees-list">';
-            mockPayees.forEach(payee => {
-                payeesHtml += `
-                    <div class="payee-item p-2 border-bottom" data-payee-id="${payee.id}" onclick="selectPayee(this)">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="payee-name">${payee.name}</div>
-                                <small class="text-muted">${payee.transaction_count} transaction${payee.transaction_count !== 1 ? 's' : ''}</small>
-                            </div>
+    // Fetch actual payees data
+    const url = `/budget-basic/category/${data.id}/payees/`;
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            const payees = result.payees;
+            payeesSubtitle.textContent = `${payees.length} payee${payees.length !== 1 ? 's' : ''} in ${data.name}`;
+            
+            if (payees.length === 0) {
+                payeesContent.innerHTML = `
+                    <div class="empty-state text-center text-muted py-4">
+                        <div class="mb-3">
+                            <i class="bi bi-person-plus" style="font-size: 2rem; opacity: 0.3;"></i>
                         </div>
+                        <p class="mb-0">No payees in this category</p>
+                        <small>Payees will appear here when linked to this category</small>
                     </div>
                 `;
-            });
-            payeesHtml += '</div>';
-            payeesContent.innerHTML = payeesHtml;
+            } else {
+                let payeesHtml = '<div class="payees-list">';
+                payees.forEach(payee => {
+                    payeesHtml += `
+                        <div class="payee-item p-2 border-bottom" data-payee-id="${payee.id}" onclick="selectPayee(this)">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="payee-name">${payee.name}</div>
+                                    <small class="text-muted">${payee.categories_display}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                payeesHtml += '</div>';
+                payeesContent.innerHTML = payeesHtml;
+            }
+        } else {
+            payeesSubtitle.textContent = 'Error loading payees';
+            payeesContent.innerHTML = `<div class="alert alert-warning">${result.error}</div>`;
         }
-    }, 500);
+    })
+    .catch(error => {
+        console.error('Error fetching payees:', error);
+        payeesSubtitle.textContent = 'Error loading payees';
+        payeesContent.innerHTML = `<div class="alert alert-danger">Failed to load payees</div>`;
+    });
+}
+
+function selectPayee(element) {
+    // Handle payee selection for third panel
+    // TODO: Implement payee details panel when needed
+    console.log('Payee selected:', element.dataset.payeeId);
 }
 
 function clearPayeesPanel() {
@@ -496,11 +516,6 @@ function sortCategories(sortType) {
     event.target.classList.add('active');
 }
 
-function showAddCategoryModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
-    modal.show();
-}
-
 function editSelectedCategory() {
     if (!selectedCategoryCard) return;
     
@@ -556,6 +571,118 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+    
+    // Initialize panel resizers
+    initializePanelResizers();
+    
+    // Add click handlers for deselection
+    addDeselectionHandlers();
 });
+
+// Panel resizer functionality for 3-panel layout - wrapped to avoid global conflicts
+const CategoryPanelResizer = {
+    isResizing: false,
+    currentResizer: null,
+
+    initialize() {
+        const resizer1 = document.getElementById('panel-resizer-1');
+        const resizer2 = document.getElementById('panel-resizer-2');
+        
+        if (resizer1) {
+            resizer1.addEventListener('mousedown', (e) => this.startResize(e, 'resizer-1'));
+        }
+        if (resizer2) {
+            resizer2.addEventListener('mousedown', (e) => this.startResize(e, 'resizer-2'));
+        }
+        
+        document.addEventListener('mousemove', (e) => this.doResize(e));
+        document.addEventListener('mouseup', () => this.stopResize());
+        document.addEventListener('mouseleave', () => this.stopResize());
+        window.addEventListener('blur', () => this.stopResize());
+    },
+
+    startResize(e, resizerType) {
+        e.preventDefault();
+        this.isResizing = true;
+        this.currentResizer = resizerType;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        
+        const resizer = document.getElementById(`panel-${resizerType}`);
+        if (resizer) {
+            resizer.classList.add('dragging');
+        }
+    },
+
+    doResize(e) {
+        if (!this.isResizing || !this.currentResizer) return;
+        
+        e.preventDefault();
+        const container = document.querySelector('.payees-panel');
+        if (!container) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        const relativeX = e.clientX - containerRect.left;
+        const containerWidth = containerRect.width;
+        
+        if (this.currentResizer === 'resizer-1') {
+            // Resize between first and second panel
+            const percentage = Math.max(20, Math.min(60, (relativeX / containerWidth) * 100));
+            document.documentElement.style.setProperty('--categories-panel-width', `${percentage}%`);
+        } else if (this.currentResizer === 'resizer-2') {
+            // Resize between second and third panel  
+            const secondPanelStart = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33%');
+            const remainingWidth = 100 - secondPanelStart;
+            const relativeToSecondPanel = relativeX - (containerWidth * secondPanelStart / 100);
+            const secondPanelPercentage = Math.max(20, Math.min(60, (relativeToSecondPanel / containerWidth) * 100));
+            document.documentElement.style.setProperty('--payees-panel-width', `${secondPanelPercentage}%`);
+        }
+    },
+
+    stopResize() {
+        this.isResizing = false;
+        this.currentResizer = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        
+        document.querySelectorAll('.panel-resizer').forEach(resizer => {
+            resizer.classList.remove('dragging');
+        });
+    }
+};
+
+function initializePanelResizers() {
+    CategoryPanelResizer.initialize();
+}
+
+// Global functions for onclick handlers
+function showAddCategoryModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+    modal.show();
+}
+
+function addDeselectionHandlers() {
+    // Allow deselection by clicking on empty space or the same item
+    const categoryList = document.getElementById('category-list');
+    if (categoryList) {
+        categoryList.addEventListener('click', function(e) {
+            // If clicking on empty space (not on a category card)
+            if (e.target === this || e.target.classList.contains('payee-list-content') || e.target.classList.contains('payee-list-scroll')) {
+                clearCategorySelection();
+            }
+        });
+    }
+}
+
+// Update selectCategory to handle deselection when clicking same item
+function selectCategoryWithToggle(element) {
+    // If clicking the same category, deselect it
+    if (selectedCategoryCard === element) {
+        clearCategorySelection();
+        return;
+    }
+    
+    selectCategory(element);
+}
 </script>
 {% endblock %}

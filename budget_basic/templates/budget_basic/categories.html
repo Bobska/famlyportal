@@ -50,6 +50,9 @@
                 <div class="panel-header">
                     <div class="panel-title">Categories</div>
                     <div class="panel-header-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="resetLayoutBtn" title="Reset Layout" data-bs-toggle="tooltip" data-bs-placement="top" onclick="resetCategoryLayout()">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
                         <!-- Add category button -->
                         <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-plus-circle me-1"></i>
@@ -590,6 +593,7 @@ const CategoryPanelResizer = (() => {
         document.documentElement.style.setProperty('--categories-panel-width', (cat / total * 100).toFixed(2) + '%');
         document.documentElement.style.setProperty('--payees-panel-width', (pay / total * 100).toFixed(2) + '%');
         document.documentElement.style.setProperty('--details-panel-width', (det / total * 100).toFixed(2) + '%');
+        savePersisted(cat, pay, det);
     }
 
     function apply(cat, pay, det) {
@@ -669,10 +673,34 @@ const CategoryPanelResizer = (() => {
         document.body.style.cursor = '';
     }
 
+    function savePersisted(cat, pay, det){
+        try {
+            localStorage.setItem('categoriesLayout', JSON.stringify({cat, pay, det, ts: Date.now()}));
+        } catch(e) { /* ignore quota */ }
+    }
+    function loadPersisted(){
+        try {
+            const raw = localStorage.getItem('categoriesLayout');
+            if(!raw) return null;
+            const data = JSON.parse(raw);
+            if(['cat','pay','det'].every(k=>typeof data[k]==='number' && data[k]>50)) { // simple sanity; >50px
+                return data;
+            }
+        } catch(e) { /* ignore */ }
+        return null;
+    }
+    function applyPersistedIfAny(){
+        const p = loadPersisted();
+        if(!p) return false;
+        apply(p.cat, p.pay, p.det);
+        return true;
+    }
     function init() {
         const r1 = document.getElementById('panel-resizer-1');
         const r2 = document.getElementById('panel-resizer-2');
         if (!r1 && !r2) return;
+        // Try applying stored layout before user interacts
+        applyPersistedIfAny();
         r1 && r1.addEventListener('mousedown', (e)=>onDown(e,'panel-resizer-1'));
         r2 && r2.addEventListener('mousedown', (e)=>onDown(e,'panel-resizer-2'));
         // Touch support
@@ -686,12 +714,60 @@ const CategoryPanelResizer = (() => {
         document.addEventListener('touchend', onUp);
         document.addEventListener('touchcancel', onUp);
     }
-    return { init };
+    return { init, loadPersisted, applyPersistedIfAny, savePersisted };
 })();
 
 function initializePanelResizers(){
     CategoryPanelResizer.init();
 }
+
+// Reset layout to equal thirds
+function resetCategoryLayout(){
+    const catEl = document.querySelector('.categories-panel');
+    const payEl = document.getElementById('payees-panel');
+    const detEl = document.getElementById('category-details-panel');
+    if(!catEl || !payEl || !detEl) return;
+    const container = catEl.parentElement; // flex row
+    const total = catEl.offsetWidth + payEl.offsetWidth + detEl.offsetWidth || container.getBoundingClientRect().width;
+    const third = Math.max(180, Math.floor(total/3));
+    // Ensure sum = total (adjust last)
+    const det = total - (third*2);
+    catEl.style.flex = `0 0 ${third}px`; catEl.style.width = third + 'px';
+    payEl.style.flex = `0 0 ${third}px`; payEl.style.width = third + 'px';
+    detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det + 'px';
+    document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
+    document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
+    document.documentElement.style.setProperty('--details-panel-width', '33.33%');
+    try { localStorage.removeItem('categoriesLayout'); } catch(e) {}
+}
+
+// Recalculate pixel widths on window resize (maintain proportions)
+window.addEventListener('resize', () => {
+    const stored = (()=>{ try { return JSON.parse(localStorage.getItem('categoriesLayout')||'null'); } catch(e){ return null;} })();
+    const catEl = document.querySelector('.categories-panel');
+    const payEl = document.getElementById('payees-panel');
+    const detEl = document.getElementById('category-details-panel');
+    if(!catEl || !payEl || !detEl) return;
+    const container = catEl.parentElement;
+    if(!container) return;
+    const width = container.getBoundingClientRect().width;
+    if(stored){
+        const total = stored.cat + stored.pay + stored.det;
+        if(total > 0){
+            const scale = width / total;
+            const cat = Math.max(180, stored.cat * scale);
+            const pay = Math.max(180, stored.pay * scale);
+            let det = Math.max(180, stored.det * scale);
+            let sum = cat + pay + det;
+            if (sum !== width){
+                det += (width - sum); // adjust last panel
+            }
+            catEl.style.flex = `0 0 ${cat}px`; catEl.style.width = cat+'px';
+            payEl.style.flex = `0 0 ${pay}px`; payEl.style.width = pay+'px';
+            detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det+'px';
+        }
+    }
+});
 
 // Global functions for onclick handlers
 function showAddCategoryModal() {

@@ -1978,9 +1978,6 @@ function showTransactionPanel(data) {
     
     // Populate panel data
     const detailContent = document.getElementById('transaction-detail-content');
-    if (detailContent) {
-        detailContent.hidden = false;
-    }
 
     const payeeName = (data.payee || 'Transaction').trim() || 'Transaction';
     const notes = (data.notes || '').trim();

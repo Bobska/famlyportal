@@ -608,8 +608,9 @@
 
 /* 3-Panel Layout Support for Categories */
 :root {
-    --categories-panel-width: 33%;
-    --payees-panel-width: 33%;
+    --categories-panel-width: 33.33%;
+    --payees-panel-width: 33.33%;
+    --details-panel-width: 33.33%;
 }
 
 .categories-page .panel-layout-3 {
@@ -625,6 +626,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .categories-page .payees-panel-3 {
@@ -634,14 +636,38 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .categories-page .details-panel {
-    flex: 1;
+    width: var(--details-panel-width);
     min-width: 200px;
+    max-width: 60%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Ensure stable panel sizing regardless of content */
+.categories-page .payee-detail-panel {
+    height: 100%;
+    min-height: 400px;
+    box-sizing: border-box;
+}
+
+.categories-page .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0; /* Prevents flex items from growing based on content */
+}
+
+/* Prevent layout shifts during content loading */
+.categories-page .categories-panel,
+.categories-page .payees-panel-3,
+.categories-page .details-panel {
+    position: relative;
+    box-sizing: border-box;
 }
 
 /* Panel Resizer Support for Multiple Resizers */

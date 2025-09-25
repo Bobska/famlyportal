@@ -25,7 +25,7 @@
 </style>
 {% endblock %}
 
-{% block body_class %}payees-page{% endblock %}
+{% block body_class %}categories-page{% endblock %}
 
 {% block page_header %}
 <!-- Empty - we'll include the header inside content wrapper -->
@@ -63,9 +63,9 @@
     <!-- Categories card with integrated side panel - matches transactions structure -->
     <div class="card flex-grow-1" id="categories-card">
         <!-- Always show the panel structure for consistent layout -->
-        <div class="payees-panel">
+        <div class="payees-panel panel-layout-3">
             <!-- Left Side: Category List Panel -->
-            <div class="payee-list-panel" id="category-list">
+            <div class="payee-list-panel categories-panel" id="category-list">
                 <!-- Left Panel Header -->
                 <div class="panel-header">
                     <div class="panel-title">Categories</div>
@@ -148,7 +148,7 @@
                 <div class="resizer-handle"></div>
             </div>
 
-            <div class="payee-detail-panel" id="payees-panel">
+            <div class="payee-detail-panel payees-panel-3" id="payees-panel">
                 <div class="panel-header">
                     <div class="panel-title">Payees in Category</div>
                     <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
@@ -170,7 +170,7 @@
                 <div class="resizer-handle"></div>
             </div>
 
-            <div class="payee-detail-panel" id="category-details-panel">
+            <div class="payee-detail-panel details-panel" id="category-details-panel">
                 <div class="panel-header">
                     <div class="panel-title">Details</div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCategorySelection()">
@@ -309,6 +309,15 @@ function showCategoryPanel(data) {
     const panel = document.getElementById('category-details-panel');
     if (!panel) return;
     
+    // Lock current panel widths to prevent layout shift
+    const currentCategoriesWidth = getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33.33%';
+    const currentPayeesWidth = getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width') || '33.33%';
+    const currentDetailsWidth = getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width') || '33.33%';
+    
+    document.documentElement.style.setProperty('--categories-panel-width', currentCategoriesWidth);
+    document.documentElement.style.setProperty('--payees-panel-width', currentPayeesWidth);
+    document.documentElement.style.setProperty('--details-panel-width', currentDetailsWidth);
+    
     panel.classList.add('has-content');
     
     // Populate panel data
@@ -348,6 +357,15 @@ function loadPayeesForCategory(data) {
     const payeesContent = document.getElementById('payees-list-content');
     
     if (!payeesPanel) return;
+    
+    // Lock current panel widths to prevent layout shift during content loading
+    const currentCategoriesWidth = getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33.33%';
+    const currentPayeesWidth = getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width') || '33.33%';
+    const currentDetailsWidth = getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width') || '33.33%';
+    
+    document.documentElement.style.setProperty('--categories-panel-width', currentCategoriesWidth);
+    document.documentElement.style.setProperty('--payees-panel-width', currentPayeesWidth);
+    document.documentElement.style.setProperty('--details-panel-width', currentDetailsWidth);
     
     // Show loading
     payeesSubtitle.textContent = 'Loading payees...';
@@ -572,6 +590,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
     
+    // Initialize panel widths to prevent reflow on first interaction
+    console.log('Setting initial panel widths...');
+    document.documentElement.style.setProperty('--categories-panel-width', '33.33%');
+    document.documentElement.style.setProperty('--payees-panel-width', '33.33%');
+    document.documentElement.style.setProperty('--details-panel-width', '33.33%');
+    
+    console.log('Panel widths set:', {
+        categories: getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width'),
+        payees: getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width'),
+        details: getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width')
+    });
+    
     // Initialize panel resizers
     initializePanelResizers();
     
@@ -585,13 +615,19 @@ const CategoryPanelResizer = {
     currentResizer: null,
 
     initialize() {
+        console.log('Initializing CategoryPanelResizer...');
         const resizer1 = document.getElementById('panel-resizer-1');
         const resizer2 = document.getElementById('panel-resizer-2');
         
+        console.log('Resizer 1:', resizer1);
+        console.log('Resizer 2:', resizer2);
+        
         if (resizer1) {
+            console.log('Adding event listener to resizer-1');
             resizer1.addEventListener('mousedown', (e) => this.startResize(e, 'resizer-1'));
         }
         if (resizer2) {
+            console.log('Adding event listener to resizer-2');
             resizer2.addEventListener('mousedown', (e) => this.startResize(e, 'resizer-2'));
         }
         
@@ -602,6 +638,7 @@ const CategoryPanelResizer = {
     },
 
     startResize(e, resizerType) {
+        console.log('Starting resize for:', resizerType);
         e.preventDefault();
         this.isResizing = true;
         this.currentResizer = resizerType;
@@ -617,25 +654,51 @@ const CategoryPanelResizer = {
     doResize(e) {
         if (!this.isResizing || !this.currentResizer) return;
         
+        console.log('Resizing:', this.currentResizer);
         e.preventDefault();
-        const container = document.querySelector('.payees-panel');
+        const container = document.querySelector('.panel-layout-3');
+        console.log('Container:', container);
         if (!container) return;
         
         const containerRect = container.getBoundingClientRect();
         const relativeX = e.clientX - containerRect.left;
         const containerWidth = containerRect.width;
+        const percentage = (relativeX / containerWidth) * 100;
         
         if (this.currentResizer === 'resizer-1') {
-            // Resize between first and second panel
-            const percentage = Math.max(20, Math.min(60, (relativeX / containerWidth) * 100));
-            document.documentElement.style.setProperty('--categories-panel-width', `${percentage}%`);
+            // Resize first panel, adjust others proportionally
+            const newFirstPanel = Math.max(15, Math.min(70, percentage));
+            const remainingSpace = 100 - newFirstPanel;
+            const currentSecond = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--payees-panel-width') || '33.33');
+            const currentThird = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--details-panel-width') || '33.33');
+            const totalOther = currentSecond + currentThird;
+            
+            // Maintain proportions between second and third panels
+            const newSecond = totalOther > 0 ? (currentSecond / totalOther) * remainingSpace : remainingSpace / 2;
+            const newThird = remainingSpace - newSecond;
+            
+            document.documentElement.style.setProperty('--categories-panel-width', `${newFirstPanel}%`);
+            document.documentElement.style.setProperty('--payees-panel-width', `${newSecond}%`);
+            document.documentElement.style.setProperty('--details-panel-width', `${newThird}%`);
+            
         } else if (this.currentResizer === 'resizer-2') {
-            // Resize between second and third panel  
-            const secondPanelStart = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33%');
-            const remainingWidth = 100 - secondPanelStart;
-            const relativeToSecondPanel = relativeX - (containerWidth * secondPanelStart / 100);
-            const secondPanelPercentage = Math.max(20, Math.min(60, (relativeToSecondPanel / containerWidth) * 100));
-            document.documentElement.style.setProperty('--payees-panel-width', `${secondPanelPercentage}%`);
+            // Find the position of resizer-2 relative to its position after first panel
+            const firstPanelWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--categories-panel-width') || '33.33');
+            const firstPanelPixels = (firstPanelWidth / 100) * containerWidth;
+            const resizer1Width = 16; // resizer width in pixels
+            const availableStart = firstPanelPixels + resizer1Width;
+            
+            if (relativeX > availableStart) {
+                const availableWidth = containerWidth - availableStart - 16; // subtract second resizer width
+                const secondPanelRelative = relativeX - availableStart;
+                const secondPanelPercentage = (secondPanelRelative / containerWidth) * 100;
+                const newSecond = Math.max(15, Math.min(70, secondPanelPercentage));
+                const remainingForThird = 100 - firstPanelWidth - newSecond;
+                const newThird = Math.max(15, remainingForThird);
+                
+                document.documentElement.style.setProperty('--payees-panel-width', `${newSecond}%`);
+                document.documentElement.style.setProperty('--details-panel-width', `${newThird}%`);
+            }
         }
     },
 

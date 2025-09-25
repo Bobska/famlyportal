@@ -1970,11 +1970,7 @@ function showTransactionPanel(data) {
     }
     
     // Activate panel layout
-    container.classList.add('panel-active');
     panel.classList.add('has-content');
-    
-    // Ensure panel maintains flex display
-    panel.style.display = 'flex';
     
     // Populate panel data
     const detailContent = document.getElementById('transaction-detail-content');
@@ -2021,14 +2017,10 @@ function hideTransactionPanel() {
     if (!container || !panel) return;
     
     // Deactivate panel layout
-    container.classList.remove('panel-active');
     panel.classList.remove('has-content');
     
     // Clear the panel content to show it's empty
     clearPanelContent();
-    
-    // Remove any inline display styles and let CSS handle it
-    panel.style.removeProperty('display');
     
     // Clear stored data
     panel.removeAttribute('data-selected-id');
@@ -2043,10 +2035,7 @@ function hideTransactionPanel() {
  */
 function clearPanelContent() {
     // Reset panel content to empty/placeholder state
-    const detailContent = document.getElementById('transaction-detail-content');
-    if (detailContent) {
-        detailContent.hidden = true;
-    }
+    // Note: Not using hidden attribute to prevent layout reflow
     document.getElementById('detail-payee').textContent = 'Select a transaction';
     document.getElementById('detail-date').textContent = '-';
     document.getElementById('detail-amount').textContent = '$0.00';

@@ -95,12 +95,13 @@
                 <div class="payee-list-scroll">
                 {% if categories %}
                     {% for category in categories %}
-                    <div class="payee-row payee-card"
+                <div class="payee-row payee-card"
                          data-category-id="{{ category.id }}"
                          data-category-name="{{ category.name|escapejs }}"
                          data-category-description="{{ category.description|default:""|escapejs }}"
                          data-category-created="{{ category.created_at|date:"Y-m-d" }}"
-                         data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
+                    data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
+                    data-category-payee-count="{{ category.get_payees_count }}"
                          onclick="selectCategoryWithToggle(this)">
                         <div class="payee-cell payee-cell-info">
                             <div class="d-flex align-items-center">
@@ -174,38 +175,55 @@
 
             <div class="payee-detail-panel details-panel" id="category-details-panel">
                 <div class="panel-header">
-                    <div class="panel-title">Details</div>
+                    <div class="panel-title d-flex align-items-center gap-2">
+                        <i class="bi bi-folder2-open text-muted d-none d-lg-inline"></i>
+                        <span>Category details</span>
+                    </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCategorySelection()">
                         <i class="bi bi-x"></i>
+                        <span class="d-none d-lg-inline ms-1">Clear</span>
                     </button>
                 </div>
                 <div class="panel-content">
-                    <div id="category-detail-content" class="detail-content">
-                        <div class="row">
-                            <div class="col-sm-4"><strong>Name:</strong></div>
-                            <div class="col-sm-8" id="detail-category-name">Select a category</div>
+                    <div id="category-detail-empty" class="detail-empty text-center text-muted py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-folder" style="font-size: 2.5rem; opacity: 0.35;"></i>
                         </div>
-                        <div class="row mt-2">
-                            <div class="col-sm-4"><strong>Description:</strong></div>
-                            <div class="col-sm-8" id="detail-category-description">-</div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-sm-4"><strong>Created:</strong></div>
-                            <div class="col-sm-8" id="detail-category-created">-</div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-sm-4"><strong>Last Updated:</strong></div>
-                            <div class="col-sm-8" id="detail-category-updated">-</div>
-                        </div>
+                        <p class="mb-1">Select a category</p>
+                        <small>Details will appear here after you pick one</small>
                     </div>
-                    
-                    <div class="panel-actions">
-                        <button type="button" class="btn btn-outline-primary" id="edit-category-btn" onclick="editSelectedCategory()" disabled>
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" id="delete-category-btn" onclick="deleteSelectedCategory()" disabled>
-                            <i class="bi bi-trash me-1"></i>Delete
-                        </button>
+                    <div id="category-detail-content" class="detail-content" hidden>
+                        <div class="detail-heading">
+                            <h2 class="detail-name" id="detail-category-name"></h2>
+                            <div class="detail-meta">
+                                <div class="detail-meta-item">
+                                    <span class="detail-meta-label">Created</span>
+                                    <span class="detail-meta-value" id="detail-category-created"></span>
+                                </div>
+                                <div class="detail-meta-item">
+                                    <span class="detail-meta-label">Last updated</span>
+                                    <span class="detail-meta-value" id="detail-category-updated"></span>
+                                </div>
+                                <div class="detail-meta-item">
+                                    <span class="detail-meta-label">Linked payees</span>
+                                    <span class="detail-meta-value" id="detail-category-payee-count"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-section" id="category-description-section">
+                            <span class="detail-section-label">Description</span>
+                            <div class="detail-section-body">
+                                <p class="mb-0" id="detail-category-description"></p>
+                            </div>
+                        </div>
+                        <div class="detail-actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-category-btn" onclick="editSelectedCategory()" disabled>
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-category-btn" onclick="deleteSelectedCategory()" disabled>
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -303,7 +321,8 @@ function getCategoryData(element) {
         name: element.dataset.categoryName,
         description: element.dataset.categoryDescription,
         created: element.dataset.categoryCreated,
-        updated: element.dataset.categoryUpdated
+        updated: element.dataset.categoryUpdated,
+        payeeCount: parseInt(element.dataset.categoryPayeeCount || '0', 10)
     };
 }
 
@@ -312,12 +331,61 @@ function showCategoryPanel(data) {
     if (!panel) return;
     
     panel.classList.add('has-content');
-    
-    // Populate panel data
-    document.getElementById('detail-category-name').textContent = data.name;
-    document.getElementById('detail-category-description').textContent = data.description || 'No description';
-    document.getElementById('detail-category-created').textContent = formatDate(data.created);
-    document.getElementById('detail-category-updated').textContent = formatDate(data.updated);
+    toggleCategoryDetailContent(true);
+
+    setTextContent('detail-category-name', data.name);
+    setTextContent('detail-category-created', formatDate(data.created));
+    setTextContent('detail-category-updated', formatDate(data.updated));
+    updateCategoryDescription(data.description);
+    updateCategoryPayeeCount(data.payeeCount);
+}
+
+function toggleCategoryDetailContent(hasSelection) {
+    const emptyState = document.getElementById('category-detail-empty');
+    const detailContent = document.getElementById('category-detail-content');
+    if (emptyState && detailContent) {
+        emptyState.hidden = !!hasSelection;
+        detailContent.hidden = !hasSelection;
+    }
+}
+
+function setTextContent(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        const safeValue = value === undefined || value === null ? '' : value;
+        el.textContent = safeValue;
+    }
+}
+
+function updateCategoryDescription(description) {
+    const section = document.getElementById('category-description-section');
+    const descriptionEl = document.getElementById('detail-category-description');
+    if (!descriptionEl) {
+        return;
+    }
+
+    const hasDescription = Boolean(description && description.trim());
+    const content = hasDescription ? description.trim() : 'No description added yet';
+
+    descriptionEl.textContent = content;
+    descriptionEl.classList.toggle('text-muted', !hasDescription);
+    descriptionEl.classList.toggle('fst-italic', !hasDescription);
+
+    if (section) {
+        section.hidden = false;
+    }
+}
+
+function updateCategoryPayeeCount(count) {
+    const countEl = document.getElementById('detail-category-payee-count');
+    if (!countEl) {
+        return;
+    }
+
+    const numericCount = parseInt(count, 10);
+    const safeCount = isNaN(numericCount) ? 0 : Math.max(numericCount, 0);
+    const label = safeCount === 1 ? 'payee' : 'payees';
+    countEl.textContent = `${safeCount} ${label}`;
 }
 
 function clearCategorySelection() {
@@ -330,12 +398,14 @@ function clearCategorySelection() {
     if (panel) {
         panel.classList.remove('has-content');
     }
-    
-    // Reset details panel content
-    document.getElementById('detail-category-name').textContent = 'Select a category';
-    document.getElementById('detail-category-description').textContent = '-';
-    document.getElementById('detail-category-created').textContent = '-';
-    document.getElementById('detail-category-updated').textContent = '-';
+
+    toggleCategoryDetailContent(false);
+    setTextContent('detail-category-name', '');
+    setTextContent('detail-category-description', '');
+    setTextContent('detail-category-created', '');
+    setTextContent('detail-category-updated', '');
+    updateCategoryDescription('');
+    updateCategoryPayeeCount(0);
     
     // Clear payees panel
     clearPayeesPanel();
@@ -430,6 +500,11 @@ function loadPayeesForCategory(data) {
 
                 payeesContent.innerHTML = '';
                 payeesContent.appendChild(fragment);
+            }
+
+            updateCategoryPayeeCount(payees.length);
+            if (selectedCategoryCard && selectedCategoryCard.dataset.categoryId === data.id) {
+                selectedCategoryCard.dataset.categoryPayeeCount = String(payees.length);
             }
         } else {
             payeesSubtitle.textContent = 'Error loading payees';

@@ -430,6 +430,15 @@
     flex: 1 1 0;
 }
 
+.payees-page .detail-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
 .payees-page .badge {
     font-weight: 500;
     border-radius: 999px;

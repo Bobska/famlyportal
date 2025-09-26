@@ -39,7 +39,7 @@
     /* background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%); */
     background-color: #ffffff;
     box-shadow: none;
-    margin: 0 4px 12px;
+    margin: 0;
 }
 
 .payees-page .page-heading-main {
@@ -199,15 +199,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 8px 12px;
+    min-height: 46px;
     background-color: #efefef;
     border-bottom: 1px solid #d3d3d3;
     color: #2a2a2a;
 }
 
 .payees-page .panel-title {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #1f1f1f;
     margin: 0;
@@ -216,12 +217,25 @@
 .payees-page .panel-header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+}
+
+.payees-page .panel-header-actions .btn {
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    line-height: 1.1;
+    border-radius: 4px;
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
 }
 
 .payees-page .panel-header-actions .action-btn {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -230,7 +244,29 @@
 }
 
 .payees-page .panel-header-actions .action-btn i {
-    font-size: 1rem;
+    font-size: 0.9rem;
+}
+
+.payees-page .panel-header-actions .btn.collapsed-label {
+    min-width: 30px;
+    width: 30px;
+    padding: 0;
+    border-radius: 6px;
+}
+
+.payees-page .panel-header-actions .btn.collapsed-label span {
+    display: none;
+}
+
+.payees-page .panel-header-actions .btn.collapsed-label i {
+    margin: 0;
+}
+
+.payees-page .panel-subtitle {
+    font-size: 0.72rem;
+    color: #5f5f5f;
+    margin-top: 2px;
+    line-height: 1.1;
 }
 
 .payees-page .search-bar-wrapper {

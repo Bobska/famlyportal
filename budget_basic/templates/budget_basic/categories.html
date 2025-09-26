@@ -357,6 +357,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
 <script>
 // Category management JavaScript - matches transactions/payees pattern
 let selectedCategoryCard = null;
@@ -1143,6 +1144,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+
+    if (typeof PanelHeaderLabelManager !== 'undefined') {
+        PanelHeaderLabelManager.init();
+    }
     
     // One-time width lock: capture actual rendered pixel widths then freeze as flex-basis
     const catEl = document.querySelector('.categories-panel');
@@ -1243,6 +1248,9 @@ const CategoryPanelResizer = (() => {
         payEl.style.flex = `0 0 ${pay}px`; payEl.style.width = pay + 'px';
         detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det + 'px';
         syncCssVars(cat, pay, det);
+        if (typeof PanelHeaderLabelManager !== 'undefined') {
+            PanelHeaderLabelManager.refresh();
+        }
     }
 
     function onDown(e, which) {

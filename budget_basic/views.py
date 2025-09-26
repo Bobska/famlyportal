@@ -208,8 +208,8 @@ def dashboard(request):
     return render(request, 'budget_basic/dashboard.html', context)
 
 
-def build_transactions_context(request):
-    """Return the base context payload for transaction-driven pages."""
+def build_weekly_context(request):
+    """Return the base context payload for weekly transaction views."""
     week_offset = int(request.GET.get('week_offset', 0))
     week_window = resolve_week_window(week_offset)
 
@@ -219,6 +219,7 @@ def build_transactions_context(request):
     weekly_income = amount_sum(income_entries)
     weekly_expenses = amount_sum(expense_entries)
     weekly_balance = weekly_income - weekly_expenses
+    running_balance = get_cumulative_balance_up_to_week(request.user, week_offset)
 
     today = timezone.localdate()
     monthly_income = amount_sum(
@@ -235,6 +236,7 @@ def build_transactions_context(request):
         'weekly_income': weekly_income,
         'weekly_expenses': weekly_expenses,
         'weekly_balance': weekly_balance,
+    'running_balance': running_balance,
         'monthly_income': monthly_income,
         'monthly_expenses': monthly_expenses,
         'monthly_balance': monthly_balance,
@@ -243,15 +245,44 @@ def build_transactions_context(request):
         'target_sunday': week_window.end,
     }
 
+
+def build_all_transactions_context(request):
+    """Return the base context payload for the full transactions view."""
+    income_entries = Income.objects.filter(user=request.user).order_by('-date', '-id')
+    expense_entries = Expense.objects.filter(user=request.user).order_by('-date', '-id')
+
+    total_income = amount_sum(income_entries)
+    total_expenses = amount_sum(expense_entries)
+    net_balance = total_income - total_expenses
+
+    return {
+        'income_entries': income_entries,
+        'expense_entries': expense_entries,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': net_balance,
+    }
+
 @login_required
-def main(request):
-    """Budget Basic main transactions view."""
+def weekly(request):
+    """Weekly transactions overview."""
+    context = {
+        'page_title': 'Weekly',
+        'app_name': 'budget_basic',
+        **build_weekly_context(request),
+    }
+    return render(request, 'budget_basic/weekly.html', context)
+
+
+@login_required
+def transactions(request):
+    """All transactions view without weekly navigation."""
     context = {
         'page_title': 'Transactions',
         'app_name': 'budget_basic',
-        **build_transactions_context(request),
+        **build_all_transactions_context(request),
     }
-    return render(request, 'budget_basic/main.html', context)
+    return render(request, 'budget_basic/transactions.html', context)
 
 
 @login_required

@@ -76,7 +76,7 @@ def test_background_click_functionality():
 def check_html_structure():
     """Check if the HTML has the correct structure for background clicking."""
     
-    html_file_path = "budget_basic/templates/budget_basic/main.html"
+    html_file_path = "budget_basic/templates/budget_basic/transactions.html"
     
     if not os.path.exists(html_file_path):
         print("❌ HTML template file not found:", html_file_path)

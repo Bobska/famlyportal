@@ -46,43 +46,44 @@
         <div class="payees-panel panel-layout-3">
             <!-- Left Side: Category List Panel -->
             <div class="payee-list-panel categories-panel" id="category-list">
-                <!-- Left Panel Header -->
                 <div class="panel-header">
                     <div class="panel-title">Categories</div>
                     <div class="panel-header-actions">
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="resetLayoutBtn" title="Reset Layout" data-bs-toggle="tooltip" data-bs-placement="top" onclick="resetCategoryLayout()">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex me-2" id="resetLayoutBtn" title="Reset Layout" data-bs-toggle="tooltip" data-bs-placement="top" onclick="resetCategoryLayout()">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </button>
-                        <!-- Add category button -->
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-plus-circle me-1"></i>
-                            <span class="d-none d-lg-inline">Add Category</span>
+                            <span>Add Category</span>
                         </button>
-                        
-                        <div class="d-none d-lg-block" style="max-width: 220px;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                        <div class="d-none d-lg-block" style="max-width: 200px;">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control" id="category-search" placeholder="Search..." oninput="handleCategorySearch(this.value)">
                             </div>
                         </div>
-                        
                         <div class="dropdown ms-2">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
-                                <i class="bi bi-sort-alpha-down me-lg-1"></i>
-                                <span class="d-none d-lg-inline" id="sortLabel">Name</span>
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-none d-lg-inline-flex" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
+                                <i class="bi bi-sort-alpha-down me-1"></i>
+                                <span id="sortLabel">Name</span>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="categorySortDropdown">
+                            <button class="btn btn-outline-secondary btn-sm action-btn dropdown-toggle d-lg-none" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
+                                <i class="bi bi-sort-alpha-down"></i>
+                                <span class="visually-hidden" id="sortLabel">Name</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="categorySortDropdown">
                                 <li><a class="dropdown-item active" href="#" onclick="sortCategories('name', event)">Sort by Name</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="sortCategories('date', event)">Sort by Date Added</a></li>
                             </ul>
                         </div>
-                        
                         <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-bs-toggle="collapse" data-bs-target="#categorySearchBar" aria-expanded="false" aria-controls="categorySearchBar" title="Search Categories">
                             <i class="bi bi-search"></i>
                         </button>
                     </div>
                 </div>
-
                 <div class="collapse d-lg-none" id="categorySearchBar">
                     <div class="search-bar-wrapper">
                         <div class="input-group input-group-sm">
@@ -91,39 +92,46 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="payee-list-scroll">
-                    <div class="payee-list-content">
-                    {% if categories %}
-                        <!-- Category Data Rows -->
-                        {% for category in categories %}
-                        <div class="transaction-card transaction-card-data payee-row payee-card" 
-                             data-category-id="{{ category.id }}" 
-                             data-category-name="{{ category.name|escapejs }}"
-                             data-category-description="{{ category.description|default:""|escapejs }}"
-                             data-category-created="{{ category.created_at|date:"Y-m-d" }}"
-                             data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
-                             onclick="selectCategoryWithToggle(this)">
-                            <div class="payee-cell payee-cell-info transaction-info-cell">
-                                <span class="transaction-payee-name transaction-name">{{ category.name }}</span>
-                                {% if category.description %}
-                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ category.description|truncatechars:50 }}</small>
-                                {% else %}
-                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</small>
-                                {% endif %}
+                {% if categories %}
+                    {% for category in categories %}
+                    <div class="payee-row payee-card"
+                         data-category-id="{{ category.id }}"
+                         data-category-name="{{ category.name|escapejs }}"
+                         data-category-description="{{ category.description|default:""|escapejs }}"
+                         data-category-created="{{ category.created_at|date:"Y-m-d" }}"
+                         data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
+                         onclick="selectCategoryWithToggle(this)">
+                        <div class="payee-cell payee-cell-info">
+                            <div class="d-flex align-items-center">
+                                <div class="payee-avatar me-3">
+                                    <i class="bi bi-tags text-muted"></i>
+                                </div>
+                                <div>
+                                    <div class="payee-name">{{ category.name }}</div>
+                                    {% if category.description %}
+                                        <div class="payee-categories">
+                                            <span class="badge bg-light text-dark">{{ category.description|truncatechars:50 }}</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="payee-categories">
+                                            <span class="badge bg-light text-dark">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="transaction-empty-state text-center text-muted py-5">
-                            <div class="mb-3">
-                                <i class="bi bi-tags" style="font-size: 3rem;"></i>
-                            </div>
-                            <p class="mb-0">No categories yet</p>
-                            <small>Start by adding your first category to organize transactions</small>
-                        </div>
-                    {% endif %}
                     </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="transaction-empty-state text-center text-muted py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-tags" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-0">No categories yet</p>
+                        <small>Start by adding your first category to organize transactions</small>
+                    </div>
+                {% endif %}
                 </div>
             </div>
 
@@ -133,8 +141,19 @@
 
             <div class="payee-list-panel payees-panel-3" id="payees-panel">
                 <div class="panel-header">
-                    <div class="panel-title">Payees in Category</div>
-                    <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
+                    <div>
+                        <div class="panel-title">Payees</div>
+                        <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
+                    </div>
+                    <div class="panel-header-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" data-target-url="{% url 'budget_basic:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-people me-1"></i>
+                            <span>Manage Payees</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-target-url="{% url 'budget_basic:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-people"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="payee-list-scroll">
                     <div class="payee-list-content" id="payees-list-content">
@@ -363,18 +382,54 @@ function loadPayeesForCategory(data) {
                     </div>
                 `;
             } else {
-                let payeesHtml = '';
+                const fragment = document.createDocumentFragment();
                 payees.forEach(payee => {
-                    payeesHtml += `
-                        <div class="transaction-card transaction-card-data payee-row payee-card" data-payee-id="${payee.id}" onclick="selectPayee(this)">
-                            <div class="payee-cell payee-cell-info transaction-info-cell">
-                                <span class="transaction-payee-name transaction-name">${payee.name}</span>
-                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">${payee.categories_display}</small>
-                            </div>
-                        </div>
-                    `;
+                    const row = document.createElement('div');
+                    row.className = 'payee-row payee-card';
+                    row.dataset.payeeId = payee.id;
+                    row.onclick = function () { selectPayee(this); };
+
+                    const cell = document.createElement('div');
+                    cell.className = 'payee-cell payee-cell-info';
+
+                    const flexWrapper = document.createElement('div');
+                    flexWrapper.className = 'd-flex align-items-center';
+
+                    const avatar = document.createElement('div');
+                    avatar.className = 'payee-avatar me-3';
+                    avatar.innerHTML = '<i class="bi bi-person-circle text-muted"></i>';
+
+                    const infoWrapper = document.createElement('div');
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'payee-name';
+                    nameEl.textContent = payee.name;
+
+                    infoWrapper.appendChild(nameEl);
+
+                    if (payee.categories_display) {
+                        const categoriesEl = document.createElement('div');
+                        categoriesEl.className = 'payee-categories';
+
+                        payee.categories_display.split(',').map(label => label.trim()).filter(Boolean).forEach(label => {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-light text-dark me-1 mt-1';
+                            badge.textContent = label;
+                            categoriesEl.appendChild(badge);
+                        });
+
+                        infoWrapper.appendChild(categoriesEl);
+                    }
+
+                    flexWrapper.appendChild(avatar);
+                    flexWrapper.appendChild(infoWrapper);
+                    cell.appendChild(flexWrapper);
+                    row.appendChild(cell);
+                    fragment.appendChild(row);
                 });
-                payeesContent.innerHTML = payeesHtml;
+
+                payeesContent.innerHTML = '';
+                payeesContent.appendChild(fragment);
             }
         } else {
             payeesSubtitle.textContent = 'Error loading payees';

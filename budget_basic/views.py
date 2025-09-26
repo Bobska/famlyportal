@@ -922,13 +922,14 @@ def category_payees(request, category_id):
         category = Category.objects.get(id=category_id, user=request.user)
         
         # Get all payees linked to this category
-        payees = category.payees.all().order_by('name')
+        payees = category.payees.all().prefetch_related('categories').order_by('name')
         
         payee_list = [
             {
                 'id': payee.id,
                 'name': payee.name,
                 'categories_display': payee.get_categories_display(),
+                'category_ids': [cat.id for cat in payee.categories.all()],
                 'created_at': payee.created_at.isoformat(),
                 'updated_at': payee.updated_at.isoformat(),
             }

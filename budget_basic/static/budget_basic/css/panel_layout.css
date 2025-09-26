@@ -29,6 +29,47 @@
     overflow: hidden;
 }
 
+.payees-page .page-heading {
+    padding: 4px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    /* background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%); */
+    background-color: #ffffff;
+    box-shadow: none;
+    margin: 0 4px 12px;
+}
+
+.payees-page .page-heading-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.payees-page .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1d1d1d;
+    margin: 0;
+}
+
+.payees-page .page-heading-divider {
+    width: 48px;
+    height: 2px;
+    /* background: linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.1) 100%); */
+    background-color: #bcbcbc;
+    border-radius: 999px;
+}
+
+.payees-page .page-heading-description {
+    font-size: 0.82rem;
+    color: #565656;
+    font-style: italic;
+    max-width: 600px;
+}
+
 .payees-page .card {
     border: 1px solid #d3d3d3;
     border-radius: 4px;
@@ -354,10 +395,34 @@
     flex: 1;
     min-height: 0;
     padding: 16px;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     background-color: #ffffff;
+    gap: 16px;
+}
+
+.payees-page .detail-scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.payees-page .detail-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.payees-page .detail-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 999px;
+    border-left: 1px solid #d3d3d3;
+}
+
+.payees-page .detail-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: 999px;
 }
 
 .payees-page .detail-content {
@@ -370,7 +435,25 @@
 .payees-page .detail-heading {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.65rem;
+}
+
+.payees-page .detail-heading-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6a6a6a;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.payees-page .detail-heading-label::before {
+    content: '';
+    width: 10px;
+    height: 2px;
+    background-color: #bcbcbc;
+    border-radius: 999px;
 }
 
 .payees-page .detail-name {
@@ -380,19 +463,40 @@
     color: #1a1a1a;
 }
 
+
 .payees-page .detail-meta {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
 }
 
 .payees-page .detail-meta-item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.5rem;
+    border-bottom: 1px solid #ececec;
+    padding-bottom: 0.75rem;
 }
 
-.payees-page .detail-meta-label,
+.payees-page .detail-meta-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.payees-page .detail-meta-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c6c6c;
+}
+
+.payees-page .detail-meta-value {
+    font-weight: 500;
+    color: #202020;
+}
+
 .payees-page .detail-section-label {
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -400,30 +504,145 @@
     color: #5d5d5d;
 }
 
-.payees-page .detail-meta-value {
-    font-weight: 500;
-    color: #1f1f1f;
-}
-
 .payees-page .detail-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.75rem;
+    padding: 0;
+    margin-top: 1.75rem;
 }
 
 .payees-page .detail-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.payees-page .detail-section-primary {
+    margin-top: 1.25rem;
+}
+
+.payees-page .detail-section-payee {
+    margin-top: 1.75rem;
+    padding-top: 1.35rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.payees-page .detail-subheading-label {
+    margin-bottom: 0.35rem;
+    color: #5f5f5f;
+}
+
+.payees-page .detail-section-meta {
+    margin-top: 1.35rem;
+    padding: 0.9rem 1.1rem;
+    border: 1px dashed rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    background-color: #fcfcfc;
+}
+
+.payees-page .detail-section-condensed {
+    gap: 0.5rem;
+}
+
+.payees-page .detail-body-text {
+    margin: 0;
+    line-height: 1.6;
+    font-size: 1rem;
+    color: #212121;
+}
+
+.payees-page .detail-selected-payee-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.payees-page .detail-selected-payee-meta {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.payees-page .detail-selected-payee-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
 }
 
+.payees-page .detail-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.payees-page .detail-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.5rem;
+}
+
+.payees-page .detail-info-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c6c6c;
+    margin: 0;
+}
+
+.payees-page .detail-info-value {
+    margin: 0;
+    font-weight: 500;
+    color: #202020;
+}
+
+.payees-page .detail-info-item:not(:last-child) {
+    border-bottom: 1px solid #ececec;
+    padding-bottom: 0.75rem;
+}
+
+.payees-page .detail-info-item:not(:first-child) {
+    padding-top: 0.25rem;
+}
+
+.payees-page .detail-section-meta .detail-section-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: #8a8a8a;
+}
+
+.payees-page .detail-section-meta .detail-info-grid {
+    gap: 0.5rem;
+}
+
+.payees-page .detail-section-meta .detail-info-item {
+    gap: 1rem;
+}
+
+.payees-page .detail-section-meta .detail-info-item:not(:last-child) {
+    border-bottom: 1px dashed #e6e6e6;
+    padding-bottom: 0.5rem;
+}
+
+.payees-page .detail-section-meta .detail-info-label {
+    font-size: 0.68rem;
+    color: #9a9a9a;
+    letter-spacing: 0.08em;
+}
+
+.payees-page .detail-section-meta .detail-info-value {
+    font-size: 0.8rem;
+    color: #5d5d5d;
+    font-weight: 500;
+}
+
 .payees-page .detail-actions {
     display: flex;
     gap: 8px;
-    margin-top: auto;
     width: 100%;
     padding-top: 16px;
     border-top: 1px solid #d4d4d4;
+    flex-shrink: 0;
+    background-color: #ffffff;
 }
 
 .payees-page .detail-actions .btn {
@@ -578,6 +797,7 @@
     .payees-page .payees-panel .payee-detail-panel {
         height: auto;
     }
+
 }
 @media (max-width: 992px) {
     .payees-page .panel-header-actions {

@@ -209,6 +209,12 @@
     gap: 0;
 }
 
+/* Explicitly ensure the middle payees panel (panel 2) scroll area flexes properly after structural unification */
+.categories-page .payees-panel-3 > .payee-list-scroll {
+    flex: 1;
+    min-height: 0; /* Prevent flex child overflow so scrollbar appears */
+}
+
 .payees-page .payee-list-scroll::-webkit-scrollbar {
     width: 5px;
 }
@@ -617,6 +623,11 @@
     display: flex;
     flex: 1;
     overflow: hidden;
+    /* Match payees page container spacing */
+    gap: 0;
+    padding: 16px;
+    background-color: #f7f7f7;
+    border-radius: 4px;
 }
 
 .categories-page .categories-panel {
@@ -627,6 +638,9 @@
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+    border: 1px solid #d3d3d3;
+    border-radius: 4px;
+    background-color: #ffffff;
 }
 
 .categories-page .payees-panel-3 {
@@ -637,6 +651,9 @@
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+    border: 1px solid #d3d3d3;
+    border-radius: 4px;
+    background-color: #ffffff;
 }
 
 .categories-page .details-panel {
@@ -647,6 +664,9 @@
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+    border: 1px solid #d3d3d3;
+    border-radius: 4px;
+    background-color: #ffffff;
 }
 
 /* Ensure stable panel sizing regardless of content */

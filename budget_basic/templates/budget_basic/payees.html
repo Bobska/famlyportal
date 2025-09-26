@@ -14,36 +14,18 @@
 {% block content %}
 <!-- Content Wrapper for Centering -->
 <div class="content-wrapper payees-content">
-    <!-- Payee Stats Card - matches the weekly totals card from transactions -->
-    <div class="card mb-3">
-        <div class="card-body py-1">
-            <div class="row text-center">
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Total Payees</div>
-                        <div class="weekly-stat-value" id="total-payees">{{ payees|length }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Active Payees</div>
-                        <div class="weekly-stat-value" id="active-payees">{{ payees|length }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Recently Added</div>
-                        <div class="weekly-stat-value">{{ payees|length }}</div>
-                    </div>
-                </div>
-            </div>
+    <div class="page-heading mb-3">
+        <div class="page-heading-main">
+            <h1 class="page-title">Payees</h1>
+            <div class="page-heading-divider" aria-hidden="true"></div>
+            <p class="page-heading-description mb-0">Manage merchants and people tied to your transactions from one streamlined workspace.</p>
         </div>
     </div>
-    
+
     <!-- Payees card with integrated side panel - matches transactions structure -->
-    <div class="card" id="payees-card">
+    <div class="card flex-grow-1" id="payees-card">
         <!-- Always show the panel structure for consistent layout -->
-        <div class="payees-panel">
+        <div class="payees-panel panel-layout-3">
             <!-- Left Side: Payee Cards Container -->
             <div class="payee-list-panel" id="payee-list">
                 <!-- Left Panel Header -->
@@ -289,6 +271,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
 <script>
 // Global variables
 let currentEditPayeeId = null;
@@ -906,6 +889,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add background click handler for deselection
+    if (typeof PanelHeaderLabelManager !== 'undefined') {
+        PanelHeaderLabelManager.init();
+    }
 });
 </script>
 {% endblock %}

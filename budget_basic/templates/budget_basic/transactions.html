@@ -15,6 +15,13 @@
 
 {% block content %}
 <div class="content-wrapper transactions-content payees-content">
+    <div class="page-heading mb-3">
+        <div class="page-heading-main">
+            <h1 class="page-title">Transactions</h1>
+            <div class="page-heading-divider" aria-hidden="true"></div>
+            <p class="page-heading-description mb-0">Review every income and expense entry and drill into the details without losing your place.</p>
+        </div>
+    </div>
     <div class="card flex-grow-1" id="transactions-card">
         <div class="payees-panel">
             <div class="payee-list-panel" id="transaction-list">
@@ -109,22 +116,6 @@
                             <small>Add your first income or expense using the buttons above.</small>
                         </div>
                     {% endif %}
-                    </div>
-                </div>
-
-                <div class="transaction-total-bar" id="transaction-total-bar"
-                     data-income="{{ total_income|floatformat:'2' }}"
-                     data-expense="{{ total_expenses|floatformat:'2' }}"
-                     data-net="{{ net_balance|floatformat:'2' }}"
-                     data-running="{{ net_balance|floatformat:'2' }}">
-                    <div class="transaction-total-text">
-                        <span class="transaction-total-label" id="transaction-total-label">Net Balance</span>
-                        <small class="transaction-total-subtext" id="transaction-total-subtext">
-                            Overall balance: {% if net_balance >= 0 %}+{% else %}-{% endif %}${{ net_balance|floatformat:2|intcomma|cut:"-" }}
-                        </small>
-                    </div>
-                    <div class="transaction-total-value" id="transaction-total-value">
-                        {% if net_balance >= 0 %}+{% else %}-{% endif %}${{ net_balance|floatformat:2|intcomma|cut:"-" }}
                     </div>
                 </div>
             </div>

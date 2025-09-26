@@ -32,45 +32,25 @@
 
 <div class="content-wrapper transactions-content payees-content">
 
-    <!-- Week Navigation Card - Primary focal point -->
-
-    <div class="card mb-4 card-week-nav">
-
-        <div class="card-body py-4">
-
-            <div class="d-flex justify-content-between align-items-center">
-
-                <button type="button" class="btn btn-action btn-week-nav btn-lg" style="height:48px;min-width:100px;font-size:1.1rem;" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
-
-                    <i class="bi bi-chevron-left me-1"></i>
-
-                    <span class="btn-week-text">Previous</span>
-
-                </button>
-
-                <div class="week-display">
-
-                    <div class="week-label-large">{% if week_offset == 0 %}Current Week{% elif week_offset == -1 %}Last Week{% elif week_offset == 1 %}Next Week{% elif week_offset == -2 %}2 Weeks Ago{% elif week_offset == 2 %}In 2 Weeks{% else %}{% if week_offset < 0 %}{{ week_offset|add:"0" }} Weeks Ago{% else %}In {{ week_offset }} Weeks{% endif %}{% endif %}</div>
-
-                    <div class="week-date-large">{{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}</div>
-
-                </div>
-
-                <button type="button" class="btn btn-action btn-week-nav btn-lg" style="height:48px;min-width:100px;font-size:1.1rem;" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
-
-                    <span class="btn-week-text">Next</span>
-
-                    <i class="bi bi-chevron-right ms-1"></i>
-
-                </button>
-
-            </div>
-
+    <div class="page-heading mb-3">
+        <div class="page-heading-main">
+            <h1 class="page-title">Weekly Overview</h1>
+            <div class="page-heading-divider" aria-hidden="true"></div>
+            <p class="page-heading-description mb-0">Navigate week by week to review income and expenses in a focused workspace.</p>
         </div>
-
+        <div class="page-heading-actions week-heading-actions-compact" role="group" aria-label="Week navigation">
+            <button type="button" class="btn btn-week-nav-compact btn-week-nav-left" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="week-heading-display-compact">
+                <span class="week-heading-label">{% if week_offset == 0 %}Current Week{% elif week_offset == -1 %}Last Week{% elif week_offset == 1 %}Next Week{% elif week_offset == -2 %}2 Weeks Ago{% elif week_offset == 2 %}In 2 Weeks{% else %}{% if week_offset < 0 %}{{ week_offset|add:"0" }} Weeks Ago{% else %}In {{ week_offset }} Weeks{% endif %}{% endif %}</span>
+                <span class="week-heading-dates">{{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}</span>
+            </div>
+            <button type="button" class="btn btn-week-nav-compact btn-week-nav-right" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
     </div>
-
-    
 
         <div class="card flex-grow-1" id="transactions-card">
 
@@ -426,9 +406,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     if (typeof setCurrentWeekOffset === 'function') {
-
-        setCurrentWeekOffset({{ week_offset|default:0 }});
-
+        const parsedWeekOffset = Number('{{ week_offset|default:"0" }}');
+        setCurrentWeekOffset(Number.isNaN(parsedWeekOffset) ? 0 : parsedWeekOffset);
     }
 
     

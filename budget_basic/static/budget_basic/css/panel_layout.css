@@ -48,6 +48,91 @@
     gap: 6px;
 }
 
+.payees-page .page-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.payees-page .week-heading-actions {
+    gap: 12px;
+    justify-content: center;
+}
+
+.payees-page .week-heading-actions-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background-color: #f8f9fa;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    padding: 4px 12px;
+    margin-top: 8px;
+    min-height: 40px;
+    box-sizing: border-box;
+}
+
+.payees-page .btn-week-nav-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 20px;
+    min-width: 64px;
+    min-height: 28px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: #4a4a4a;
+    font-size: 0.85rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.payees-page .btn-week-nav-compact:hover,
+.payees-page .btn-week-nav-compact:focus {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #262626;
+}
+
+.payees-page .week-heading-display-compact {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 8px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.payees-page .week-heading-label {
+    font-size: 0.96rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #1f1f1f;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.payees-page .week-heading-dates {
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: #6c757d;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.85;
+}
+
 .payees-page .page-title {
     font-size: 1.5rem;
     font-weight: 600;
@@ -843,8 +928,58 @@
     .payees-page .panel-header-actions .btn {
         padding: 4px;
     }
-}/* Transactions panel shared overrides */
-.transactions-panel-page .card-week-nav .btn-week-nav {
+
+    .payees-page .page-heading-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .payees-page .week-heading-actions-compact {
+        padding: 4px 10px;
+        min-height: 36px;
+    }
+
+    .payees-page .btn-week-nav-compact {
+        padding: 4px 16px;
+        min-width: 56px;
+    }
+
+    .payees-page .week-heading-display-compact {
+        padding: 0 4px;
+    }
+
+    .payees-page .week-heading-label {
+        font-size: 0.9rem;
+    }
+
+    .payees-page .week-heading-dates {
+        font-size: 0.64rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .payees-page .week-heading-actions-compact {
+        padding: 4px 8px;
+        min-height: 34px;
+    }
+
+    .payees-page .btn-week-nav-compact {
+        padding: 4px 12px;
+        min-width: 52px;
+    }
+
+    .payees-page .week-heading-label {
+        font-size: 0.85rem;
+    }
+
+    .payees-page .week-heading-dates {
+        font-size: 0.6rem;
+    }
+}
+
+/* Transactions panel shared overrides */
+.transactions-panel-page .btn-week-nav {
     background-color: #f5f5f5;
     border: 1px solid #cccccc;
     color: #1f1f1f;
@@ -854,8 +989,8 @@
     height: auto;
 }
 
-.transactions-panel-page .card-week-nav .btn-week-nav:hover,
-.transactions-panel-page .card-week-nav .btn-week-nav:focus {
+.transactions-panel-page .btn-week-nav:hover,
+.transactions-panel-page .btn-week-nav:focus {
     background-color: #ebebeb;
     color: #111111;
 }

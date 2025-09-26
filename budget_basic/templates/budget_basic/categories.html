@@ -216,6 +216,14 @@
                                 <p class="mb-0" id="detail-category-description"></p>
                             </div>
                         </div>
+                        <div class="detail-section" id="category-selected-payee-section" hidden>
+                            <span class="detail-section-label">Selected payee</span>
+                            <div class="detail-section-body flex-column align-items-start gap-1" id="detail-selected-payee-body">
+                                <div class="detail-selected-payee-name fw-semibold" id="detail-selected-payee-name"></div>
+                                <div class="detail-selected-payee-meta text-muted small" id="detail-selected-payee-meta"></div>
+                                <div class="detail-selected-payee-tags d-flex flex-wrap gap-2" id="detail-selected-payee-tags"></div>
+                            </div>
+                        </div>
                         <div class="detail-actions">
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-category-btn" onclick="editSelectedCategory()" disabled>
                                 <i class="bi bi-pencil me-1"></i>Edit
@@ -331,6 +339,7 @@ function showCategoryPanel(data) {
     if (!panel) return;
     
     panel.classList.add('has-content');
+    clearSelectedPayeeDetails();
     toggleCategoryDetailContent(true);
 
     setTextContent('detail-category-name', data.name);
@@ -388,6 +397,94 @@ function updateCategoryPayeeCount(count) {
     countEl.textContent = `${safeCount} ${label}`;
 }
 
+function clearSelectedPayeeDetails() {
+    const section = document.getElementById('category-selected-payee-section');
+    const nameEl = document.getElementById('detail-selected-payee-name');
+    const metaEl = document.getElementById('detail-selected-payee-meta');
+    const tagsContainer = document.getElementById('detail-selected-payee-tags');
+
+    if (section) {
+        section.hidden = true;
+    }
+    if (nameEl) {
+        nameEl.textContent = '';
+    }
+    if (metaEl) {
+        metaEl.textContent = '';
+        metaEl.classList.add('d-none');
+    }
+    if (tagsContainer) {
+        tagsContainer.innerHTML = '';
+    }
+}
+
+function showSelectedPayeeDetails(payeeElement) {
+    const section = document.getElementById('category-selected-payee-section');
+    const name = payeeElement?.dataset?.payeeName || '';
+    const created = payeeElement?.dataset?.payeeCreated || '';
+    const updated = payeeElement?.dataset?.payeeUpdated || '';
+    const categories = payeeElement?.dataset?.payeeCategories || '';
+
+    if (!section) {
+        return;
+    }
+
+    section.hidden = false;
+
+    setTextContent('detail-selected-payee-name', name);
+
+    const meta = buildPayeeMeta(created, updated);
+    const metaEl = document.getElementById('detail-selected-payee-meta');
+    if (metaEl) {
+        if (meta) {
+            metaEl.textContent = meta;
+            metaEl.classList.remove('d-none');
+        } else {
+            metaEl.textContent = '';
+            metaEl.classList.add('d-none');
+        }
+    }
+
+    const tagsContainer = document.getElementById('detail-selected-payee-tags');
+    if (tagsContainer) {
+        tagsContainer.innerHTML = '';
+        renderSelectedPayeeCategories(tagsContainer, categories);
+    }
+}
+
+function renderSelectedPayeeCategories(container, categoriesString) {
+    const categories = (categoriesString || '')
+        .split(',')
+        .map(label => label.trim())
+        .filter(Boolean);
+
+    if (categories.length === 0) {
+        const empty = document.createElement('span');
+        empty.className = 'text-muted fst-italic small';
+        empty.textContent = 'No linked categories';
+        container.appendChild(empty);
+        return;
+    }
+
+    categories.forEach(label => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark';
+        badge.textContent = label;
+        container.appendChild(badge);
+    });
+}
+
+function buildPayeeMeta(created, updated) {
+    const parts = [];
+    if (created) {
+        parts.push(`Added ${formatDate(created)}`);
+    }
+    if (updated) {
+        parts.push(`Updated ${formatDate(updated)}`);
+    }
+    return parts.join(' • ');
+}
+
 function clearCategorySelection() {
     if (selectedCategoryCard) {
         selectedCategoryCard.classList.remove('selected');
@@ -406,6 +503,7 @@ function clearCategorySelection() {
     setTextContent('detail-category-updated', '');
     updateCategoryDescription('');
     updateCategoryPayeeCount(0);
+    clearSelectedPayeeDetails();
     
     // Clear payees panel
     clearPayeesPanel();
@@ -451,12 +549,17 @@ function loadPayeesForCategory(data) {
                         <small>Payees will appear here when linked to this category</small>
                     </div>
                 `;
+                clearSelectedPayeeDetails();
             } else {
                 const fragment = document.createDocumentFragment();
                 payees.forEach(payee => {
                     const row = document.createElement('div');
                     row.className = 'payee-row payee-card';
                     row.dataset.payeeId = payee.id;
+                    row.dataset.payeeName = payee.name;
+                    row.dataset.payeeCategories = payee.categories_display || '';
+                    row.dataset.payeeCreated = payee.created_at || '';
+                    row.dataset.payeeUpdated = payee.updated_at || '';
                     row.onclick = function () { selectPayee(this); };
 
                     const cell = document.createElement('div');
@@ -509,12 +612,14 @@ function loadPayeesForCategory(data) {
         } else {
             payeesSubtitle.textContent = 'Error loading payees';
             payeesContent.innerHTML = `<div class="alert alert-warning">${result.error}</div>`;
+            clearSelectedPayeeDetails();
         }
     })
     .catch(error => {
         console.error('Error fetching payees:', error);
         payeesSubtitle.textContent = 'Error loading payees';
         payeesContent.innerHTML = `<div class="alert alert-danger">Failed to load payees</div>`;
+        clearSelectedPayeeDetails();
     });
 }
 
@@ -537,6 +642,8 @@ function clearPayeesPanel() {
             </div>
         `;
     }
+
+    clearSelectedPayeeDetails();
 }
 
 function selectPayee(element) {
@@ -545,6 +652,7 @@ function selectPayee(element) {
         item.classList.remove('selected');
     });
     element.classList.add('selected');
+    showSelectedPayeeDetails(element);
 }
 
 function enableActionButtons() {

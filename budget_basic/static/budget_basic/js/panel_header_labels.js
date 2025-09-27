@@ -2,17 +2,7 @@
     const headers = new Set();
     let observer = null;
     let isProcessingResize = false;
-    
-    // Minimum comfortable widths for elements (in pixels)
-    const ELEMENT_CONSTRAINTS = {
-        SEARCH_FULL: 180,      // Full search bar with comfortable input
-        SEARCH_COMPACT: 120,   // Compact search bar minimum  
-        SEARCH_ICON: 40,       // Icon-only search (just icon)
-        BUTTON_WITH_LABEL: 80, // Button with text label
-        BUTTON_ICON_ONLY: 36,  // Icon-only button
-        DROPDOWN_WITH_LABEL: 80, // Dropdown with text
-        DROPDOWN_ICON_ONLY: 36   // Icon-only dropdown
-    };
+    let measurementCache = new Map(); // Cache measurements to avoid re-measuring
 
     function ensureTooltip(btn, label) {
         if (!label) return;
@@ -56,148 +46,213 @@
         return headerRect.width;
     }
 
-    function calculateElementStates(header) {
-        const actionsContainer = header.querySelector('.panel-header-actions');
-        if (!actionsContainer) return null;
-
-        const availableWidth = getAvailableWidth(header); // Pass header, not actionsContainer
-        const searchContainer = header.querySelector('.panel-header-actions > div:has(.form-control)');
-        const buttons = header.querySelectorAll('.panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn)');
-        const dropdowns = header.querySelectorAll('.panel-header-actions .dropdown');
+    function getElementWidths(header) {
+        const headerId = header.dataset.headerId || Math.random().toString(36);
+        header.dataset.headerId = headerId;
         
-        console.log('calculateElementStates:', {
-            availableWidth,
-            buttonsCount: buttons.length,
-            dropdownsCount: dropdowns.length,
-            hasSearch: !!searchContainer
-        });
+        // Use cached measurements if available and recent (within 1 second)
+        const cached = measurementCache.get(headerId);
+        if (cached && (Date.now() - cached.timestamp) < 1000) {
+            console.log('📋 Using cached measurements');
+            return cached.widths;
+        }
         
-        let remainingWidth = availableWidth;
-        const states = {
-            search: 'hidden',
-            buttons: new Map(),
-            dropdowns: new Map(),
+        // Get PANEL width consistently
+        const panel = header.closest('.payee-list-panel, .payee-detail-panel, .transaction-details-panel, .categories-panel, .payees-panel-3, .details-panel');
+        const panelWidth = panel ? panel.getBoundingClientRect().width : 400; // fallback
+        
+        console.log('📦 Panel width:', Math.round(panelWidth), 'px');
+        
+        // Use fixed widths based on typical measurements to avoid measurement loops
+        const widths = {
+            panelWidth: panelWidth,
+            search: {
+                full: 200,    // Typical full search width
+                compact: 150, // Compact search width  
+                icon: 32      // Icon-only width
+            },
+            button: {
+                full: 70,     // Average button with label
+                icon: 32      // Icon-only button
+            },
+            dropdown: {
+                full: 70,     // Average dropdown with label
+                icon: 32      // Icon-only dropdown
+            }
         };
-
-        // Account for action buttons (these stay as icons)
-        const actionButtons = header.querySelectorAll('.panel-header-actions .action-btn');
-        const actionButtonSpace = actionButtons.length * ELEMENT_CONSTRAINTS.BUTTON_ICON_ONLY;
-        remainingWidth -= actionButtonSpace;
-
-        // Be more conservative - start with showing buttons as full if there's reasonable space
-        const totalElementsNeeded = (buttons.length * ELEMENT_CONSTRAINTS.BUTTON_WITH_LABEL) + 
-                                   (dropdowns.length * ELEMENT_CONSTRAINTS.DROPDOWN_WITH_LABEL) + 
-                                   ELEMENT_CONSTRAINTS.SEARCH_FULL;
-
-        console.log('Space calc:', {
-            available: Math.round(availableWidth),
-            needed: totalElementsNeeded,
-            ratio: Math.round((remainingWidth / totalElementsNeeded) * 100) + '%'
-        });
-
-        // If we have plenty of space, show everything in full (with generous buffer)
-        if (availableWidth > 380) { // Increased from 350 to 380
-            console.log('Full mode - wide panel (expanding back to full)');
-            
-            // Show everything in full mode
-            if (searchContainer) states.search = 'full';
-            buttons.forEach(btn => states.buttons.set(btn, 'full'));
-            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
-            
-            return states;
-        }
-
-        console.log('Progressive mode - limited space');
         
-        // Priority: Search converts to icon BEFORE buttons convert
-        if (availableWidth > 320) { // Increased from 280 to 320
-            // Medium space - keep buttons full, but compact search
-            console.log('Medium space - compact search only (expanding from icon)');
-            if (searchContainer) states.search = 'compact';
-            buttons.forEach(btn => states.buttons.set(btn, 'full'));
-            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
-            return states;
-        } else if (availableWidth > 280) { // Increased from 250 to 280
-            // Smaller space - search to ICON first, buttons still full
-            console.log('Search to icon, buttons still full (expanding buttons)');
-            if (searchContainer) states.search = 'icon';
-            buttons.forEach(btn => states.buttons.set(btn, 'full'));
-            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
-            return states;
-        } else if (availableWidth > 220) { // Increased from 200 to 220
-            // Even smaller - search icon, buttons to icons
-            console.log('Small space - buttons to icons (shrinking buttons)');
-            if (searchContainer) states.search = 'icon';
-            buttons.forEach(btn => states.buttons.set(btn, 'icon'));
-            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'icon'));
-            return states;
-        } else {
-            // Very tight space - everything to icons (same as before)
-            console.log('Tight space - all icons');
-            if (searchContainer) states.search = 'icon';
-            buttons.forEach(btn => states.buttons.set(btn, 'icon'));
-            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'icon'));
-            return states;
-        }
+        // Cache the measurements
+        measurementCache.set(headerId, {
+            widths,
+            timestamp: Date.now()
+        });
+        
+        return widths;
+    }
 
-        console.log('States:', states);
-        return states;
+    function calculateElementStates(header) {
+        try {
+            const widths = getElementWidths(header);
+            const { panelWidth, search, button, dropdown } = widths;
+            
+            // Count elements
+            const searchContainer = header.querySelector('.panel-header-actions > div:has(.form-control)');
+            const buttons = header.querySelectorAll('.panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn)');
+            const dropdowns = header.querySelectorAll('.panel-header-actions .dropdown');
+            
+            const buttonCount = buttons.length;
+            const dropdownCount = dropdowns.length;
+            
+            console.log('🧮 Layout calc for', Math.round(panelWidth), 'px:', {
+                buttons: buttonCount,
+                dropdowns: dropdownCount, 
+                hasSearch: !!searchContainer
+            });
+            
+            // Available width with conservative buffer
+            const availableWidth = panelWidth - 40; // Larger buffer for margins/padding
+            
+            // Calculate total needed widths for different scenarios
+            const searchFullWidth = searchContainer ? search.full : 0;
+            const searchCompactWidth = searchContainer ? search.compact : 0;
+            const searchIconWidth = searchContainer ? search.icon : 0;
+            
+            const buttonsFullWidth = buttonCount * button.full;
+            const buttonsIconWidth = buttonCount * button.icon;
+            
+            const dropdownsFullWidth = dropdownCount * dropdown.full;
+            const dropdownsIconWidth = dropdownCount * dropdown.icon;
+            
+            // Decision logic with clear logging
+            const totalFullWidth = searchFullWidth + buttonsFullWidth + dropdownsFullWidth;
+            console.log('💡 Full mode needs:', Math.round(totalFullWidth), 'vs available:', Math.round(availableWidth));
+            
+            if (totalFullWidth <= availableWidth) {
+                console.log('✅ FULL mode - everything with labels');
+                return {
+                    search: searchContainer ? 'full' : 'hidden',
+                    buttons: Array.from(buttons).map(() => 'full'),
+                    dropdowns: Array.from(dropdowns).map(() => 'full')
+                };
+            }
+            
+            const totalCompactWidth = searchCompactWidth + buttonsFullWidth + dropdownsFullWidth;
+            console.log('💡 Compact search needs:', Math.round(totalCompactWidth));
+            
+            if (totalCompactWidth <= availableWidth) {
+                console.log('✅ COMPACT search mode');
+                return {
+                    search: searchContainer ? 'compact' : 'hidden',
+                    buttons: Array.from(buttons).map(() => 'full'),
+                    dropdowns: Array.from(dropdowns).map(() => 'full')
+                };
+            }
+            
+            const totalIconSearchWidth = searchIconWidth + buttonsFullWidth + dropdownsFullWidth;
+            console.log('💡 Icon search needs:', Math.round(totalIconSearchWidth));
+            
+            if (totalIconSearchWidth <= availableWidth) {
+                console.log('✅ ICON search mode');
+                return {
+                    search: searchContainer ? 'icon' : 'hidden',
+                    buttons: Array.from(buttons).map(() => 'full'),
+                    dropdowns: Array.from(dropdowns).map(() => 'full')
+                };
+            }
+            
+            const totalAllIconsWidth = searchIconWidth + buttonsIconWidth + dropdownsIconWidth;
+            console.log('💡 All icons needs:', Math.round(totalAllIconsWidth));
+            
+            if (totalAllIconsWidth <= availableWidth) {
+                console.log('✅ ALL ICONS mode');
+                return {
+                    search: searchContainer ? 'icon' : 'hidden',
+                    buttons: Array.from(buttons).map(() => 'icon'),
+                    dropdowns: Array.from(dropdowns).map(() => 'icon')
+                };
+            }
+            
+            console.log('⚠️ MINIMAL mode - hide search');
+            return {
+                search: 'hidden',
+                buttons: Array.from(buttons).map(() => 'icon'),
+                dropdowns: Array.from(dropdowns).map(() => 'icon')
+            };
+            
+        } catch (error) {
+            console.error('❌ Error in calculateElementStates:', error);
+            // Safe fallback - show everything
+            return {
+                search: 'full',
+                buttons: ['full', 'full'],
+                dropdowns: ['full']
+            };
+        }
     }
 
     function refreshHeader(header) {
         if (!header || isProcessingResize) return;
         
-        const panel = header.closest('.payee-list-panel, .payee-detail-panel, .transaction-details-panel, .categories-panel, .payees-panel-3, .details-panel');
-        if (!panel) return;
-        
+        // Prevent feedback loops during measurements
         isProcessingResize = true;
         
         try {
             const states = calculateElementStates(header);
             if (!states) return;
 
-            const width = panel.getBoundingClientRect().width;
-            console.log(`Progressive resize: width=${width}px, states:`, {
-                search: states.search,
-                buttonCount: states.buttons.size,
-                dropdownCount: states.dropdowns.size
-            });
+            console.log('🎯 Applying states:', states);
 
-            // Apply states with safety check - don't convert to icons immediately on load
+            // Apply states with initial load protection
             const isInitialLoad = !header.dataset.progressiveInitialized;
             if (isInitialLoad) {
                 console.log('🚀 Initial load - forcing full mode');
-                // On initial load, force everything to full mode regardless of calculated states
+                // Force everything to full mode on initial load
                 applySearchState(header, 'full');
-                states.buttons.forEach((state, button) => applyButtonState(button, 'full'));
-                states.dropdowns.forEach((state, dropdown) => applyDropdownState(dropdown, 'full'));
+                
+                const buttons = header.querySelectorAll('.panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn)');
+                buttons.forEach(button => applyButtonState(button, 'full'));
+                
+                const dropdowns = header.querySelectorAll('.panel-header-actions .dropdown');
+                dropdowns.forEach(dropdown => applyDropdownState(dropdown, 'full'));
+                
                 header.dataset.progressiveInitialized = 'true';
-                
-                // Very short protection period - 100ms only
                 header.dataset.initialLoadProtection = Date.now().toString();
-                return; // Exit early, don't apply calculated states
-            } else {
-                // Check if we're still in initial load protection period
-                const protectionTime = parseInt(header.dataset.initialLoadProtection || '0');
-                const now = Date.now();
-                if (now - protectionTime < 100) { // Much shorter protection period
-                    console.log('⏳ Protection active - remaining:', (100 - (now - protectionTime)) + 'ms');
-                    return; // Don't apply progressive states yet
-                }
-                
-                // Normal responsive behavior after initial load protection expires
-                console.log('✅ Applying states - search:', states.search, 'button states:', Array.from(states.buttons.values()));
-                console.log('🔄 EXPANSION CHECK: Panel width =', getAvailableWidth(header), 'px');
-                
-                applySearchState(header, states.search);
-                states.buttons.forEach((state, button) => {
-                    console.log('🔧 Setting button state:', button.textContent?.trim(), 'to', state);
-                    applyButtonState(button, state);
-                });
-                states.dropdowns.forEach((state, dropdown) => applyDropdownState(dropdown, state));
+                return; // Exit early
             }
+            
+            // Check protection period
+            const protectionTime = parseInt(header.dataset.initialLoadProtection || '0');
+            const now = Date.now();
+            if (now - protectionTime < 200) {
+                console.log('⏳ Protection active - remaining:', (200 - (now - protectionTime)) + 'ms');
+                return;
+            }
+            
+            // Apply calculated states
+            console.log('✅ Applying responsive states');
+            applySearchState(header, states.search);
+            
+            const buttons = Array.from(header.querySelectorAll('.panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn)'));
+            buttons.forEach((button, index) => {
+                const state = states.buttons[index] || 'full';
+                console.log(`🔧 Button ${index + 1} → ${state}`);
+                applyButtonState(button, state);
+            });
+            
+            const dropdowns = Array.from(header.querySelectorAll('.panel-header-actions .dropdown'));
+            dropdowns.forEach((dropdown, index) => {
+                const state = states.dropdowns[index] || 'full';
+                console.log(`📋 Dropdown ${index + 1} → ${state}`);
+                applyDropdownState(dropdown, state);
+            });
+            
+        } catch (error) {
+            console.error('❌ Error in refreshHeader:', error);
         } finally {
-            isProcessingResize = false;
+            // Always clear the processing flag
+            setTimeout(() => {
+                isProcessingResize = false;
+            }, 50);
         }
     }
 

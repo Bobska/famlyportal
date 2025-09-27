@@ -41,16 +41,26 @@
         }
     }
 
-    function getAvailableWidth(actionsContainer) {
-        const containerRect = actionsContainer.getBoundingClientRect();
-        return containerRect.width;
+    function getAvailableWidth(header) {
+        // Get the panel width, not the actions container width
+        const panel = header.closest('.payee-list-panel, .payee-detail-panel, .transaction-details-panel, .categories-panel, .payees-panel-3, .details-panel');
+        if (panel) {
+            const panelRect = panel.getBoundingClientRect();
+            console.log('🌐 Panel width:', panelRect.width, 'px');
+            return panelRect.width;
+        }
+        
+        // Fallback to header width
+        const headerRect = header.getBoundingClientRect();
+        console.log('📏 Header width fallback:', headerRect.width, 'px');
+        return headerRect.width;
     }
 
     function calculateElementStates(header) {
         const actionsContainer = header.querySelector('.panel-header-actions');
         if (!actionsContainer) return null;
 
-        const availableWidth = getAvailableWidth(actionsContainer);
+        const availableWidth = getAvailableWidth(header); // Pass header, not actionsContainer
         const searchContainer = header.querySelector('.panel-header-actions > div:has(.form-control)');
         const buttons = header.querySelectorAll('.panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn)');
         const dropdowns = header.querySelectorAll('.panel-header-actions .dropdown');
@@ -177,7 +187,7 @@
                 
                 // Normal responsive behavior after initial load protection expires
                 console.log('✅ Applying states - search:', states.search, 'button states:', Array.from(states.buttons.values()));
-                console.log('🔄 EXPANSION CHECK: Available width =', getAvailableWidth(header.querySelector('.panel-header-actions')), 'px');
+                console.log('🔄 EXPANSION CHECK: Panel width =', getAvailableWidth(header), 'px');
                 
                 applySearchState(header, states.search);
                 states.buttons.forEach((state, button) => {

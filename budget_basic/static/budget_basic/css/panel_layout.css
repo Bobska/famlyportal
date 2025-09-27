@@ -332,18 +332,471 @@
     font-size: 0.9rem;
 }
 
-.payees-page .panel-header-actions .btn.collapsed-label {
+/* Panel width-based responsive styles - Apply to all page types with smooth transitions */
+.payees-page .panel-header-actions .btn,
+.categories-page .panel-header-actions .btn,
+.transactions-panel-page .panel-header-actions .btn {
+    transition: width 0.3s ease, min-width 0.3s ease, padding 0.3s ease, border-radius 0.2s ease;
+}
+
+.payees-page .panel-header-actions .btn span,
+.categories-page .panel-header-actions .btn span,
+.transactions-panel-page .panel-header-actions .btn span {
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    transform: scale(1);
+    opacity: 1;
+}
+
+.payees-page .panel-header-actions .btn.square-btn,
+.categories-page .panel-header-actions .btn.square-btn,
+.transactions-panel-page .panel-header-actions .btn.square-btn {
     min-width: 30px;
     width: 30px;
     padding: 0;
     border-radius: 6px;
 }
 
-.payees-page .panel-header-actions .btn.collapsed-label span {
+.payees-page .panel-header-actions .btn.square-btn span,
+.categories-page .panel-header-actions .btn.square-btn span,
+.transactions-panel-page .panel-header-actions .btn.square-btn span {
+    opacity: 0;
+    transform: scale(0.8);
     display: none;
 }
 
-.payees-page .panel-header-actions .btn.collapsed-label i {
+.payees-page .panel-header-actions .btn.square-btn i,
+.categories-page .panel-header-actions .btn.square-btn i,
+.transactions-panel-page .panel-header-actions .btn.square-btn i {
+    margin: 0;
+    transition: margin 0.3s ease;
+}
+
+/* Search container responsive states with smooth transitions */
+.payees-page .panel-header-actions > div:has(.form-control),
+.categories-page .panel-header-actions > div:has(.form-control),
+.transactions-panel-page .panel-header-actions > div:has(.form-control) {
+    transition: max-width 0.4s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.payees-page .panel-header-actions .search-collapsed,
+.categories-page .panel-header-actions .search-collapsed,
+.transactions-panel-page .panel-header-actions .search-collapsed {
+    max-width: 0;
+    opacity: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.payees-page .panel-header-actions .search-compact,
+.categories-page .panel-header-actions .search-compact,
+.transactions-panel-page .panel-header-actions .search-compact {
+    max-width: 140px;
+    opacity: 1;
+}
+
+.payees-page .panel-header-actions .search-compact .form-control,
+.categories-page .panel-header-actions .search-compact .form-control,
+.transactions-panel-page .panel-header-actions .search-compact .form-control {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    transition: font-size 0.2s ease, padding 0.2s ease;
+}
+
+/* Ultra-compact search state - ~100px wide */
+.payees-page .panel-header-actions .search-ultra-compact,
+.categories-page .panel-header-actions .search-ultra-compact,
+.transactions-panel-page .panel-header-actions .search-ultra-compact {
+    max-width: 100px;
+    opacity: 1;
+    flex-shrink: 1;
+    min-width: 90px;
+}
+
+.payees-page .panel-header-actions .search-ultra-compact .form-control,
+.categories-page .panel-header-actions .search-ultra-compact .form-control,
+.transactions-panel-page .panel-header-actions .search-ultra-compact .form-control {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    width: 100px !important;
+    max-width: 100px;
+    min-width: 90px;
+    transition: font-size 0.2s ease, padding 0.2s ease, width 0.3s ease;
+}
+
+.payees-page .panel-header-actions .search-ultra-compact .input-group,
+.categories-page .panel-header-actions .search-ultra-compact .input-group,
+.transactions-panel-page .panel-header-actions .search-ultra-compact .input-group {
+    max-width: 100px;
+    width: 100px;
+}
+
+.payees-page .panel-header-actions .search-ultra-compact .input-group-text,
+.categories-page .panel-header-actions .search-ultra-compact .input-group-text,
+.transactions-panel-page .panel-header-actions .search-ultra-compact .input-group-text {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.3rem;
+}
+
+/* Responsive search input that triggers ultra-compact mode */
+@media (max-width: 768px) {
+    .payees-page .panel-header-actions .form-control,
+    .categories-page .panel-header-actions .form-control,
+    .transactions-panel-page .panel-header-actions .form-control {
+        min-width: 80px;
+    }
+}
+
+/* Container query simulation - when search container is constrained */
+.payees-page .panel-header-actions > div:has(.form-control):not(.search-collapsed) {
+    flex: 1;
+    min-width: 100px;
+    max-width: 220px;
+}
+
+/* Force ultra-compact when container is very narrow */
+.payees-page .panel-header-actions > div:has(.form-control)[style*="max-width: 100px"],
+.categories-page .panel-header-actions > div:has(.form-control)[style*="max-width: 100px"],
+.transactions-panel-page .panel-header-actions > div:has(.form-control)[style*="max-width: 100px"] {
+    max-width: 100px !important;
+}
+
+/* Mobile menu styles with smooth transitions */
+.payees-page .mobile-menu-wrapper,
+.categories-page .mobile-menu-wrapper,
+.transactions-panel-page .mobile-menu-wrapper {
+    position: relative;
+    transition: opacity 0.3s ease;
+}
+
+.payees-page .mobile-menu-btn,
+.categories-page .mobile-menu-btn,
+.transactions-panel-page .mobile-menu-btn {
+    min-width: 30px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.payees-page .mobile-menu-btn:hover,
+.categories-page .mobile-menu-btn:hover,
+.transactions-panel-page .mobile-menu-btn:hover {
+    transform: scale(1.05);
+}
+
+.payees-page .mobile-panel-menu,
+.categories-page .mobile-panel-menu,
+.transactions-panel-page .mobile-panel-menu {
+    min-width: 200px;
+    max-width: 280px;
+    animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.payees-page .mobile-panel-menu .dropdown-item,
+.categories-page .mobile-panel-menu .dropdown-item,
+.transactions-panel-page .mobile-panel-menu .dropdown-item {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, padding-left 0.2s ease;
+}
+
+.payees-page .mobile-panel-menu .dropdown-item:hover,
+.categories-page .mobile-panel-menu .dropdown-item:hover,
+.transactions-panel-page .mobile-panel-menu .dropdown-item:hover {
+    padding-left: 20px;
+}
+
+.payees-page .mobile-panel-menu .dropdown-item i,
+.categories-page .mobile-panel-menu .dropdown-item i,
+.transactions-panel-page .mobile-panel-menu .dropdown-item i {
+    width: 16px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.payees-page .mobile-panel-menu .dropdown-item:hover i,
+.categories-page .mobile-panel-menu .dropdown-item:hover i,
+.transactions-panel-page .mobile-panel-menu .dropdown-item:hover i {
+    transform: scale(1.1);
+}
+
+/* Panel header transitions between responsive states */
+.payees-page .panel-header,
+.categories-page .panel-header,
+.transactions-panel-page .panel-header {
+    transition: all 0.3s ease;
+}
+
+.payees-page .panel-header-actions,
+.categories-page .panel-header-actions,
+.transactions-panel-page .panel-header-actions {
+    transition: opacity 0.3s ease;
+}
+
+/* Progressive responsive states - elements convert individually */
+
+/* Search bar states */
+.search-full {
+    max-width: 220px;
+    opacity: 1;
+    transition: max-width 0.3s ease, opacity 0.2s ease;
+}
+
+.search-compact {
+    max-width: 140px;
+    opacity: 1;
+    transition: max-width 0.3s ease, opacity 0.2s ease;
+}
+
+.search-compact .form-control {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Search icon state with high specificity */
+.panel-header-actions > div.search-icon {
+    max-width: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-right: 8px;
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.panel-header-actions > div.search-icon .form-control,
+.panel-header-actions > div.search-icon .input-group,
+.panel-header-actions > div.search-icon .input-group-text {
+    display: none !important;
+}
+
+.panel-header-actions > div.search-icon::before {
+    content: '\F52A'; /* Bootstrap search icon */
+    font-family: 'Bootstrap Icons';
+    font-size: 1rem;
+    color: #6c757d;
+    line-height: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.panel-header-actions > div.search-icon:hover {
+    border-color: #86b7fe;
+    background-color: #f8f9fa;
+}
+
+.search-hidden {
+    display: none !important;
+}
+
+/* Button states */
+.btn-full {
+    padding: 4px 12px;
+    min-width: auto;
+    width: auto;
+    min-height: 32px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+/* Ultra-specific button icon styles to override Bootstrap */
+.panel-header .btn.btn-icon,
+.panel-header .btn-sm.btn-icon,
+.panel-header .btn-outline-secondary.btn-icon,
+.panel-header-actions .btn.btn-icon,
+.panel-header-actions .btn-sm.btn-icon,
+.panel-header-actions .btn-outline-secondary.btn-icon {
+    min-width: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease;
+    box-sizing: border-box !important;
+    font-size: 0.875rem !important;
+    line-height: 1 !important;
+}
+
+.panel-header .btn.btn-icon span,
+.panel-header .btn-sm.btn-icon span,
+.panel-header .btn-outline-secondary.btn-icon span,
+.panel-header-actions .btn.btn-icon span,
+.panel-header-actions .btn-sm.btn-icon span,
+.panel-header-actions .btn-outline-secondary.btn-icon span {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.panel-header .btn.btn-icon i,
+.panel-header .btn-sm.btn-icon i,
+.panel-header .btn-outline-secondary.btn-icon i,
+.panel-header-actions .btn.btn-icon i,
+.panel-header-actions .btn-sm.btn-icon i,
+.panel-header-actions .btn-outline-secondary.btn-icon i {
+    margin: 0 !important;
+    font-size: 1rem !important;
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.btn-hidden {
+    display: none !important;
+}
+
+/* Dropdown states */
+.dropdown-full {
+    display: block !important;
+}
+
+.dropdown-full .btn {
+    padding: 4px 12px;
+    min-width: auto;
+    min-height: 32px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.dropdown-icon {
+    display: block !important;
+}
+
+/* Ultra-specific dropdown icon styles */
+.panel-header .dropdown.dropdown-icon .btn,
+.panel-header .dropdown.dropdown-icon .btn-sm,
+.panel-header .dropdown.dropdown-icon .btn-outline-secondary,
+.panel-header-actions .dropdown.dropdown-icon .btn,
+.panel-header-actions .dropdown.dropdown-icon .btn-sm,
+.panel-header-actions .dropdown.dropdown-icon .btn-outline-secondary {
+    min-width: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+}
+
+/* Hide Bootstrap dropdown arrow in icon mode */
+.panel-header .dropdown.dropdown-icon .btn::after,
+.panel-header .dropdown.dropdown-icon .btn-sm::after,
+.panel-header .dropdown.dropdown-icon .btn-outline-secondary::after,
+.panel-header-actions .dropdown.dropdown-icon .btn::after,
+.panel-header-actions .dropdown.dropdown-icon .btn-sm::after,
+.panel-header-actions .dropdown.dropdown-icon .btn-outline-secondary::after {
+    display: none !important;
+    content: none !important;
+}
+
+.panel-header .dropdown.dropdown-icon .btn span:not(.visually-hidden),
+.panel-header .dropdown.dropdown-icon .btn-sm span:not(.visually-hidden),
+.panel-header .dropdown.dropdown-icon .btn-outline-secondary span:not(.visually-hidden),
+.panel-header-actions .dropdown.dropdown-icon .btn span:not(.visually-hidden),
+.panel-header-actions .dropdown.dropdown-icon .btn-sm span:not(.visually-hidden),
+.panel-header-actions .dropdown.dropdown-icon .btn-outline-secondary span:not(.visually-hidden) {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.panel-header .dropdown.dropdown-icon .btn i,
+.panel-header .dropdown.dropdown-icon .btn-sm i,
+.panel-header .dropdown.dropdown-icon .btn-outline-secondary i,
+.panel-header-actions .dropdown.dropdown-icon .btn i,
+.panel-header-actions .dropdown.dropdown-icon .btn-sm i,
+.panel-header-actions .dropdown.dropdown-icon .btn-outline-secondary i {
+    margin: 0 !important;
+    font-size: 1rem !important;
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.dropdown-hidden {
+    display: none !important;
+}
+
+/* Smooth transitions for all responsive elements */
+.panel-header-actions .btn,
+.panel-header-actions .dropdown,
+.panel-header-actions > div:has(.form-control) {
+    transition: all 0.3s ease;
+}
+
+/* Add Transaction Modal Transitions */
+#addTransactionModal .btn-group .btn {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+#addTransactionModal #submitTransactionBtn {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+#addTransactionModal .form-label,
+#addTransactionModal .form-text {
+    transition: color 0.2s ease;
+}
+
+/* Panel mode classes for different responsive states */
+.payees-page .panel-header.panel-mobile-menu .panel-header-actions > *:not(.mobile-menu-wrapper),
+.categories-page .panel-header.panel-mobile-menu .panel-header-actions > *:not(.mobile-menu-wrapper),
+.transactions-panel-page .panel-header.panel-mobile-menu .panel-header-actions > *:not(.mobile-menu-wrapper) {
+    display: none;
+}
+
+.payees-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn),
+.categories-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn),
+.transactions-panel-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) {
+    min-width: 30px;
+    width: 30px;
+    padding: 0;
+    border-radius: 6px;
+}
+
+.payees-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) span,
+.categories-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) span,
+.transactions-panel-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) span {
+    display: none;
+}
+
+.payees-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) i,
+.categories-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) i,
+.transactions-panel-page .panel-header.panel-compact-icons .panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn) i {
     margin: 0;
 }
 
@@ -876,7 +1329,7 @@
 }
 
 /* Responsive tweaks */
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
     .payees-page .payees-panel {
         flex-direction: column;
     }
@@ -920,7 +1373,7 @@
     }
 
 }
-@media (max-width: 992px) {
+@media (max-width: 860px) {
     .payees-page .panel-header-actions {
         gap: 4px;
     }

@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips if Bootstrap tooltips are needed
     initializeTooltips();
     
+    // Initialize add transaction form (consolidated)
+    handleAddTransactionForm();
+    
     // Initialize add income form
     handleAddIncomeForm();
     
@@ -144,6 +147,182 @@ function showDeleteIncomeModal(incomeId, payee, amount) {
 }
 
 /**
+ * Show add transaction modal (consolidated income/expense modal)
+ */
+function showAddTransactionModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+    
+    // Reset form fields
+    const transactionForm = document.getElementById('addTransactionForm');
+    transactionForm.reset();
+    
+    // Set default to expense
+    document.getElementById('typeExpense').checked = true;
+    updateTransactionModalForType('expense');
+    
+    // Load payees for the select dropdown
+    loadPayeesForModal('transactionPayeeSelect');
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('transactionDate').value = today;
+    
+    // Setup event listeners for type switching
+    setupTransactionTypeListeners();
+    
+    modal.show();
+}
+
+/**
+ * Setup event listeners for transaction type switching
+ */
+function setupTransactionTypeListeners() {
+    const typeExpense = document.getElementById('typeExpense');
+    const typeIncome = document.getElementById('typeIncome');
+    
+    if (typeExpense) {
+        typeExpense.addEventListener('change', function() {
+            if (this.checked) {
+                updateTransactionModalForType('expense');
+            }
+        });
+    }
+    
+    if (typeIncome) {
+        typeIncome.addEventListener('change', function() {
+            if (this.checked) {
+                updateTransactionModalForType('income');
+            }
+        });
+    }
+}
+
+/**
+ * Update modal labels and styling based on transaction type
+ */
+function updateTransactionModalForType(type) {
+    const payeeLabel = document.getElementById('payeeLabel');
+    const payeeOption = document.getElementById('payeeOption');
+    const payeeHelp = document.getElementById('payeeHelp');
+    const submitBtn = document.getElementById('submitTransactionBtn');
+    const newPayeeBtn = document.getElementById('addNewPayeeTransactionBtn');
+    
+    if (type === 'expense') {
+        payeeLabel.textContent = 'Merchant';
+        payeeOption.textContent = 'Select existing merchant...';
+        payeeHelp.textContent = 'Select from existing merchants or use the + button to add a new one';
+        submitBtn.textContent = 'Add Expense';
+        submitBtn.className = 'btn btn-danger';
+        if (newPayeeBtn) {
+            newPayeeBtn.title = 'Add new merchant';
+        }
+    } else if (type === 'income') {
+        payeeLabel.textContent = 'Payee';
+        payeeOption.textContent = 'Select existing payee...';
+        payeeHelp.textContent = 'Select from existing payees or use the + button to add a new one';
+        submitBtn.textContent = 'Add Income';
+        submitBtn.className = 'btn btn-success';
+        if (newPayeeBtn) {
+            newPayeeBtn.title = 'Add new payee';
+        }
+    }
+}
+
+/**
+ * Handle add transaction form submission
+ */
+function handleAddTransactionForm() {
+    const form = document.getElementById('addTransactionForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        
+        // Remove commas from amount before validation and submission
+        const amountInput = form.querySelector('[name="amount"]');
+        const cleanAmount = removeCommasFromAmount(amountInput.value);
+        formData.set('amount', cleanAmount);
+        
+        // Validate required fields
+        const date = formData.get('date');
+        const payee_choice = formData.get('payee_choice');
+        const amount = formData.get('amount');
+        const transaction_type = formData.get('transaction_type');
+        
+        if (!date || !payee_choice || !amount || !transaction_type) {
+            alert('Please fill in all required fields (Date, Payee, Amount, Transaction Type)');
+            return;
+        }
+        
+        // Disable submit button to prevent double submission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        // Determine endpoint based on transaction type
+        const endpoint = transaction_type === 'income' ? '/budget-basic/income/add/' : '/budget-basic/expense/add/';
+        
+        // Send data to server
+        fetch(endpoint, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => {
+            console.log(`Add ${transaction_type} response status:`, response.status);
+            console.log(`Add ${transaction_type} response headers:`, Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log(`Add ${transaction_type} raw response:`, text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error(`Add ${transaction_type} JSON parse error:`, e);
+                    console.error(`Add ${transaction_type} response text:`, text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                // Close add modal first
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
+                addModal.hide();
+                
+                // Clear form
+                form.reset();
+                
+                // Simple page reload to show the new transaction
+                window.location.reload();
+            } else {
+                // Show error message via alert
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error(`Add ${transaction_type} fetch error:`, error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
+    });
+}
+
+/**
  * Show add income modal
  */
 function showAddIncomeModal() {
@@ -212,25 +391,45 @@ function handleAddIncomeForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            // Get the response text first to see what we're actually getting
+            return response.text().then(text => {
+                console.log('Raw response:', text);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+                }
+                
+                // Try to parse as JSON
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: ${text}`);
+                }
+            });
+        })
         .then(data => {
+            console.log('Parsed data:', data);
             if (data.success) {
                 // Reset form and close modal first
                 form.reset();
                 const addIncomeModal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
                 addIncomeModal.hide();
                 
-                // Navigate to the week containing the new transaction and highlight it
-                navigateToTransactionWeek(data.date, data.income_id, 'income');
+                // Simple page reload to show the new transaction
+                window.location.reload();
                 
             } else {
                 // Show error message via alert (keep alerts for errors)
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while saving the income entry. Please try again.');
+            console.error('Error details:', error);
+            alert('An error occurred while saving the income entry. Please try again.\nError: ' + error.message);
         })
         .finally(() => {
             // Re-enable submit button
@@ -283,7 +482,12 @@ function handleEditIncomeForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // Reset form and close modal first
@@ -291,11 +495,11 @@ function handleEditIncomeForm() {
                 const editIncomeModal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
                 editIncomeModal.hide();
                 
-                // Navigate to transaction week with highlighting
-                navigateToTransactionWeek(data.date, data.income_id, 'income');
+                // Simple page reload to show the updated transaction
+                window.location.reload();
             } else {
                 // Show error message via alert (keep alerts for errors)
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
@@ -338,28 +542,42 @@ function handleDeleteIncomeForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete income response status:', response.status);
+            console.log('Delete income response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Delete income raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Delete income JSON parse error:', e);
+                    console.error('Delete income response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close delete modal first
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
                 deleteModal.hide();
                 
-                // Reload current week data instead of full page reload
-                const currentOffset = window.currentWeekOffset || 0;
-                if (typeof loadWeekData === 'function') {
-                    loadWeekData(currentOffset);
-                } else {
-                    window.location.reload();
-                }
+                // Simple page reload
+                window.location.reload();
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the income entry. Please try again.');
+            console.error('Delete income fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable button
@@ -503,7 +721,25 @@ function handleAddExpenseForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Add expense response status:', response.status);
+            console.log('Add expense response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Add expense raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Add expense JSON parse error:', e);
+                    console.error('Add expense response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close add modal first
@@ -513,16 +749,17 @@ function handleAddExpenseForm() {
                 // Clear form
                 form.reset();
                 
-                // Navigate to the week containing the new transaction and highlight it
-                navigateToTransactionWeek(data.date, data.expense_id, 'expense');
+                // Simple page reload to show the new transaction
+                window.location.reload();
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while adding the expense. Please try again.');
+            console.error('Add expense fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable submit button
@@ -577,23 +814,42 @@ function handleEditExpenseForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Edit expense response status:', response.status);
+            console.log('Edit expense response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Edit expense raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Edit expense JSON parse error:', e);
+                    console.error('Edit expense response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close edit modal first
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
                 editModal.hide();
                 
-                // Navigate to transaction week with highlighting
-                navigateToTransactionWeek(data.date, data.expense_id, 'expense');
+                // Simple page reload to show changes
+                window.location.reload();
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating the expense. Please try again.');
+            console.error('Edit expense fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable submit button
@@ -631,28 +887,42 @@ function handleDeleteExpenseForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete expense response status:', response.status);
+            console.log('Delete expense response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Delete expense raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Delete expense JSON parse error:', e);
+                    console.error('Delete expense response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close delete modal first
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
                 deleteModal.hide();
                 
-                // Reload current week data instead of full page reload
-                const currentOffset = window.currentWeekOffset || 0;
-                if (typeof loadWeekData === 'function') {
-                    loadWeekData(currentOffset);
-                } else {
-                    window.location.reload();
-                }
+                // Simple page reload
+                window.location.reload();
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the expense entry. Please try again.');
+            console.error('Delete expense fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable button
@@ -1150,6 +1420,10 @@ async function addNewPayee(payeeName) {
             body: formData
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
@@ -1215,6 +1489,16 @@ async function setAutoDate(dateInputId) {
 function initializePayeeFunctionality() {
     // Load payees on page load
     loadPayees();
+    
+    // Set up payee selection for new consolidated transaction modal
+    const addNewPayeeTransactionBtn = document.getElementById('addNewPayeeTransactionBtn');
+    if (addNewPayeeTransactionBtn) {
+        addNewPayeeTransactionBtn.addEventListener('click', function() {
+            // Determine transaction type from radio buttons
+            const transactionType = document.querySelector('input[name="transaction_type"]:checked')?.value || 'expense';
+            showAddPayeeModal(transactionType);
+        });
+    }
     
     // Set up payee selection for income modal
     const incomeSelect = document.getElementById('incomePayeeSelect');
@@ -1583,6 +1867,10 @@ async function handleAddPayeeModalForm(e) {
             method: 'POST',
             body: formData
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         
@@ -2300,6 +2588,16 @@ function doResize(e) {
         rightPanel.style.width = `${appliedRightWidth}px`;
         rightPanel.style.flex = `0 0 ${appliedRightWidth}px`;
     }
+
+    // Dispatch custom event for panel resize listeners
+    document.dispatchEvent(new CustomEvent('panelResized', {
+        detail: {
+            leftWidth: targetLeft,
+            rightWidth: targetRight,
+            leftPanel: leftPanel,
+            rightPanel: rightPanel
+        }
+    }));
 
     e.preventDefault();
 }

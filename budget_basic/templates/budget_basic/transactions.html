@@ -30,30 +30,22 @@
                         <span>Transactions</span>
                     </div>
                     <div class="panel-header-actions">
-                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            <span>Add Income</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-dash-circle me-1"></i>
-                            <span>Add Expense</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-plus-circle"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-dash-circle"></i>
-                        </button>
                         <div class="d-none d-lg-block" style="max-width: 220px;">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="handleTransactionSearch(this.value)">
                             </div>
                         </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddTransactionModal()" title="Add" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add</span>
+                        </button>
+                        </div>
+                        </div>
                         <div class="dropdown ms-2">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
-                                <i class="bi bi-funnel me-lg-1"></i>
-                                <span class="d-none d-lg-inline" id="filterLabel">All</span>
+                                <i class="bi bi-funnel me-1"></i>
+                                <span id="filterLabel">All</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="transactionFilterDropdown">
                                 <li><a class="dropdown-item active" href="#" onclick="filterTransactions('all')">Show All</a></li>

@@ -88,35 +88,22 @@
 
                     <div class="panel-header-actions">
 
-                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-
-                            <i class="bi bi-plus-circle me-1"></i>
-
-                            <span>Add Income</span>
-
-                        </button>
-
-                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-
-                            <i class="bi bi-dash-circle me-1"></i>
-
-                            <span>Add Expense</span>
-
-                        </button>
-
-                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-
-                            <i class="bi bi-plus-circle"></i>
-
-                        </button>
-
-                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-
-                            <i class="bi bi-dash-circle"></i>
-
-                        </button>
-
                         <div class="d-none d-lg-block" style="max-width: 220px;">
+
+                            <div class="input-group input-group-sm">
+
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+
+                                <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="handleTransactionSearch(this.value)">
+
+                            </div>
+
+                        </div>
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddTransactionModal()" title="Add" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add</span>
+                        </button>>
 
                             <div class="input-group input-group-sm">
 

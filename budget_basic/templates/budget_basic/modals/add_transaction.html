@@ -1,0 +1,70 @@
+<!-- Add Modal -->
+<div class="modal" id="addTransactionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addTransactionForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Transaction Type Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Transaction Type</label>
+                        <div class="btn-group w-100" role="group" aria-label="Transaction type">
+                            <input type="radio" class="btn-check" name="transaction_type" id="typeExpense" value="expense" checked>
+                            <label class="btn btn-outline-danger" for="typeExpense">
+                                <i class="bi bi-dash-circle me-1"></i>Expense
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="transaction_type" id="typeIncome" value="income">
+                            <label class="btn btn-outline-success" for="typeIncome">
+                                <i class="bi bi-plus-circle me-1"></i>Income
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Primary Fields - Main Focus -->
+                    <div class="mb-3">
+                        <label for="transactionDate" class="form-label fw-bold">Date</label>
+                        <input type="date" class="form-control" id="transactionDate" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="transactionPayeeSelect" class="form-label fw-bold">
+                            <span id="payeeLabel">Merchant</span>
+                        </label>
+                        <div class="d-flex align-items-end mb-2">
+                            <select class="form-select" id="transactionPayeeSelect" name="payee_choice" required>
+                                <option value="" id="payeeOption">Select existing merchant...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="addNewPayeeTransactionBtn" title="Add new merchant">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small" id="payeeHelp">Select from existing merchants or use the + button to add a new one</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="transactionAmount" class="form-label fw-bold">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control" id="transactionAmount" name="amount" placeholder="0.00" pattern="[\d,]+\.?\d{0,2}" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional Notes - Less Prominent -->
+                    <div class="mb-3">
+                        <label for="transactionNotes" class="form-label text-muted small">Additional Notes (Optional)</label>
+                        <textarea class="form-control form-control-sm" id="transactionNotes" name="notes" rows="2" placeholder="Optional details..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="submitTransactionBtn">Add Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

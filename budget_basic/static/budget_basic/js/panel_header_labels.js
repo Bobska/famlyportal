@@ -87,7 +87,7 @@
 
         // If we have plenty of space, show everything in full (with generous buffer)
         if (availableWidth > 350) { // More reasonable threshold - panels >350px show labels
-            console.log('Full mode - wide panel');
+            console.log('Full mode - wide panel (expanding back to full)');
             
             // Show everything in full mode
             if (searchContainer) states.search = 'full';
@@ -102,21 +102,21 @@
         // Priority: Search converts to icon BEFORE buttons convert
         if (availableWidth > 280) {
             // Medium space - keep buttons full, but compact search
-            console.log('Medium space - compact search only');
+            console.log('Medium space - compact search only (expanding from icon)');
             if (searchContainer) states.search = 'compact';
             buttons.forEach(btn => states.buttons.set(btn, 'full'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
             return states;
         } else if (availableWidth > 250) {
             // Smaller space - search to ICON first, buttons still full
-            console.log('Search to icon, buttons still full');
+            console.log('Search to icon, buttons still full (expanding buttons)');
             if (searchContainer) states.search = 'icon';
             buttons.forEach(btn => states.buttons.set(btn, 'full'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
             return states;
         } else if (availableWidth > 200) {
             // Even smaller - search icon, buttons to icons
-            console.log('Small space - buttons to icons');
+            console.log('Small space - buttons to icons (shrinking buttons)');
             if (searchContainer) states.search = 'icon';
             buttons.forEach(btn => states.buttons.set(btn, 'icon'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'icon'));
@@ -146,35 +146,47 @@
             const states = calculateElementStates(header);
             if (!states) return;
 
-        console.log('Progressive states applied');
+            const width = panel.getBoundingClientRect().width;
+            console.log(`Progressive resize: width=${width}px, states:`, {
+                search: states.search,
+                buttonCount: states.buttons.size,
+                dropdownCount: states.dropdowns.size
+            });
 
-        // Apply states with safety check - don't convert to icons immediately on load
-        const isInitialLoad = !header.dataset.progressiveInitialized;
-        if (isInitialLoad) {
-            console.log('Initial load - forcing full mode');
-            // On initial load, force everything to full mode regardless of calculated states
-            applySearchState(header, 'full');
-            states.buttons.forEach((state, button) => applyButtonState(button, 'full'));
-            states.dropdowns.forEach((state, dropdown) => applyDropdownState(dropdown, 'full'));
-            header.dataset.progressiveInitialized = 'true';
-            
-            // Prevent any further progressive calculations for a few seconds
-            header.dataset.initialLoadProtection = Date.now().toString();
-            return; // Exit early, don't apply calculated states
-        } else {
-            // Check if we're still in initial load protection period
-            const protectionTime = parseInt(header.dataset.initialLoadProtection || '0');
-            const now = Date.now();
-            if (now - protectionTime < 1000) { // 1 second protection period
-                console.log('Protection active');
-                return; // Don't apply progressive states yet
+            // Apply states with safety check - don't convert to icons immediately on load
+            const isInitialLoad = !header.dataset.progressiveInitialized;
+            if (isInitialLoad) {
+                console.log('🚀 Initial load - forcing full mode');
+                // On initial load, force everything to full mode regardless of calculated states
+                applySearchState(header, 'full');
+                states.buttons.forEach((state, button) => applyButtonState(button, 'full'));
+                states.dropdowns.forEach((state, dropdown) => applyDropdownState(dropdown, 'full'));
+                header.dataset.progressiveInitialized = 'true';
+                
+                // Very short protection period - 100ms only
+                header.dataset.initialLoadProtection = Date.now().toString();
+                return; // Exit early, don't apply calculated states
+            } else {
+                // Check if we're still in initial load protection period
+                const protectionTime = parseInt(header.dataset.initialLoadProtection || '0');
+                const now = Date.now();
+                if (now - protectionTime < 100) { // Much shorter protection period
+                    console.log('⏳ Protection active - remaining:', (100 - (now - protectionTime)) + 'ms');
+                    return; // Don't apply progressive states yet
+                }
+                
+                // Normal responsive behavior after initial load protection expires
+                console.log('✅ Applying states - search:', states.search, 'button states:', Array.from(states.buttons.values()));
+                console.log('🔄 EXPANSION CHECK: Available width =', getAvailableWidth(header.querySelector('.panel-header-actions')), 'px');
+                
+                applySearchState(header, states.search);
+                states.buttons.forEach((state, button) => {
+                    console.log('🔧 Setting button state:', button.textContent?.trim(), 'to', state);
+                    applyButtonState(button, state);
+                });
+                states.dropdowns.forEach((state, dropdown) => applyDropdownState(dropdown, state));
             }
-            
-            // Normal responsive behavior after initial load protection expires
-            applySearchState(header, states.search);
-            states.buttons.forEach((state, button) => applyButtonState(button, state));
-            states.dropdowns.forEach((state, dropdown) => applyDropdownState(dropdown, state));
-        }        } finally {
+        } finally {
             isProcessingResize = false;
         }
     }
@@ -210,6 +222,8 @@
     function applyButtonState(button, state) {
         const labelSpan = button.querySelector('span');
         
+        console.log('🔧 applyButtonState:', button.textContent?.trim(), 'from current classes:', button.className, 'to state:', state);
+        
         button.classList.remove('btn-full', 'btn-icon', 'btn-hidden');
         button.classList.remove('d-none', 'd-lg-none', 'd-lg-inline-flex');
         
@@ -219,15 +233,23 @@
         
         switch (state) {
             case 'full':
+                console.log('✅ Setting button to FULL mode - showing label');
                 button.classList.add('btn-full');
                 button.style.display = 'inline-flex';
-                if (labelSpan) labelSpan.style.display = '';
+                if (labelSpan) {
+                    labelSpan.style.display = '';
+                    console.log('📝 Label span display set to empty (visible)');
+                }
                 removeTooltip(button);
                 break;
             case 'icon':
+                console.log('🎯 Setting button to ICON mode - hiding label');
                 button.classList.add('btn-icon');
                 button.style.display = 'inline-flex';
-                if (labelSpan) labelSpan.style.display = 'none';
+                if (labelSpan) {
+                    labelSpan.style.display = 'none';
+                    console.log('🚫 Label span display set to none (hidden)');
+                }
                 ensureTooltip(button, button.dataset.fullLabel);
                 console.log('Button → icon mode');
                 break;
@@ -360,7 +382,76 @@
         test: function() {
             console.log('Testing progressive responsive behavior...');
             refreshAll();
+        },
+        forceExpand: function() {
+            console.log('Force expanding all panels to full mode...');
+            headers.forEach(header => {
+                // Remove protection to allow immediate changes
+                delete header.dataset.initialLoadProtection;
+                header.dataset.progressiveInitialized = 'true';
+                
+                // Force full mode
+                const searchContainer = header.querySelector('.panel-header-actions > div:has(.form-control)');
+                const buttons = header.querySelectorAll('.panel-header-actions .btn:not(.action-btn):not(.mobile-menu-btn)');
+                const dropdowns = header.querySelectorAll('.panel-header-actions .dropdown');
+                
+                if (searchContainer) applySearchState(header, 'full');
+                buttons.forEach(btn => applyButtonState(btn, 'full'));
+                dropdowns.forEach(dropdown => applyDropdownState(dropdown, 'full'));
+            });
+        },
+        debugWidth: function() {
+            headers.forEach(header => {
+                const actionsContainer = header.querySelector('.panel-header-actions');
+                if (actionsContainer) {
+                    const width = getAvailableWidth(actionsContainer);
+                    console.log('Panel width:', width + 'px', header);
+                }
+            });
         }
+    };
+
+    // Expose test functions to global scope for debugging
+    window.testProgressiveExpansion = function() {
+        console.log('=== MANUAL PROGRESSIVE TEST ===');
+        const headers = document.querySelectorAll('.panel-header-actions');
+        headers.forEach(header => {
+            console.log('Manual trigger for header:', header);
+            header.dataset.initialLoadProtection = '0'; // Clear protection
+            updateProgressiveElements(header);
+        });
+    };
+
+    window.forceProgressiveUpdate = function() {
+        console.log('=== FORCE PROGRESSIVE RESET ===');
+        const headers = document.querySelectorAll('.panel-header-actions');
+        headers.forEach(header => {
+            // Clear all protection and states
+            delete header.dataset.progressiveInitialized;
+            delete header.dataset.initialLoadProtection;
+            
+            // Reset all elements to full mode first
+            const searchContainer = header.querySelector('.panel-header-actions > div:has(.form-control)');
+            if (searchContainer) {
+                searchContainer.classList.remove('search-full', 'search-compact', 'search-icon', 'search-hidden');
+                searchContainer.classList.add('search-full');
+                searchContainer.style.display = 'block';
+            }
+            
+            const buttons = header.querySelectorAll('.btn:not(.dropdown-toggle)');
+            buttons.forEach(btn => {
+                btn.classList.remove('btn-full', 'btn-icon', 'btn-hidden');
+                btn.classList.add('btn-full');
+                btn.style.display = 'inline-flex';
+                const labelSpan = btn.querySelector('span');
+                if (labelSpan) labelSpan.style.display = '';
+                removeTooltip(btn);
+            });
+            
+            // Now apply proper states
+            console.log('Resetting complete, applying states in 100ms...');
+            setTimeout(() => updateProgressiveElements(header), 100);
+        });
     };
 
     // Auto-initialize when DOM is ready

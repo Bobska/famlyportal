@@ -86,7 +86,7 @@
         });
 
         // If we have plenty of space, show everything in full (with generous buffer)
-        if (availableWidth > 400) { // Simple check - if panel is reasonably wide, show full labels
+        if (availableWidth > 350) { // More reasonable threshold - panels >350px show labels
             console.log('Full mode - wide panel');
             
             // Show everything in full mode
@@ -99,70 +99,29 @@
 
         console.log('Progressive mode - limited space');
         
-        // Progressive allocation: Start with minimum icon space, then upgrade if room
-        remainingWidth = availableWidth - 20; // Leave 20px margin
-        
-        // Start by allocating minimum space for all elements (icon mode)
-        const minRequiredWidth = 
-            (searchContainer ? ELEMENT_CONSTRAINTS.SEARCH_ICON : 0) +
-            buttons.length * ELEMENT_CONSTRAINTS.BUTTON_ICON_ONLY +
-            dropdowns.length * ELEMENT_CONSTRAINTS.DROPDOWN_ICON_ONLY;
-        
-        console.log('Min required:', minRequiredWidth, 'vs available:', Math.round(remainingWidth));
-        
-        if (remainingWidth < minRequiredWidth) {
-            console.log('Extreme constraint - compact only');
-            // Extreme space constraint - show compact search and icon buttons/dropdowns
+        // More granular progressive behavior based on available width
+        if (availableWidth > 280) {
+            // Medium space - keep buttons full, but compact search
+            console.log('Medium space - compact search only');
+            if (searchContainer) states.search = 'compact';
+            buttons.forEach(btn => states.buttons.set(btn, 'full'));
+            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
+            return states;
+        } else if (availableWidth > 220) {
+            // Smaller space - search compact, buttons to icons
+            console.log('Small space - buttons to icons');
             if (searchContainer) states.search = 'compact';
             buttons.forEach(btn => states.buttons.set(btn, 'icon'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'icon'));
             return states;
+        } else {
+            // Very tight space - everything to icons
+            console.log('Tight space - all icons');
+            if (searchContainer) states.search = 'icon';
+            buttons.forEach(btn => states.buttons.set(btn, 'icon'));
+            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'icon'));
+            return states;
         }
-        
-        // We have room for at least icons, now try to upgrade elements
-        
-        // 1. Start with icon mode for all
-        if (searchContainer) {
-            states.search = 'icon';
-            remainingWidth -= ELEMENT_CONSTRAINTS.SEARCH_ICON;
-        }
-        
-        buttons.forEach(btn => {
-            states.buttons.set(btn, 'icon');
-            remainingWidth -= ELEMENT_CONSTRAINTS.BUTTON_ICON_ONLY;
-        });
-
-        dropdowns.forEach(dropdown => {
-            states.dropdowns.set(dropdown, 'icon');
-            remainingWidth -= ELEMENT_CONSTRAINTS.DROPDOWN_ICON_ONLY;
-        });
-        
-        // 2. Upgrade search first if we have room
-        if (searchContainer && remainingWidth >= (ELEMENT_CONSTRAINTS.SEARCH_COMPACT - ELEMENT_CONSTRAINTS.SEARCH_ICON)) {
-            states.search = 'compact';
-            remainingWidth -= (ELEMENT_CONSTRAINTS.SEARCH_COMPACT - ELEMENT_CONSTRAINTS.SEARCH_ICON);
-        }
-        
-        if (searchContainer && remainingWidth >= (ELEMENT_CONSTRAINTS.SEARCH_FULL - ELEMENT_CONSTRAINTS.SEARCH_COMPACT)) {
-            states.search = 'full';
-            remainingWidth -= (ELEMENT_CONSTRAINTS.SEARCH_FULL - ELEMENT_CONSTRAINTS.SEARCH_COMPACT);
-        }
-        
-        // 3. Upgrade buttons to full if we have room
-        buttons.forEach(btn => {
-            if (remainingWidth >= (ELEMENT_CONSTRAINTS.BUTTON_WITH_LABEL - ELEMENT_CONSTRAINTS.BUTTON_ICON_ONLY)) {
-                states.buttons.set(btn, 'full');
-                remainingWidth -= (ELEMENT_CONSTRAINTS.BUTTON_WITH_LABEL - ELEMENT_CONSTRAINTS.BUTTON_ICON_ONLY);
-            }
-        });
-        
-        // 4. Upgrade dropdowns to full if we have room
-        dropdowns.forEach(dropdown => {
-            if (remainingWidth >= (ELEMENT_CONSTRAINTS.DROPDOWN_WITH_LABEL - ELEMENT_CONSTRAINTS.DROPDOWN_ICON_ONLY)) {
-                states.dropdowns.set(dropdown, 'full');
-                remainingWidth -= (ELEMENT_CONSTRAINTS.DROPDOWN_WITH_LABEL - ELEMENT_CONSTRAINTS.DROPDOWN_ICON_ONLY);
-            }
-        });
 
         console.log('States:', states);
         return states;
@@ -199,8 +158,8 @@
             // Check if we're still in initial load protection period
             const protectionTime = parseInt(header.dataset.initialLoadProtection || '0');
             const now = Date.now();
-            if (now - protectionTime < 2000) { // 2 second protection period
-                console.log('Still in protection period');
+            if (now - protectionTime < 1000) { // 1 second protection period
+                console.log('Protection active');
                 return; // Don't apply progressive states yet
             }
             

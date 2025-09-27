@@ -99,7 +99,7 @@
 
         console.log('Progressive mode - limited space');
         
-        // More granular progressive behavior based on available width
+        // Priority: Search converts to icon BEFORE buttons convert
         if (availableWidth > 280) {
             // Medium space - keep buttons full, but compact search
             console.log('Medium space - compact search only');
@@ -107,15 +107,22 @@
             buttons.forEach(btn => states.buttons.set(btn, 'full'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
             return states;
-        } else if (availableWidth > 220) {
-            // Smaller space - search compact, buttons to icons
+        } else if (availableWidth > 250) {
+            // Smaller space - search to ICON first, buttons still full
+            console.log('Search to icon, buttons still full');
+            if (searchContainer) states.search = 'icon';
+            buttons.forEach(btn => states.buttons.set(btn, 'full'));
+            dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
+            return states;
+        } else if (availableWidth > 200) {
+            // Even smaller - search icon, buttons to icons
             console.log('Small space - buttons to icons');
-            if (searchContainer) states.search = 'compact';
+            if (searchContainer) states.search = 'icon';
             buttons.forEach(btn => states.buttons.set(btn, 'icon'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'icon'));
             return states;
         } else {
-            // Very tight space - everything to icons
+            // Very tight space - everything to icons (same as before)
             console.log('Tight space - all icons');
             if (searchContainer) states.search = 'icon';
             buttons.forEach(btn => states.buttons.set(btn, 'icon'));

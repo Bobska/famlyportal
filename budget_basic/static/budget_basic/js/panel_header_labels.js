@@ -96,7 +96,7 @@
         });
 
         // If we have plenty of space, show everything in full (with generous buffer)
-        if (availableWidth > 350) { // More reasonable threshold - panels >350px show labels
+        if (availableWidth > 380) { // Increased from 350 to 380
             console.log('Full mode - wide panel (expanding back to full)');
             
             // Show everything in full mode
@@ -110,21 +110,21 @@
         console.log('Progressive mode - limited space');
         
         // Priority: Search converts to icon BEFORE buttons convert
-        if (availableWidth > 280) {
+        if (availableWidth > 320) { // Increased from 280 to 320
             // Medium space - keep buttons full, but compact search
             console.log('Medium space - compact search only (expanding from icon)');
             if (searchContainer) states.search = 'compact';
             buttons.forEach(btn => states.buttons.set(btn, 'full'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
             return states;
-        } else if (availableWidth > 250) {
+        } else if (availableWidth > 280) { // Increased from 250 to 280
             // Smaller space - search to ICON first, buttons still full
             console.log('Search to icon, buttons still full (expanding buttons)');
             if (searchContainer) states.search = 'icon';
             buttons.forEach(btn => states.buttons.set(btn, 'full'));
             dropdowns.forEach(dropdown => states.dropdowns.set(dropdown, 'full'));
             return states;
-        } else if (availableWidth > 200) {
+        } else if (availableWidth > 220) { // Increased from 200 to 220
             // Even smaller - search icon, buttons to icons
             console.log('Small space - buttons to icons (shrinking buttons)');
             if (searchContainer) states.search = 'icon';

@@ -570,45 +570,65 @@
 }
 
 /* Search icon state with high specificity */
-.panel-header-actions > div.search-icon {
+.panel-header-actions > div.search-icon,
+.panel-header-actions div.search-icon {
     max-width: 32px !important;
+    min-width: 32px !important;
     width: 32px !important;
     height: 32px !important;
+    min-height: 32px !important;
     display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    background: white;
-    cursor: pointer;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px !important;
+    background: white !important;
+    cursor: pointer !important;
     transition: all 0.3s ease;
     margin-right: 8px;
     position: relative;
-    flex-shrink: 0;
-    overflow: hidden;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+}
+
+/* Force override of any inline styles */
+div[style*="max-width"].search-icon {
+    max-width: 32px !important;
+    min-width: 32px !important;
+    width: 32px !important;
 }
 
 .panel-header-actions > div.search-icon .form-control,
 .panel-header-actions > div.search-icon .input-group,
-.panel-header-actions > div.search-icon .input-group-text {
+.panel-header-actions > div.search-icon .input-group-text,
+.panel-header-actions div.search-icon .form-control,
+.panel-header-actions div.search-icon .input-group,
+.panel-header-actions div.search-icon .input-group-text {
     display: none !important;
+    visibility: hidden !important;
 }
 
-.panel-header-actions > div.search-icon::before {
-    content: '\F52A'; /* Bootstrap search icon */
-    font-family: 'Bootstrap Icons';
-    font-size: 1rem;
-    color: #6c757d;
-    line-height: 1;
+.panel-header-actions > div.search-icon::before,
+.panel-header-actions div.search-icon::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%236c757d" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 }
 
-.panel-header-actions > div.search-icon:hover {
-    border-color: #86b7fe;
-    background-color: #f8f9fa;
+.panel-header-actions > div.search-icon:hover,
+.panel-header-actions div.search-icon:hover {
+    border-color: #86b7fe !important;
+    background-color: #f8f9fa !important;
 }
 
 .search-hidden {

@@ -281,13 +281,22 @@
                 <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="editCategoryForm" method="post">
+            <form id="editCategoryForm" method="post" onsubmit="handleEditCategoryForm(event)">
                 <div class="modal-body">
                     {% csrf_token %}
                     <input type="hidden" id="editCategoryId" name="category_id">
                     <div class="mb-3">
                         <label for="editCategoryName" class="form-label">Category Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="editCategoryName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryType" class="form-label">Category Type</label>
+                        <select class="form-select" id="editCategoryType" name="category_type" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                            <option value="both">Both Income & Expense</option>
+                        </select>
+                        <div class="form-text text-muted small">Choose whether this category applies to income, expenses, or both</div>
                     </div>
                     <div class="mb-3">
                         <label for="editCategoryDescription" class="form-label">Description</label>
@@ -1103,8 +1112,101 @@ function editSelectedCategory() {
     document.getElementById('editCategoryName').value = data.name;
     document.getElementById('editCategoryDescription').value = data.description;
     
+    // Set category type - need to convert display value back to database value
+    const categoryTypeSelect = document.getElementById('editCategoryType');
+    let categoryTypeValue = 'expense'; // default
+    if (data.categoryType) {
+        if (data.categoryType.includes('Income') && data.categoryType.includes('Expense')) {
+            categoryTypeValue = 'both';
+        } else if (data.categoryType.includes('Income')) {
+            categoryTypeValue = 'income';
+        } else {
+            categoryTypeValue = 'expense';
+        }
+    }
+    categoryTypeSelect.value = categoryTypeValue;
+    
     const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
     modal.show();
+}
+
+async function handleEditCategoryForm(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    const categoryId = document.getElementById('editCategoryId').value;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(`{% url 'budget_basic:category_update' 0 %}`.replace('0', categoryId), {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update the category in the list
+            updateCategoryInList(data.category);
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCategoryModal'));
+            if (modal) modal.hide();
+            
+            // Show success message (you may want to add a toast notification here)
+            console.log(data.message);
+            
+        } else {
+            alert(data.error || 'Failed to update category');
+        }
+        
+    } catch (error) {
+        console.error('Error updating category:', error);
+        alert('An error occurred while updating the category');
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+function updateCategoryInList(updatedCategory) {
+    // Find the category row in the list
+    const categoryRow = document.querySelector(`[data-category-id="${updatedCategory.id}"]`);
+    if (categoryRow) {
+        // Update dataset attributes
+        categoryRow.dataset.categoryName = updatedCategory.name;
+        categoryRow.dataset.categoryDescription = updatedCategory.description;
+        categoryRow.dataset.categoryType = updatedCategory.category_type;
+        categoryRow.dataset.categoryUpdated = new Date().toISOString().split('T')[0];
+        
+        // Update displayed name
+        const nameElement = categoryRow.querySelector('.payee-name');
+        if (nameElement) {
+            nameElement.textContent = updatedCategory.name;
+        }
+        
+        // Update displayed description
+        const descElement = categoryRow.querySelector('.payee-meta');
+        if (descElement) {
+            descElement.textContent = updatedCategory.description || '';
+        }
+        
+        // If this category is currently selected, update the detail panel
+        if (categoryRow === selectedCategoryCard) {
+            const data = getCategoryData(categoryRow);
+            showCategoryPanel(data);
+        }
+    }
 }
 
 function deleteSelectedCategory() {

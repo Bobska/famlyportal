@@ -895,12 +895,17 @@ def category_update(request, category_id):
         
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
+        category_type = request.POST.get('category_type', 'expense').strip()
         
         if not name:
             return JsonResponse({
                 'success': False,
                 'error': 'Category name is required.'
             })
+        
+        # Validate category_type
+        if category_type not in ['income', 'expense', 'both']:
+            category_type = 'expense'
         
         # Check for duplicate names (excluding current category)
         if Category.objects.filter(
@@ -915,6 +920,7 @@ def category_update(request, category_id):
         # Update category
         category.name = name
         category.description = description or None
+        category.category_type = category_type
         category.save()
         
         return JsonResponse({
@@ -924,6 +930,7 @@ def category_update(request, category_id):
                 'id': category.id,
                 'name': category.name,
                 'description': category.description or '',
+                'category_type': category.get_category_type_display(),
                 'payees_count': category.get_payees_count(),
                 'payees_display': category.get_payees_display(),
                 'created_at': category.created_at.isoformat(),

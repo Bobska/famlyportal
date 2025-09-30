@@ -228,6 +228,7 @@ def dashboard(request):
         'page_title': 'Budget Basic',
         'app_name': 'budget_basic',
         'current_balance': current_balance,
+        **build_sidebar_summary_context(request),
     }
     return render(request, 'budget_basic/dashboard.html', context)
 
@@ -264,9 +265,43 @@ def build_weekly_context(request):
         'monthly_income': monthly_income,
         'monthly_expenses': monthly_expenses,
         'monthly_balance': monthly_balance,
+        'sidebar_week_start': week_window.start,
+        'sidebar_week_end': week_window.end,
+        'sidebar_week_label': describe_week_offset(week_offset),
         'week_offset': week_offset,
         'target_monday': week_window.start,
         'target_sunday': week_window.end,
+    }
+
+
+def build_sidebar_summary_context(request, *, week_offset: int | None = None) -> dict[str, object]:
+    """Return weekly summary metrics for sidebar widgets."""
+    resolved_offset = week_offset if week_offset is not None else int(request.GET.get('week_offset', 0))
+    week_window = resolve_week_window(resolved_offset)
+
+    weekly_income = amount_sum(
+        Income.objects.filter(
+            user=request.user,
+            date__gte=week_window.start,
+            date__lte=week_window.end,
+        )
+    )
+    weekly_expenses = amount_sum(
+        Expense.objects.filter(
+            user=request.user,
+            date__gte=week_window.start,
+            date__lte=week_window.end,
+        )
+    )
+    weekly_balance = weekly_income - weekly_expenses
+
+    return {
+        'weekly_income': weekly_income,
+        'weekly_expenses': weekly_expenses,
+        'weekly_balance': weekly_balance,
+        'sidebar_week_start': week_window.start,
+        'sidebar_week_end': week_window.end,
+        'sidebar_week_label': describe_week_offset(resolved_offset),
     }
 
 
@@ -305,6 +340,7 @@ def transactions(request):
         'page_title': 'Transactions',
         'app_name': 'budget_basic',
         **build_all_transactions_context(request),
+        **build_sidebar_summary_context(request),
     }
     return render(request, 'budget_basic/transactions.html', context)
 
@@ -639,6 +675,7 @@ def payee_list(request):
         'page_title': 'Manage Payees',
         'payees': payees,
         'categories': categories,
+        **build_sidebar_summary_context(request),
     }
     return render(request, 'budget_basic/payees.html', context)
 
@@ -826,10 +863,11 @@ def payee_search(request):
 def category_list(request):
     """Display all categories for the current user with statistics."""
     categories = Category.objects.filter(user=request.user).prefetch_related('payees')
-    
-    return render(request, 'budget_basic/categories.html', {
-        'categories': categories
-    })
+    context = {
+        'categories': categories,
+        **build_sidebar_summary_context(request),
+    }
+    return render(request, 'budget_basic/categories.html', context)
 
 
 @login_required  

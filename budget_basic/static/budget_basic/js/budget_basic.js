@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize mobile sidebar
     initializeMobileSidebar();
+    initializeSidebarCollapse();
     
     // Initialize tooltips if Bootstrap tooltips are needed
     initializeTooltips();
@@ -63,8 +64,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 100); // Small delay to ensure DOM is fully rendered
     
+    if (typeof window.currentWeekOffset !== 'number') {
+        window.currentWeekOffset = getCurrentWeekOffsetValue();
+    }
+
     // Note: Transaction card interactions now handled by week_navigation.js
 });
+
+function getCurrentWeekOffsetValue() {
+    if (typeof window.currentWeekOffset === 'number' && !Number.isNaN(window.currentWeekOffset)) {
+        return window.currentWeekOffset;
+    }
+
+    const body = document.body;
+    if (body && body.dataset && typeof body.dataset.weekOffset !== 'undefined') {
+        const parsed = Number(body.dataset.weekOffset);
+        if (!Number.isNaN(parsed)) {
+            return parsed;
+        }
+    }
+
+    return 0;
+}
 
 /**
  * Show coming soon modal
@@ -166,10 +187,6 @@ function showAddTransactionModal() {
     // Load categories for the select dropdown (default to expense)
     loadCategoriesForModal('transactionCategorySelect', 'expense');
     
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('transactionDate').value = today;
-    
     // Setup event listeners for type switching
     setupTransactionTypeListeners();
     
@@ -183,20 +200,22 @@ function setupTransactionTypeListeners() {
     const typeExpense = document.getElementById('typeExpense');
     const typeIncome = document.getElementById('typeIncome');
     
-    if (typeExpense) {
+    if (typeExpense && !typeExpense.dataset.listenerBound) {
         typeExpense.addEventListener('change', function() {
             if (this.checked) {
                 updateTransactionModalForType('expense');
             }
         });
+        typeExpense.dataset.listenerBound = 'true';
     }
     
-    if (typeIncome) {
+    if (typeIncome && !typeIncome.dataset.listenerBound) {
         typeIncome.addEventListener('change', function() {
             if (this.checked) {
                 updateTransactionModalForType('income');
             }
         });
+        typeIncome.dataset.listenerBound = 'true';
     }
 }
 
@@ -232,6 +251,15 @@ function updateTransactionModalForType(type) {
     
     // Reload categories for the selected transaction type
     loadCategoriesForModal('transactionCategorySelect', type);
+
+    if (typeof setAutoDate === 'function') {
+        setAutoDate('transactionDate', type);
+    } else {
+        const transactionDateInput = document.getElementById('transactionDate');
+        if (transactionDateInput && !transactionDateInput.value) {
+            transactionDateInput.value = new Date().toISOString().split('T')[0];
+        }
+    }
 }
 
 /**
@@ -301,15 +329,36 @@ function handleAddTransactionForm() {
         })
         .then(data => {
             if (data.success) {
-                // Close add modal first
-                const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
-                addModal.hide();
-                
-                // Clear form
+                const submittedType = transaction_type;
+                const idKey = submittedType === 'income' ? 'income_id' : 'expense_id';
+                const createdTransactionId = data[idKey];
+                const createdDate = data.date;
+
+                // Reset form for next use while keeping the last selected type
                 form.reset();
-                
-                // Simple page reload to show the new transaction
-                window.location.reload();
+                const defaultRadio = document.getElementById(submittedType === 'income' ? 'typeIncome' : 'typeExpense');
+                if (defaultRadio) {
+                    defaultRadio.checked = true;
+                    updateTransactionModalForType(submittedType);
+                } else {
+                    updateTransactionModalForType('expense');
+                }
+
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
+                if (addModal) {
+                    addModal.hide();
+                }
+
+                if (createdTransactionId && typeof navigateToTransactionWeek === 'function' && typeof loadWeekData === 'function') {
+                    navigateToTransactionWeek(createdDate, createdTransactionId, submittedType);
+                } else if (typeof loadWeekData === 'function') {
+                    const targetOffset = (typeof calculateWeekOffset === 'function' && createdDate)
+                        ? calculateWeekOffset(createdDate)
+                        : getCurrentWeekOffsetValue();
+                    loadWeekData(targetOffset);
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
                 alert('Error: ' + (data.error || 'Unknown error occurred'));
@@ -347,10 +396,13 @@ function showAddIncomeModal() {
         incomeInput.removeAttribute('readonly');
         incomeInput.classList.remove('bg-light');
     }
-    
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('incomeDate').value = today;
+
+    if (typeof setAutoDate === 'function') {
+        setAutoDate('incomeDate', 'income');
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('incomeDate').value = today;
+    }
     
     modal.show();
 }
@@ -420,13 +472,26 @@ function handleAddIncomeForm() {
         .then(data => {
             console.log('Parsed data:', data);
             if (data.success) {
-                // Reset form and close modal first
                 form.reset();
                 const addIncomeModal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
-                addIncomeModal.hide();
-                
-                // Simple page reload to show the new transaction
-                window.location.reload();
+                if (addIncomeModal) {
+                    addIncomeModal.hide();
+                }
+
+                if (typeof setAutoDate === 'function') {
+                    setAutoDate('incomeDate', 'income');
+                }
+
+                if (data.income_id && typeof navigateToTransactionWeek === 'function' && typeof loadWeekData === 'function') {
+                    navigateToTransactionWeek(data.date, data.income_id, 'income');
+                } else if (typeof loadWeekData === 'function') {
+                    const targetOffset = (typeof calculateWeekOffset === 'function' && data.date)
+                        ? calculateWeekOffset(data.date)
+                        : getCurrentWeekOffsetValue();
+                    loadWeekData(targetOffset);
+                } else {
+                    window.location.reload();
+                }
                 
             } else {
                 // Show error message via alert (keep alerts for errors)
@@ -571,10 +636,15 @@ function handleDeleteIncomeForm() {
             if (data.success) {
                 // Close delete modal first
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
-                deleteModal.hide();
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
                 
-                // Simple page reload
-                window.location.reload();
+                if (typeof loadWeekData === 'function') {
+                    loadWeekData(getCurrentWeekOffsetValue());
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
                 alert('Error: ' + (data.error || 'Unknown error occurred'));
@@ -614,10 +684,13 @@ function showAddExpenseModal() {
         expenseInput.removeAttribute('readonly');
         expenseInput.classList.remove('bg-light');
     }
-    
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('expenseDate').value = today;
+
+    if (typeof setAutoDate === 'function') {
+        setAutoDate('expenseDate', 'expense');
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('expenseDate').value = today;
+    }
     
     modal.show();
 }
@@ -748,15 +821,26 @@ function handleAddExpenseForm() {
         })
         .then(data => {
             if (data.success) {
-                // Close add modal first
                 const addModal = bootstrap.Modal.getInstance(document.getElementById('addExpenseModal'));
-                addModal.hide();
-                
-                // Clear form
+                if (addModal) {
+                    addModal.hide();
+                }
+
                 form.reset();
-                
-                // Simple page reload to show the new transaction
-                window.location.reload();
+                if (typeof setAutoDate === 'function') {
+                    setAutoDate('expenseDate', 'expense');
+                }
+
+                if (data.expense_id && typeof navigateToTransactionWeek === 'function' && typeof loadWeekData === 'function') {
+                    navigateToTransactionWeek(data.date, data.expense_id, 'expense');
+                } else if (typeof loadWeekData === 'function') {
+                    const targetOffset = (typeof calculateWeekOffset === 'function' && data.date)
+                        ? calculateWeekOffset(data.date)
+                        : getCurrentWeekOffsetValue();
+                    loadWeekData(targetOffset);
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
                 alert('Error: ' + (data.error || 'Unknown error occurred'));
@@ -916,10 +1000,15 @@ function handleDeleteExpenseForm() {
             if (data.success) {
                 // Close delete modal first
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
-                deleteModal.hide();
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
                 
-                // Simple page reload
-                window.location.reload();
+                if (typeof loadWeekData === 'function') {
+                    loadWeekData(getCurrentWeekOffsetValue());
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
                 alert('Error: ' + (data.error || 'Unknown error occurred'));
@@ -1137,7 +1226,7 @@ function getCsrfToken() {
  */
 function initializeMobileSidebar() {
     // Create mobile sidebar toggle button if it doesn't exist
-    const navbar = document.querySelector('.budget-basic-nav .navbar-nav');
+    const navbar = document.querySelector('.bb-top-nav .navbar-nav');
     if (navbar && window.innerWidth <= 768) {
         const toggleButton = document.createElement('li');
         toggleButton.className = 'nav-item d-lg-none';
@@ -1165,6 +1254,59 @@ function initializeMobileSidebar() {
                 sidebarToggle && !sidebarToggle.contains(e.target)) {
                 closeSidebar();
             }
+        }
+    });
+
+    // Close sidebar when a navigation link is selected on mobile
+    document.querySelectorAll('.bb-sidebar__nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 991.98) {
+                closeSidebar();
+            }
+        });
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 991.98) {
+            closeSidebar();
+        }
+    });
+}
+
+/**
+ * Initialise desktop sidebar collapse behaviour with persisted state
+ */
+function initializeSidebarCollapse() {
+    const collapseButton = document.getElementById('sidebarCollapseButton');
+    const sidebar = document.querySelector('.bb-sidebar');
+    if (!collapseButton || !sidebar) {
+        return;
+    }
+
+    const icon = collapseButton.querySelector('i');
+    const applyState = (isCollapsed) => {
+        collapseButton.setAttribute('aria-expanded', String(!isCollapsed));
+        if (icon) {
+            icon.classList.toggle('fa-angle-left', !isCollapsed);
+            icon.classList.toggle('fa-angle-right', isCollapsed);
+        }
+    };
+
+    const storedPreference = window.localStorage?.getItem('bb.sidebar.collapsed');
+    if (storedPreference === '1') {
+        document.body.classList.add('sidebar-collapsed');
+        applyState(true);
+    } else {
+        applyState(false);
+    }
+
+    collapseButton.addEventListener('click', () => {
+        const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+        applyState(isCollapsed);
+        try {
+            window.localStorage?.setItem('bb.sidebar.collapsed', isCollapsed ? '1' : '0');
+        } catch (error) {
+            console.warn('Unable to persist sidebar state', error);
         }
     });
 }
@@ -1471,24 +1613,36 @@ async function getAutoDate(weekOffset = 0, transactionType = null) {
 }
 
 // Set auto date for form
-async function setAutoDate(dateInputId) {
+async function setAutoDate(dateInputId, transactionTypeOverride = null) {
     const dateInput = document.getElementById(dateInputId);
     if (!dateInput) return;
     
     // Determine transaction type based on input ID
-    let transactionType = null;
-    if (dateInputId.toLowerCase().includes('income')) {
-        transactionType = 'income';
-    } else if (dateInputId.toLowerCase().includes('expense')) {
-        transactionType = 'expense';
+    let transactionType = transactionTypeOverride;
+    if (!transactionType) {
+        const lowerId = dateInputId.toLowerCase();
+        if (lowerId.includes('income')) {
+            transactionType = 'income';
+        } else if (lowerId.includes('expense')) {
+            transactionType = 'expense';
+        }
+    }
+
+    if (!transactionType) {
+        const selectedRadio = document.querySelector('input[name="transaction_type"]:checked');
+        if (selectedRadio) {
+            transactionType = selectedRadio.value;
+        }
     }
     
     // Get current week offset from the global variable
-    const weekOffset = typeof currentWeekOffset !== 'undefined' ? currentWeekOffset : 0;
+    const weekOffset = getCurrentWeekOffsetValue();
     const autoDate = await getAutoDate(weekOffset, transactionType);
     
     if (autoDate) {
         dateInput.value = autoDate;
+    } else if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
     }
 }
 
@@ -1551,7 +1705,7 @@ function initializePayeeFunctionality() {
     
     if (autoDateIncomeBtn) {
         autoDateIncomeBtn.addEventListener('click', function() {
-            setAutoDate('incomeDate');
+            setAutoDate('incomeDate', 'income');
         });
     }
     
@@ -1591,7 +1745,7 @@ function initializePayeeFunctionality() {
     
     if (autoDateExpenseBtn) {
         autoDateExpenseBtn.addEventListener('click', function() {
-            setAutoDate('expenseDate');
+            setAutoDate('expenseDate', 'expense');
         });
     }
     
@@ -1651,13 +1805,13 @@ function initializePayeeFunctionality() {
     
     if (addIncomeModal) {
         addIncomeModal.addEventListener('shown.bs.modal', function() {
-            setAutoDate('incomeDate');
+            setAutoDate('incomeDate', 'income');
         });
     }
     
     if (addExpenseModal) {
         addExpenseModal.addEventListener('shown.bs.modal', function() {
-            setAutoDate('expenseDate');
+            setAutoDate('expenseDate', 'expense');
         });
     }
 }

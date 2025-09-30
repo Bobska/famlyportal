@@ -1,84 +1,75 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-light bg-light budget-basic-nav">
-    <div class="container-fluid">
-        <!-- Brand/Logo -->
-        <a class="navbar-brand" href="{% url 'budget_basic:dashboard' %}">
-            <img src="{% static 'images/favicon.svg' %}" alt="FamlyPortal" width="30" height="30" class="d-inline-block align-text-top">
-            Budget Basic
-        </a>
+<nav class="bb-top-nav navbar navbar-expand-lg navbar-light">
+    <div class="bb-top-nav__container container-fluid">
+        <div class="bb-top-nav__brand-group">
+            <a class="bb-top-nav__brand" href="{% url 'budget_basic:dashboard' %}">
+                <img src="{% static 'images/favicon.svg' %}" alt="FamlyPortal" width="28" height="28" class="bb-top-nav__brand-icon">
+                <span class="bb-top-nav__brand-text">Budget Basic</span>
+            </a>
+            <button class="navbar-toggler bb-top-nav__toggler" type="button" data-bs-toggle="collapse" data-bs-target="#budgetBasicNavbar" aria-controls="budgetBasicNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
 
-        <!-- Mobile Menu Toggle -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#budgetBasicNavbar" aria-controls="budgetBasicNavbar" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- Navigation Links -->
-        <div class="collapse navbar-collapse" id="budgetBasicNavbar">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
-                       href="{% url 'budget_basic:dashboard' %}">
-                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'weekly' %}active{% endif %}" 
-                       href="{% url 'budget_basic:weekly' %}">
-                        <i class="fas fa-calendar-week me-1"></i>Weekly
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'transactions' %}active{% endif %}" 
-                       href="{% url 'budget_basic:transactions' %}">
-                        <i class="fas fa-list me-1"></i>Transactions
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'payee_list' %}active{% endif %}" 
-                       href="{% url 'budget_basic:payee_list' %}">
-                        <i class="fas fa-users me-1"></i>Payees
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}" 
-                       href="{% url 'budget_basic:category_list' %}">
-                        <i class="fas fa-tags me-1"></i>Categories
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showAddIncomeModal()">
-                        Add Income
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showComingSoonModal()">
-                        Add Expense
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showComingSoonModal()">
-                        <i class="fas fa-chart-pie me-1"></i>Reports
-                    </a>
-                </li>
+        <div class="collapse navbar-collapse bb-top-nav__collapse" id="budgetBasicNavbar">
+            <ul class="navbar-nav bb-top-nav__links">
+                {% with url_name=request.resolver_match.url_name %}
+                    <li class="nav-item">
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'budget_basic:dashboard' %}" {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'weekly' %}is-active{% endif %}" href="{% url 'budget_basic:weekly' %}" {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
+                            <i class="fas fa-calendar-week"></i>
+                            <span>Weekly</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'transactions' %}is-active{% endif %}" href="{% url 'budget_basic:transactions' %}" {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
+                            <i class="fas fa-list"></i>
+                            <span>Transactions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'payee_list' %}is-active{% endif %}" href="{% url 'budget_basic:payee_list' %}" {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
+                            <i class="fas fa-users"></i>
+                            <span>Payees</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'category_list' %}is-active{% endif %}" href="{% url 'budget_basic:category_list' %}" {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
+                            <i class="fas fa-tags"></i>
+                            <span>Categories</span>
+                        </a>
+                    </li>
+                {% endwith %}
             </ul>
 
-            <!-- User Actions -->
-            <ul class="navbar-nav">
+            <ul class="navbar-nav bb-top-nav__actions">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user me-1"></i>{{ user.get_full_name|default:user.username }}
+                    <a class="nav-link dropdown-toggle bb-top-nav__user" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user"></i>
+                        <span>{{ user.get_full_name|default:user.username }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="{% url 'accounts:dashboard' %}">
-                            <i class="fas fa-home me-2"></i>Main Dashboard
-                        </a></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'accounts:dashboard' %}">
+                                <i class="fas fa-home me-2"></i>Main Dashboard
+                            </a>
+                        </li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
-                            <i class="fas fa-user-cog me-2"></i>Profile
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                <i class="fas fa-user-cog me-2"></i>Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
                     </ul>
                 </li>
             </ul>

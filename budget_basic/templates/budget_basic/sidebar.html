@@ -1,58 +1,82 @@
 {% load humanize %}
-<aside class="budget-basic-sidebar">
-    <div class="sidebar-content">
-        <!-- Quick Actions -->
-        <div class="sidebar-section">
-            <h6 class="sidebar-heading">Quick Actions</h6>
-            <div class="d-grid gap-2">
-                <button class="btn btn-outline-secondary btn-sm" onclick="showAddIncomeModal()">
-                    Add Income
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" onclick="showComingSoonModal()">
-                    Add Expense
-                </button>
-            </div>
+<aside class="budget-basic-sidebar bb-sidebar" data-controller="sidebar">
+    <div class="bb-sidebar__inner">
+        <div class="bb-sidebar__controls">
+            <button type="button"
+                    class="bb-sidebar__collapse"
+                    id="sidebarCollapseButton"
+                    aria-label="Collapse sidebar"
+                    aria-expanded="true">
+                <i class="fas fa-angle-left"></i>
+            </button>
         </div>
 
-        <!-- Budget Overview -->
-        <div class="sidebar-section">
-            <h6 class="sidebar-heading">This Month</h6>
-            <div class="budget-summary">
-                <div class="budget-item">
-                    <span class="budget-label">Income:</span>
-                    <span class="budget-value">${{ monthly_income|floatformat:2|intcomma }}</span>
-                </div>
-                <div class="budget-item">
-                    <span class="budget-label">Expenses:</span>
-                    <span class="budget-value">${{ monthly_expenses|floatformat:2|intcomma }}</span>
-                </div>
-                <hr class="my-2">
-                <div class="budget-item">
-                    <span class="budget-label">Balance:</span>
-                    <span class="budget-value {% if monthly_balance < 0 %}text-danger{% elif monthly_balance > 0 %}text-success{% endif %}">{% if monthly_balance >= 0 %}+{% else %}-{% endif %}${{ monthly_balance|floatformat:2|intcomma|cut:"-" }}</span>
-                </div>
-            </div>
-        </div>
+        <nav class="bb-sidebar__nav" aria-label="Budget sections">
+            {% with url_name=request.resolver_match.url_name %}
+                <a class="bb-sidebar__nav-link {% if url_name == 'weekly' %}is-active{% endif %}"
+                   href="{% url 'budget_basic:weekly' %}"
+                   title="Weekly Overview"
+                   {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-calendar-week"></i>
+                    <span class="bb-sidebar__nav-label">Weekly</span>
+                </a>
+                <a class="bb-sidebar__nav-link {% if url_name == 'transactions' %}is-active{% endif %}"
+                   href="{% url 'budget_basic:transactions' %}"
+                   title="Transactions"
+                   {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-list"></i>
+                    <span class="bb-sidebar__nav-label">Transactions</span>
+                </a>
+                <a class="bb-sidebar__nav-link {% if url_name == 'payee_list' %}is-active{% endif %}"
+                   href="{% url 'budget_basic:payee_list' %}"
+                   title="Manage Payees"
+                   {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-users"></i>
+                    <span class="bb-sidebar__nav-label">Payees</span>
+                </a>
+                <a class="bb-sidebar__nav-link {% if url_name == 'category_list' %}is-active{% endif %}"
+                   href="{% url 'budget_basic:category_list' %}"
+                   title="Categories"
+                   {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
+                    <i class="fas fa-tags"></i>
+                    <span class="bb-sidebar__nav-label">Categories</span>
+                </a>
+            {% endwith %}
+        </nav>
 
-        <!-- Recent Categories -->
-        <div class="sidebar-section">
-            <h6 class="sidebar-heading">Categories</h6>
-            <div class="category-list">
-                <div class="category-item">
-                    <i class="fas fa-home me-2"></i>Housing
+        <div class="bb-sidebar__section">
+            <div class="bb-sidebar__section-header">
+                <h6 class="bb-sidebar__heading">This Week</h6>
+                {% if sidebar_week_label %}
+                    <span class="bb-sidebar__subheading">{{ sidebar_week_label }}</span>
+                {% endif %}
+                {% if sidebar_week_start and sidebar_week_end %}
+                    <span class="bb-sidebar__subheading bb-sidebar__subheading--dates">
+                        {{ sidebar_week_start|date:'M j' }} – {{ sidebar_week_end|date:'M j' }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="bb-sidebar__stats">
+                {% with income=weekly_income|default:0 %}
+                <div class="bb-sidebar__stat">
+                    <span class="bb-sidebar__stat-label">Income</span>
+                    <span class="bb-sidebar__stat-value text-success">+${{ income|floatformat:'2'|intcomma }}</span>
                 </div>
-                <div class="category-item">
-                    <i class="fas fa-car me-2"></i>Transportation
+                {% endwith %}
+                {% with expenses=weekly_expenses|default:0 %}
+                <div class="bb-sidebar__stat">
+                    <span class="bb-sidebar__stat-label">Expenses</span>
+                    <span class="bb-sidebar__stat-value text-danger">-${{ expenses|floatformat:'2'|intcomma }}</span>
                 </div>
-                <div class="category-item">
-                    <i class="fas fa-utensils me-2"></i>Food
+                {% endwith %}
+                {% with balance=weekly_balance|default:0 %}
+                <div class="bb-sidebar__stat">
+                    <span class="bb-sidebar__stat-label">Balance</span>
+                    <span class="bb-sidebar__stat-value {% if balance < 0 %}text-danger{% elif balance > 0 %}text-success{% endif %}">
+                        {% if balance > 0 %}+{% endif %}${{ balance|floatformat:'2'|intcomma|cut:'-' }}
+                    </span>
                 </div>
-                <div class="category-item">
-                    <i class="fas fa-gamepad me-2"></i>Entertainment
-                </div>
-                <div class="category-item">
-                    <i class="fas fa-ellipsis-h me-2"></i>Other
-                </div>
+                {% endwith %}
             </div>
         </div>
     </div>

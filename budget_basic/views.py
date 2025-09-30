@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Max, Sum
+from django.db.models import Max, Sum, Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -97,6 +97,7 @@ class TransactionPayload:
     date: date
     payee_name: str
     amount: Decimal
+    category_id: int | None = None
     notes: str = ''
 
 def build_transaction_payload(data) -> TransactionPayload:
@@ -124,7 +125,18 @@ def build_transaction_payload(data) -> TransactionPayload:
         raise ValidationError('Amount must be positive.')
 
     notes = (data.get('notes') or '').strip()
-    return TransactionPayload(date=parsed_date, payee_name=payee_name, amount=amount, notes=notes)
+    
+    # Handle category selection (optional)
+    category_id = None
+    category_choice = (data.get('category_choice') or '').strip()
+    if category_choice:
+        try:
+            category_id = int(category_choice)
+        except (ValueError, TypeError):
+            # Invalid category ID, ignore rather than error
+            category_id = None
+    
+    return TransactionPayload(date=parsed_date, payee_name=payee_name, amount=amount, category_id=category_id, notes=notes)
 
 
 def persist_transaction(model, user, payload: TransactionPayload, *, instance=None):
@@ -136,6 +148,18 @@ def persist_transaction(model, user, payload: TransactionPayload, *, instance=No
     record.payee = payload.payee_name
     record.amount = payload.amount
     record.notes = payload.notes
+    
+    # Handle category assignment
+    if payload.category_id:
+        try:
+            category = Category.objects.get(id=payload.category_id, user=user)
+            record.category = category
+        except Category.DoesNotExist:
+            # Invalid category ID or category doesn't belong to user, ignore
+            record.category = None
+    else:
+        record.category = None
+    
     record.save()
     return record
 
@@ -516,6 +540,40 @@ def get_payees(request):
         return JsonResponse({
             'success': True,
             'payees': payee_list
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+def get_categories(request):
+    """Get list of categories for the current user, optionally filtered by transaction type."""
+    try:
+        transaction_type = request.GET.get('type', None)  # 'income', 'expense', or None for all
+        
+        categories = Category.objects.filter(user=request.user)
+        
+        # Filter by transaction type if specified
+        if transaction_type in ['income', 'expense']:
+            categories = categories.filter(
+                Q(category_type=transaction_type) | Q(category_type='both')
+            )
+        
+        categories = categories.order_by('name')
+        category_list = [
+            {
+                'id': c.id, 
+                'name': c.name,
+                'category_type': c.category_type,
+                'type_display': c.get_type_display_short()
+            } 
+            for c in categories
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'categories': category_list
         })
         
     except Exception as e:

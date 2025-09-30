@@ -46,6 +46,19 @@
                         <div class="form-text text-muted small" id="payeeHelp">Select from existing merchants or use the + button to add a new one</div>
                     </div>
                     
+                    <div class="mb-3">
+                        <label for="transactionCategorySelect" class="form-label fw-bold">Category</label>
+                        <div class="d-flex align-items-end mb-2">
+                            <select class="form-select" id="transactionCategorySelect" name="category_choice">
+                                <option value="">Select category (optional)...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="addNewCategoryTransactionBtn" title="Add new category">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small">Categorize this transaction for better organization and reporting</div>
+                    </div>
+                    
                     <div class="mb-4">
                         <label for="transactionAmount" class="form-label fw-bold">Amount</label>
                         <div class="input-group">

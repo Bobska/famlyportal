@@ -12,8 +12,20 @@ class Category(models.Model):
     Categories help organize transactions by type (Food, Transport, Entertainment, etc.)
     and provide better reporting and budgeting capabilities.
     """
+    CATEGORY_TYPE_CHOICES = [
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+        ('both', 'Both Income & Expense'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    category_type = models.CharField(
+        max_length=10, 
+        choices=CATEGORY_TYPE_CHOICES, 
+        default='expense',
+        help_text="Whether this category applies to income, expenses, or both"
+    )
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -26,6 +38,19 @@ class Category(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def applies_to_type(self, transaction_type):
+        """Check if this category applies to the given transaction type."""
+        return self.category_type == 'both' or self.category_type == transaction_type
+    
+    def get_type_display_short(self):
+        """Return a short display name for the category type."""
+        type_map = {
+            'income': 'Income',
+            'expense': 'Expense', 
+            'both': 'Both'
+        }
+        return type_map.get(self.category_type, self.category_type)
     
     def get_payees_count(self):
         """Return the number of payees associated with this category."""
@@ -86,6 +111,7 @@ class Income(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     payee = models.CharField(max_length=200)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True, related_name='income_entries')
     amount = models.DecimalField(
         max_digits=10, 
         decimal_places=2,
@@ -109,6 +135,7 @@ class Expense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     payee = models.CharField(max_length=200)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True, related_name='expense_entries')
     amount = models.DecimalField(
         max_digits=10, 
         decimal_places=2,

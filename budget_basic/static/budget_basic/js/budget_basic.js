@@ -163,6 +163,9 @@ function showAddTransactionModal() {
     // Load payees for the select dropdown
     loadPayeesForModal('transactionPayeeSelect');
     
+    // Load categories for the select dropdown (default to expense)
+    loadCategoriesForModal('transactionCategorySelect', 'expense');
+    
     // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('transactionDate').value = today;
@@ -226,6 +229,9 @@ function updateTransactionModalForType(type) {
             newPayeeBtn.title = 'Add new payee';
         }
     }
+    
+    // Reload categories for the selected transaction type
+    loadCategoriesForModal('transactionCategorySelect', type);
 }
 
 /**
@@ -1305,6 +1311,7 @@ function validateForm(form) {
  * Payee Management Functions
  */
 let payeeCache = [];
+let categoryCache = [];
 let currentBaseModal = null; // Track which modal opened the payee modal
 
 // Load payees from server
@@ -1500,6 +1507,14 @@ function initializePayeeFunctionality() {
         });
     }
     
+    // Set up category selection for new consolidated transaction modal
+    const addNewCategoryTransactionBtn = document.getElementById('addNewCategoryTransactionBtn');
+    if (addNewCategoryTransactionBtn) {
+        addNewCategoryTransactionBtn.addEventListener('click', function() {
+            showAddCategoryModal();
+        });
+    }
+    
     // Set up payee selection for income modal
     const incomeSelect = document.getElementById('incomePayeeSelect');
     const incomeInput = document.getElementById('incomePayee');
@@ -1622,6 +1637,12 @@ function initializePayeeFunctionality() {
     const addPayeeForm = document.getElementById('addPayeeForm');
     if (addPayeeForm) {
         addPayeeForm.addEventListener('submit', handleAddPayeeModalForm);
+    }
+    
+    // Set up the Add Category modal form submission
+    const addCategoryForm = document.getElementById('addCategoryForm');
+    if (addCategoryForm) {
+        addCategoryForm.addEventListener('submit', handleAddCategoryModalForm);
     }
     
     // Auto-populate date when modals are opened
@@ -1928,6 +1949,225 @@ function selectNewlyAddedPayee(payeeName) {
     if (selectElement) {
         // Select the new payee in the dropdown by name
         selectElement.value = payeeName;
+        
+        // Trigger change event to update any dependent elements
+        selectElement.dispatchEvent(new Event('change'));
+    }
+}
+
+/**
+ * Category Management Functions
+ */
+
+// Load categories from server
+async function loadCategories() {
+    try {
+        const response = await fetch('/budget-basic/categories-list/');
+        const data = await response.json();
+        
+        if (data.success) {
+            categoryCache = data.categories;
+            updateCategorySelects();
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Load categories for a specific modal
+async function loadCategoriesForModal(selectId, transactionType = null) {
+    try {
+        let url = '/budget-basic/categories-list/';
+        if (transactionType) {
+            url += `?type=${transactionType}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            categoryCache = data.categories;
+            updateCategorySelectById(selectId);
+        }
+    } catch (error) {
+        console.error('Error loading categories for modal:', error);
+    }
+}
+
+// Update a specific category select element by ID
+function updateCategorySelectById(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options (except first one)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    // Add category options
+    categoryCache.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Show add category modal
+ */
+function showAddCategoryModal() {
+    console.log('Opening Add Category modal');
+    
+    // Find the currently open modal and add fade effect
+    const openModals = document.querySelectorAll('.modal.show');
+    openModals.forEach(modal => {
+        modal.classList.add('modal-faded');
+    });
+    
+    // Clear the add category form and alert container
+    const form = document.getElementById('addCategoryForm');
+    if (form) form.reset();
+    
+    // Pre-select category type based on current transaction type
+    const transactionType = document.querySelector('input[name="transaction_type"]:checked')?.value || 'expense';
+    const categoryTypeSelect = document.getElementById('newCategoryType');
+    if (categoryTypeSelect) {
+        categoryTypeSelect.value = transactionType;
+    }
+    
+    const alertContainer = document.getElementById('addCategoryAlertContainer');
+    if (alertContainer) {
+        alertContainer.innerHTML = '';
+    }
+    
+    // Show the add category modal with stacked styling
+    const addCategoryModal = document.getElementById('addCategoryModal');
+    if (addCategoryModal) {
+        addCategoryModal.classList.add('modal-stacked');
+        const modal = new bootstrap.Modal(addCategoryModal, {
+            backdrop: 'static', // Prevent closing by clicking backdrop
+            keyboard: true
+        });
+        modal.show();
+        
+        // Focus on the name input when modal is shown
+        addCategoryModal.addEventListener('shown.bs.modal', function() {
+            const nameInput = document.getElementById('newCategoryName');
+            if (nameInput) nameInput.focus();
+        }, { once: true });
+        
+        // Handle modal close to remove stacked styling and fade effect
+        addCategoryModal.addEventListener('hidden.bs.modal', function() {
+            addCategoryModal.classList.remove('modal-stacked');
+            
+            // Remove fade effect from base modals
+            const openModals = document.querySelectorAll('.modal.show');
+            openModals.forEach(modal => {
+                modal.classList.remove('modal-faded');
+            });
+        }, { once: true });
+    }
+}
+
+/**
+ * Show message in category modal alert container
+ */
+function showCategoryModalMessage(message, type = 'danger') {
+    const alertContainer = document.getElementById('addCategoryAlertContainer');
+    if (!alertContainer) return;
+    
+    // Clear existing alerts
+    alertContainer.innerHTML = '';
+    
+    // Create alert
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    alertContainer.innerHTML = alertHtml;
+}
+
+/**
+ * Handle add category form submission
+ */
+async function handleAddCategoryModalForm(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding...';
+    
+    try {
+        const formData = new FormData(form);
+        const response = await fetch('/budget-basic/category/create/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add to cache and update dropdowns
+            categoryCache.push(data.category);
+            categoryCache.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Get current transaction type and reload categories
+            const transactionTypeSelect = document.getElementById('transactionTypeSelect');
+            const currentType = transactionTypeSelect ? transactionTypeSelect.value : 'expense';
+            
+            // Reload categories for the current transaction type
+            loadCategoriesForModal(currentType).then(() => {
+                // Select the newly added category in the transaction modal
+                selectNewlyAddedCategory(data.category.name);
+            });
+            
+            // Show success message briefly then close modal
+            showCategoryModalMessage(`Category "${data.category.name}" added successfully!`, 'success');
+            
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
+                if (modal) modal.hide();
+            }, 1000);
+            
+        } else {
+            showCategoryModalMessage(data.error || 'Failed to add category');
+        }
+        
+    } catch (error) {
+        console.error('Error adding category:', error);
+        showCategoryModalMessage('An error occurred while adding the category');
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+/**
+ * Select newly added category in dropdown
+ */
+function selectNewlyAddedCategory(categoryName) {
+    const selectElement = document.getElementById('transactionCategorySelect');
+    
+    if (selectElement) {
+        // Find the option with the matching category name
+        for (let option of selectElement.options) {
+            if (option.textContent === categoryName) {
+                selectElement.value = option.value;
+                break;
+            }
+        }
         
         // Trigger change event to update any dependent elements
         selectElement.dispatchEvent(new Event('change'));
@@ -2477,7 +2717,9 @@ window.BudgetBasic = {
     highlightTransaction,
     checkForTransactionHighlight,
     showAddPayeeModal,
+    showAddCategoryModal,
     selectNewlyAddedPayee,
+    selectNewlyAddedCategory,
     filterTransactions,
     selectTransaction,
     clearTransactionSelection,

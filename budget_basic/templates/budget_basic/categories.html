@@ -83,6 +83,7 @@
                          data-category-description="{{ category.description|default:""|escapejs }}"
                          data-category-created="{{ category.created_at|date:"Y-m-d" }}"
                     data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
+                    data-category-type="{{ category.get_category_type_display }}"
                     data-category-payee-count="{{ category.get_payees_count }}"
                          onclick="selectCategoryWithToggle(this)">
                         <div class="payee-cell payee-cell-info">
@@ -205,6 +206,10 @@
                                         <div class="detail-info-item">
                                             <dt class="detail-info-label">Last updated</dt>
                                             <dd class="detail-info-value" id="detail-category-updated"></dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Type</dt>
+                                            <dd class="detail-info-value" id="detail-category-type"></dd>
                                         </div>
                                         <div class="detail-info-item">
                                             <dt class="detail-info-label">Linked payees</dt>
@@ -389,6 +394,7 @@ function getCategoryData(element) {
         description: element.dataset.categoryDescription,
         created: element.dataset.categoryCreated,
         updated: element.dataset.categoryUpdated,
+        categoryType: element.dataset.categoryType,
         payeeCount: parseInt(element.dataset.categoryPayeeCount || '0', 10)
     };
 }
@@ -407,6 +413,7 @@ function showCategoryPanel(data) {
     setTextContent('detail-category-name', data.name);
     setTextContent('detail-category-created', formatDate(data.created));
     setTextContent('detail-category-updated', formatDate(data.updated));
+    setTextContent('detail-category-type', data.categoryType || 'Expense');
     updateCategoryDescription(data.description);
     updateCategoryPayeeCount(data.payeeCount);
 }

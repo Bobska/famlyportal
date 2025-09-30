@@ -116,7 +116,7 @@
                 <div class="resizer-handle"></div>
             </div>
 
-            <div class="transaction-details-panel payee-detail-panel" id="transaction-details-panel">
+            <div class="transaction-details-panel payee-detail-panel details-panel" id="transaction-details-panel">
                 <div class="panel-header">
                     <div class="panel-title">Transaction Details</div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
@@ -124,7 +124,15 @@
                     </button>
                 </div>
                 <div class="panel-content">
-                    <div id="transaction-detail-content" class="detail-content">
+                    <div class="detail-scroll">
+                        <div id="transaction-detail-empty" class="detail-empty text-center text-muted py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-receipt" style="font-size: 2.5rem; opacity: 0.35;"></i>
+                            </div>
+                            <p class="mb-1">Select a transaction</p>
+                            <small>Details will appear here after you pick one</small>
+                        </div>
+                        <div id="transaction-detail-content" class="detail-content" hidden>
                         <div class="detail-heading">
                             <h2 class="detail-name" id="detail-payee">Select a transaction</h2>
                             <div class="detail-meta">
@@ -153,6 +161,7 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
                                 <i class="bi bi-trash me-1"></i>Delete
                             </button>
+                        </div>
                         </div>
                     </div>
                 </div>

@@ -43,9 +43,11 @@ function nextWeek() {
 
 function loadWeekData(offset) {
     // Show loading state
-    const weekLabel = document.querySelector('.week-label-large');
-    const weekDate = document.querySelector('.week-date-large');
-    weekLabel.textContent = 'Loading...';
+    const weekLabel = document.querySelector('.week-heading-label');
+    const weekDate = document.querySelector('.week-heading-dates');
+    if (weekLabel) {
+        weekLabel.textContent = 'Loading...';
+    }
     
     console.log(`Loading week data for offset: ${offset}`);
     console.log('Week data URL:', weekDataUrl);
@@ -72,8 +74,12 @@ function loadWeekData(offset) {
                 clearWeekNavSelection();
 
                 // Update week display
-                weekLabel.textContent = data.week_label;
-                weekDate.textContent = `${data.week_start} - ${data.week_end}`;
+                if (weekLabel) {
+                    weekLabel.textContent = data.week_label;
+                }
+                if (weekDate) {
+                    weekDate.textContent = `${data.week_start} - ${data.week_end}`;
+                }
                 
                 // Update transaction total bar data
                 const totalBar = document.getElementById('transaction-total-bar');
@@ -119,13 +125,17 @@ function loadWeekData(offset) {
             } else {
                 console.error('Failed to load week data:', data);
                 console.error('Response structure:', JSON.stringify(data, null, 2));
-                weekLabel.textContent = 'Error Loading Week';
+                if (weekLabel) {
+                    weekLabel.textContent = 'Error Loading Week';
+                }
             }
         })
         .catch(error => {
             console.error('Error loading week data:', error);
             console.error('Error details:', error.message);
-            weekLabel.textContent = 'Network Error';
+            if (weekLabel) {
+                weekLabel.textContent = 'Network Error';
+            }
         });
 }
 
@@ -257,7 +267,21 @@ function showTransactionDetails(transactionCard) {
     document.getElementById('detail-date').textContent = formattedDate || '-';
     document.getElementById('detail-type').textContent = type ? type.charAt(0).toUpperCase() + type.slice(1) : '-';
     document.getElementById('detail-amount').textContent = amountDisplay;
-    document.getElementById('detail-notes').textContent = notes || '-';
+    if (typeof setTransactionNotesContent === 'function') {
+        setTransactionNotesContent(notes);
+    } else {
+        const notesEl = document.getElementById('detail-notes');
+        if (notesEl) {
+            const hasNotes = Boolean(notes);
+            const content = hasNotes ? notes : 'No description added yet';
+            notesEl.textContent = content;
+            if (hasNotes) {
+                notesEl.classList.remove('text-muted', 'fst-italic');
+            } else {
+                notesEl.classList.add('text-muted', 'fst-italic');
+            }
+        }
+    }
 }
 
 // Function to hide transaction details
@@ -278,7 +302,15 @@ function hideTransactionDetails() {
     document.getElementById('detail-date').textContent = '-';
     document.getElementById('detail-amount').textContent = '$0.00';
     document.getElementById('detail-type').textContent = '-';
-    document.getElementById('detail-notes').textContent = '-';
+    if (typeof setTransactionNotesContent === 'function') {
+        setTransactionNotesContent('');
+    } else {
+        const notesEl = document.getElementById('detail-notes');
+        if (notesEl) {
+            notesEl.textContent = 'No description added yet';
+            notesEl.classList.add('text-muted', 'fst-italic');
+        }
+    }
 
     const editBtn = document.getElementById('edit-transaction-btn');
     const deleteBtn = document.getElementById('delete-transaction-btn');

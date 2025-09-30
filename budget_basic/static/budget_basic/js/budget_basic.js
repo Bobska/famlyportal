@@ -2257,6 +2257,14 @@ function showTransactionPanel(data) {
         return;
     }
     
+    // Hide empty state and show content
+    const transactionEmpty = document.getElementById('transaction-detail-empty');
+    const transactionContent = document.getElementById('transaction-detail-content');
+    if (transactionEmpty && transactionContent) {
+        transactionEmpty.hidden = true;
+        transactionContent.hidden = false;
+    }
+    
     // Activate panel layout
     panel.classList.add('has-content');
     
@@ -2287,7 +2295,7 @@ function showTransactionPanel(data) {
     document.getElementById('detail-date').textContent = displayDate;
     document.getElementById('detail-type').textContent = (data.type || '-').charAt(0).toUpperCase() + (data.type || '-').slice(1);
     document.getElementById('detail-amount').textContent = amountDisplay;
-    document.getElementById('detail-notes').textContent = notes || 'No notes';
+    setTransactionNotesContent(notes);
 
     panel.setAttribute('data-selected-id', data.id);
     panel.setAttribute('data-selected-type', data.type);
@@ -2322,13 +2330,52 @@ function hideTransactionPanel() {
  * Clear panel content to show empty state
  */
 function clearPanelContent() {
-    // Reset panel content to empty/placeholder state
-    // Note: Not using hidden attribute to prevent layout reflow
-    document.getElementById('detail-payee').textContent = 'Select a transaction';
-    document.getElementById('detail-date').textContent = '-';
-    document.getElementById('detail-amount').textContent = '$0.00';
-    document.getElementById('detail-type').textContent = '-';
-    document.getElementById('detail-notes').textContent = '-';
+    // Show empty state and hide content for transaction panels
+    const transactionEmpty = document.getElementById('transaction-detail-empty');
+    const transactionContent = document.getElementById('transaction-detail-content');
+    if (transactionEmpty && transactionContent) {
+        transactionEmpty.hidden = false;
+        transactionContent.hidden = true;
+    }
+    
+    // Show empty state and hide content for payee panels  
+    const payeeEmpty = document.getElementById('payee-detail-empty');
+    const payeeContent = document.getElementById('payee-detail-content');
+    if (payeeEmpty && payeeContent) {
+        payeeEmpty.hidden = false;
+        payeeContent.hidden = true;
+    }
+    
+    // Reset panel content to empty/placeholder state (fallback for panels without empty states)
+    const detailPayee = document.getElementById('detail-payee');
+    if (detailPayee) detailPayee.textContent = 'Select a transaction';
+    
+    const detailDate = document.getElementById('detail-date');
+    if (detailDate) detailDate.textContent = '-';
+    
+    const detailAmount = document.getElementById('detail-amount');
+    if (detailAmount) detailAmount.textContent = '$0.00';
+    
+    const detailType = document.getElementById('detail-type');
+    if (detailType) detailType.textContent = '-';
+    
+    setTransactionNotesContent('');
+}
+
+function setTransactionNotesContent(notesValue) {
+    const notesEl = document.getElementById('detail-notes');
+    if (!notesEl) return;
+
+    const hasNotes = Boolean(notesValue && notesValue.trim());
+    const content = hasNotes ? notesValue.trim() : 'No description added yet';
+    notesEl.textContent = content;
+    
+    // Add or remove muted and italic classes based on content
+    if (hasNotes) {
+        notesEl.classList.remove('text-muted', 'fst-italic');
+    } else {
+        notesEl.classList.add('text-muted', 'fst-italic');
+    }
 }
 
 /**

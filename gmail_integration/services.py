@@ -6,7 +6,7 @@ import json
 import logging
 import jwt
 import socket
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 from email.utils import parsedate_to_datetime
 
@@ -21,7 +21,7 @@ def getaddrinfo_ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
     return original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
 
 socket.getaddrinfo = getaddrinfo_ipv4_only
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from django.contrib.auth.models import User
 
 from google.auth.transport.requests import Request, AuthorizedSession
@@ -437,9 +437,9 @@ class GmailService:
                         parsed_date = parsed_date.replace(tzinfo=dt_timezone.utc)
                     email_data['sent_date'] = parsed_date
                 except:
-                    email_data['sent_date'] = django_timezone.now()
+                    email_data['sent_date'] = timezone.now()
             else:
-                email_data['sent_date'] = django_timezone.now()
+                email_data['sent_date'] = timezone.now()
             
             # Extract body content and attachments
             body_text, body_html, attachments = self._extract_content_and_attachments(message['payload'])

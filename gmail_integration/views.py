@@ -180,6 +180,8 @@ def account_detail(request, account_id):
     """
     View Gmail account details and emails
     """
+    from datetime import timedelta
+    
     account = get_object_or_404(GmailAccount, id=account_id, user=request.user)
     
     # Get recent emails
@@ -187,6 +189,24 @@ def account_detail(request, account_id):
     
     # Get recent sync logs
     sync_logs = account.sync_logs.all().order_by('-started_at')[:10]
+    
+    # Clean up zombie syncs (started >30 minutes ago, still marked as running)
+    zombie_threshold = timezone.now() - timedelta(minutes=30)
+    zombie_syncs = account.sync_logs.filter(
+        status='started',
+        completed_at__isnull=True,
+        started_at__lt=zombie_threshold
+    )
+    
+    if zombie_syncs.exists():
+        logger.warning(f"Found {zombie_syncs.count()} zombie syncs for account {account_id}, marking as abandoned")
+        for zombie in zombie_syncs:
+            zombie.status = 'error'
+            zombie.completed_at = timezone.now()
+            zombie.message = f'⚠️ Sync abandoned (no activity for 30+ minutes). Last message: {zombie.message}'
+            zombie.error_details = 'Sync appears to have been abandoned (thread crash or server restart)'
+            zombie.save()
+            logger.info(f"Marked sync #{zombie.pk} as abandoned")
     
     # Check for active sync (status='started' and no completion)
     active_sync = account.sync_logs.filter(

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load tz %}
 
 {% block title %}Sync Logs - {{ account.email_address }}{% endblock %}
 
@@ -46,10 +47,10 @@
                                 <tbody>
                                     {% for log in logs %}
                                         <tr class="{% if log.status == 'error' %}table-danger{% elif log.status == 'partial' %}table-warning{% elif log.status == 'success' %}table-success{% endif %}">
-                                            <td>{{ log.started_at|date:"M d, Y H:i:s" }}</td>
+                                            <td>{{ log.started_at|localtime|date:"M d, Y g:i:s A" }}</td>
                                             <td>
                                                 {% if log.completed_at %}
-                                                    {{ log.completed_at|date:"M d, Y H:i:s" }}
+                                                    {{ log.completed_at|localtime|date:"M d, Y g:i:s A" }}
                                                 {% else %}
                                                     <span class="text-muted">In progress...</span>
                                                 {% endif %}

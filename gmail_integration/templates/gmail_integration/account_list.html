@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load tz %}
 
 {% block title %}Gmail Accounts{% endblock %}
 
@@ -44,9 +45,9 @@
                                     </div>
 
                                     <div class="small text-muted mb-3">
-                                        <div><strong>Added:</strong> {{ account.created_at|date:"M d, Y" }}</div>
+                                        <div><strong>Added:</strong> {{ account.created_at|localtime|date:"M d, Y" }}</div>
                                         {% if account.last_sync_at %}
-                                            <div><strong>Last Sync:</strong> {{ account.last_sync_at|date:"M d, Y H:i" }}</div>
+                                            <div><strong>Last Sync:</strong> {{ account.last_sync_at|localtime|date:"M d, Y g:i A" }}</div>
                                         {% endif %}
                                     </div>
 

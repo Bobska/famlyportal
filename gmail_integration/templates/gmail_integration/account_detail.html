@@ -1,7 +1,17 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load tz %}
 
-{% block title %}Gmail Account: {{ account.email_address }}{% endblock %}
+{% block title %}Gmail Account: {{ account.e                                <tr>
+                                    <td><strong>Created:</strong></td>
+                                    <td>{{ account.created_at|localtime|date:"M d, Y g:i A" }}</td>
+                                </tr>
+                                {% if account.last_sync_at %}
+                                <tr>
+                                    <td><strong>Last Sync:</strong></td>
+                                    <td>{{ account.last_sync_at|localtime|date:"M d, Y g:i A" }}</td>
+                                </tr>
+                                {% endif %}ss }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -92,12 +102,12 @@
                             <table class="table table-borderless">
                                 <tr>
                                     <td><strong>Connected:</strong></td>
-                                    <td>{{ account.created_at|date:"M d, Y H:i" }}</td>
+                                    <td>{{ account.created_at|localtime|date:"M d, Y g:i A" }}</td>
                                 </tr>
                                 {% if account.last_sync_at %}
                                 <tr>
                                     <td><strong>Last Sync:</strong></td>
-                                    <td>{{ account.last_sync_at|date:"M d, Y H:i" }}</td>
+                                    <td>{{ account.last_sync_at|localtime|date:"M d, Y g:i A" }}</td>
                                 </tr>
                                 {% endif %}
                                 <tr>
@@ -142,7 +152,7 @@
                                                 {% endif %}
                                             </td>
                                             <td>{{ email.sender_email }}</td>
-                                            <td>{{ email.sent_date|date:"M d, H:i" }}</td>
+                                            <td>{{ email.sent_date|localtime|date:"M d, g:i A" }}</td>
                                             <td>
                                                 {% if not email.is_read %}
                                                     <span class="badge bg-primary">Unread</span>
@@ -189,7 +199,7 @@
                                 <tbody>
                                     {% for log in sync_logs %}
                                         <tr>
-                                            <td>{{ log.started_at|date:"M d, H:i" }}</td>
+                                            <td>{{ log.started_at|localtime|date:"M d, g:i A" }}</td>
                                             <td>
                                                 <span class="badge bg-{% if log.status == 'success' %}success{% elif log.status == 'error' %}danger{% elif log.status == 'partial' %}warning{% else %}secondary{% endif %}">
                                                     {{ log.get_status_display }}

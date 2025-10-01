@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Sync Log #{{ sync_log.id }} - {{ account.email_address }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_list' %}">Gmail Accounts</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_detail' account.id %}">{{ account.email_address }}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:sync_logs' account.id %}">Sync Logs</a></li>
+                    <li class="breadcrumb-item active">Log #{{ sync_log.id }}</li>
+                </ol>
+            </nav>
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-file-alt"></i> Sync Log #{{ sync_log.id }}
+                    <span class="badge bg-{% if sync_log.status == 'success' %}success{% elif sync_log.status == 'error' %}danger{% elif sync_log.status == 'partial' %}warning{% else %}secondary{% endif %} ms-2">
+                        {{ sync_log.get_status_display }}
+                    </span>
+                </h2>
+                <a href="{% url 'gmail_integration:sync_logs' account.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to All Logs
+                </a>
+            </div>
+
+            <!-- Overview Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Sync Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong><i class="fas fa-clock"></i> Started:</strong></td>
+                                    <td>{{ sync_log.started_at|localtime|date:"M d, Y g:i:s A" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-check-circle"></i> Completed:</strong></td>
+                                    <td>
+                                        {% if sync_log.completed_at %}
+                                            {{ sync_log.completed_at|localtime|date:"M d, Y g:i:s A" }}
+                                        {% else %}
+                                            <span class="badge bg-warning">Incomplete / Interrupted</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-hourglass-half"></i> Duration:</strong></td>
+                                    <td>
+                                        {% if duration %}
+                                            {{ duration }}
+                                        {% else %}
+                                            <span class="text-muted">N/A (sync incomplete)</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-flag"></i> Status:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if sync_log.status == 'success' %}success{% elif sync_log.status == 'error' %}danger{% elif sync_log.status == 'partial' %}warning{% else %}secondary{% endif %}">
+                                            {{ sync_log.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong><i class="fas fa-cogs"></i> Emails Processed:</strong></td>
+                                    <td><span class="badge bg-info">{{ sync_log.emails_processed }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-plus-circle"></i> New Emails:</strong></td>
+                                    <td><span class="badge bg-success">{{ sync_log.emails_added }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-edit"></i> Updated Emails:</strong></td>
+                                    <td><span class="badge bg-primary">{{ sync_log.emails_updated }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-exclamation-triangle"></i> Errors:</strong></td>
+                                    <td>
+                                        {% if sync_log.errors_count > 0 %}
+                                            <span class="badge bg-danger">{{ sync_log.errors_count }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Status Message -->
+                    {% if sync_log.message %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <strong><i class="fas fa-comment"></i> Last Status Message:</strong>
+                        <p class="mb-0 mt-2">{{ sync_log.message }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Error Details Card (if any) -->
+            {% if sync_log.error_details %}
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug"></i> Error Details</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0 p-3 bg-light border rounded">{{ sync_log.error_details }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Explanation Card for Interrupted Syncs -->
+            {% if not sync_log.completed_at %}
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-info-circle"></i> Why was this sync interrupted?</h5>
+                <p class="mb-0">
+                    This sync was started but never completed. Possible reasons:
+                </p>
+                <ul class="mb-0 mt-2">
+                    <li>Server was restarted during sync</li>
+                    <li>Browser tab was closed</li>
+                    <li>Network connection was lost</li>
+                    <li>An unhandled error occurred</li>
+                </ul>
+                <p class="mt-2 mb-0">
+                    <strong>Note:</strong> The emails shown below were processed before the interruption. 
+                    You may want to run a new sync to complete the operation.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Synced Emails Card -->
+            {% if synced_emails %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-envelope"></i> Emails Processed During This Sync</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Showing up to 50 emails that were created/updated during this sync period.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>From</th>
+                                    <th>Date</th>
+                                    <th>Created In DB</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for email in synced_emails %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'gmail_integration:email_detail' account.id email.id %}">
+                                            {{ email.subject|truncatechars:50 }}
+                                        </a>
+                                        {% if email.has_attachments %}
+                                            <i class="fas fa-paperclip text-muted"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ email.sender_email }}</td>
+                                    <td>{{ email.sent_date|localtime|date:"M d, g:i A" }}</td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ email.created_at|localtime|date:"M d, g:i:s A" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if not email.is_read %}
+                                            <span class="badge bg-primary">Unread</span>
+                                        {% endif %}
+                                        {% if email.is_important %}
+                                            <span class="badge bg-warning">Important</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if synced_emails|length >= 50 %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> 
+                        Showing first 50 emails only. There may be more emails from this sync.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card mb-4">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-envelope-open-text fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">
+                        {% if not sync_log.completed_at %}
+                            Unable to determine which emails were processed (sync was interrupted).
+                        {% else %}
+                            No emails found for this sync period.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Technical Details Card -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-database"></i> Technical Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Log ID:</dt>
+                                <dd class="col-sm-8"><code>{{ sync_log.id }}</code></dd>
+                                
+                                <dt class="col-sm-4">Account:</dt>
+                                <dd class="col-sm-8">{{ account.email_address }}</dd>
+                                
+                                <dt class="col-sm-4">Account ID:</dt>
+                                <dd class="col-sm-8"><code>{{ account.id }}</code></dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Created At:</dt>
+                                <dd class="col-sm-8">{{ sync_log.started_at|localtime|date:"M d, Y g:i:s A" }}</dd>
+                                
+                                <dt class="col-sm-4">Status Code:</dt>
+                                <dd class="col-sm-8"><code>{{ sync_log.status }}</code></dd>
+                                
+                                <dt class="col-sm-4">Has Errors:</dt>
+                                <dd class="col-sm-8">
+                                    {% if sync_log.errors_count > 0 %}
+                                        <span class="badge bg-danger">Yes ({{ sync_log.errors_count }})</span>
+                                    {% else %}
+                                        <span class="badge bg-success">No</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

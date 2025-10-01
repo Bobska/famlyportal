@@ -312,6 +312,45 @@ def sync_logs(request, account_id):
     return render(request, 'gmail_integration/sync_logs.html', context)
 
 
+@login_required
+def sync_log_detail(request, account_id, sync_log_id):
+    """
+    View detailed information about a specific sync log
+    """
+    account = get_object_or_404(GmailAccount, id=account_id, user=request.user)
+    sync_log = get_object_or_404(SyncLog, id=sync_log_id, gmail_account=account)
+    
+    # Get emails from this sync if we can identify them by timestamp
+    # (emails created/updated during this sync period)
+    synced_emails = None
+    if sync_log.completed_at:
+        synced_emails = EmailMessage.objects.filter(
+            gmail_account=account,
+            created_at__gte=sync_log.started_at,
+            created_at__lte=sync_log.completed_at
+        ).order_by('-sent_date')[:50]  # Show first 50
+    elif sync_log.started_at:
+        # For incomplete syncs, show emails created after sync start
+        synced_emails = EmailMessage.objects.filter(
+            gmail_account=account,
+            created_at__gte=sync_log.started_at
+        ).order_by('-sent_date')[:50]
+    
+    # Calculate duration if completed
+    duration = None
+    if sync_log.started_at and sync_log.completed_at:
+        duration = sync_log.completed_at - sync_log.started_at
+    
+    context = {
+        'account': account,
+        'sync_log': sync_log,
+        'synced_emails': synced_emails,
+        'duration': duration,
+        'page_title': f'Sync Log Details: {sync_log.id}'
+    }
+    return render(request, 'gmail_integration/sync_log_detail.html', context)
+
+
 # API-style views for AJAX integration
 
 @login_required

@@ -2,6 +2,7 @@
 Gmail Integration Views
 """
 import logging
+import threading
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -11,11 +12,32 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import GmailAccount, EmailMessage, SyncLog
 from .services import GmailService
 
 logger = logging.getLogger(__name__)
+
+# Track active sync threads to prevent duplicates
+active_sync_threads = {}
+
+
+def run_sync_in_background(account_id, query='', max_emails=1000):
+    """
+    Run email sync in background thread
+    """
+    try:
+        from django.contrib.auth.models import User
+        account = GmailAccount.objects.get(id=account_id)
+        service = GmailService(gmail_account=account)
+        service.sync_emails(query=query, max_emails=max_emails)
+    except Exception as e:
+        logger.error(f"Background sync failed for account {account_id}: {e}")
+    finally:
+        # Remove from active threads
+        if account_id in active_sync_threads:
+            del active_sync_threads[account_id]
 
 
 @login_required
@@ -213,7 +235,7 @@ def email_detail(request, account_id, email_id):
 @require_http_methods(["POST"])
 def sync_emails(request, account_id):
     """
-    Trigger email sync for account
+    Trigger email sync for account in background thread
     """
     account = get_object_or_404(GmailAccount, id=account_id, user=request.user)
     
@@ -223,19 +245,40 @@ def sync_emails(request, account_id):
             'error': 'Account is not active'
         })
     
+    # Check if sync is already running for this account
+    if account_id in active_sync_threads:
+        thread = active_sync_threads[account_id]
+        if thread.is_alive():
+            return JsonResponse({
+                'success': False,
+                'error': 'A sync is already running for this account'
+            })
+    
     try:
         # Get sync parameters
         query = request.POST.get('query', '')
         max_emails = int(request.POST.get('max_emails', 1000))
         
-        # Start sync
-        service = GmailService(gmail_account=account)
-        sync_log = service.sync_emails(query=query, max_emails=max_emails)
+        # Create sync log entry immediately
+        sync_log = SyncLog.objects.create(
+            gmail_account=account,
+            status='started',
+            message='🔄 Initializing background sync...'
+        )
+        
+        # Start sync in background thread
+        thread = threading.Thread(
+            target=run_sync_in_background,
+            args=(account_id, query, max_emails),
+            daemon=True
+        )
+        thread.start()
+        active_sync_threads[account_id] = thread
         
         return JsonResponse({
             'success': True,
             'sync_log_id': sync_log.id,
-            'message': f'Sync started for {account.email_address}'
+            'message': f'Background sync started for {account.email_address}'
         })
         
     except Exception as e:
@@ -263,6 +306,36 @@ def sync_status(request, sync_log_id):
         'started_at': sync_log.started_at.isoformat(),
         'completed_at': sync_log.completed_at.isoformat() if sync_log.completed_at else None
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def cancel_sync(request, sync_log_id):
+    """
+    Cancel an active sync
+    Marks the sync as cancelled and saves all progress so far
+    """
+    sync_log = get_object_or_404(SyncLog, id=sync_log_id, gmail_account__user=request.user)
+    
+    # Only cancel if sync is still running
+    if sync_log.status == 'started':
+        sync_log.status = 'cancelled'
+        sync_log.completed_at = timezone.now()
+        
+        # Update message to indicate manual cancellation
+        original_message = sync_log.message or 'In progress'
+        sync_log.message = f'🛑 Sync cancelled by user (was at: {original_message})'
+        sync_log.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Sync cancelled. Progress saved: {sync_log.emails_processed} emails processed ({sync_log.emails_added} new, {sync_log.emails_updated} updated)'
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'message': f'Cannot cancel sync - current status: {sync_log.status}'
+        }, status=400)
 
 
 @login_required
@@ -363,19 +436,28 @@ def sync_log_detail(request, account_id, sync_log_id):
 @login_required
 def api_accounts(request):
     """
-    API endpoint for user's Gmail accounts
+    API endpoint for user's Gmail accounts with sync status
     """
     accounts = GmailAccount.objects.filter(user=request.user, is_active=True)
     
     account_data = []
     for account in accounts:
+        # Check for active syncs
+        active_sync = account.sync_logs.filter(
+            status='started',
+            completed_at__isnull=True
+        ).order_by('-started_at').first()
+        
         account_data.append({
             'id': account.id,
             'email_address': account.email_address,
             'display_name': account.display_name,
             'email_count': account.emails.count(),
             'last_sync_at': account.last_sync_at.isoformat() if account.last_sync_at else None,
-            'sync_enabled': account.sync_enabled
+            'sync_enabled': account.sync_enabled,
+            'has_active_sync': active_sync is not None,
+            'active_sync_progress': active_sync.emails_processed if active_sync else 0,
+            'active_sync_id': active_sync.id if active_sync else None
         })
     
     return JsonResponse({'accounts': account_data})

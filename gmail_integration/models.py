@@ -219,6 +219,8 @@ class SyncLog(models.Model):
         ('success', 'Success'),
         ('error', 'Error'),
         ('partial', 'Partial Success'),
+        ('cancelled', 'Cancelled'),
+        ('interrupted', 'Interrupted'),
     ]
     
     gmail_account = models.ForeignKey(GmailAccount, on_delete=models.CASCADE, related_name='sync_logs')

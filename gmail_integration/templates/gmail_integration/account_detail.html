@@ -117,9 +117,12 @@
                             </ul>
                             <div class="mt-3">
                                 <a href="{% url 'gmail_integration:sync_log_detail' account.id active_sync.id %}" 
-                                   class="btn btn-sm btn-outline-info w-100" target="_blank">
+                                   class="btn btn-sm btn-outline-info w-100 mb-2" target="_blank">
                                     <i class="fas fa-external-link-alt"></i> View Full Details
                                 </a>
+                                <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelSync({{ active_sync.id }})">
+                                    <i class="fas fa-stop-circle"></i> Stop Sync
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -430,6 +433,59 @@ function updateActiveSyncCard(data) {
     if (added) added.textContent = data.emails_added || 0;
     if (updated) updated.textContent = data.emails_updated || 0;
     if (errors) errors.textContent = data.errors_count || 0;
+}
+
+function cancelSync(syncLogId) {
+    if (!confirm('Are you sure you want to stop this sync?\n\nAll progress will be saved up to this point, but the sync will not continue.')) {
+        return;
+    }
+    
+    // Disable cancel button to prevent double-clicks
+    const cancelBtn = event.target.closest('button');
+    if (cancelBtn) {
+        cancelBtn.disabled = true;
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+    }
+    
+    fetch(`{% url "gmail_integration:cancel_sync" 0 %}`.replace('0', syncLogId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Stop polling
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
+            }
+            if (durationInterval) {
+                clearInterval(durationInterval);
+                durationInterval = null;
+            }
+            
+            // Show success message and reload
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.message);
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+                cancelBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Sync';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Cancel sync error:', error);
+        alert('❌ Failed to cancel sync: ' + error.message);
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Sync';
+        }
+    });
 }
 
 function completeSyncUI(data) {

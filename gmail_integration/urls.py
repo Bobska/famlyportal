@@ -24,6 +24,7 @@ urlpatterns = [
     path('account/<int:account_id>/sync-logs/', views.sync_logs, name='sync_logs'),
     path('account/<int:account_id>/sync-log/<int:sync_log_id>/', views.sync_log_detail, name='sync_log_detail'),
     path('sync/<int:sync_log_id>/status/', views.sync_status, name='sync_status'),
+    path('sync/<int:sync_log_id>/cancel/', views.cancel_sync, name='cancel_sync'),
     
     # API endpoints
     path('api/accounts/', views.api_accounts, name='api_accounts'),

@@ -15,6 +15,14 @@
             <i class="bi bi-people-fill me-1"></i>
             {{ user.primary_family.name }}
         </span>
+        
+        <!-- Global Sync Indicator -->
+        <span id="globalSyncIndicator" class="navbar-text text-white d-none ms-3" style="display: none !important;">
+            <span class="badge bg-info">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span id="globalSyncText">Syncing...</span>
+            </span>
+        </span>
         {% endif %}
         
         {% if user.is_authenticated %}

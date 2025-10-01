@@ -139,10 +139,17 @@ def account_detail(request, account_id):
     # Get recent sync logs
     sync_logs = account.sync_logs.all().order_by('-started_at')[:10]
     
+    # Check for active sync (status='started' and no completion)
+    active_sync = account.sync_logs.filter(
+        status='started',
+        completed_at__isnull=True
+    ).order_by('-started_at').first()
+    
     context = {
         'account': account,
         'emails': emails,
         'sync_logs': sync_logs,
+        'active_sync': active_sync,  # Pass active sync to template
         'page_title': f'Gmail Account: {account.email_address}'
     }
     return render(request, 'gmail_integration/account_detail.html', context)

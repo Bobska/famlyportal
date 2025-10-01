@@ -249,7 +249,7 @@ function startSync() {
     .then(response => response.json())
     .then(data => {
         if (data.success && data.sync_log_id) {
-            syncStatus.textContent = 'Sync started, checking progress...';
+            syncStatus.innerHTML = '<strong>🔄 Initializing sync...</strong>';
             // Check sync status periodically
             checkSyncStatus(data.sync_log_id);
         } else if (data.error) {
@@ -272,7 +272,10 @@ function checkSyncStatus(syncLogId) {
             const syncStatus = document.getElementById('syncStatus');
             
             if (data.status === 'started') {
-                syncStatus.textContent = `Processing: ${data.emails_processed} emails processed...`;
+                // Show detailed progress with emojis and stats
+                const message = data.message || 'Processing...';
+                const stats = `${data.emails_processed} processed (${data.emails_added} new, ${data.emails_updated} updated)`;
+                syncStatus.innerHTML = `<strong>${message}</strong><br><small>${stats}</small>`;
             } else {
                 // Sync completed
                 clearInterval(syncCheckInterval);
@@ -284,7 +287,7 @@ function checkSyncStatus(syncLogId) {
             clearInterval(syncCheckInterval);
             showSyncError('Failed to check sync status');
         });
-    }, 2000); // Check every 2 seconds
+    }, 1000); // Check every 1 second for faster updates
 }
 
 function completeSyncUI(data) {

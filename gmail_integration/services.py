@@ -399,7 +399,7 @@ class GmailService:
     
     def _parse_email_message(self, message: Dict) -> Dict:
         """
-        Parse Gmail message into structured data
+        Parse Gmail message into structured data with timezone-aware datetimes
         
         Args:
             message: Raw Gmail message
@@ -425,11 +425,17 @@ class GmailService:
                 'is_important': 'IMPORTANT' in message.get('labelIds', []),
             }
             
-            # Parse date
+            # Parse date (ensure timezone-aware to avoid RuntimeWarning)
             date_str = headers.get('Date', '')
             if date_str:
                 try:
-                    email_data['sent_date'] = parsedate_to_datetime(date_str)
+                    parsed_date = parsedate_to_datetime(date_str)
+                    # Ensure timezone-aware - parsedate_to_datetime should return aware datetime
+                    # but if not, make it UTC
+                    if parsed_date.tzinfo is None:
+                        from datetime import timezone as dt_timezone
+                        parsed_date = parsed_date.replace(tzinfo=dt_timezone.utc)
+                    email_data['sent_date'] = parsed_date
                 except:
                     email_data['sent_date'] = django_timezone.now()
             else:
@@ -522,7 +528,7 @@ class GmailService:
     
     def sync_emails(self, query: str = "", max_emails: int = 1000) -> SyncLog:
         """
-        Sync emails from Gmail to database
+        Sync emails from Gmail to database with real-time progress updates
         
         Args:
             query: Gmail search query
@@ -537,7 +543,8 @@ class GmailService:
         # Create sync log
         sync_log = SyncLog.objects.create(
             gmail_account=self.gmail_account,
-            status='started'
+            status='started',
+            message='Connecting to Gmail API...'
         )
         
         try:
@@ -546,11 +553,22 @@ class GmailService:
             emails_updated = 0
             errors_count = 0
             page_token = None
+            batch_count = 0
+            
+            # Update: Connected
+            sync_log.message = '✓ Connected to Gmail API. Retrieving emails...'
+            sync_log.save(update_fields=['message'])
             
             while emails_processed < max_emails:
                 try:
                     # Get batch of emails
+                    batch_count += 1
                     batch_size = min(100, max_emails - emails_processed)
+                    
+                    # Update: Fetching batch
+                    sync_log.message = f'📥 Fetching batch {batch_count} ({batch_size} emails)...'
+                    sync_log.save(update_fields=['message'])
+                    
                     email_list, page_token = self.get_emails(
                         query=query,
                         max_results=batch_size,
@@ -560,8 +578,12 @@ class GmailService:
                     if not email_list:
                         break
                     
+                    # Update: Processing batch
+                    sync_log.message = f'⚙️ Processing {len(email_list)} emails from batch {batch_count}...'
+                    sync_log.save(update_fields=['message'])
+                    
                     # Process each email
-                    for email_data in email_list:
+                    for idx, email_data in enumerate(email_list, 1):
                         try:
                             email_obj, created = self._save_email_to_db(email_data)
                             if created:
@@ -569,9 +591,26 @@ class GmailService:
                             else:
                                 emails_updated += 1
                             emails_processed += 1
+                            
+                            # Update progress every 10 emails
+                            if idx % 10 == 0:
+                                sync_log.emails_processed = emails_processed
+                                sync_log.emails_added = emails_added
+                                sync_log.emails_updated = emails_updated
+                                sync_log.message = f'⚙️ Processed {emails_processed} emails ({emails_added} new, {emails_updated} updated)'
+                                sync_log.save(update_fields=['emails_processed', 'emails_added', 'emails_updated', 'message'])
+                                
                         except Exception as e:
                             errors_count += 1
                             logger.error(f"Failed to save email {email_data.get('gmail_id')}: {e}")
+                    
+                    # Update after batch completion
+                    sync_log.emails_processed = emails_processed
+                    sync_log.emails_added = emails_added
+                    sync_log.emails_updated = emails_updated
+                    sync_log.errors_count = errors_count
+                    sync_log.message = f'✓ Batch {batch_count} complete. Total: {emails_processed} emails'
+                    sync_log.save(update_fields=['emails_processed', 'emails_added', 'emails_updated', 'errors_count', 'message'])
                     
                     # Stop if no more pages
                     if not page_token:
@@ -580,6 +619,8 @@ class GmailService:
                 except Exception as e:
                     errors_count += 1
                     logger.error(f"Error in sync batch: {e}")
+                    sync_log.errors_count = errors_count
+                    sync_log.save(update_fields=['errors_count'])
                     break
             
             # Update sync log

@@ -4,6 +4,7 @@ Gmail Service - Core business logic for Gmail integration
 import os
 import json
 import logging
+import jwt
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 from email.utils import parsedate_to_datetime
@@ -29,10 +30,12 @@ class GmailService:
     """
     
     # Gmail API scopes
+    # Note: 'openid' is automatically added by Google when using userinfo scopes
     SCOPES = [
         'https://www.googleapis.com/auth/gmail.readonly',
         'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email'
+        'https://www.googleapis.com/auth/userinfo.email',
+        'openid'  # Explicitly include to avoid scope mismatch errors
     ]
     
     def __init__(self, user: User = None, gmail_account: GmailAccount = None):
@@ -146,11 +149,30 @@ class GmailService:
             raise
     
     def _get_user_info(self, credentials: Credentials) -> Dict:
-        """Get user information from Google"""
+        """
+        Get user information from Google
+        
+        Tries to get user info from ID token first (faster, no network call),
+        falls back to API call if needed.
+        """
         try:
+            # Try to get info from ID token first (OpenID Connect)
+            if hasattr(credentials, 'id_token') and credentials.id_token:
+                # Decode without verification since we just got it from Google
+                user_info = jwt.decode(credentials.id_token, options={"verify_signature": False})
+                logger.info(f"Got user info from ID token: {user_info.get('email')}")
+                return {
+                    'email': user_info.get('email'),
+                    'name': user_info.get('name', ''),
+                    'picture': user_info.get('picture', '')
+                }
+            
+            # Fallback: Make API call to get user info
+            logger.info("ID token not available, making API call for user info...")
             service = build('oauth2', 'v2', credentials=credentials)
             user_info = service.userinfo().get().execute()
             return user_info
+            
         except Exception as e:
             logger.error(f"Failed to get user info: {e}")
             raise

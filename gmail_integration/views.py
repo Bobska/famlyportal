@@ -137,7 +137,7 @@ def account_detail(request, account_id):
     emails = account.emails.all().order_by('-sent_date')[:20]
     
     # Get recent sync logs
-    sync_logs = account.sync_logs.all().order_by('-created_at')[:10]
+    sync_logs = account.sync_logs.all().order_by('-started_at')[:10]
     
     context = {
         'account': account,
@@ -253,7 +253,7 @@ def sync_status(request, sync_log_id):
         'emails_added': sync_log.emails_added,
         'emails_updated': sync_log.emails_updated,
         'errors_count': sync_log.errors_count,
-        'started_at': sync_log.created_at.isoformat(),
+        'started_at': sync_log.started_at.isoformat(),
         'completed_at': sync_log.completed_at.isoformat() if sync_log.completed_at else None
     })
 
@@ -298,7 +298,7 @@ def sync_logs(request, account_id):
     account = get_object_or_404(GmailAccount, id=account_id, user=request.user)
     
     # Get sync logs with pagination
-    logs = account.sync_logs.all().order_by('-created_at')
+    logs = account.sync_logs.all().order_by('-started_at')
     paginator = Paginator(logs, 20)  # 20 logs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

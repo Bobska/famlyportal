@@ -24,17 +24,30 @@
                 {% endfor %}
             {% endif %}
 
+            <!-- Sync Progress Alert -->
+            <div id="syncProgress" class="alert alert-info" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>
+                        <strong>Syncing emails...</strong>
+                        <div class="progress mt-2" style="width: 300px; height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <small id="syncStatus" class="text-muted">Connecting to Gmail API...</small>
+                    </div>
+                </div>
+            </div>
+
             <!-- Account Info -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Account Information</h5>
                     <div class="btn-group">
-                        <form method="post" action="{% url 'gmail_integration:sync_emails' account.id %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-success btn-sm">
-                                <i class="fas fa-sync"></i> Sync Emails
-                            </button>
-                        </form>
+                        <button id="syncButton" type="button" class="btn btn-success btn-sm" onclick="startSync()">
+                            <i class="fas fa-sync"></i> Sync Emails
+                        </button>
                         <form method="post" action="{% url 'gmail_integration:toggle_account' account.id %}" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-{% if account.is_active %}warning{% else %}success{% endif %} btn-sm">
@@ -201,4 +214,133 @@
         </div>
     </div>
 </div>
+
+<script>
+let syncCheckInterval = null;
+
+function startSync() {
+    const syncButton = document.getElementById('syncButton');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    // Disable button and show progress
+    syncButton.disabled = true;
+    syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    syncProgress.style.display = 'block';
+    
+    // Start sync
+    fetch('{% url "gmail_integration:sync_emails" account.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.sync_log_id) {
+            syncStatus.textContent = 'Sync started, checking progress...';
+            // Check sync status periodically
+            checkSyncStatus(data.sync_log_id);
+        } else if (data.error) {
+            showSyncError(data.error);
+        } else {
+            showSyncError('Unknown error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Sync error:', error);
+        showSyncError('Failed to start sync: ' + error.message);
+    });
+}
+
+function checkSyncStatus(syncLogId) {
+    syncCheckInterval = setInterval(() => {
+        fetch(`{% url "gmail_integration:sync_status" 0 %}`.replace('0', syncLogId))
+        .then(response => response.json())
+        .then(data => {
+            const syncStatus = document.getElementById('syncStatus');
+            
+            if (data.status === 'started') {
+                syncStatus.textContent = `Processing: ${data.emails_processed} emails processed...`;
+            } else {
+                // Sync completed
+                clearInterval(syncCheckInterval);
+                completeSyncUI(data);
+            }
+        })
+        .catch(error => {
+            console.error('Status check error:', error);
+            clearInterval(syncCheckInterval);
+            showSyncError('Failed to check sync status');
+        });
+    }, 2000); // Check every 2 seconds
+}
+
+function completeSyncUI(data) {
+    const syncButton = document.getElementById('syncButton');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    // Update progress bar
+    if (data.status === 'success') {
+        syncProgress.className = 'alert alert-success';
+        syncStatus.textContent = `✓ Sync completed! ${data.emails_added} new emails added, ${data.emails_updated} updated.`;
+        
+        // Reload page after 2 seconds to show new emails
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    } else if (data.status === 'error') {
+        syncProgress.className = 'alert alert-danger';
+        syncStatus.textContent = `✗ Sync failed: ${data.message || 'Unknown error'}`;
+        
+        // Re-enable button after 3 seconds
+        setTimeout(() => {
+            syncButton.disabled = false;
+            syncButton.innerHTML = '<i class="fas fa-sync"></i> Sync Emails';
+            syncProgress.style.display = 'none';
+        }, 3000);
+    } else if (data.status === 'partial') {
+        syncProgress.className = 'alert alert-warning';
+        syncStatus.textContent = `⚠ Sync partially completed: ${data.emails_added} added, ${data.errors_count} errors.`;
+        
+        // Reload page after 2 seconds
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    }
+}
+
+function showSyncError(message) {
+    const syncButton = document.getElementById('syncButton');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    syncProgress.className = 'alert alert-danger';
+    syncStatus.textContent = '✗ ' + message;
+    
+    // Re-enable button after 3 seconds
+    setTimeout(() => {
+        syncButton.disabled = false;
+        syncButton.innerHTML = '<i class="fas fa-sync"></i> Sync Emails';
+        syncProgress.style.display = 'none';
+    }, 3000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
 {% endblock %}

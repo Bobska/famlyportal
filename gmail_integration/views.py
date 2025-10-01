@@ -305,7 +305,8 @@ def sync_logs(request, account_id):
     
     context = {
         'account': account,
-        'page_obj': page_obj,
+        'logs': page_obj,  # Pass paginated logs as 'logs'
+        'page_obj': page_obj,  # Also pass page_obj for pagination controls
         'page_title': f'Sync Logs: {account.email_address}'
     }
     return render(request, 'gmail_integration/sync_logs.html', context)

@@ -122,6 +122,19 @@
             </div>
             {% endif %}
             
+            <!-- Gmail Integration App - New -->
+            {% has_app_permission 'gmail_integration' as can_gmail %}
+            {% if can_gmail %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                <a href="{% url 'gmail_integration:account_list' %}" class="app-card new">
+                    <span class="status-badge new">New</span>
+                    <i class="bi bi-envelope app-icon"></i>
+                    <h5 class="app-title">Gmail Integration</h5>
+                    <p class="app-description">Connect and sync emails from your Gmail accounts</p>
+                </a>
+            </div>
+            {% endif %}
+            
             <!-- AutoCraft CV App - Coming Soon -->
             {% has_app_permission 'autocraftcv' as can_cv %}
             {% if can_cv %}

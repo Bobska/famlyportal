@@ -262,3 +262,39 @@ class SyncLog(models.Model):
         if self.completed_at and self.started_at:
             return self.completed_at - self.started_at
         return None
+
+
+class SyncHistoryEvent(models.Model):
+    """
+    Model to track individual events during a sync operation
+    Provides a detailed timeline of sync progress
+    """
+    EVENT_TYPES = [
+        ('start', 'Sync Started'),
+        ('fetch', 'Fetching Batch'),
+        ('process', 'Processing Emails'),
+        ('progress', 'Progress Update'),
+        ('complete', 'Batch Complete'),
+        ('cancel', 'Sync Cancelled'),
+        ('error', 'Error Occurred'),
+        ('finish', 'Sync Finished'),
+    ]
+    
+    sync_log = models.ForeignKey(SyncLog, on_delete=models.CASCADE, related_name='history_events')
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # Additional context
+    emails_processed = models.IntegerField(default=0)
+    emails_added = models.IntegerField(default=0)
+    emails_updated = models.IntegerField(default=0)
+    batch_number = models.IntegerField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Sync History Event"
+        verbose_name_plural = "Sync History Events"
+        ordering = ['timestamp']
+    
+    def __str__(self):
+        return f"{self.sync_log.id} - {self.event_type}: {self.message[:50]}"

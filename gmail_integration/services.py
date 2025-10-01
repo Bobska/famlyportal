@@ -567,6 +567,7 @@ class GmailService:
             errors_count = 0
             page_token = None
             batch_count = 0
+            cancelled = False  # Track if sync was cancelled
             
             # Update: Connected
             sync_log.message = '✓ Connected to Gmail API. Retrieving emails...'
@@ -576,8 +577,19 @@ class GmailService:
                 # Check if sync has been cancelled
                 if self._should_cancel_sync(sync_log.id):
                     logger.info(f"Sync {sync_log.id} cancelled by user, stopping...")
+                    cancelled = True
                     sync_log.message = f'🛑 Sync cancelled by user. Progress saved: {emails_processed} emails processed'
                     sync_log.save(update_fields=['message'])
+                    # Create history event
+                    from .models import SyncHistoryEvent
+                    SyncHistoryEvent.objects.create(
+                        sync_log=sync_log,
+                        event_type='cancel',
+                        message=f'Sync cancelled by user at {emails_processed} emails',
+                        emails_processed=emails_processed,
+                        emails_added=emails_added,
+                        emails_updated=emails_updated
+                    )
                     break
                 
                 try:
@@ -588,6 +600,15 @@ class GmailService:
                     # Update: Fetching batch
                     sync_log.message = f'📥 Fetching batch {batch_count} ({batch_size} emails)...'
                     sync_log.save(update_fields=['message'])
+                    # Create history event
+                    from .models import SyncHistoryEvent
+                    SyncHistoryEvent.objects.create(
+                        sync_log=sync_log,
+                        event_type='fetch',
+                        message=f'Fetching batch {batch_count} ({batch_size} emails)',
+                        emails_processed=emails_processed,
+                        batch_number=batch_count
+                    )
                     
                     email_list, page_token = self.get_emails(
                         query=query,
@@ -601,14 +622,34 @@ class GmailService:
                     # Update: Processing batch
                     sync_log.message = f'⚙️ Processing {len(email_list)} emails from batch {batch_count}...'
                     sync_log.save(update_fields=['message'])
+                    # Create history event
+                    SyncHistoryEvent.objects.create(
+                        sync_log=sync_log,
+                        event_type='process',
+                        message=f'Processing {len(email_list)} emails from batch {batch_count}',
+                        emails_processed=emails_processed,
+                        batch_number=batch_count
+                    )
                     
                     # Process each email
                     for idx, email_data in enumerate(email_list, 1):
                         # Check for cancellation every 10 emails
                         if idx % 10 == 0 and self._should_cancel_sync(sync_log.id):
                             logger.info(f"Sync {sync_log.id} cancelled during email processing, stopping...")
+                            cancelled = True
                             sync_log.message = f'🛑 Sync cancelled. Progress saved: {emails_processed} emails processed'
                             sync_log.save(update_fields=['message'])
+                            # Create history event
+                            from .models import SyncHistoryEvent
+                            SyncHistoryEvent.objects.create(
+                                sync_log=sync_log,
+                                event_type='cancel',
+                                message=f'Sync cancelled during processing at {emails_processed} emails',
+                                emails_processed=emails_processed,
+                                emails_added=emails_added,
+                                emails_updated=emails_updated,
+                                batch_number=batch_count
+                            )
                             break
                         
                         try:
@@ -631,13 +672,25 @@ class GmailService:
                             errors_count += 1
                             logger.error(f"Failed to save email {email_data.get('gmail_id')}: {e}")
                     
-                    # Update after batch completion
-                    sync_log.emails_processed = emails_processed
-                    sync_log.emails_added = emails_added
-                    sync_log.emails_updated = emails_updated
-                    sync_log.errors_count = errors_count
-                    sync_log.message = f'✓ Batch {batch_count} complete. Total: {emails_processed} emails'
-                    sync_log.save(update_fields=['emails_processed', 'emails_added', 'emails_updated', 'errors_count', 'message'])
+                    # Update after batch completion (skip if cancelled to avoid +9 bug)
+                    if not cancelled:
+                        sync_log.emails_processed = emails_processed
+                        sync_log.emails_added = emails_added
+                        sync_log.emails_updated = emails_updated
+                        sync_log.errors_count = errors_count
+                        sync_log.message = f'✓ Batch {batch_count} complete. Total: {emails_processed} emails'
+                        sync_log.save(update_fields=['emails_processed', 'emails_added', 'emails_updated', 'errors_count', 'message'])
+                        # Create history event
+                        from .models import SyncHistoryEvent
+                        SyncHistoryEvent.objects.create(
+                            sync_log=sync_log,
+                            event_type='complete',
+                            message=f'Batch {batch_count} complete: {len(email_list)} emails processed',
+                            emails_processed=emails_processed,
+                            emails_added=emails_added,
+                            emails_updated=emails_updated,
+                            batch_number=batch_count
+                        )
                     
                     # Stop if no more pages
                     if not page_token:

@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import GmailAccount, EmailMessage, EmailAttachment, SyncLog
+from .models import GmailAccount, EmailMessage, EmailAttachment, SyncLog, SyncHistoryEvent
 
 
 @admin.register(GmailAccount)
@@ -347,3 +347,54 @@ class SyncLogAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queryset"""
         return super().get_queryset(request).select_related('gmail_account')
+
+
+@admin.register(SyncHistoryEvent)
+class SyncHistoryEventAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Sync History Events
+    """
+    list_display = [
+        'id',
+        'sync_log_link',
+        'event_type',
+        'short_message',
+        'emails_processed',
+        'batch_number',
+        'timestamp'
+    ]
+    list_filter = [
+        'event_type',
+        'timestamp'
+    ]
+    search_fields = [
+        'message',
+        'sync_log__id'
+    ]
+    readonly_fields = [
+        'sync_log',
+        'event_type',
+        'message',
+        'timestamp',
+        'emails_processed',
+        'emails_added',
+        'emails_updated',
+        'batch_number'
+    ]
+    ordering = ['-timestamp']
+    date_hierarchy = 'timestamp'
+    
+    def sync_log_link(self, obj):
+        """Link to parent sync log"""
+        url = reverse('admin:gmail_integration_synclog_change', args=[obj.sync_log.id])
+        return format_html('<a href="{}">{}</a>', url, f'Sync #{obj.sync_log.id}')
+    sync_log_link.short_description = 'Sync Log'
+    
+    def short_message(self, obj):
+        """Shortened message for list view"""
+        return obj.message[:60] + '...' if len(obj.message) > 60 else obj.message
+    short_message.short_description = 'Message'
+    
+    def get_queryset(self, request):
+        """Optimize queryset"""
+        return super().get_queryset(request).select_related('sync_log', 'sync_log__gmail_account')

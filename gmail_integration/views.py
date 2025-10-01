@@ -330,6 +330,34 @@ def sync_status(request, sync_log_id):
 
 
 @login_required
+def sync_history(request, sync_log_id):
+    """
+    Get sync history events for a specific sync log
+    Returns timeline of events during sync
+    """
+    sync_log = get_object_or_404(SyncLog, id=sync_log_id, gmail_account__user=request.user)
+    
+    # Get all history events for this sync
+    from .models import SyncHistoryEvent
+    history_events = sync_log.history_events.all().order_by('timestamp')
+    
+    events_data = []
+    for event in history_events:
+        events_data.append({
+            'id': event.id,
+            'event_type': event.event_type,
+            'message': event.message,
+            'timestamp': event.timestamp.isoformat(),
+            'emails_processed': event.emails_processed,
+            'emails_added': event.emails_added,
+            'emails_updated': event.emails_updated,
+            'batch_number': event.batch_number
+        })
+    
+    return JsonResponse({'events': events_data})
+
+
+@login_required
 @require_http_methods(["POST"])
 def cancel_sync(request, sync_log_id):
     """

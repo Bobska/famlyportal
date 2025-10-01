@@ -526,9 +526,22 @@ class GmailService:
         emails = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', email_string)
         return emails
     
+    def _should_cancel_sync(self, sync_log_id: int) -> bool:
+        """
+        Check if sync should be cancelled by checking database status
+        Returns True if sync_log status is 'cancelled'
+        """
+        try:
+            from .models import SyncLog
+            sync_log = SyncLog.objects.get(id=sync_log_id)
+            return sync_log.status == 'cancelled'
+        except Exception:
+            return False
+    
     def sync_emails(self, query: str = "", max_emails: int = 1000) -> SyncLog:
         """
         Sync emails from Gmail to database with real-time progress updates
+        Supports cancellation by checking sync_log status
         
         Args:
             query: Gmail search query
@@ -560,6 +573,13 @@ class GmailService:
             sync_log.save(update_fields=['message'])
             
             while emails_processed < max_emails:
+                # Check if sync has been cancelled
+                if self._should_cancel_sync(sync_log.id):
+                    logger.info(f"Sync {sync_log.id} cancelled by user, stopping...")
+                    sync_log.message = f'🛑 Sync cancelled by user. Progress saved: {emails_processed} emails processed'
+                    sync_log.save(update_fields=['message'])
+                    break
+                
                 try:
                     # Get batch of emails
                     batch_count += 1
@@ -584,6 +604,13 @@ class GmailService:
                     
                     # Process each email
                     for idx, email_data in enumerate(email_list, 1):
+                        # Check for cancellation every 10 emails
+                        if idx % 10 == 0 and self._should_cancel_sync(sync_log.id):
+                            logger.info(f"Sync {sync_log.id} cancelled during email processing, stopping...")
+                            sync_log.message = f'🛑 Sync cancelled. Progress saved: {emails_processed} emails processed'
+                            sync_log.save(update_fields=['message'])
+                            break
+                        
                         try:
                             email_obj, created = self._save_email_to_db(email_data)
                             if created:

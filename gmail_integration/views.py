@@ -20,20 +20,31 @@ from .services import GmailService
 logger = logging.getLogger(__name__)
 
 # Track active sync threads to prevent duplicates
+# Format: {account_id: {'thread': thread_obj, 'sync_log_id': id, 'should_cancel': False}}
 active_sync_threads = {}
 
 
 def run_sync_in_background(account_id, query='', max_emails=1000):
     """
-    Run email sync in background thread
+    Run email sync in background thread with cancellation support
     """
+    sync_log = None
     try:
-        from django.contrib.auth.models import User
         account = GmailAccount.objects.get(id=account_id)
         service = GmailService(gmail_account=account)
-        service.sync_emails(query=query, max_emails=max_emails)
+        sync_log = service.sync_emails(query=query, max_emails=max_emails)
+        
+        # Store sync_log_id for reference
+        if account_id in active_sync_threads:
+            active_sync_threads[account_id]['sync_log_id'] = sync_log.id
+            
     except Exception as e:
         logger.error(f"Background sync failed for account {account_id}: {e}")
+        if sync_log:
+            sync_log.status = 'error'
+            sync_log.message = f'❌ Error: {str(e)}'
+            sync_log.completed_at = timezone.now()
+            sync_log.save()
     finally:
         # Remove from active threads
         if account_id in active_sync_threads:
@@ -247,8 +258,8 @@ def sync_emails(request, account_id):
     
     # Check if sync is already running for this account
     if account_id in active_sync_threads:
-        thread = active_sync_threads[account_id]
-        if thread.is_alive():
+        thread_info = active_sync_threads[account_id]
+        if thread_info['thread'].is_alive():
             return JsonResponse({
                 'success': False,
                 'error': 'A sync is already running for this account'
@@ -259,25 +270,35 @@ def sync_emails(request, account_id):
         query = request.POST.get('query', '')
         max_emails = int(request.POST.get('max_emails', 1000))
         
-        # Create sync log entry immediately
-        sync_log = SyncLog.objects.create(
-            gmail_account=account,
-            status='started',
-            message='🔄 Initializing background sync...'
-        )
-        
-        # Start sync in background thread
+        # Start sync in background thread (it will create its own SyncLog)
         thread = threading.Thread(
             target=run_sync_in_background,
             args=(account_id, query, max_emails),
             daemon=True
         )
         thread.start()
-        active_sync_threads[account_id] = thread
+        
+        # Track thread with metadata
+        active_sync_threads[account_id] = {
+            'thread': thread,
+            'sync_log_id': None,  # Will be set by run_sync_in_background
+            'should_cancel': False
+        }
+        
+        # Wait briefly for sync log to be created
+        import time
+        time.sleep(0.5)
+        
+        # Get the sync log ID that was created
+        sync_log_id = active_sync_threads[account_id].get('sync_log_id')
+        if not sync_log_id:
+            # Fallback: find most recent started sync
+            recent_sync = account.sync_logs.filter(status='started').order_by('-started_at').first()
+            sync_log_id = recent_sync.id if recent_sync else None
         
         return JsonResponse({
             'success': True,
-            'sync_log_id': sync_log.id,
+            'sync_log_id': sync_log_id,
             'message': f'Background sync started for {account.email_address}'
         })
         
@@ -313,12 +334,20 @@ def sync_status(request, sync_log_id):
 def cancel_sync(request, sync_log_id):
     """
     Cancel an active sync
-    Marks the sync as cancelled and saves all progress so far
+    Sets cancellation flag and marks sync log as cancelled
     """
     sync_log = get_object_or_404(SyncLog, id=sync_log_id, gmail_account__user=request.user)
     
     # Only cancel if sync is still running
     if sync_log.status == 'started':
+        # Set cancellation flag in thread tracker
+        for account_id, thread_info in active_sync_threads.items():
+            if thread_info.get('sync_log_id') == sync_log_id:
+                thread_info['should_cancel'] = True
+                logger.info(f"Cancellation flag set for sync {sync_log_id}")
+                break
+        
+        # Mark sync log as cancelled
         sync_log.status = 'cancelled'
         sync_log.completed_at = timezone.now()
         

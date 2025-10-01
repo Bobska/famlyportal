@@ -291,9 +291,11 @@ class GmailService:
                 raise ValueError("Failed to authenticate Gmail service")
         
         try:
-            # Refresh token if expired
-            if self._credentials.expired and self._credentials.refresh_token:
-                logger.info("Token expired, refreshing...")
+            # Always refresh token before API calls to ensure it's valid
+            # Note: Google's expired check isn't reliable - token may be expired
+            # even when credentials.expired is False
+            if self._credentials.refresh_token:
+                logger.info("Refreshing token to ensure it's valid...")
                 self._credentials.refresh(Request())
                 
                 # Update stored credentials

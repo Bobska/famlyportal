@@ -415,17 +415,17 @@ function checkSyncStatus(syncLogId, isActiveSync = false) {
                     }
                 }
             } else {
-                // Sync completed
+                // Sync completed - stop polling immediately
                 clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
                 if (durationInterval) {
                     clearInterval(durationInterval);
                     durationInterval = null;
                 }
                 
                 if (isActiveSync) {
-                    // Reload page to remove active sync card and show results
-                    console.log('Sync completed, reloading page...');
-                    window.location.reload();
+                    // Show completion message before reloading
+                    showCompletionMessage(data, syncLogId);
                 } else {
                     completeSyncUI(data);
                 }
@@ -433,12 +433,104 @@ function checkSyncStatus(syncLogId, isActiveSync = false) {
         })
         .catch(error => {
             console.error('Status check error:', error);
-            clearInterval(syncCheckInterval);
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
+            }
             if (!isActiveSync) {
                 showSyncError('Failed to check sync status');
             }
         });
     }, 1000); // Check every 1 second for faster updates
+}
+
+function showCompletionMessage(data, syncLogId) {
+    // Transform active sync card into completion card
+    const activeSyncCard = document.getElementById('activeSyncCard');
+    if (!activeSyncCard) {
+        // Card already gone, just reload
+        window.location.reload();
+        return;
+    }
+    
+    // Update card styling for completion
+    activeSyncCard.className = 'card mb-4 border-success';
+    
+    const statusIcon = data.status === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+    const statusColor = data.status === 'success' ? 'success' : 'warning';
+    const statusText = data.status === 'success' ? 'Sync Complete' : 'Sync Completed with Warnings';
+    
+    activeSyncCard.innerHTML = `
+        <div class="card-header bg-${statusColor} text-white">
+            <h5 class="mb-0">
+                <i class="fas ${statusIcon}"></i> ${statusText}
+                <span class="badge bg-light text-dark ms-2">Sync #${syncLogId}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-${statusColor} mb-3">
+                <h5 class="alert-heading mb-2">
+                    <i class="fas fa-info-circle"></i> ${data.message || 'Sync completed successfully!'}
+                </h5>
+                <hr>
+                <div class="row text-center mt-3">
+                    <div class="col-3">
+                        <h3 class="mb-0 text-dark">${data.emails_processed || 0}</h3>
+                        <small class="text-muted">Processed</small>
+                    </div>
+                    <div class="col-3">
+                        <h3 class="mb-0 text-success">${data.emails_added || 0}</h3>
+                        <small class="text-muted">New</small>
+                    </div>
+                    <div class="col-3">
+                        <h3 class="mb-0 text-primary">${data.emails_updated || 0}</h3>
+                        <small class="text-muted">Updated</small>
+                    </div>
+                    <div class="col-3">
+                        <h3 class="mb-0 text-danger">${data.errors_count || 0}</h3>
+                        <small class="text-muted">Errors</small>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-muted mb-2">
+                    <i class="fas fa-clock"></i> This message will auto-dismiss in <strong id="dismissCountdown">8</strong> seconds
+                </p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissCompletionAndReload()">
+                    <i class="fas fa-times"></i> Dismiss Now
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Also update history timeline one final time
+    updateSyncHistory(syncLogId);
+    
+    // Start countdown and auto-dismiss after 8 seconds
+    let countdown = 8;
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        const countdownEl = document.getElementById('dismissCountdown');
+        if (countdownEl) {
+            countdownEl.textContent = countdown;
+        }
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            dismissCompletionAndReload();
+        }
+    }, 1000);
+}
+
+function dismissCompletionAndReload() {
+    // Fade out and reload
+    const activeSyncCard = document.getElementById('activeSyncCard');
+    if (activeSyncCard) {
+        activeSyncCard.style.opacity = '0';
+        activeSyncCard.style.transition = 'opacity 0.5s';
+    }
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
 }
 
 function updateActiveSyncCard(data) {

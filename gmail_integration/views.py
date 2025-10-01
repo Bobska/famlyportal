@@ -36,6 +36,7 @@ def run_sync_in_background(account_id, query='', max_emails=1000, use_incrementa
     """
     sync_log = None
     try:
+        logger.info(f"[THREAD START] Background sync started for account {account_id}")
         account = GmailAccount.objects.get(id=account_id)
         service = GmailService(gmail_account=account)
         
@@ -48,9 +49,11 @@ def run_sync_in_background(account_id, query='', max_emails=1000, use_incrementa
         # Store sync_log_id for reference
         if account_id in active_sync_threads:
             active_sync_threads[account_id]['sync_log_id'] = sync_log.id
+        
+        logger.info(f"[THREAD SUCCESS] Background sync completed for account {account_id}, sync_log_id={sync_log.id if sync_log else 'None'}")
             
     except Exception as e:
-        logger.error(f"Background sync failed for account {account_id}: {e}")
+        logger.error(f"[THREAD ERROR] Background sync failed for account {account_id}: {e}")
         if sync_log:
             sync_log.status = 'error'
             sync_log.message = f'❌ Error: {str(e)}'
@@ -60,6 +63,8 @@ def run_sync_in_background(account_id, query='', max_emails=1000, use_incrementa
         # Remove from active threads
         if account_id in active_sync_threads:
             del active_sync_threads[account_id]
+            logger.info(f"[THREAD CLEANUP] Removed account {account_id} from active sync threads")
+        logger.info(f"[THREAD END] Background sync thread finished for account {account_id}")
 
 
 @login_required

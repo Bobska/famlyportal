@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 active_sync_threads = {}
 
 
-def run_sync_in_background(account_id, query='', max_emails=1100, use_incremental=True):
+def run_sync_in_background(account_id, query='', max_emails=1000, use_incremental=True):
     """
     Run email sync in background thread with cancellation support
     
@@ -315,7 +315,14 @@ def sync_emails(request, account_id):
     try:
         # Get sync parameters
         query = request.POST.get('query', '')
-        max_emails = int(request.POST.get('max_emails', 1100))
+        max_emails_param = request.POST.get('max_emails', '1000')
+        sync_all = request.POST.get('sync_all', 'false').lower() == 'true'
+        
+        # Handle "sync all" option
+        if sync_all:
+            max_emails = 999999  # Effectively unlimited
+        else:
+            max_emails = int(max_emails_param)
         
         # Start sync in background thread (it will create its own SyncLog)
         thread = threading.Thread(
@@ -596,9 +603,60 @@ def api_search_emails(request, account_id):
             'subject': email.subject,
             'sender_email': email.sender_email,
             'sender_name': email.sender_name,
-            'sent_date': email.sent_date.isoformat(),
-            'is_read': email.is_read,
-            'has_attachments': email.has_attachments
+                        'sent_date': email.sent_date.isoformat()
         })
     
     return JsonResponse({'emails': email_data})
+
+
+@login_required
+def invoice_emails(request, account_id):
+    """
+    View emails that have been detected as invoices
+    """
+    account = get_object_or_404(GmailAccount, id=account_id, user=request.user)
+    
+    # Get confidence filter
+    confidence = request.GET.get('confidence', 'all')
+    
+    # Build queryset for invoice emails
+    emails = account.emails.filter(has_invoice=True)
+    
+    if confidence != 'all':
+        emails = emails.filter(invoice_confidence=confidence)
+    
+    # Apply additional filters
+    search = request.GET.get('search', '').strip()
+    if search:
+        emails = emails.filter(
+            Q(subject__icontains=search) |
+            Q(sender_email__icontains=search) |
+            Q(sender_name__icontains=search)
+        )
+    
+    # Order by date
+    emails = emails.order_by('-sent_date')
+    
+    # Pagination
+    paginator = Paginator(emails, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get counts by confidence level
+    confidence_counts = {
+        'all': account.emails.filter(has_invoice=True).count(),
+        'high': account.emails.filter(has_invoice=True, invoice_confidence='high').count(),
+        'medium': account.emails.filter(has_invoice=True, invoice_confidence='medium').count(),
+        'low': account.emails.filter(has_invoice=True, invoice_confidence='low').count(),
+    }
+    
+    context = {
+        'account': account,
+        'page_obj': page_obj,
+        'confidence': confidence,
+        'confidence_counts': confidence_counts,
+        'search': search,
+        'page_title': f'Invoice Emails: {account.email_address}'
+    }
+    return render(request, 'gmail_integration/invoice_emails.html', context)
+

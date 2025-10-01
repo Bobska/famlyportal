@@ -129,6 +129,20 @@ class EmailMessage(models.Model):
     is_processed = models.BooleanField(default=False)
     processing_notes = models.TextField(blank=True)
     
+    # Invoice detection
+    has_invoice = models.BooleanField(default=False, db_index=True)
+    invoice_confidence = models.CharField(
+        max_length=20, 
+        choices=[
+            ('high', 'High - Multiple indicators'),
+            ('medium', 'Medium - Some indicators'),
+            ('low', 'Low - Weak indicators'),
+            ('none', 'None - No indicators')
+        ],
+        default='none'
+    )
+    invoice_keywords_found = models.JSONField(default=list)  # List of keywords that matched
+    
     class Meta:
         verbose_name = "Email Message"
         verbose_name_plural = "Email Messages"
@@ -137,6 +151,7 @@ class EmailMessage(models.Model):
             models.Index(fields=['gmail_account', 'sent_date']),
             models.Index(fields=['sender_email', 'sent_date']),
             models.Index(fields=['gmail_id']),
+            models.Index(fields=['has_invoice', 'sent_date']),
         ]
     
     def __str__(self):

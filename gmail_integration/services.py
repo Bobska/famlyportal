@@ -1061,10 +1061,130 @@ class GmailService:
             logger.error(f"Sync failed for {self.gmail_account.email_address}: {e}")
             raise
     
+    def _detect_invoice(self, email_data: Dict) -> Tuple[bool, str, List[str]]:
+        """
+        Detect if email contains invoice/bill information
+        
+        Args:
+            email_data: Parsed email data dictionary
+            
+        Returns:
+            Tuple of (has_invoice, confidence_level, keywords_found)
+        """
+        # Invoice-related keywords (case-insensitive)
+        INVOICE_KEYWORDS = [
+            # Primary invoice terms
+            'invoice', 'bill', 'receipt', 'payment due', 'amount due',
+            'pay now', 'payment required', 'statement', 'account summary',
+            
+            # Financial terms
+            'total amount', 'balance due', 'payment amount', 'remittance',
+            'payment confirmation', 'order confirmation',
+            
+            # Invoice identifiers
+            'invoice number', 'invoice #', 'invoice no', 'bill number',
+            'reference number', 'transaction id',
+            
+            # Due date indicators
+            'due date', 'payment deadline', 'overdue', 'past due',
+            
+            # Common senders
+            'billing department', 'accounts receivable', 'finance team'
+        ]
+        
+        # PDF attachment keywords (higher confidence)
+        PDF_INVOICE_KEYWORDS = [
+            'invoice.pdf', 'bill.pdf', 'receipt.pdf', 'statement.pdf',
+            'payment.pdf', 'order.pdf'
+        ]
+        
+        keywords_found = []
+        confidence_score = 0
+        
+        # Check subject line (weight: 3 points per match)
+        subject = (email_data.get('subject', '') or '').lower()
+        for keyword in INVOICE_KEYWORDS:
+            if keyword in subject:
+                keywords_found.append(f"Subject: {keyword}")
+                confidence_score += 3
+        
+        # Check email body (weight: 2 points per match)
+        body_text = (email_data.get('body_text', '') or '').lower()
+        body_html = (email_data.get('body_html', '') or '').lower()
+        combined_body = body_text + ' ' + body_html
+        
+        for keyword in INVOICE_KEYWORDS:
+            if keyword in combined_body and f"Body: {keyword}" not in [kw.replace('Subject: ', 'Body: ') for kw in keywords_found]:
+                keywords_found.append(f"Body: {keyword}")
+                confidence_score += 2
+        
+        # Check attachments (weight: 5 points for PDF invoices, 3 points for any PDF)
+        attachments = email_data.get('attachments', [])
+        has_pdf = False
+        has_invoice_pdf = False
+        
+        for attachment in attachments:
+            filename = (attachment.get('filename', '') or '').lower()
+            content_type = (attachment.get('content_type', '') or '').lower()
+            
+            # Check for PDF
+            if 'pdf' in content_type or filename.endswith('.pdf'):
+                has_pdf = True
+                
+                # Check for invoice-related PDF names
+                for pdf_keyword in PDF_INVOICE_KEYWORDS:
+                    if pdf_keyword in filename:
+                        has_invoice_pdf = True
+                        keywords_found.append(f"Attachment: {attachment.get('filename')}")
+                        confidence_score += 5
+                        break
+                
+                # Generic PDF if not invoice-specific
+                if not has_invoice_pdf and 'pdf' in filename:
+                    keywords_found.append(f"Attachment: PDF - {attachment.get('filename')}")
+                    confidence_score += 3
+        
+        # Check sender domain (weight: 2 points for common billing domains)
+        sender_email = (email_data.get('sender_email', '') or '').lower()
+        billing_domains = ['billing', 'invoice', 'noreply', 'accounts', 'finance']
+        for domain in billing_domains:
+            if domain in sender_email:
+                keywords_found.append(f"Sender: {domain} in email")
+                confidence_score += 2
+                break
+        
+        # Determine confidence level
+        has_invoice = False
+        confidence_level = 'none'
+        
+        if confidence_score >= 10:
+            has_invoice = True
+            confidence_level = 'high'
+        elif confidence_score >= 5:
+            has_invoice = True
+            confidence_level = 'medium'
+        elif confidence_score >= 3:
+            has_invoice = True
+            confidence_level = 'low'
+        
+        logger.debug(f"Invoice detection for {email_data.get('gmail_id')}: "
+                    f"has_invoice={has_invoice}, confidence={confidence_level}, "
+                    f"score={confidence_score}, keywords={len(keywords_found)}")
+        
+        return has_invoice, confidence_level, keywords_found
+    
     def _save_email_to_db(self, email_data: Dict) -> Tuple[EmailMessage, bool]:
-        """Save email data to database"""
+        """Save email data to database with invoice detection"""
+        # Detect if email contains invoice (before removing attachments)
+        has_invoice, invoice_confidence, invoice_keywords = self._detect_invoice(email_data)
+        
         # Remove attachments from email_data for model creation
         attachments = email_data.pop('attachments', [])
+        
+        # Add invoice detection results
+        email_data['has_invoice'] = has_invoice
+        email_data['invoice_confidence'] = invoice_confidence
+        email_data['invoice_keywords_found'] = invoice_keywords
         
         # Create or update email
         email_obj, created = EmailMessage.objects.update_or_create(

@@ -18,6 +18,7 @@ urlpatterns = [
     # Email management
     path('account/<int:account_id>/emails/', views.email_list, name='email_list'),
     path('account/<int:account_id>/email/<int:email_id>/', views.email_detail, name='email_detail'),
+    path('account/<int:account_id>/invoices/', views.invoice_emails, name='invoice_emails'),
     
     # Sync operations
     path('account/<int:account_id>/sync/', views.sync_emails, name='sync_emails'),

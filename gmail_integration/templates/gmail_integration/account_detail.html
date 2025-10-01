@@ -233,7 +233,23 @@
                         <button id="syncButton" type="button" class="btn btn-success btn-sm" onclick="startSync()">
                             <i class="fas fa-sync"></i> Sync Emails
                         </button>
-                        <form method="post" action="{% url 'gmail_integration:toggle_account' account.id %}" class="d-inline">
+                        <button type="button" class="btn btn-info btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="visually-hidden">Sync options</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <div class="px-3 py-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="syncAllCheckbox">
+                                        <label class="form-check-label" for="syncAllCheckbox">
+                                            <strong>Sync ALL emails</strong><br>
+                                            <small class="text-muted">Remove 1000 email limit</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                        <form method="post" action="{% url 'gmail_integration:toggle_account' account.id %}" class="d-inline ms-2">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-{% if account.is_active %}warning{% else %}success{% endif %} btn-sm">
                                 {% if account.is_active %}Deactivate{% else %}Activate{% endif %}
@@ -299,9 +315,14 @@
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Emails</h5>
-                    <a href="{% url 'gmail_integration:email_list' account.id %}" class="btn btn-outline-primary btn-sm">
-                        View All Emails
-                    </a>
+                    <div>
+                        <a href="{% url 'gmail_integration:invoice_emails' account.id %}" class="btn btn-warning btn-sm me-2">
+                            <i class="fas fa-file-invoice"></i> View Invoices
+                        </a>
+                        <a href="{% url 'gmail_integration:email_list' account.id %}" class="btn btn-outline-primary btn-sm">
+                            View All Emails
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if emails %}
@@ -432,11 +453,22 @@ function startSync() {
     const syncButton = document.getElementById('syncButton');
     const syncProgress = document.getElementById('syncProgress');
     const syncStatus = document.getElementById('syncStatus');
+    const syncAllCheckbox = document.getElementById('syncAllCheckbox');
+    
+    // Check if user wants to sync all emails
+    const syncAll = syncAllCheckbox && syncAllCheckbox.checked;
     
     // Disable button and show progress
     syncButton.disabled = true;
-    syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    if (syncAll) {
+        syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing ALL...';
+    } else {
+        syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
     syncProgress.style.display = 'block';
+    
+    // Prepare request body
+    const requestBody = syncAll ? JSON.stringify({ sync_all: true }) : JSON.stringify({});
     
     // Start sync
     fetch('{% url "gmail_integration:sync_emails" account.id %}', {
@@ -445,6 +477,7 @@ function startSync() {
             'X-CSRFToken': getCookie('csrftoken'),
             'Content-Type': 'application/json',
         },
+        body: requestBody
     })
     .then(response => response.json())
     .then(data => {

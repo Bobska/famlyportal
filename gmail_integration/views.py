@@ -326,14 +326,14 @@ def sync_log_detail(request, account_id, sync_log_id):
     if sync_log.completed_at:
         synced_emails = EmailMessage.objects.filter(
             gmail_account=account,
-            created_at__gte=sync_log.started_at,
-            created_at__lte=sync_log.completed_at
+            received_date__gte=sync_log.started_at,
+            received_date__lte=sync_log.completed_at
         ).order_by('-sent_date')[:50]  # Show first 50
     elif sync_log.started_at:
         # For incomplete syncs, show emails created after sync start
         synced_emails = EmailMessage.objects.filter(
             gmail_account=account,
-            created_at__gte=sync_log.started_at
+            received_date__gte=sync_log.started_at
         ).order_by('-sent_date')[:50]
     
     # Calculate duration if completed

@@ -159,7 +159,7 @@
                                     <th>Subject</th>
                                     <th>From</th>
                                     <th>Date</th>
-                                    <th>Created In DB</th>
+                                    <th>Received In DB</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -178,7 +178,7 @@
                                     <td>{{ email.sent_date|localtime|date:"M d, g:i A" }}</td>
                                     <td>
                                         <small class="text-muted">
-                                            {{ email.created_at|localtime|date:"M d, g:i:s A" }}
+                                            {{ email.received_date|localtime|date:"M d, g:i:s A" }}
                                         </small>
                                     </td>
                                     <td>

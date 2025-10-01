@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 active_sync_threads = {}
 
 
-def run_sync_in_background(account_id, query='', max_emails=1000, use_incremental=True):
+def run_sync_in_background(account_id, query='', max_emails=1100, use_incremental=True):
     """
     Run email sync in background thread with cancellation support
     
@@ -214,11 +214,22 @@ def account_detail(request, account_id):
         completed_at__isnull=True
     ).order_by('-started_at').first()
     
+    # Check for recently completed sync (completed in last 10 seconds)
+    # This handles super-fast syncs (like 0 new emails) that complete before first poll
+    recently_completed_threshold = timezone.now() - timedelta(seconds=10)
+    recently_completed_sync = None
+    if not active_sync:  # Only show if there's no active sync
+        recently_completed_sync = account.sync_logs.filter(
+            completed_at__isnull=False,
+            completed_at__gte=recently_completed_threshold
+        ).order_by('-completed_at').first()
+    
     context = {
         'account': account,
         'emails': emails,
         'sync_logs': sync_logs,
         'active_sync': active_sync,  # Pass active sync to template
+        'recently_completed_sync': recently_completed_sync,  # Pass recently completed sync
         'page_title': f'Gmail Account: {account.email_address}'
     }
     return render(request, 'gmail_integration/account_detail.html', context)
@@ -304,7 +315,7 @@ def sync_emails(request, account_id):
     try:
         # Get sync parameters
         query = request.POST.get('query', '')
-        max_emails = int(request.POST.get('max_emails', 1000))
+        max_emails = int(request.POST.get('max_emails', 1100))
         
         # Start sync in background thread (it will create its own SyncLog)
         thread = threading.Thread(

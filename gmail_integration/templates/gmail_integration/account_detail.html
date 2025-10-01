@@ -130,6 +130,78 @@
             </div>
             {% endif %}
 
+            <!-- Recently Completed Sync Card (shown for fast syncs that complete before polling starts) -->
+            {% if recently_completed_sync %}
+            <div class="card mb-4 border-success" id="recentlyCompletedCard">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Sync Complete
+                        <span class="badge bg-light text-dark ms-2">Sync #{{ recently_completed_sync.id }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <h5 class="alert-heading mb-2">
+                            {{ recently_completed_sync.message }}
+                        </h5>
+                        <hr>
+                        <div class="row text-center mt-3">
+                            <div class="col-3">
+                                <h3 class="mb-0 text-dark">{{ recently_completed_sync.emails_processed|default:0 }}</h3>
+                                <small class="text-muted">Processed</small>
+                            </div>
+                            <div class="col-3">
+                                <h3 class="mb-0 text-success">{{ recently_completed_sync.emails_added|default:0 }}</h3>
+                                <small class="text-muted">New</small>
+                            </div>
+                            <div class="col-3">
+                                <h3 class="mb-0 text-primary">{{ recently_completed_sync.emails_updated|default:0 }}</h3>
+                                <small class="text-muted">Updated</small>
+                            </div>
+                            <div class="col-3">
+                                <h3 class="mb-0 text-danger">{{ recently_completed_sync.errors_count|default:0 }}</h3>
+                                <small class="text-muted">Errors</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-clock"></i> This message will auto-dismiss in <strong id="completionCountdown">8</strong> seconds
+                        </p>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissAndReload()">
+                            <i class="fas fa-times"></i> Dismiss Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <script>
+                // Auto-dismiss recently completed sync card
+                let completionCountdown = 8;
+                const completionInterval = setInterval(() => {
+                    completionCountdown--;
+                    const countdownEl = document.getElementById('completionCountdown');
+                    if (countdownEl) {
+                        countdownEl.textContent = completionCountdown;
+                    }
+                    if (completionCountdown <= 0) {
+                        clearInterval(completionInterval);
+                        dismissAndReload();
+                    }
+                }, 1000);
+                
+                function dismissAndReload() {
+                    const card = document.getElementById('recentlyCompletedCard');
+                    if (card) {
+                        card.style.opacity = '0';
+                        card.style.transition = 'opacity 0.5s';
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            </script>
+            {% endif %}
+
             <!-- Sync History Timeline Card (shown when sync is in progress) -->
             {% if active_sync %}
             <div class="card mb-4 border-secondary" id="syncHistoryCard">

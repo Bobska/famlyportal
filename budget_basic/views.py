@@ -568,14 +568,35 @@ def delete_expense(request, expense_id):
 
 @login_required
 def get_payees(request):
-    """Get list of payees for the current user."""
+    """Get list of payees for the current user, optionally filtered by category."""
     try:
-        payees = Payee.objects.filter(user=request.user).order_by('name')
-        payee_list = [{'id': p.id, 'name': p.name} for p in payees]
+        category_id = request.GET.get('category_id', None)
+        
+        payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+        
+        # Filter by category if provided
+        if category_id:
+            try:
+                category_id = int(category_id)
+                payees = payees.filter(categories__id=category_id)
+            except (ValueError, TypeError):
+                # Invalid category ID, return all payees
+                pass
+        
+        payees = payees.order_by('name').distinct()
+        payee_list = [
+            {
+                'id': p.id, 
+                'name': p.name,
+                'categories': [{'id': cat.id, 'name': cat.name} for cat in p.categories.all()]
+            } 
+            for p in payees
+        ]
         
         return JsonResponse({
             'success': True,
-            'payees': payee_list
+            'payees': payee_list,
+            'filtered_by_category': bool(category_id)
         })
         
     except Exception as e:
@@ -637,9 +658,10 @@ def get_auto_date(request):
 @login_required
 @require_POST
 def add_payee(request):
-    """Add a new payee for the current user."""
+    """Add a new payee for the current user with optional category assignment."""
     try:
         payee_name = request.POST.get('name', '').strip()
+        category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not payee_name:
             return JsonResponse({'success': False, 'error': 'Payee name is required'})
@@ -651,9 +673,22 @@ def add_payee(request):
         # Create new payee
         payee = Payee.objects.create(user=request.user, name=payee_name)
         
+        # Assign categories if provided
+        if category_ids:
+            # Filter to only valid categories owned by the user
+            valid_categories = Category.objects.filter(
+                user=request.user, 
+                id__in=category_ids
+            )
+            payee.categories.set(valid_categories)
+        
         return JsonResponse({
             'success': True,
-            'payee': {'id': payee.id, 'name': payee.name},
+            'payee': {
+                'id': payee.id, 
+                'name': payee.name,
+                'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()]
+            },
             'message': f'Payee "{payee_name}" added successfully'
         })
         
@@ -668,13 +703,26 @@ def add_payee(request):
 @login_required
 def payee_list(request):
     """Display list of all payees for the current user."""
-    payees = Payee.objects.filter(user=request.user).prefetch_related('categories').order_by('name')
+    category_filter = request.GET.get('category_filter', 'all')
+    
+    payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+    
+    # Apply category filtering
+    if category_filter == 'none':
+        # Filter payees with no categories
+        payees = payees.filter(categories__isnull=True)
+    elif category_filter != 'all' and category_filter.isdigit():
+        # Filter payees by specific category
+        payees = payees.filter(categories__id=int(category_filter))
+    
+    payees = payees.order_by('name').distinct()
     categories = Category.objects.filter(user=request.user).order_by('name')
     
     context = {
         'page_title': 'Manage Payees',
         'payees': payees,
         'categories': categories,
+        'current_category_filter': category_filter,
         **build_sidebar_summary_context(request),
     }
     return render(request, 'budget_basic/payees.html', context)
@@ -853,6 +901,57 @@ def payee_search(request):
     ]
     
     return JsonResponse({'payees': payee_list})
+
+
+@login_required
+def payee_filter(request):
+    """Filter payees by category for the payees management page."""
+    try:
+        category_filter = request.GET.get('category_filter', 'all')
+        search_query = request.GET.get('search', '').strip()
+        
+        payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+        
+        # Apply search filter if provided
+        if search_query:
+            payees = payees.filter(name__icontains=search_query)
+        
+        # Apply category filtering
+        if category_filter == 'none':
+            payees = payees.filter(categories__isnull=True)
+        elif category_filter != 'all' and category_filter.isdigit():
+            payees = payees.filter(categories__id=int(category_filter))
+        
+        payees = payees.order_by('name').distinct()
+        
+        # Serialize payees data for the frontend
+        payees_data = []
+        for payee in payees:
+            category_names = [cat.name for cat in payee.categories.all()]
+            category_ids = [cat.id for cat in payee.categories.all()]
+            
+            payees_data.append({
+                'id': payee.id,
+                'name': payee.name,
+                'categories_display': payee.get_categories_display(),
+                'category_names': category_names,
+                'category_ids': category_ids,
+                'created_at': payee.created_at.strftime('%Y-%m-%d'),
+                'updated_at': payee.updated_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'payees': payees_data,
+            'count': len(payees_data),
+            'filter': category_filter
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        })
 
 
 # ==============================

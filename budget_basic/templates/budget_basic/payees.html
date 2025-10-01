@@ -46,6 +46,24 @@
                             </div>
                         </div>
                         <div class="dropdown ms-2">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-none d-lg-inline-flex" type="button" id="payeeCategoryDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter by Category">
+                                <i class="bi bi-funnel me-1"></i>
+                                <span id="categoryFilterLabel">All Categories</span>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm action-btn dropdown-toggle d-lg-none" type="button" id="payeeCategoryDropdownMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Filter by Category">
+                                <i class="bi bi-funnel"></i>
+                                <span class="visually-hidden" id="categoryFilterLabelMobile">All Categories</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="payeeCategoryDropdown payeeCategoryDropdownMobile">
+                                <li><a class="dropdown-item active" href="#" onclick="filterPayeesByCategory('all')">All Categories</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterPayeesByCategory('none')">No Category</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% for category in categories %}
+                                <li><a class="dropdown-item" href="#" onclick="filterPayeesByCategory('{{ category.id }}')">{{ category.name }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="dropdown ms-2">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-none d-lg-inline-flex" type="button" id="payeeSortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Payees">
                                 <i class="bi bi-sort-alpha-down me-1"></i>
                                 <span id="sortLabel">Name</span>
@@ -767,17 +785,159 @@ function updatePayeeStats() {
 
 // Filter payees
 function filterPayees() {
-    const searchTerm = document.getElementById('payee-search').value.toLowerCase();
-    const payeeCards = document.querySelectorAll('.payee-card');
+    const searchTerm = document.getElementById('payee-search').value.trim();
     
-    payeeCards.forEach(card => {
-        const payeeName = card.getAttribute('data-payee-name').toLowerCase();
-        if (payeeName.includes(searchTerm)) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
+    // Get current category filter from the label
+    const currentCategoryLabel = document.getElementById('categoryFilterLabel').textContent;
+    let categoryFilter = 'all';
+    
+    if (currentCategoryLabel === 'No Category') {
+        categoryFilter = 'none';
+    } else if (currentCategoryLabel !== 'All Categories') {
+        // Find the category ID from the dropdown
+        const categoryItems = document.querySelectorAll('[onclick*="filterPayeesByCategory"]');
+        for (const item of categoryItems) {
+            if (item.textContent.trim() === currentCategoryLabel) {
+                const match = item.getAttribute('onclick').match(/filterPayeesByCategory\('([^']+)'\)/);
+                if (match && match[1] !== 'all' && match[1] !== 'none') {
+                    categoryFilter = match[1];
+                    break;
+                }
+            }
         }
+    }
+    
+    // Use AJAX to filter with both search and category
+    const url = new URL('/budget-basic/payee/filter/', window.location.origin);
+    url.searchParams.set('category_filter', categoryFilter);
+    if (searchTerm) {
+        url.searchParams.set('search', searchTerm);
+    }
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updatePayeeList(data.payees);
+            } else {
+                console.error('Search error:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Network error:', error);
+        });
+}
+
+// Filter payees by category
+function filterPayeesByCategory(categoryFilter) {
+    // Update dropdown label and active state
+    let labelText = 'All Categories';
+    if (categoryFilter === 'none') {
+        labelText = 'No Category';
+    } else if (categoryFilter !== 'all') {
+        // Find category name from dropdown
+        const categoryItem = document.querySelector(`[onclick="filterPayeesByCategory('${categoryFilter}')"]`);
+        if (categoryItem && categoryFilter !== 'none' && categoryFilter !== 'all') {
+            labelText = categoryItem.textContent.trim();
+        }
+    }
+    
+    document.getElementById('categoryFilterLabel').textContent = labelText;
+    document.getElementById('categoryFilterLabelMobile').textContent = labelText;
+    
+    // Update active state in dropdown
+    document.querySelectorAll('#payeeCategoryDropdown + .dropdown-menu .dropdown-item, #payeeCategoryDropdownMobile + .dropdown-menu .dropdown-item').forEach(item => {
+        item.classList.remove('active');
     });
+    
+    const activeItem = document.querySelector(`[onclick="filterPayeesByCategory('${categoryFilter}')"]`);
+    if (activeItem) {
+        activeItem.classList.add('active');
+    }
+    
+    // Apply filter using AJAX to get fresh data
+    const searchTerm = document.getElementById('payee-search').value.trim();
+    const url = new URL('/budget-basic/payee/filter/', window.location.origin);
+    url.searchParams.set('category_filter', categoryFilter);
+    if (searchTerm) {
+        url.searchParams.set('search', searchTerm);
+    }
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updatePayeeList(data.payees);
+            } else {
+                console.error('Filter error:', data.error);
+                showMessage('Error filtering payees: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Network error:', error);
+            showMessage('Network error while filtering payees', 'error');
+        });
+}
+
+// Update payee list with new data
+function updatePayeeList(payees) {
+    const listContainer = document.querySelector('.payee-list-scroll');
+    if (!listContainer) return;
+    
+    // Clear existing payees
+    listContainer.innerHTML = '';
+    
+    if (payees.length === 0) {
+        listContainer.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <div class="mb-3">
+                    <i class="bi bi-person" style="font-size: 3rem; opacity: 0.35;"></i>
+                </div>
+                <p class="mb-1">No payees found</p>
+                <small>Try adjusting your filters or search terms</small>
+            </div>
+        `;
+        return;
+    }
+    
+    // Add payees
+    payees.forEach(payee => {
+        const categoryBadges = payee.category_names.map(name => 
+            `<span class="badge bg-light text-dark me-1">${escapeHtml(name)}</span>`
+        ).join('');
+        
+        const payeeHtml = `
+            <div class="payee-row payee-card"
+                 data-payee-id="${payee.id}"
+                 data-payee-name="${escapeHtml(payee.name)}"
+                 data-payee-categories="${escapeHtml(payee.categories_display)}"
+                 data-payee-category-ids="${payee.category_ids.join(',')}"
+                 data-payee-created="${payee.created_at}"
+                 data-payee-updated="${payee.updated_at}"
+                 onclick="selectPayee(this, event)">
+                <div class="payee-cell payee-cell-info">
+                    <div class="d-flex align-items-center">
+                        <div class="payee-avatar me-3">
+                            <i class="bi bi-person-circle text-muted"></i>
+                        </div>
+                        <div>
+                            <div class="payee-name">${escapeHtml(payee.name)}</div>
+                            ${categoryBadges ? `<div class="payee-categories">${categoryBadges}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        listContainer.insertAdjacentHTML('beforeend', payeeHtml);
+    });
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Sort payees

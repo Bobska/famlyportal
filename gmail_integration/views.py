@@ -24,15 +24,26 @@ logger = logging.getLogger(__name__)
 active_sync_threads = {}
 
 
-def run_sync_in_background(account_id, query='', max_emails=1000):
+def run_sync_in_background(account_id, query='', max_emails=1000, use_incremental=True):
     """
     Run email sync in background thread with cancellation support
+    
+    Args:
+        account_id: Gmail account ID
+        query: Gmail search query
+        max_emails: Maximum emails to sync
+        use_incremental: Use optimized incremental sync (default True)
     """
     sync_log = None
     try:
         account = GmailAccount.objects.get(id=account_id)
         service = GmailService(gmail_account=account)
-        sync_log = service.sync_emails(query=query, max_emails=max_emails)
+        
+        # Use incremental sync by default (much faster!)
+        if use_incremental:
+            sync_log = service.sync_emails_incremental(query=query, max_emails=max_emails)
+        else:
+            sync_log = service.sync_emails(query=query, max_emails=max_emails)
         
         # Store sync_log_id for reference
         if account_id in active_sync_threads:

@@ -538,6 +538,321 @@ class GmailService:
         except Exception:
             return False
     
+    def get_all_message_ids(self, query: str = "", max_messages: int = 5000) -> List[str]:
+        """
+        Get list of ALL message IDs from Gmail (lightweight, no full message data)
+        Much faster than fetching full messages
+        
+        Args:
+            query: Gmail search query
+            max_messages: Maximum number of message IDs to retrieve
+            
+        Returns:
+            List of Gmail message IDs
+        """
+        if not self._credentials:
+            if not self.authenticate():
+                raise ValueError("Failed to authenticate Gmail service")
+        
+        try:
+            import requests
+            
+            all_message_ids = []
+            page_token = None
+            
+            while len(all_message_ids) < max_messages:
+                url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages'
+                params = {
+                    'maxResults': min(500, max_messages - len(all_message_ids)),  # Max 500 per request
+                    'fields': 'messages/id,nextPageToken'  # Only get IDs, not full data
+                }
+                if query:
+                    params['q'] = query
+                if page_token:
+                    params['pageToken'] = page_token
+                
+                headers = {
+                    'Authorization': f'Bearer {self._credentials.token}',
+                    'Accept': 'application/json'
+                }
+                
+                response = requests.get(url, headers=headers, params=params, timeout=30)
+                response.raise_for_status()
+                
+                results = response.json()
+                messages = results.get('messages', [])
+                
+                if not messages:
+                    break
+                
+                all_message_ids.extend([msg['id'] for msg in messages])
+                page_token = results.get('nextPageToken')
+                
+                if not page_token:
+                    break
+            
+            logger.info(f"Retrieved {len(all_message_ids)} message IDs from Gmail")
+            return all_message_ids
+            
+        except Exception as e:
+            logger.error(f"Failed to get message IDs: {e}")
+            raise
+    
+    def get_new_message_ids(self, query: str = "", max_messages: int = 5000) -> Tuple[List[str], int, int]:
+        """
+        Get list of message IDs that don't exist in database yet
+        
+        Args:
+            query: Gmail search query
+            max_messages: Maximum number of messages to check
+            
+        Returns:
+            Tuple of (new_message_ids, total_in_gmail, already_synced_count)
+        """
+        # Get all message IDs from Gmail
+        all_gmail_ids = self.get_all_message_ids(query, max_messages)
+        total_count = len(all_gmail_ids)
+        
+        if not all_gmail_ids:
+            return [], 0, 0
+        
+        # Check which ones already exist in database
+        existing_ids = set(
+            self.gmail_account.emails.filter(
+                gmail_id__in=all_gmail_ids
+            ).values_list('gmail_id', flat=True)
+        )
+        
+        # Find new IDs (not in database)
+        new_ids = [gid for gid in all_gmail_ids if gid not in existing_ids]
+        
+        already_synced = len(existing_ids)
+        
+        logger.info(f"Gmail: {total_count} total, {already_synced} already synced, {len(new_ids)} new")
+        return new_ids, total_count, already_synced
+    
+    def fetch_emails_by_ids(self, message_ids: List[str]) -> List[Dict]:
+        """
+        Fetch full email data for specific message IDs
+        
+        Args:
+            message_ids: List of Gmail message IDs to fetch
+            
+        Returns:
+            List of email data dictionaries
+        """
+        emails = []
+        for msg_id in message_ids:
+            try:
+                email_data = self.get_email_by_id(msg_id)
+                if email_data:
+                    emails.append(email_data)
+            except Exception as e:
+                logger.warning(f"Failed to fetch email {msg_id}: {e}")
+                continue
+        
+        return emails
+    
+    def sync_emails_incremental(self, query: str = "", max_emails: int = 5000) -> SyncLog:
+        """
+        OPTIMIZED: Incremental sync that only processes NEW emails
+        Phase 1: Quick scan to find what's new
+        Phase 2: Process only new emails
+        
+        Much faster than sync_emails() because it skips already-synced emails
+        
+        Args:
+            query: Gmail search query
+            max_emails: Maximum number of emails to check
+            
+        Returns:
+            SyncLog instance
+        """
+        if not self.gmail_account:
+            raise ValueError("No Gmail account provided")
+        
+        # Create sync log
+        sync_log = SyncLog.objects.create(
+            gmail_account=self.gmail_account,
+            status='started',
+            message='🔍 Scanning for new emails...'
+        )
+        
+        try:
+            # PHASE 1: Quick Discovery (Fast!)
+            from .models import SyncHistoryEvent
+            SyncHistoryEvent.objects.create(
+                sync_log=sync_log,
+                event_type='start',
+                message='Starting incremental sync - checking for new emails',
+                emails_processed=0
+            )
+            
+            sync_log.message = '🔍 Phase 1: Scanning Gmail for new emails (this is fast)...'
+            sync_log.save(update_fields=['message'])
+            
+            # Get list of new message IDs only
+            new_message_ids, total_in_gmail, already_synced = self.get_new_message_ids(query, max_emails)
+            
+            # Update with discovery results
+            sync_log.message = f'📊 Found {total_in_gmail} emails: {already_synced} already synced, {len(new_message_ids)} new to process'
+            sync_log.save(update_fields=['message'])
+            
+            SyncHistoryEvent.objects.create(
+                sync_log=sync_log,
+                event_type='progress',
+                message=f'Scan complete: {len(new_message_ids)} new emails found (skipping {already_synced} existing)',
+                emails_processed=0
+            )
+            
+            if len(new_message_ids) == 0:
+                sync_log.status = 'success'
+                sync_log.completed_at = timezone.now()
+                sync_log.message = f'✅ Already up to date! All {total_in_gmail} emails are synced'
+                sync_log.save()
+                
+                SyncHistoryEvent.objects.create(
+                    sync_log=sync_log,
+                    event_type='finish',
+                    message=f'Sync complete - no new emails to process',
+                    emails_processed=0
+                )
+                
+                return sync_log
+            
+            # PHASE 2: Process ONLY new emails (Much faster!)
+            sync_log.message = f'⚙️ Phase 2: Processing {len(new_message_ids)} new emails...'
+            sync_log.save(update_fields=['message'])
+            
+            SyncHistoryEvent.objects.create(
+                sync_log=sync_log,
+                event_type='process',
+                message=f'Starting to process {len(new_message_ids)} new emails',
+                emails_processed=0
+            )
+            
+            emails_processed = 0
+            emails_added = 0
+            emails_updated = 0
+            errors_count = 0
+            cancelled = False
+            
+            # Process new emails in batches of 10
+            batch_size = 10
+            total_new = len(new_message_ids)
+            
+            for i in range(0, len(new_message_ids), batch_size):
+                # Check for cancellation
+                if self._should_cancel_sync(sync_log.id):
+                    logger.info(f"Sync {sync_log.id} cancelled by user, stopping...")
+                    cancelled = True
+                    sync_log.message = f'🛑 Sync cancelled. Processed {emails_processed}/{total_new} new emails'
+                    sync_log.save(update_fields=['message'])
+                    
+                    SyncHistoryEvent.objects.create(
+                        sync_log=sync_log,
+                        event_type='cancel',
+                        message=f'Sync cancelled at {emails_processed}/{total_new} new emails',
+                        emails_processed=emails_processed,
+                        emails_added=emails_added,
+                        emails_updated=emails_updated
+                    )
+                    break
+                
+                batch_ids = new_message_ids[i:i+batch_size]
+                batch_num = (i // batch_size) + 1
+                
+                sync_log.message = f'📥 Fetching batch {batch_num} ({len(batch_ids)} new emails)...'
+                sync_log.save(update_fields=['message'])
+                
+                # Fetch emails
+                email_list = self.fetch_emails_by_ids(batch_ids)
+                
+                # Process each email
+                for email_data in email_list:
+                    # Check cancellation every 10 emails
+                    if emails_processed % 10 == 0 and self._should_cancel_sync(sync_log.id):
+                        cancelled = True
+                        break
+                    
+                    try:
+                        email_obj, created = self._save_email_to_db(email_data)
+                        if created:
+                            emails_added += 1
+                        else:
+                            emails_updated += 1
+                        emails_processed += 1
+                        
+                        # Update progress
+                        sync_log.emails_processed = emails_processed
+                        sync_log.emails_added = emails_added
+                        sync_log.emails_updated = emails_updated
+                        sync_log.message = f'⚙️ Processing: {emails_processed}/{total_new} new emails ({emails_added} added)'
+                        sync_log.save(update_fields=['emails_processed', 'emails_added', 'emails_updated', 'message'])
+                        
+                    except Exception as e:
+                        errors_count += 1
+                        logger.error(f"Failed to save email {email_data.get('gmail_id')}: {e}")
+                
+                if cancelled:
+                    break
+                
+                # Update after batch
+                if not cancelled:
+                    SyncHistoryEvent.objects.create(
+                        sync_log=sync_log,
+                        event_type='complete',
+                        message=f'Batch {batch_num} complete: {emails_processed}/{total_new} processed',
+                        emails_processed=emails_processed,
+                        emails_added=emails_added,
+                        emails_updated=emails_updated,
+                        batch_number=batch_num
+                    )
+            
+            # Final update
+            sync_log.emails_processed = emails_processed
+            sync_log.emails_added = emails_added
+            sync_log.emails_updated = emails_updated
+            sync_log.errors_count = errors_count
+            
+            if cancelled:
+                sync_log.status = 'cancelled'
+                sync_log.message = f'🛑 Sync cancelled. Processed {emails_processed}/{total_new} new emails'
+            elif errors_count > 0:
+                sync_log.status = 'partial'
+                sync_log.message = f'⚠️ Partial success: {emails_processed} new emails, {errors_count} errors'
+            else:
+                sync_log.status = 'success'
+                sync_log.message = f'✅ Successfully synced {emails_processed} new emails (skipped {already_synced} existing)'
+            
+            sync_log.completed_at = timezone.now()
+            sync_log.save()
+            
+            SyncHistoryEvent.objects.create(
+                sync_log=sync_log,
+                event_type='finish',
+                message=f'Sync complete: {emails_processed} new emails processed',
+                emails_processed=emails_processed,
+                emails_added=emails_added,
+                emails_updated=emails_updated
+            )
+            
+            # Update account stats
+            self.gmail_account.last_sync_at = timezone.now()
+            self.gmail_account.update_sync_stats(email_count=self.gmail_account.emails.count())
+            
+            logger.info(f"Incremental sync completed: {emails_processed} new emails processed")
+            return sync_log
+            
+        except Exception as e:
+            logger.error(f"Sync failed: {e}")
+            sync_log.status = 'error'
+            sync_log.completed_at = timezone.now()
+            sync_log.message = f'❌ Sync failed: {str(e)}'
+            sync_log.error_details = str(e)
+            sync_log.save()
+            raise
+    
     def sync_emails(self, query: str = "", max_emails: int = 1000) -> SyncLog:
         """
         Sync emails from Gmail to database with real-time progress updates

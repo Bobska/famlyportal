@@ -62,27 +62,44 @@ def oauth_callback(request):
     """
     Handle OAuth callback from Google
     """
+    logger.info("=" * 80)
+    logger.info("OAuth Callback Started")
+    logger.info(f"User: {request.user.username}")
+    logger.info(f"GET params: {request.GET}")
+    
     authorization_code = request.GET.get('code')
     error = request.GET.get('error')
     
     if error:
-        logger.warning(f"OAuth error: {error}")
+        logger.warning(f"OAuth error from Google: {error}")
         messages.error(request, f"Authorization failed: {error}")
         return redirect('gmail_integration:account_list')
     
     if not authorization_code:
+        logger.warning("No authorization code in callback")
         messages.error(request, "No authorization code received.")
         return redirect('gmail_integration:account_list')
+    
+    logger.info(f"Authorization code received: {authorization_code[:20]}...")
     
     try:
         # Get redirect URI from session
         redirect_uri = request.session.get('gmail_redirect_uri')
+        logger.info(f"Redirect URI from session: {redirect_uri}")
+        
         if not redirect_uri:
+            logger.error("No redirect URI found in session!")
+            logger.error(f"Session keys: {list(request.session.keys())}")
             raise ValueError("No redirect URI found in session")
         
+        logger.info("Creating GmailService...")
         # Handle OAuth callback
         service = GmailService(user=request.user)
+        
+        logger.info("Calling handle_oauth_callback...")
         gmail_account = service.handle_oauth_callback(authorization_code, redirect_uri)
+        
+        logger.info(f"Successfully created account: {gmail_account.email_address}")
         
         # Clean up session
         request.session.pop('gmail_redirect_uri', None)
@@ -96,9 +113,17 @@ def oauth_callback(request):
         return redirect('gmail_integration:account_detail', account_id=gmail_account.id)
         
     except Exception as e:
-        logger.error(f"OAuth callback failed: {e}")
-        messages.error(request, "Failed to connect Gmail account. Please try again.")
+        logger.error("=" * 80)
+        logger.error(f"OAuth callback failed with exception: {type(e).__name__}")
+        logger.error(f"Exception message: {str(e)}")
+        logger.error(f"Full traceback:", exc_info=True)
+        logger.error("=" * 80)
+        
+        # Provide more detailed error message
+        error_msg = str(e) if str(e) else "Unknown error occurred"
+        messages.error(request, f"Failed to connect Gmail account: {error_msg}")
         return redirect('gmail_integration:account_list')
+
 
 
 @login_required

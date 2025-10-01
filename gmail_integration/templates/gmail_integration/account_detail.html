@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gmail Account: {{ account.email_address }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_list' %}">Gmail Accounts</a></li>
+                    <li class="breadcrumb-item active">{{ account.email_address }}</li>
+                </ol>
+            </nav>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Account Info -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Account Information</h5>
+                    <div class="btn-group">
+                        <form method="post" action="{% url 'gmail_integration:sync_emails' account.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-sync"></i> Sync Emails
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'gmail_integration:toggle_account' account.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-{% if account.is_active %}warning{% else %}success{% endif %} btn-sm">
+                                {% if account.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ account.email_address }}</td>
+                                </tr>
+                                {% if account.display_name %}
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td>{{ account.display_name }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if account.is_active %}success{% else %}secondary{% endif %}">
+                                            {% if account.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sync:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if account.sync_enabled %}info{% else %}secondary{% endif %}">
+                                            {% if account.sync_enabled %}Enabled{% else %}Disabled{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Connected:</strong></td>
+                                    <td>{{ account.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% if account.last_sync_at %}
+                                <tr>
+                                    <td><strong>Last Sync:</strong></td>
+                                    <td>{{ account.last_sync_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Total Emails:</strong></td>
+                                    <td>{{ emails|length }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Emails -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Emails</h5>
+                    <a href="{% url 'gmail_integration:email_list' account.id %}" class="btn btn-outline-primary btn-sm">
+                        View All Emails
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if emails %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>From</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for email in emails %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'gmail_integration:email_detail' account.id email.id %}">
+                                                    {{ email.subject|truncatechars:50 }}
+                                                </a>
+                                                {% if email.has_attachments %}
+                                                    <i class="fas fa-paperclip text-muted"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ email.sender_email }}</td>
+                                            <td>{{ email.sent_date|date:"M d, H:i" }}</td>
+                                            <td>
+                                                {% if not email.is_read %}
+                                                    <span class="badge bg-primary">Unread</span>
+                                                {% endif %}
+                                                {% if email.is_important %}
+                                                    <span class="badge bg-warning">Important</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No emails found. Try syncing this account.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Sync Logs -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Sync Activity</h5>
+                    <a href="{% url 'gmail_integration:sync_logs' account.id %}" class="btn btn-outline-secondary btn-sm">
+                        View All Logs
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if sync_logs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Processed</th>
+                                        <th>Added</th>
+                                        <th>Errors</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in sync_logs %}
+                                        <tr>
+                                            <td>{{ log.started_at|date:"M d, H:i" }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if log.status == 'success' %}success{% elif log.status == 'error' %}danger{% elif log.status == 'partial' %}warning{% else %}secondary{% endif %}">
+                                                    {{ log.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ log.emails_processed }}</td>
+                                            <td>{{ log.emails_added }}</td>
+                                            <td>{{ log.errors_count }}</td>
+                                            <td>{{ log.message|truncatechars:50 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No sync activity yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

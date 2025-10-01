@@ -57,6 +57,7 @@ LOCAL_APPS = [
     'subscription_tracker',
     'budget_allocation',
     'budget_basic',
+    'gmail_integration',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -223,4 +224,17 @@ ALLOCATION_LOCKS_ENABLED = config(
     'ALLOCATION_LOCKS_ENABLED',
     default=('False' if DEBUG else 'True'),
     cast=bool,
+)
+
+# Gmail Integration Settings
+GOOGLE_OAUTH2_CLIENT_SECRETS_FILE = config(
+    'GOOGLE_OAUTH2_CLIENT_SECRETS_FILE',
+    default='google_client_secrets.json'
+)
+
+# Gmail Integration Encryption Key (for storing OAuth tokens)
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+GMAIL_ENCRYPTION_KEY = config(
+    'GMAIL_ENCRYPTION_KEY',
+    default='generate-a-real-key-in-production'
 )

@@ -681,10 +681,12 @@ class GmailService:
         try:
             # PHASE 1: Quick Discovery (Fast!)
             from .models import SyncHistoryEvent
+            
+            # History Event: Starting scan
             SyncHistoryEvent.objects.create(
                 sync_log=sync_log,
                 event_type='start',
-                message='Starting incremental sync - checking for new emails',
+                message='🔍 Phase 1: Scanning Gmail for new emails (this is fast)...',
                 emails_processed=0
             )
             
@@ -694,16 +696,17 @@ class GmailService:
             # Get list of new message IDs only
             new_message_ids, total_in_gmail, already_synced = self.get_new_message_ids(query, max_emails)
             
-            # Update with discovery results
-            sync_log.message = f'📊 Found {total_in_gmail} emails: {already_synced} already synced, {len(new_message_ids)} new to process'
-            sync_log.save(update_fields=['message'])
-            
+            # History Event: Scan results
             SyncHistoryEvent.objects.create(
                 sync_log=sync_log,
                 event_type='progress',
-                message=f'Scan complete: {len(new_message_ids)} new emails found (skipping {already_synced} existing)',
+                message=f'📊 Found {total_in_gmail} emails: {already_synced} already synced, {len(new_message_ids)} new to process',
                 emails_processed=0
             )
+            
+            # Update with discovery results
+            sync_log.message = f'📊 Found {total_in_gmail} emails: {already_synced} already synced, {len(new_message_ids)} new to process'
+            sync_log.save(update_fields=['message'])
             
             if len(new_message_ids) == 0:
                 sync_log.status = 'success'
@@ -711,25 +714,27 @@ class GmailService:
                 sync_log.message = f'✅ Already up to date! All {total_in_gmail} emails are synced'
                 sync_log.save()
                 
+                # History Event: Already up to date
                 SyncHistoryEvent.objects.create(
                     sync_log=sync_log,
                     event_type='finish',
-                    message=f'Sync complete - no new emails to process',
+                    message=f'✅ Already up to date! All {total_in_gmail} emails are synced',
                     emails_processed=0
                 )
                 
                 return sync_log
             
             # PHASE 2: Process ONLY new emails (Much faster!)
-            sync_log.message = f'⚙️ Phase 2: Processing {len(new_message_ids)} new emails...'
-            sync_log.save(update_fields=['message'])
-            
+            # History Event: Starting Phase 2
             SyncHistoryEvent.objects.create(
                 sync_log=sync_log,
                 event_type='process',
-                message=f'Starting to process {len(new_message_ids)} new emails',
+                message=f'⚙️ Phase 2: Processing {len(new_message_ids)} new emails...',
                 emails_processed=0
             )
+            
+            sync_log.message = f'⚙️ Phase 2: Processing {len(new_message_ids)} new emails...'
+            sync_log.save(update_fields=['message'])
             
             emails_processed = 0
             emails_added = 0
@@ -746,13 +751,16 @@ class GmailService:
                 if self._should_cancel_sync(sync_log.id):
                     logger.info(f"Sync {sync_log.id} cancelled by user, stopping...")
                     cancelled = True
+                    
+                    # Final message for cancellation
                     sync_log.message = f'🛑 Sync cancelled. Processed {emails_processed}/{total_new} new emails'
                     sync_log.save(update_fields=['message'])
                     
+                    # History Event: Cancellation
                     SyncHistoryEvent.objects.create(
                         sync_log=sync_log,
                         event_type='cancel',
-                        message=f'Sync cancelled at {emails_processed}/{total_new} new emails',
+                        message=f'🛑 Sync cancelled. Processed {emails_processed}/{total_new} new emails',
                         emails_processed=emails_processed,
                         emails_added=emails_added,
                         emails_updated=emails_updated
@@ -760,12 +768,8 @@ class GmailService:
                     break
                 
                 batch_ids = new_message_ids[i:i+batch_size]
-                batch_num = (i // batch_size) + 1
                 
-                sync_log.message = f'📥 Fetching batch {batch_num} ({len(batch_ids)} new emails)...'
-                sync_log.save(update_fields=['message'])
-                
-                # Fetch emails
+                # Fetch emails (silent, no history event)
                 email_list = self.fetch_emails_by_ids(batch_ids)
                 
                 # Process each email
@@ -783,11 +787,14 @@ class GmailService:
                             emails_updated += 1
                         emails_processed += 1
                         
-                        # Update progress
+                        # Calculate percentage
+                        percentage = int((emails_processed / total_new) * 100)
+                        
+                        # Update MAIN message (this shows in live tracker - updates continuously)
                         sync_log.emails_processed = emails_processed
                         sync_log.emails_added = emails_added
                         sync_log.emails_updated = emails_updated
-                        sync_log.message = f'⚙️ Processing: {emails_processed}/{total_new} new emails ({emails_added} added)'
+                        sync_log.message = f'⚙️ Processing: {emails_processed}/{total_new} new emails ({percentage}%)'
                         sync_log.save(update_fields=['emails_processed', 'emails_added', 'emails_updated', 'message'])
                         
                     except Exception as e:
@@ -796,18 +803,6 @@ class GmailService:
                 
                 if cancelled:
                     break
-                
-                # Update after batch
-                if not cancelled:
-                    SyncHistoryEvent.objects.create(
-                        sync_log=sync_log,
-                        event_type='complete',
-                        message=f'Batch {batch_num} complete: {emails_processed}/{total_new} processed',
-                        emails_processed=emails_processed,
-                        emails_added=emails_added,
-                        emails_updated=emails_updated,
-                        batch_number=batch_num
-                    )
             
             # Final update
             sync_log.emails_processed = emails_processed
@@ -821,21 +816,38 @@ class GmailService:
             elif errors_count > 0:
                 sync_log.status = 'partial'
                 sync_log.message = f'⚠️ Partial success: {emails_processed} new emails, {errors_count} errors'
+                
+                # History Event: Partial completion
+                SyncHistoryEvent.objects.create(
+                    sync_log=sync_log,
+                    event_type='finish',
+                    message=f'⚠️ Partial success: {emails_processed} new emails, {errors_count} errors',
+                    emails_processed=emails_processed,
+                    emails_added=emails_added,
+                    emails_updated=emails_updated
+                )
             else:
+                # Update final progress message to "Processed" (past tense)
+                sync_log.message = f'⚙️ Processed: {emails_processed}/{total_new} new emails'
+                sync_log.save(update_fields=['message'])
+                
                 sync_log.status = 'success'
+                
+                # History Event: Success completion  
+                SyncHistoryEvent.objects.create(
+                    sync_log=sync_log,
+                    event_type='finish',
+                    message=f'✅ Successfully synced {emails_processed} new emails (skipped {already_synced} existing)',
+                    emails_processed=emails_processed,
+                    emails_added=emails_added,
+                    emails_updated=emails_updated
+                )
+                
+                # Update final message with completion
                 sync_log.message = f'✅ Successfully synced {emails_processed} new emails (skipped {already_synced} existing)'
             
             sync_log.completed_at = timezone.now()
             sync_log.save()
-            
-            SyncHistoryEvent.objects.create(
-                sync_log=sync_log,
-                event_type='finish',
-                message=f'Sync complete: {emails_processed} new emails processed',
-                emails_processed=emails_processed,
-                emails_added=emails_added,
-                emails_updated=emails_updated
-            )
             
             # Update account stats
             self.gmail_account.last_sync_at = timezone.now()

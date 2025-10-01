@@ -499,8 +499,12 @@ function updateSyncHistory(syncLogId) {
                         
                         switch(event.event_type) {
                             case 'start':
-                                icon = 'fa-play';
-                                colorClass = 'text-success';
+                                icon = 'fa-search';
+                                colorClass = 'text-info';
+                                break;
+                            case 'progress':
+                                icon = 'fa-chart-bar';
+                                colorClass = 'text-info';
                                 break;
                             case 'fetch':
                                 icon = 'fa-download';
@@ -512,6 +516,10 @@ function updateSyncHistory(syncLogId) {
                                 break;
                             case 'complete':
                                 icon = 'fa-check-circle';
+                                colorClass = 'text-success';
+                                break;
+                            case 'finish':
+                                icon = 'fa-flag-checkered';
                                 colorClass = 'text-success';
                                 break;
                             case 'cancel':

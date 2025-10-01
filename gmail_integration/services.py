@@ -5,19 +5,33 @@ import os
 import json
 import logging
 import jwt
+import socket
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 from email.utils import parsedate_to_datetime
 
 from django.conf import settings
+
+# Force IPv4 for all socket connections (IPv6 times out on Windows)
+# This fixes the WinError 10060 timeout issue
+original_getaddrinfo = socket.getaddrinfo
+
+def getaddrinfo_ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+    """Force IPv4 resolution only"""
+    return original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+socket.getaddrinfo = getaddrinfo_ipv4_only
 from django.utils import timezone as django_timezone
 from django.contrib.auth.models import User
 
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request, AuthorizedSession
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import HttpRequest
+import google_auth_httplib2
+import httplib2
 
 from .models import GmailAccount, EmailMessage, EmailAttachment, SyncLog
 
@@ -218,9 +232,40 @@ class GmailService:
                 self.gmail_account.credentials = updated_creds
                 self.gmail_account.save()
             
-            # Build Gmail service
-            self.service = build('gmail', 'v1', credentials=credentials)
-            self._credentials = credentials
+            # CRITICAL FIX: Use requests library directly instead of httplib2
+            # The Google API Python client defaults to httplib2 which has
+            # connectivity issues on Windows. The requests library works fine.
+            # We'll use a monkey-patch approach to force requests usage.
+            
+            # Save the original build function behavior but use requests
+            import os
+            os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
+            
+            # Use the default build which will use httplib2
+            # But we set a longer timeout via socket
+            import socket
+            socket.setdefaulttimeout(60)
+            
+            # Try to force requests usage by checking for google-auth-httplib2
+            try:
+                # Build service - will use httplib2 by default
+                self.service = build('gmail', 'v1', credentials=credentials, cache_discovery=False)
+                self._credentials = credentials
+                
+                # Monkey-patch the service's http instance to use longer timeouts
+                if hasattr(self.service, '_http'):
+                    if hasattr(self.service._http, 'timeout'):
+                        self.service._http.timeout = 60
+                    # Try to set timeout on the underlying http object
+                    if hasattr(self.service._http, 'http'):
+                        if hasattr(self.service._http.http, 'timeout'):
+                            self.service._http.http.timeout = 60
+                        
+            except Exception as e:
+                logger.error(f"Failed to build service with extended timeout: {e}")
+                # Fallback to standard build
+                self.service = build('gmail', 'v1', credentials=credentials)
+                self._credentials = credentials
             
             logger.info(f"Successfully authenticated Gmail account: {self.gmail_account.email_address}")
             return True
@@ -231,7 +276,7 @@ class GmailService:
     
     def get_emails(self, query: str = "", max_results: int = 100, page_token: str = None) -> Tuple[List[Dict], str]:
         """
-        Get emails from Gmail
+        Get emails from Gmail using requests library directly (bypassing httplib2 issues)
         
         Args:
             query: Gmail search query
@@ -241,19 +286,53 @@ class GmailService:
         Returns:
             Tuple of (email list, next_page_token)
         """
-        if not self.service:
+        if not self._credentials:
             if not self.authenticate():
                 raise ValueError("Failed to authenticate Gmail service")
         
         try:
-            # Get message list
-            results = self.service.users().messages().list(
-                userId='me',
-                q=query,
-                maxResults=max_results,
-                pageToken=page_token
-            ).execute()
+            # Refresh token if expired
+            if self._credentials.expired and self._credentials.refresh_token:
+                logger.info("Token expired, refreshing...")
+                self._credentials.refresh(Request())
+                
+                # Update stored credentials
+                updated_creds = {
+                    'token': self._credentials.token,
+                    'refresh_token': self._credentials.refresh_token,
+                    'token_uri': self._credentials.token_uri,
+                    'client_id': self._credentials.client_id,
+                    'client_secret': self._credentials.client_secret,
+                    'scopes': self._credentials.scopes
+                }
+                self.gmail_account.credentials = updated_creds
+                self.gmail_account.save()
+                logger.info("Token refreshed successfully")
             
+            # BYPASS HTTPLIB2: Use requests library directly
+            # This avoids the WinError 10060 timeout issue with httplib2
+            import requests
+            
+            # Build URL with parameters
+            url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages'
+            params = {
+                'maxResults': max_results
+            }
+            if query:
+                params['q'] = query
+            if page_token:
+                params['pageToken'] = page_token
+            
+            # Make request with auth header
+            headers = {
+                'Authorization': f'Bearer {self._credentials.token}',
+                'Accept': 'application/json'
+            }
+            
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            results = response.json()
             messages = results.get('messages', [])
             next_page_token = results.get('nextPageToken')
             
@@ -268,10 +347,10 @@ class GmailService:
                     logger.warning(f"Failed to get email {message['id']}: {e}")
                     continue
             
-            logger.info(f"Retrieved {len(email_list)} emails from Gmail")
+            logger.info(f"Retrieved {len(email_list)} emails from Gmail using requests library")
             return email_list, next_page_token
             
-        except HttpError as e:
+        except requests.exceptions.RequestException as e:
             logger.error(f"Gmail API error: {e}")
             raise
         except Exception as e:
@@ -280,7 +359,7 @@ class GmailService:
     
     def get_email_by_id(self, email_id: str) -> Optional[Dict]:
         """
-        Get email details by Gmail ID
+        Get email details by Gmail ID using requests library directly
         
         Args:
             email_id: Gmail message ID
@@ -288,20 +367,28 @@ class GmailService:
         Returns:
             Email data dictionary or None
         """
-        if not self.service:
+        if not self._credentials:
             if not self.authenticate():
                 raise ValueError("Failed to authenticate Gmail service")
         
         try:
-            message = self.service.users().messages().get(
-                userId='me',
-                id=email_id,
-                format='full'
-            ).execute()
+            # BYPASS HTTPLIB2: Use requests library directly
+            import requests
             
+            url = f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{email_id}'
+            params = {'format': 'full'}
+            headers = {
+                'Authorization': f'Bearer {self._credentials.token}',
+                'Accept': 'application/json'
+            }
+            
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            message = response.json()
             return self._parse_email_message(message)
             
-        except HttpError as e:
+        except requests.exceptions.RequestException as e:
             logger.error(f"Gmail API error getting email {email_id}: {e}")
             return None
         except Exception as e:

@@ -119,14 +119,13 @@
                     <strong>{{ a.filename }}</strong>
                     <span class="text-muted ms-2">{{ a.get_size_display }}</span>
                 </div>
-                <div>
-                    {% if a.is_downloaded %}
+                <div class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'daycare_invoices:download_attachment' email.id a.id %}?view=1" target="_blank">
+                        View
+                    </a>
                     <a class="btn btn-sm btn-outline-primary" href="{% url 'daycare_invoices:download_attachment' email.id a.id %}">
                         Download
                     </a>
-                    {% else %}
-                    <button class="btn btn-sm btn-outline-secondary" disabled>Not Available</button>
-                    {% endif %}
                 </div>
             </div>
             {% empty %}

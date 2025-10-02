@@ -534,6 +534,65 @@ class GmailService:
             process_part(payload)
         
         return body_text.strip(), body_html.strip(), attachments
+
+    def download_attachment_to_storage(self, email: EmailMessage, attachment: EmailAttachment) -> Optional[str]:
+        """Fetch a Gmail attachment if not downloaded, save to MEDIA_ROOT, and return relative file path.
+
+        Args:
+            email: EmailMessage instance (provides gmail_id/account)
+            attachment: EmailAttachment instance with attachment_id/filename
+
+        Returns:
+            Relative file path (under MEDIA_ROOT) if saved, else None
+        """
+        try:
+            if not self._credentials:
+                # Ensure we are authenticated on the right account
+                self.gmail_account = email.gmail_account
+                if not self.authenticate():
+                    raise ValueError("Failed to authenticate for attachment download")
+
+            # Ensure token is valid
+            self._ensure_valid_token()
+
+            import requests
+            url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{email.gmail_id}/attachments/{attachment.attachment_id}"
+            headers = {
+                'Authorization': f'Bearer {self._credentials.token}',
+                'Accept': 'application/json'
+            }
+            resp = requests.get(url, headers=headers, timeout=60)
+            resp.raise_for_status()
+            data = resp.json().get('data')
+            if not data:
+                logger.warning("No data returned for attachment %s", attachment.attachment_id)
+                return None
+
+            import base64
+            file_bytes = base64.urlsafe_b64decode(data + '===')
+
+            # Compute storage path
+            from django.conf import settings
+            safe_filename = attachment.filename or f"attachment-{attachment.pk}"
+            subdir = os.path.join('gmail_attachments', str(email.pk))
+            abs_dir = os.path.join(settings.MEDIA_ROOT, subdir)
+            os.makedirs(abs_dir, exist_ok=True)
+            abs_path = os.path.join(abs_dir, safe_filename)
+
+            with open(abs_path, 'wb') as f:
+                f.write(file_bytes)
+
+            rel_path = os.path.join(subdir, safe_filename)
+
+            # Update attachment record
+            attachment.file_path = rel_path
+            attachment.is_downloaded = True
+            attachment.save(update_fields=['file_path', 'is_downloaded'])
+
+            return rel_path
+        except Exception as e:
+            logger.error("Failed to download attachment %s: %s", attachment.pk, e)
+            return None
     
     def _extract_email(self, from_header: str) -> str:
         """Extract email address from From header"""

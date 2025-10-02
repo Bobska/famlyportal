@@ -645,23 +645,37 @@ def download_attachment(request, email_id: int, attachment_id: int):
     if attachment.file_path and (attachment.file_path.startswith('http://') or attachment.file_path.startswith('https://')):
         return redirect(attachment.file_path)
 
-    # Otherwise, stream from local storage
+    # Otherwise, ensure the file exists locally; if not, fetch on-demand from Gmail
     from django.http import FileResponse, Http404
     from django.conf import settings
     import os
-
-    if not attachment.file_path:
-        raise Http404('Attachment not available')
-
-    file_path = attachment.file_path
-    if not os.path.isabs(file_path):
-        file_path = os.path.join(settings.MEDIA_ROOT, file_path)
-
-    if not os.path.exists(file_path):
-        raise Http404('File not found')
-
-    response = FileResponse(open(file_path, 'rb'), content_type=attachment.content_type or 'application/octet-stream')
-    response['Content-Disposition'] = f"attachment; filename=\"{attachment.filename}\""
+    
+    rel_path = attachment.file_path
+    abs_path = None
+    if rel_path:
+        abs_path = rel_path if os.path.isabs(rel_path) else os.path.join(settings.MEDIA_ROOT, rel_path)
+    
+    if not rel_path or not abs_path or not os.path.exists(abs_path):
+        # Attempt on-demand fetch
+        try:
+            from gmail_integration.services import GmailService
+            svc = GmailService(gmail_account=email.gmail_account)
+            new_rel = svc.download_attachment_to_storage(email=email, attachment=attachment)
+            if new_rel:
+                rel_path = new_rel
+                abs_path = rel_path if os.path.isabs(rel_path) else os.path.join(settings.MEDIA_ROOT, rel_path)
+        except Exception:
+            pass
+    
+    if not abs_path or not os.path.exists(abs_path):
+        raise Http404('Attachment not available yet. Try syncing again or contact support.')
+    
+    # Decide inline vs attachment based on query param and content type
+    view_inline = request.GET.get('view') == '1' or (attachment.content_type and 'pdf' in attachment.content_type.lower())
+    disposition_type = 'inline' if view_inline else 'attachment'
+    
+    response = FileResponse(open(abs_path, 'rb'), content_type=attachment.content_type or 'application/octet-stream')
+    response['Content-Disposition'] = f"{disposition_type}; filename=\"{attachment.filename}\""
     return response
 
 

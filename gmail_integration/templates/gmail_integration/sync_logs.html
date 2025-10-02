@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Sync Logs - {{ account.email_address }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.clickable-row:hover {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.table-success.clickable-row:hover {
+    background-color: rgba(25, 135, 84, 0.2) !important;
+}
+.table-danger.clickable-row:hover {
+    background-color: rgba(220, 53, 69, 0.2) !important;
+}
+.table-warning.clickable-row:hover {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_list' %}">Gmail Accounts</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_detail' account.id %}">{{ account.email_address }}</a></li>
+                    <li class="breadcrumb-item active">Sync Logs</li>
+                </ol>
+            </nav>
+
+            <!-- Sync Logs -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Sync History for {{ account.email_address }}
+                    </h5>
+                    <a href="{% url 'gmail_integration:account_detail' account.id %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to Account
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if logs %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-mouse-pointer"></i> 
+                            <strong>Tip:</strong> Click on any row to view detailed information about that sync operation.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Started</th>
+                                        <th>Completed</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th>Processed</th>
+                                        <th>Added</th>
+                                        <th>Updated</th>
+                                        <th>Errors</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in logs %}
+                                        <tr class="{% if log.status == 'error' %}table-danger{% elif log.status == 'partial' %}table-warning{% elif log.status == 'success' %}table-success{% endif %} clickable-row" 
+                                            onclick="window.location='{% url 'gmail_integration:sync_log_detail' account.id log.id %}';" 
+                                            style="cursor: pointer;"
+                                            title="Click to view details">
+                                            <td>{{ log.started_at|localtime|date:"M d, Y g:i:s A" }}</td>
+                                            <td>
+                                                {% if log.completed_at %}
+                                                    {{ log.completed_at|localtime|date:"M d, Y g:i:s A" }}
+                                                {% else %}
+                                                    <span class="text-muted">Interrupted</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if log.duration %}
+                                                    {{ log.duration }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if log.status == 'success' %}success{% elif log.status == 'error' %}danger{% elif log.status == 'partial' %}warning{% else %}secondary{% endif %}">
+                                                    {{ log.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">{{ log.emails_processed }}</td>
+                                            <td class="text-center">{{ log.emails_added }}</td>
+                                            <td class="text-center">{{ log.emails_updated }}</td>
+                                            <td class="text-center">
+                                                {% if log.errors_count > 0 %}
+                                                    <span class="badge bg-danger">{{ log.errors_count }}</span>
+                                                {% else %}
+                                                    {{ log.errors_count }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if log.message %}
+                                                    <span title="{{ log.message }}">{{ log.message|truncatechars:60 }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                                {% if log.error_details %}
+                                                    <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#error-{{ log.id }}">
+                                                        <i class="fas fa-exclamation-circle text-danger"></i> Details
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% if log.error_details %}
+                                            <tr class="collapse" id="error-{{ log.id }}">
+                                                <td colspan="9">
+                                                    <div class="alert alert-danger mb-0">
+                                                        <strong>Error Details:</strong>
+                                                        <pre class="mb-0 mt-2">{{ log.error_details }}</pre>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                        <nav aria-label="Sync logs pagination" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1">&laquo; First</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo; First</span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                {% endif %}
+
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Last &raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+
+                        <div class="mt-3 text-muted">
+                            <small>Showing {{ logs|length }} of {{ page_obj.paginator.count }} sync log(s)</small>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No sync logs found for this account.</p>
+                            <a href="{% url 'gmail_integration:account_detail' account.id %}" class="btn btn-primary">
+                                <i class="fas fa-sync"></i> Start First Sync
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

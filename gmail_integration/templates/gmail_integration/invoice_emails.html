@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Invoice Emails: {{ account.email_address }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_list' %}">Gmail Accounts</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_detail' account.id %}">{{ account.email_address }}</a></li>
+                    <li class="breadcrumb-item active">Invoice Emails</li>
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-file-invoice"></i> Invoice Emails</h2>
+                    <p class="text-muted">Emails detected as invoices, bills, or receipts</p>
+                </div>
+                <div>
+                    <a href="{% url 'gmail_integration:account_detail' account.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Account
+                    </a>
+                </div>
+            </div>
+
+            <!-- Confidence Filter Tabs -->
+            <ul class="nav nav-tabs mb-4">
+                <li class="nav-item">
+                    <a class="nav-link {% if confidence == 'all' %}active{% endif %}" 
+                       href="?confidence=all{% if search %}&search={{ search }}{% endif %}">
+                        All Invoices 
+                        <span class="badge bg-secondary">{{ confidence_counts.all }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if confidence == 'high' %}active{% endif %}" 
+                       href="?confidence=high{% if search %}&search={{ search }}{% endif %}">
+                        High Confidence 
+                        <span class="badge bg-success">{{ confidence_counts.high }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if confidence == 'medium' %}active{% endif %}" 
+                       href="?confidence=medium{% if search %}&search={{ search }}{% endif %}">
+                        Medium Confidence 
+                        <span class="badge bg-warning">{{ confidence_counts.medium }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if confidence == 'low' %}active{% endif %}" 
+                       href="?confidence=low{% if search %}&search={{ search }}{% endif %}">
+                        Low Confidence 
+                        <span class="badge bg-info">{{ confidence_counts.low }}</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Search Bar -->
+            <form method="get" class="mb-4">
+                <input type="hidden" name="confidence" value="{{ confidence }}">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Search invoice emails..." value="{{ search }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    {% if search %}
+                    <a href="?confidence={{ confidence }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- Invoice Emails List -->
+            {% if page_obj %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        Found {{ page_obj.paginator.count }} invoice email{{ page_obj.paginator.count|pluralize }}
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for email in page_obj %}
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-start">
+                                    <!-- Confidence Badge -->
+                                    <div class="me-3">
+                                        {% if email.invoice_confidence == 'high' %}
+                                            <span class="badge bg-success" style="font-size: 0.9rem;">HIGH</span>
+                                        {% elif email.invoice_confidence == 'medium' %}
+                                            <span class="badge bg-warning" style="font-size: 0.9rem;">MED</span>
+                                        {% elif email.invoice_confidence == 'low' %}
+                                            <span class="badge bg-info" style="font-size: 0.9rem;">LOW</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Email Details -->
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            {% if email.has_attachments %}
+                                                <i class="fas fa-paperclip text-muted"></i>
+                                            {% endif %}
+                                            {{ email.subject|truncatewords:15 }}
+                                            {% if not email.is_read %}
+                                                <span class="badge bg-primary">Unread</span>
+                                            {% endif %}
+                                        </h6>
+                                        <p class="mb-1">
+                                            <strong>From:</strong> {{ email.sender_name|default:email.sender_email }}
+                                            {% if email.sender_name and email.sender_name != email.sender_email %}
+                                                <small class="text-muted">&lt;{{ email.sender_email }}&gt;</small>
+                                            {% endif %}
+                                        </p>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="fas fa-calendar"></i> {{ email.sent_date|localtime|date:"M d, Y g:i A" }}
+                                            {% if email.attachment_count > 0 %}
+                                                <i class="fas fa-paperclip ms-3"></i> {{ email.attachment_count }} attachment{{ email.attachment_count|pluralize }}
+                                            {% endif %}
+                                        </p>
+                                        
+                                        <!-- Detection Keywords -->
+                                        {% if email.invoice_keywords_found %}
+                                        <div class="mt-2">
+                                            <small class="text-muted"><strong>Detected:</strong></small>
+                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                {% for keyword in email.invoice_keywords_found|slice:":5" %}
+                                                    <span class="badge bg-light text-dark border">{{ keyword }}</span>
+                                                {% endfor %}
+                                                {% if email.invoice_keywords_found|length > 5 %}
+                                                    <span class="badge bg-light text-dark border">+{{ email.invoice_keywords_found|length|add:"-5" }} more</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 text-end">
+                                <a href="{% url 'gmail_integration:email_detail' account.id email.id %}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> View Email
+                                </a>
+                                <a href="https://mail.google.com/mail/u/0/#inbox/{{ email.gmail_id }}" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-outline-secondary"
+                                   title="Open in Gmail">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&confidence={{ confidence }}{% if search %}&search={{ search }}{% endif %}">
+                                Previous
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Previous</span>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}&confidence={{ confidence }}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&confidence={{ confidence }}{% if search %}&search={{ search }}{% endif %}">
+                                Next
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No invoice emails found.
+                {% if confidence != 'all' %}
+                    <a href="?confidence=all{% if search %}&search={{ search }}{% endif %}">View all confidence levels</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<style>
+.gap-1 {
+    gap: 0.25rem;
+}
+</style>
+{% endblock %}

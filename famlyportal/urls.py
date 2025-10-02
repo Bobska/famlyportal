@@ -41,6 +41,7 @@ urlpatterns = [
     path('subscription-tracker/', include('subscription_tracker.urls')),
     path('budget-allocation/', include('budget_allocation.urls')),
     path('budget-basic/', include('budget_basic.urls')),
+    path('gmail/', include('gmail_integration.urls')),
 ]
 
 # Serve media files in development

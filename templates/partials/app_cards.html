@@ -135,6 +135,19 @@
             </div>
             {% endif %}
             
+            <!-- AI Email Classification - New -->
+            {% has_app_permission 'ai' as can_ai %}
+            {% if can_ai %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                <a href="{% url 'ai:email_review' %}" class="app-card new">
+                    <span class="status-badge new">New</span>
+                    <i class="bi bi-robot app-icon"></i>
+                    <h5 class="app-title">AI Email Classifier</h5>
+                    <p class="app-description">Automatically identify daycare invoices using machine learning</p>
+                </a>
+            </div>
+            {% endif %}
+            
             <!-- AutoCraft CV App - Coming Soon -->
             {% has_app_permission 'autocraftcv' as can_cv %}
             {% if can_cv %}

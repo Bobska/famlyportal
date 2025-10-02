@@ -674,11 +674,16 @@ class GmailService:
             return [], 0, 0
         
         # Check which ones already exist in database
-        existing_ids = set(
-            self.gmail_account.emails.filter(
-                gmail_id__in=all_gmail_ids
+        # IMPORTANT: Batch the query to avoid SQLite's SQL variable limit (999)
+        existing_ids = set()
+        batch_size = 500  # Well below SQLite's 999 limit
+        
+        for i in range(0, len(all_gmail_ids), batch_size):
+            batch = all_gmail_ids[i:i + batch_size]
+            batch_existing = self.gmail_account.emails.filter(
+                gmail_id__in=batch
             ).values_list('gmail_id', flat=True)
-        )
+            existing_ids.update(batch_existing)
         
         # Find new IDs (not in database)
         new_ids = [gid for gid in all_gmail_ids if gid not in existing_ids]

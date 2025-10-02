@@ -408,3 +408,41 @@ class Prediction(models.Model):
             return 'Medium'
         else:
             return 'Low'
+
+
+class InvoiceExtraction(models.Model):
+    """Structured extraction result for an email's invoice-like content."""
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('complete', 'Complete'),
+        ('error', 'Error'),
+    ]
+
+    # Link to any object (EmailMessage expected primary use)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    provider_name = models.CharField(max_length=255, blank=True)
+    invoice_number = models.CharField(max_length=100, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=10, blank=True, default='USD')
+
+    confidence = models.FloatField(default=0.0)
+    raw_fields = models.JSONField(default=dict, help_text='Unnormalized parsed fields for traceability')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+        ]
+        verbose_name = 'Invoice Extraction'
+        verbose_name_plural = 'Invoice Extractions'
+
+    def __str__(self):
+        return f"InvoiceExtraction #{self.pk} for {self.content_type} {self.object_id}"

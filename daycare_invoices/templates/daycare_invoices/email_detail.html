@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Details{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attachment-item { display:flex; align-items:center; justify-content:space-between; padding:.75rem; border:1px solid #dee2e6; border-radius:4px; margin-bottom:.5rem; }
+    .meta { color:#6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <a href="{% url 'daycare_invoices:ai_invoice_emails' %}" class="btn btn-outline-secondary mb-3">&larr; Back to AI Emails</a>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h3 class="card-title mb-3">{{ email.subject|default:"(No subject)" }}</h3>
+            <div class="meta mb-2">
+                <div><strong>From:</strong> {{ email.sender_name|default:email.sender_email }} &lt;{{ email.sender_email }}&gt;</div>
+                <div><strong>Date:</strong> {{ email.sent_date|date:"M d, Y g:i A" }}</div>
+                <div><strong>Account:</strong> {{ email.gmail_account.email_address }}</div>
+                {% if latest_prediction %}
+                  <div><strong>AI:</strong> {{ latest_prediction.predicted_label }} ({{ latest_prediction.confidence_score|floatformat:2 }}) — {{ latest_prediction.get_status_display }}</div>
+                {% endif %}
+                {% if email.is_classified %}
+                  <div><strong>Final Label:</strong> {{ email.classification_label }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                {% if email.body_text %}
+                    <pre class="mb-0" style="white-space:pre-wrap">{{ email.body_text }}</pre>
+                {% elif email.body_html %}
+                    <div class="border p-2 bg-light">{{ email.body_html|safe }}</div>
+                {% else %}
+                    <div class="text-muted">No body content.</div>
+                {% endif %}
+            </div>
+            <form method="post" class="d-inline-block">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="analyze" />
+                <button class="btn btn-primary">
+                    <i class="bi bi-robot"></i> Analyze for Invoice Details
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if extraction %}
+    <div class="card mb-3">
+        <div class="card-header">Extracted Invoice Details</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div><strong>Provider:</strong> {{ extraction.provider_name|default:"—" }}</div>
+                    <div><strong>Invoice Number:</strong> {{ extraction.invoice_number|default:"—" }}</div>
+                    <div><strong>Due Date:</strong> {{ extraction.due_date|date:"M d, Y"|default:"—" }}</div>
+                </div>
+                <div class="col-md-6">
+                    <div><strong>Amount:</strong> {% if extraction.amount %}${{ extraction.amount }}{% else %}—{% endif %}</div>
+                    <div><strong>Confidence:</strong> {{ extraction.confidence|floatformat:2 }}</div>
+                    <div><strong>Status:</strong> {{ extraction.status }}</div>
+                </div>
+            </div>
+            {% if extraction.raw_fields %}
+            <hr>
+            <pre class="mb-0" style="white-space:pre-wrap">{{ extraction.raw_fields|json_script:"raw_fields" }}</pre>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if email.has_attachments %}
+    <div class="card">
+        <div class="card-header">Attachments ({{ email.attachment_count }})</div>
+        <div class="card-body">
+            {% for a in email.attachments.all %}
+            <div class="attachment-item">
+                <div>
+                    <strong>{{ a.filename }}</strong>
+                    <span class="text-muted ms-2">{{ a.get_size_display }}</span>
+                </div>
+                <div>
+                    {% if a.is_downloaded %}
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'daycare_invoices:download_attachment' email.id a.id %}">
+                        Download
+                    </a>
+                    {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" disabled>Not Available</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-muted">No attachments found.</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

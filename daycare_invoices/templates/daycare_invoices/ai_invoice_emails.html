@@ -95,7 +95,11 @@
                                 <div class="text-muted"><small>{{ row.email.sent_date|time:"g:i A" }}</small></div>
                             </td>
                             <td>
-                                <div class="subject" title="{{ row.email.subject }}">{{ row.email.subject|default:"(no subject)" }}</div>
+                                <div class="subject" title="{{ row.email.subject }}">
+                                    <a href="{% url 'daycare_invoices:email_detail' row.email.id %}">
+                                        {{ row.email.subject|default:"(no subject)" }}
+                                    </a>
+                                </div>
                                 <div class="text-muted"><small>{{ row.email.gmail_account.email_address }}</small></div>
                             </td>
                             <td>

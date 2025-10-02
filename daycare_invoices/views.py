@@ -524,6 +524,89 @@ def ai_invoice_emails(request):
     return render(request, 'daycare_invoices/ai_invoice_emails.html', context)
 
 
+# Email detail within Daycare Invoices (family-scoped)
+@login_required
+@family_required
+def email_detail(request, email_id: int):
+    """Show an AI-classified email with metadata and attachments; allow analysis trigger."""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access emails.")
+        return redirect('accounts:family_join')
+
+    # Family scoping: email must belong to a GmailAccount of any family member
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+    email = get_object_or_404(
+        EmailMessage.objects.select_related('gmail_account'),
+        pk=email_id,
+        gmail_account__user_id__in=family_users,
+    )
+
+    # Lazy-load last prediction for display
+    from django.contrib.contenttypes.models import ContentType
+    email_ct = ContentType.objects.get_for_model(EmailMessage)
+    latest_pred = Prediction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-predicted_at').first()
+
+    # Optional: handle analysis trigger
+    analysis_result = None
+    if request.method == 'POST' and request.POST.get('action') == 'analyze':
+        try:
+            from ai.services.invoice_extraction_service import analyze_email_for_invoice
+            analysis_result = analyze_email_for_invoice(email, user=request.user)
+            messages.success(request, 'Analysis complete.')
+        except Exception as e:
+            messages.error(request, f'Failed to analyze email: {e}')
+
+    # Fetch latest stored analysis if exists
+    try:
+        from ai.models import InvoiceExtraction
+        last_extraction = InvoiceExtraction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-created_at').first()
+    except Exception:
+        last_extraction = None
+
+    context = {
+        'email': email,
+        'latest_prediction': latest_pred,
+        'extraction': analysis_result or last_extraction,
+    }
+    return render(request, 'daycare_invoices/email_detail.html', context)
+
+
+@login_required
+@family_required
+def download_attachment(request, email_id: int, attachment_id: int):
+    """Securely stream a PDF or other attachment for an email with family scoping."""
+    family = get_user_family(request.user)
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+
+    from gmail_integration.models import EmailAttachment
+    email = get_object_or_404(EmailMessage, pk=email_id, gmail_account__user_id__in=family_users)
+    attachment = get_object_or_404(EmailAttachment, pk=attachment_id, email=email)
+
+    # If the attachment is an external URL, redirect
+    if attachment.file_path and (attachment.file_path.startswith('http://') or attachment.file_path.startswith('https://')):
+        return redirect(attachment.file_path)
+
+    # Otherwise, stream from local storage
+    from django.http import FileResponse, Http404
+    from django.conf import settings
+    import os
+
+    if not attachment.file_path:
+        raise Http404('Attachment not available')
+
+    file_path = attachment.file_path
+    if not os.path.isabs(file_path):
+        file_path = os.path.join(settings.MEDIA_ROOT, file_path)
+
+    if not os.path.exists(file_path):
+        raise Http404('File not found')
+
+    response = FileResponse(open(file_path, 'rb'), content_type=attachment.content_type or 'application/octet-stream')
+    response['Content-Disposition'] = f"attachment; filename=\"{attachment.filename}\""
+    return response
+
+
 @login_required
 @family_required
 def invoice_create(request):

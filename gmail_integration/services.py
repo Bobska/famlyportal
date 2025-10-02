@@ -274,6 +274,40 @@ class GmailService:
             logger.error(f"Authentication failed for {self.gmail_account.email_address}: {e}")
             return False
     
+    def _ensure_valid_token(self, force_refresh=False):
+        """
+        Ensure the access token is valid, refresh if expired or forced
+        This method should be called before any direct API call using self._credentials.token
+        
+        Args:
+            force_refresh: If True, refresh token even if not expired
+        """
+        if not self._credentials:
+            raise ValueError("No credentials available. Call authenticate() first.")
+        
+        # Always refresh if forced, or if token is expired
+        # Note: Google's credentials.expired isn't always reliable, so we allow forcing refresh
+        if force_refresh or (self._credentials.expired and self._credentials.refresh_token):
+            logger.info(f"{'Force refreshing' if force_refresh else 'Access token expired, refreshing'} access token...")
+            try:
+                self._credentials.refresh(Request())
+                
+                # Update stored credentials in database
+                updated_creds = {
+                    'token': self._credentials.token,
+                    'refresh_token': self._credentials.refresh_token,
+                    'token_uri': self._credentials.token_uri,
+                    'client_id': self._credentials.client_id,
+                    'client_secret': self._credentials.client_secret,
+                    'scopes': self._credentials.scopes
+                }
+                self.gmail_account.credentials = updated_creds
+                self.gmail_account.save()
+                logger.info("Access token refreshed successfully")
+            except Exception as e:
+                logger.error(f"Failed to refresh token: {e}")
+                raise
+    
     def get_emails(self, query: str = "", max_results: int = 100, page_token: str = None) -> Tuple[List[Dict], str]:
         """
         Get emails from Gmail using requests library directly (bypassing httplib2 issues)
@@ -291,25 +325,8 @@ class GmailService:
                 raise ValueError("Failed to authenticate Gmail service")
         
         try:
-            # Always refresh token before API calls to ensure it's valid
-            # Note: Google's expired check isn't reliable - token may be expired
-            # even when credentials.expired is False
-            if self._credentials.refresh_token:
-                logger.info("Refreshing token to ensure it's valid...")
-                self._credentials.refresh(Request())
-                
-                # Update stored credentials
-                updated_creds = {
-                    'token': self._credentials.token,
-                    'refresh_token': self._credentials.refresh_token,
-                    'token_uri': self._credentials.token_uri,
-                    'client_id': self._credentials.client_id,
-                    'client_secret': self._credentials.client_secret,
-                    'scopes': self._credentials.scopes
-                }
-                self.gmail_account.credentials = updated_creds
-                self.gmail_account.save()
-                logger.info("Token refreshed successfully")
+            # Ensure token is valid (refresh if expired)
+            self._ensure_valid_token()
             
             # BYPASS HTTPLIB2: Use requests library directly
             # This avoids the WinError 10060 timeout issue with httplib2
@@ -377,18 +394,34 @@ class GmailService:
             # BYPASS HTTPLIB2: Use requests library directly
             import requests
             
-            url = f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{email_id}'
-            params = {'format': 'full'}
-            headers = {
-                'Authorization': f'Bearer {self._credentials.token}',
-                'Accept': 'application/json'
-            }
-            
-            response = requests.get(url, headers=headers, params=params, timeout=30)
-            response.raise_for_status()
-            
-            message = response.json()
-            return self._parse_email_message(message)
+            # Retry logic with automatic token refresh on 401
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                # Ensure token is valid (refresh if expired)
+                self._ensure_valid_token(force_refresh=(attempt > 0))
+                
+                url = f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{email_id}'
+                params = {'format': 'full'}
+                headers = {
+                    'Authorization': f'Bearer {self._credentials.token}',
+                    'Accept': 'application/json'
+                }
+                
+                try:
+                    response = requests.get(url, headers=headers, params=params, timeout=30)
+                    response.raise_for_status()
+                    
+                    message = response.json()
+                    return self._parse_email_message(message)
+                    
+                except requests.exceptions.HTTPError as http_err:
+                    # Handle 401 Unauthorized - token expired
+                    if http_err.response.status_code == 401 and attempt < max_retries:
+                        logger.warning(f"Got 401 Unauthorized for email {email_id}, retrying with fresh token (attempt {attempt + 1}/{max_retries})")
+                        continue  # Retry with force refresh
+                    else:
+                        # Re-raise if not 401 or max retries reached
+                        raise
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Gmail API error getting email {email_id}: {e}")
@@ -559,8 +592,13 @@ class GmailService:
             
             all_message_ids = []
             page_token = None
+            retry_count = 0
+            max_retries = 2
             
             while len(all_message_ids) < max_messages:
+                # Ensure token is valid (refresh if expired)
+                self._ensure_valid_token()
+                
                 url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages'
                 params = {
                     'maxResults': min(500, max_messages - len(all_message_ids)),  # Max 500 per request
@@ -576,8 +614,23 @@ class GmailService:
                     'Accept': 'application/json'
                 }
                 
-                response = requests.get(url, headers=headers, params=params, timeout=30)
-                response.raise_for_status()
+                try:
+                    response = requests.get(url, headers=headers, params=params, timeout=30)
+                    response.raise_for_status()
+                    retry_count = 0  # Reset retry count on success
+                    
+                except requests.exceptions.HTTPError as http_err:
+                    # Handle 401 Unauthorized - token expired
+                    if http_err.response.status_code == 401 and retry_count < max_retries:
+                        logger.warning(f"Got 401 Unauthorized, forcing token refresh (attempt {retry_count + 1}/{max_retries})")
+                        retry_count += 1
+                        # Force refresh the token
+                        self._ensure_valid_token(force_refresh=True)
+                        # Retry the same request
+                        continue
+                    else:
+                        # Re-raise if not 401 or max retries reached
+                        raise
                 
                 results = response.json()
                 messages = results.get('messages', [])

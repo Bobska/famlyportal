@@ -28,6 +28,7 @@ urlpatterns = [
     
     # Invoice Management
     path('invoices/', views.invoice_list, name='invoice_list'),
+    path('invoices/ai-email-invoices/', views.ai_invoice_emails, name='ai_invoice_emails'),
     path('invoices/add/', views.invoice_create, name='invoice_create'),
     path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
     path('invoices/<int:pk>/edit/', views.invoice_update, name='invoice_update'),

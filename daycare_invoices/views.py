@@ -29,6 +29,10 @@ from .forms import (
     DaycareProviderForm, ChildForm, InvoiceForm, PaymentForm,
     QuickInvoiceForm, InvoiceFilterForm, ProviderFilterForm, PaymentFilterForm
 )
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import OuterRef, Subquery
+from gmail_integration.models import EmailMessage, GmailAccount
+from ai.models import Prediction
 
 
 def get_user_family(user):
@@ -396,6 +400,128 @@ def invoice_list(request):
     }
     
     return render(request, 'daycare_invoices/invoice_list.html', context)
+
+
+# AI-classified daycare invoice emails
+@login_required
+@family_required
+def ai_invoice_emails(request):
+    """
+    List all emails classified by the AI as daycare invoices.
+
+    - Scoped to the current user's family (all family members' Gmail accounts)
+    - Filters: date range, Gmail account, min confidence, prediction status, search
+    - Shows latest prediction per email (confidence, status, predicted_at)
+    """
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access daycare invoices.")
+        return redirect('accounts:family_join')
+
+    # Family scoping: gather all users in the family
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+
+    # Start with emails that AI classified as daycare invoices
+    emails = EmailMessage.objects.filter(
+        gmail_account__user_id__in=family_users,
+        is_classified=True,
+        classification_label='daycare_invoice'
+    ).select_related('gmail_account').order_by('-sent_date')
+
+    # Filters
+    search = request.GET.get('search', '').strip()
+    account_id = request.GET.get('account')
+    min_conf = request.GET.get('min_conf')
+    status = request.GET.get('status')  # pending/confirmed/rejected/auto_applied
+    date_from = request.GET.get('from')
+    date_to = request.GET.get('to')
+
+    if search:
+        emails = emails.filter(
+            Q(subject__icontains=search) |
+            Q(sender_email__icontains=search) |
+            Q(sender_name__icontains=search)
+        )
+
+    if account_id:
+        emails = emails.filter(gmail_account_id=account_id)
+
+    if date_from:
+        try:
+            dt_from = datetime.fromisoformat(date_from)
+            emails = emails.filter(sent_date__gte=dt_from)
+        except Exception:
+            pass
+    if date_to:
+        try:
+            # include whole day by adding 1 day and using lt
+            dt_to = datetime.fromisoformat(date_to) + timedelta(days=1)
+            emails = emails.filter(sent_date__lt=dt_to)
+        except Exception:
+            pass
+
+    # Annotate with latest prediction fields for filtering and display
+    email_ct = ContentType.objects.get_for_model(EmailMessage)
+    latest_preds = Prediction.objects.filter(
+        content_type=email_ct,
+        object_id=OuterRef('pk')
+    ).order_by('-predicted_at')
+
+    emails = emails.annotate(
+        latest_status=Subquery(latest_preds.values('status')[:1]),
+        latest_conf=Subquery(latest_preds.values('confidence_score')[:1]),
+        latest_label=Subquery(latest_preds.values('predicted_label')[:1]),
+        latest_predicted_at=Subquery(latest_preds.values('predicted_at')[:1]),
+    )
+
+    # Apply filters based on latest prediction
+    if status:
+        emails = emails.filter(latest_status=status)
+    if min_conf:
+        try:
+            mc = float(min_conf)
+            emails = emails.filter(latest_conf__gte=mc)
+        except ValueError:
+            pass
+
+    # Pagination after all filters
+    paginator = Paginator(emails, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Accounts list for filter dropdown
+    accounts = GmailAccount.objects.filter(user_id__in=family_users).order_by('email_address')
+
+    # Enriched rows
+    rows = []
+    for email in page_obj.object_list:
+        rows.append({
+            'email': email,
+            'prediction': {
+                'status': getattr(email, 'latest_status', None),
+                'predicted_label': getattr(email, 'latest_label', None),
+                'predicted_at': getattr(email, 'latest_predicted_at', None),
+                'confidence_score': getattr(email, 'latest_conf', None),
+            },
+            'confidence_percent': int(((getattr(email, 'latest_conf', 0) or 0) * 100)) if getattr(email, 'latest_conf', None) is not None else None,
+        })
+
+    context = {
+        'page_obj': page_obj,
+        'rows': rows,
+        'accounts': accounts,
+        'filters': {
+            'search': search,
+            'account': account_id,
+            'min_conf': min_conf,
+            'status': status,
+            'from': date_from,
+            'to': date_to,
+        },
+        'total_count': emails.count(),
+    }
+
+    return render(request, 'daycare_invoices/ai_invoice_emails.html', context)
 
 
 @login_required

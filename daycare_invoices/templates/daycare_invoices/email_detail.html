@@ -71,6 +71,39 @@
     </div>
     {% endif %}
 
+    {% if extraction %}
+    <div class="card mb-3">
+        <div class="card-header">Verify / Correct Extracted Details</div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="verify" />
+                <div class="col-md-6">
+                    <label class="form-label">Provider</label>
+                    <input class="form-control" name="provider_name" value="{{ extraction.provider_name }}" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Invoice Number</label>
+                    <input class="form-control" name="invoice_number" value="{{ extraction.invoice_number }}" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Due Date</label>
+                    <input class="form-control" type="date" name="due_date" value="{{ extraction.due_date|date:'Y-m-d' }}" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Amount</label>
+                    <input class="form-control" name="amount" value="{{ extraction.amount }}" />
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-success">
+                        <i class="bi bi-check2-circle"></i> Save Verified Details
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     {% if email.has_attachments %}
     <div class="card">
         <div class="card-header">Attachments ({{ email.attachment_count }})</div>

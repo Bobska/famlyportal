@@ -549,13 +549,71 @@ def email_detail(request, email_id: int):
 
     # Optional: handle analysis trigger
     analysis_result = None
-    if request.method == 'POST' and request.POST.get('action') == 'analyze':
-        try:
-            from ai.services.invoice_extraction_service import analyze_email_for_invoice
-            analysis_result = analyze_email_for_invoice(email, user=request.user)
-            messages.success(request, 'Analysis complete.')
-        except Exception as e:
-            messages.error(request, f'Failed to analyze email: {e}')
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'analyze':
+            try:
+                from ai.services.invoice_extraction_service import analyze_email_for_invoice
+                analysis_result = analyze_email_for_invoice(email, user=request.user)
+                messages.success(request, 'Analysis complete.')
+            except Exception as e:
+                messages.error(request, f'Failed to analyze email: {e}')
+        elif action == 'verify':
+            # Save user-verified fields and add training sample
+            from django.contrib.contenttypes.models import ContentType
+            from ai.models import InvoiceExtraction, TrainingDataset, TrainingSample
+            ct = ContentType.objects.get_for_model(EmailMessage)
+            extraction = InvoiceExtraction.objects.filter(content_type=ct, object_id=email.pk).order_by('-created_at').first()
+            if extraction:
+                # Update fields from form
+                extraction.provider_name = request.POST.get('provider_name', '')
+                extraction.invoice_number = request.POST.get('invoice_number', '')
+                due = request.POST.get('due_date')
+                if due:
+                    try:
+                        extraction.due_date = date.fromisoformat(due)
+                    except Exception:
+                        pass
+                amount = request.POST.get('amount')
+                try:
+                    from decimal import Decimal
+                    extraction.amount = Decimal(amount) if amount else extraction.amount
+                except Exception:
+                    pass
+                extraction.verified_at = timezone.now()
+                extraction.verified_by = request.user
+                extraction.status = 'complete'
+                extraction.save()
+
+                # Create or find dataset for invoice extraction learning
+                dataset, _ = TrainingDataset.objects.get_or_create(
+                    dataset_name='invoice_extraction_feedback',
+                    model_name='email_invoice_extraction',
+                    defaults={'data_source': 'user_feedback', 'created_by': request.user}
+                )
+                # Add training sample using structured fields as features and label as 'invoice'
+                # Precompute serializable due_date string
+                due_date_str = extraction.due_date.isoformat() if extraction.due_date else None
+
+                TrainingSample.objects.create(
+                    dataset=dataset,
+                    sample_identifier=f"Email {email.pk} extraction",
+                    content_type=ct,
+                    object_id=email.pk,
+                    features={
+                        'provider_name': extraction.provider_name,
+                        'invoice_number': extraction.invoice_number,
+                        'due_date': due_date_str,
+                        'amount': float(extraction.amount) if extraction.amount is not None else None,
+                        'sender_email': email.sender_email,
+                        'subject': email.subject,
+                    },
+                    label='invoice',
+                    source='user_feedback',
+                    created_by=request.user,
+                )
+                dataset.update_counts()
+                messages.success(request, 'Verified details saved and added to training data.')
 
     # Fetch latest stored analysis if exists
     try:

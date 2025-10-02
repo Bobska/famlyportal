@@ -58,6 +58,7 @@ LOCAL_APPS = [
     'budget_allocation',
     'budget_basic',
     'gmail_integration',
+    'ai',  # AI/ML Hub
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -238,3 +239,12 @@ GMAIL_ENCRYPTION_KEY = config(
     'GMAIL_ENCRYPTION_KEY',
     default='generate-a-real-key-in-production'
 )
+
+# AI/ML Hub Configuration
+AI_CONFIG = {
+    'MODEL_STORAGE_PATH': 'ai/models/',
+    'DEFAULT_CLASSIFIER': 'LogisticRegression',
+    'RETRAIN_THRESHOLD': 20,  # New samples needed before retrain
+    'MIN_CONFIDENCE': 0.7,  # Minimum confidence for auto-classification
+}
+

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Hub Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1><i class="fas fa-robot"></i> AI & Machine Learning Hub</h1>
+    <p class="lead">Central hub for managing AI models, training data, and predictions across FamlyPortal</p>
+    
+    <div class="row mt-4">
+        <!-- Models Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-brain"></i> ML Models</h5>
+                    <div class="display-4">{{ active_models_count }}</div>
+                    <p class="text-muted">Active models</p>
+                    <hr>
+                    <p>Total: {{ total_models_count }} models</p>
+                    <a href="{% url 'ai:model_list' %}" class="btn btn-primary btn-sm">View Models</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Datasets Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-database"></i> Training Data</h5>
+                    <div class="display-4">{{ datasets_count }}</div>
+                    <p class="text-muted">Datasets</p>
+                    <hr>
+                    <p>Total: {{ total_samples }} samples</p>
+                    <a href="{% url 'ai:dataset_list' %}" class="btn btn-primary btn-sm">View Datasets</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Predictions Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-chart-line"></i> Predictions</h5>
+                    <div class="display-4">{{ pending_predictions }}</div>
+                    <p class="text-muted">Pending review</p>
+                    <hr>
+                    <p>Total: {{ total_predictions }} predictions</p>
+                    <a href="{% url 'ai:prediction_list' %}" class="btn btn-primary btn-sm">Review Predictions</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Model Performance Summary -->
+    {% if model_summaries %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Active Model Performance</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Model Name</th>
+                            <th>Version</th>
+                            <th>Accuracy</th>
+                            <th>F1 Score</th>
+                            <th>Training Samples</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model in model_summaries %}
+                        <tr>
+                            <td>{{ model.name }}</td>
+                            <td><span class="badge bg-primary">v{{ model.version }}</span></td>
+                            <td>
+                                {% if model.accuracy %}
+                                    {{ model.accuracy|floatformat:2 }}%
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if model.f1_score %}
+                                    {{ model.f1_score|floatformat:2 }}%
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ model.training_samples }}</td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-outline-primary">Details</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Links -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Models</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'ai:model_list' %}"><i class="fas fa-list"></i> Browse all models</a></li>
+                        <li><a href="{% url 'admin:ai_mlmodel_changelist' %}"><i class="fas fa-cog"></i> Manage models (Admin)</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Training</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'ai:dataset_list' %}"><i class="fas fa-database"></i> View datasets</a></li>
+                        <li><a href="{% url 'admin:ai_trainingdataset_changelist' %}"><i class="fas fa-plus"></i> Create dataset (Admin)</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <h6>Predictions</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'ai:prediction_list' %}?status=pending"><i class="fas fa-clock"></i> Review pending predictions</a></li>
+                        <li><a href="{% url 'ai:statistics' %}"><i class="fas fa-chart-bar"></i> View statistics</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Documentation</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#"><i class="fas fa-book"></i> API Documentation</a></li>
+                        <li><a href="#"><i class="fas fa-question-circle"></i> How to create classifiers</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

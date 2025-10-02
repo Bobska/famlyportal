@@ -583,6 +583,8 @@ class GmailService:
         Returns:
             List of Gmail message IDs
         """
+        logger.info(f"[SERVICE] get_all_message_ids called with max_messages={max_messages}")
+        
         if not self._credentials:
             if not self.authenticate():
                 raise ValueError("Failed to authenticate Gmail service")
@@ -662,6 +664,8 @@ class GmailService:
         Returns:
             Tuple of (new_message_ids, total_in_gmail, already_synced_count)
         """
+        logger.info(f"[SERVICE] get_new_message_ids called with max_messages={max_messages}")
+        
         # Get all message IDs from Gmail
         all_gmail_ids = self.get_all_message_ids(query, max_messages)
         total_count = len(all_gmail_ids)
@@ -723,6 +727,8 @@ class GmailService:
         """
         if not self.gmail_account:
             raise ValueError("No Gmail account provided")
+        
+        logger.info(f"[SERVICE] sync_emails_incremental called with max_emails={max_emails}")
         
         # Create sync log
         sync_log = SyncLog.objects.create(

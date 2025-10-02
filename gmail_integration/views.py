@@ -36,12 +36,13 @@ def run_sync_in_background(account_id, query='', max_emails=1000, use_incrementa
     """
     sync_log = None
     try:
-        logger.info(f"[THREAD START] Background sync started for account {account_id}")
+        logger.info(f"[THREAD START] Background sync started for account {account_id} with max_emails={max_emails}")
         account = GmailAccount.objects.get(id=account_id)
         service = GmailService(gmail_account=account)
         
         # Use incremental sync by default (much faster!)
         if use_incremental:
+            logger.info(f"[THREAD] Calling sync_emails_incremental with max_emails={max_emails}")
             sync_log = service.sync_emails_incremental(query=query, max_emails=max_emails)
         else:
             sync_log = service.sync_emails(query=query, max_emails=max_emails)
@@ -313,16 +314,25 @@ def sync_emails(request, account_id):
             })
     
     try:
+        # Parse request data (supports both JSON and form data)
+        if request.content_type == 'application/json':
+            import json
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+        
         # Get sync parameters
-        query = request.POST.get('query', '')
-        max_emails_param = request.POST.get('max_emails', '1000')
-        sync_all = request.POST.get('sync_all', 'false').lower() == 'true'
+        query = data.get('query', '')
+        max_emails_param = data.get('max_emails', '1000')
+        sync_all = str(data.get('sync_all', 'false')).lower() == 'true'
         
         # Handle "sync all" option
         if sync_all:
             max_emails = 999999  # Effectively unlimited
+            logger.info(f"🚀 SYNC ALL enabled: max_emails set to {max_emails}")
         else:
             max_emails = int(max_emails_param)
+            logger.info(f"📊 Standard sync: max_emails set to {max_emails}")
         
         # Start sync in background thread (it will create its own SyncLog)
         thread = threading.Thread(

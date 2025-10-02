@@ -265,7 +265,7 @@ def email_review_view(request):
     predictions = Prediction.objects.filter(
         content_type=email_ct,
         status='pending'
-    ).order_by('-confidence_score', '-created_at')
+    ).order_by('-confidence_score', '-predicted_at')
     
     # Filter by confidence threshold if provided
     min_confidence = request.GET.get('min_confidence')

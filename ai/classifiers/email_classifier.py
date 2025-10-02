@@ -31,9 +31,9 @@ class DaycareInvoiceClassifier(BaseClassifier):
     - Random Forest classifier for robust predictions
     """
     
-    def __init__(self):
+    def __init__(self, model_name: str = 'daycare_invoice_classifier'):
         """Initialize the classifier with vectorizer and model."""
-        super().__init__()
+        super().__init__(model_name)
         
         # TF-IDF vectorizer for text features
         # Using 1-2 word phrases (unigrams and bigrams) captures patterns like "amount due"

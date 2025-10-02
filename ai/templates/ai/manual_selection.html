@@ -9,14 +9,31 @@
     .email-row { cursor: pointer; transition: background-color 0.2s; }
     .email-row:hover { background-color: #f8f9fa; }
     .email-row.selected { background-color: #e7f3ff; }
+    .email-row.labeled { background-color: #f0f9f0; border-left: 4px solid #28a745; }
+    .email-row.labeled-invoice { background-color: #fff3e0; border-left: 4px solid #ff9800; }
     .stats-card { border-left: 4px solid #28a745; }
     .progress-card { border-left: 4px solid #ffc107; }
     .ready-badge { font-size: 1.2em; padding: 0.5em 1em; }
+    .label-badge { font-size: 0.85em; font-weight: 600; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="row">
         <div class="col-lg-9">
             <h1><i class="fas fa-tags"></i> Manual Email Labeling</h1>
@@ -129,23 +146,38 @@
         </div>
     </div>
 
-    <!-- Search -->
+    <!-- Search and Filter -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form method="get" class="row g-3">
-                        <div class="col-md-10">
-                            <input type="text" class="form-control" name="search" 
-                                   placeholder="Search by subject or sender email..." 
-                                   value="{{ request.GET.search|default:'' }}">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <form method="get" class="d-flex gap-2">
+                                <input type="text" class="form-control" name="search" 
+                                       placeholder="Search by subject or sender email..." 
+                                       value="{{ request.GET.search|default:'' }}">
+                                {% if show_labeled %}
+                                <input type="hidden" name="show_labeled" value="true">
+                                {% endif %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </form>
                         </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search"></i> Search
-                            </button>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'ai:manual_selection' %}{% if request.GET.search %}?search={{ request.GET.search }}{% endif %}" 
+                                   class="btn {% if not show_labeled %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                    <i class="fas fa-inbox"></i> Unlabeled ({{ unlabeled_count }})
+                                </a>
+                                <a href="{% url 'ai:manual_selection' %}?show_labeled=true{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+                                   class="btn {% if show_labeled %}btn-info{% else %}btn-outline-info{% endif %}">
+                                    <i class="fas fa-check-circle"></i> Labeled ({{ labeled_count }})
+                                </a>
+                            </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -157,8 +189,15 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-envelope"></i> Emails
-                        <span class="badge bg-primary">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        <i class="fas fa-envelope"></i> 
+                        {% if show_labeled %}
+                        Already Labeled Emails 
+                        <span class="badge bg-info">Review Mode</span>
+                        {% else %}
+                        Unlabeled Emails
+                        <span class="badge bg-primary">Labeling Mode</span>
+                        {% endif %}
+                        <span class="badge bg-secondary">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -176,47 +215,64 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for email in page_obj %}
-                                <tr class="email-row">
+                                {% for item in enriched_emails %}
+                                <tr class="email-row {% if item.label_info %}{% if item.label_info.is_invoice %}labeled-invoice{% else %}labeled{% endif %}{% endif %}">
                                     <td onclick="event.stopPropagation()">
+                                        {% if item.label_info %}
+                                        <input type="checkbox" class="email-checkbox" 
+                                               disabled title="Already labeled as {{ item.label_info.label }}">
+                                        {% else %}
                                         <input type="checkbox" class="email-checkbox" name="email_ids" 
-                                               value="{{ email.id }}" form="labelForm" 
+                                               value="{{ item.email.id }}" form="labelForm" 
                                                onchange="updateCount()">
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'gmail_integration:email_detail' email.gmail_account.id email.id %}" 
-                                           class="text-decoration-none text-dark" 
-                                           target="_blank"
-                                           title="Click to view full email">
-                                            <strong>{{ email.subject|truncatewords:15 }}</strong>
-                                            <i class="fas fa-external-link-alt fa-xs text-muted ms-1"></i>
-                                        </a>
-                                        {% if email.has_attachments %}
-                                        <i class="fas fa-paperclip text-muted" title="Has {{ email.attachment_count }} attachment(s)"></i>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <small>{{ email.sender_name|default:email.sender_email }}</small><br>
-                                        <small class="text-muted">{{ email.sender_email|truncatechars:30 }}</small>
+                                        {% if item.label_info %}
+                                        <span class="label-badge badge {% if item.label_info.is_invoice %}bg-warning text-dark{% else %}bg-success{% endif %} me-2" 
+                                              title="Labeled {{ item.label_info.created_at|timesince }} ago{% if item.label_info.created_by %} by {{ item.label_info.created_by.username }}{% endif %}">
+                                            <i class="fas {% if item.label_info.is_invoice %}fa-file-invoice{% else %}fa-times-circle{% endif %}"></i>
+                                            {% if item.label_info.is_invoice %}INVOICE{% else %}NOT INVOICE{% endif %}
+                                        </span>
+                                        {% endif %}
+                                        <a href="{% url 'gmail_integration:email_detail' item.email.gmail_account.id item.email.id %}" 
+                                           class="text-decoration-none text-dark" 
+                                           target="_blank"
+                                           title="Click to view full email">
+                                            <strong>{{ item.email.subject|truncatewords:15 }}</strong>
+                                            <i class="fas fa-external-link-alt fa-xs text-muted ms-1"></i>
+                                        </a>
+                                        {% if item.email.has_attachments %}
+                                        <i class="fas fa-paperclip text-muted" title="Has {{ item.email.attachment_count }} attachment(s)"></i>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        {{ email.sent_date|date:"M d, Y" }}<br>
-                                        <small class="text-muted">{{ email.sent_date|time:"H:i" }}</small>
+                                        <small>{{ item.email.sender_name|default:item.email.sender_email }}</small><br>
+                                        <small class="text-muted">{{ item.email.sender_email|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>
+                                        {{ item.email.sent_date|date:"M d, Y" }}<br>
+                                        <small class="text-muted">{{ item.email.sent_date|time:"H:i" }}</small>
                                     </td>
                                     <td onclick="event.stopPropagation()">
-                                        <a href="{% url 'gmail_integration:email_detail' email.gmail_account.id email.id %}" 
+                                        <a href="{% url 'gmail_integration:email_detail' item.email.gmail_account.id item.email.id %}" 
                                            class="btn btn-sm btn-outline-primary" 
                                            target="_blank"
                                            title="View email">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        {% if email.has_attachments %}
-                                        <span class="badge bg-info" title="{{ email.attachment_count }} attachment(s)">
-                                            <i class="fas fa-paperclip"></i> {{ email.attachment_count }}
+                                        {% if item.email.has_attachments %}
+                                        <span class="badge bg-info" title="{{ item.email.attachment_count }} attachment(s)">
+                                            <i class="fas fa-paperclip"></i> {{ item.email.attachment_count }}
                                         </span>
                                         {% endif %}
-                                        {% if email.is_read %}
+                                        {% if item.email.is_read %}
                                         <span class="badge bg-secondary"><i class="fas fa-envelope-open"></i> Read</span>
+                                        {% endif %}
+                                        {% if item.label_info %}
+                                        <span class="badge bg-light text-dark border" title="Source: {{ item.label_info.source }}">
+                                            <i class="fas fa-check-circle text-success"></i> Labeled
+                                        </span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -259,7 +315,13 @@
                     <div class="text-center py-5">
                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <h4>No Emails Found</h4>
-                        <p class="text-muted">No emails to label at the moment.</p>
+                        <p class="text-muted">
+                            {% if show_labeled %}
+                            No labeled emails to display.
+                            {% else %}
+                            All emails have been labeled! Switch to "Labeled" view to review them.
+                            {% endif %}
+                        </p>
                     </div>
                     {% endif %}
                 </div>

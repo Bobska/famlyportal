@@ -198,10 +198,10 @@ class TrainingDataset(models.Model):
         samples = self.samples.all()
         self.total_samples = samples.count()
         self.positive_samples = samples.filter(
-            label__in=['positive', 'yes', 'true', '1', 'daycare']
+            label__in=['daycare_invoice', 'positive', 'yes', 'true', '1', 'daycare']
         ).count()
         self.negative_samples = samples.filter(
-            label__in=['negative', 'no', 'false', '0', 'not_daycare']
+            label__in=['not_invoice', 'negative', 'no', 'false', '0', 'not_daycare']
         ).count()
         self.save()
 

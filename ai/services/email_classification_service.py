@@ -80,21 +80,24 @@ class EmailClassificationService:
             
             # Add metadata
             result['email_id'] = email_id
-            result['model_version'] = model.version
+            result['model_version'] = model.model_version
             
             # Save prediction to database
             if save_prediction:
                 content_type = ContentType.objects.get_for_model(EmailMessage)
                 
-                Prediction.objects.create(
+                prediction = Prediction.objects.create(
                     model=model,
                     content_type=content_type,
                     object_id=email_id,
                     predicted_label=result['prediction'],
                     confidence_score=result['confidence'],
-                    prediction_data=result,
+                    all_predictions=result.get('probabilities', {}),
                     status='pending'
                 )
+                
+                # Add prediction_id to result for auto-confirmation
+                result['prediction_id'] = prediction.id
                 
                 logger.info(f"Classified email {email_id}: {result['prediction']} "
                            f"(confidence: {result['confidence']:.2f})")
@@ -111,15 +114,18 @@ class EmailClassificationService:
     @staticmethod
     def classify_all_emails() -> List[Dict[str, Any]]:
         """
-        Classify all emails in the database.
+        Classify all UNCLASSIFIED emails in the database.
+        Skips emails that have already been classified/confirmed.
+        Auto-confirms predictions with 100% confidence.
         
         Returns:
             List of classification results for each email
         """
         results = []
-        emails = EmailMessage.objects.all()
+        # Only classify emails that haven't been classified yet
+        emails = EmailMessage.objects.filter(is_classified=False)
         
-        logger.info(f"Starting batch classification of {emails.count()} emails")
+        logger.info(f"Starting batch classification of {emails.count()} unclassified emails")
         
         for email in emails:
             try:
@@ -127,6 +133,19 @@ class EmailClassificationService:
                     email.id,
                     save_prediction=True
                 )
+                
+                # Auto-confirm if confidence is 95% or higher (>= 0.95)
+                if result.get('confidence', 0) >= 0.95:
+                    prediction_id = result.get('prediction_id')
+                    if prediction_id:
+                        # Auto-confirm this prediction without creating review record
+                        EmailClassificationService._auto_confirm_prediction(
+                            prediction_id,
+                            email.id
+                        )
+                        result['auto_confirmed'] = True
+                        logger.info(f"Auto-confirmed email {email.id} with 95%+ confidence")
+                
                 results.append(result)
             except Exception as e:
                 logger.error(f"Failed to classify email {email.id}: {e}")
@@ -138,6 +157,79 @@ class EmailClassificationService:
         
         logger.info(f"Batch classification complete: {len(results)} emails processed")
         return results
+    
+    @staticmethod
+    def _auto_confirm_prediction(prediction_id: int, email_id: int) -> None:
+        """
+        Auto-confirm a 100% confidence prediction without user review.
+        Marks the email as classified and creates training sample.
+        
+        Args:
+            prediction_id: ID of Prediction to auto-confirm
+            email_id: ID of EmailMessage
+        """
+        try:
+            from django.utils import timezone
+            
+            # Get prediction and email
+            prediction = Prediction.objects.get(id=prediction_id)
+            email = EmailMessage.objects.get(id=email_id)
+            
+            # Mark prediction as auto-applied (skip pending review)
+            prediction.status = 'auto_applied'
+            prediction.reviewed_at = timezone.now()
+            prediction.save()
+            
+            # Mark email as classified
+            email.is_classified = True
+            email.classification_label = prediction.predicted_label
+            email.classified_at = timezone.now()
+            email.save()
+            
+            # Create training sample from this auto-confirmed prediction
+            email_data = EmailHelper.prepare_email_for_classification(email)
+            content_type = ContentType.objects.get_for_model(EmailMessage)
+            
+            # Convert datetime to string for JSON serialization
+            date_value = email_data.get('date')
+            features_dict = {
+                'subject': email_data.get('subject', ''),
+                'sender': email_data.get('sender', ''),
+                'body': email_data.get('body', '')[:1000],  # Limit body length
+                'has_attachment': email_data.get('has_attachment', False),
+                'has_pdf_attachment': email_data.get('has_pdf_attachment', False),
+                'date': date_value.isoformat() if date_value else None,
+                'auto_confirmed': True,
+                'confidence': float(prediction.confidence_score)
+            }
+            
+            # Get or create dataset for auto-confirmed samples
+            dataset, _ = TrainingDataset.objects.get_or_create(
+                model_name=EmailClassificationService.MODEL_NAME,
+                dataset_name='Daycare Invoice Training Data',
+                defaults={
+                    'notes': 'Training data from manual labels and auto-confirmed predictions',
+                    'data_source': 'mixed',
+                    'created_by': None
+                }
+            )
+            
+            TrainingSample.objects.create(
+                dataset=dataset,
+                label=prediction.predicted_label,
+                features=features_dict,
+                content_type=content_type,
+                object_id=email.id,
+                confidence=prediction.confidence_score,
+                source='auto_confirmed',
+                created_by=None
+            )
+            
+            logger.info(f"Auto-confirmed prediction {prediction_id} for email {email_id}")
+            
+        except Exception as e:
+            logger.error(f"Error auto-confirming prediction {prediction_id}: {e}")
+            raise
     
     @staticmethod
     def add_manual_training_sample(
@@ -166,8 +258,10 @@ class EmailClassificationService:
             # Get or create dataset
             dataset, _ = TrainingDataset.objects.get_or_create(
                 model_name=EmailClassificationService.MODEL_NAME,
+                dataset_name='Daycare Invoice Training Data',
                 defaults={
-                    'description': 'Manual labels for daycare invoice classification',
+                    'notes': 'Manual labels for daycare invoice classification',
+                    'data_source': 'manual',
                     'created_by': user
                 }
             )
@@ -186,9 +280,19 @@ class EmailClassificationService:
                     'text_features': features[0][:500].tolist() if len(features[0]) > 500 else features[0].tolist(),
                     'metadata_features': features[0][-9:].tolist()  # Last 9 are metadata
                 }
-            except:
+            except Exception as e:
                 # If feature extraction fails (no trained model), store raw data
-                features_dict = email_data
+                # Convert datetime to string for JSON serialization
+                date_value = email_data.get('date')
+                features_dict = {
+                    'subject': email_data.get('subject', ''),
+                    'sender': email_data.get('sender', ''),
+                    'body': email_data.get('body', '')[:1000],  # Limit body length
+                    'has_attachment': email_data.get('has_attachment', False),
+                    'has_pdf_attachment': email_data.get('has_pdf_attachment', False),
+                    'date': date_value.isoformat() if date_value else None
+                }
+                logger.debug(f"Feature extraction failed, storing raw data: {e}")
             
             # Create training sample
             content_type = ContentType.objects.get_for_model(EmailMessage)
@@ -204,7 +308,7 @@ class EmailClassificationService:
             )
             
             # Update dataset statistics
-            dataset.update_sample_counts()
+            dataset.update_counts()
             
             logger.info(f"Added training sample: email {email_id} labeled as '{label}'")
             
@@ -223,7 +327,8 @@ class EmailClassificationService:
         User confirms AI prediction was correct.
         
         This adds the confirmed prediction to training data
-        and may trigger automatic retraining.
+        and may trigger automatic retraining. Also marks the
+        email as classified.
         
         Args:
             prediction_id: ID of Prediction to confirm
@@ -240,6 +345,13 @@ class EmailClassificationService:
             prediction.reviewed_by = user
             prediction.reviewed_at = timezone.now()
             prediction.save()
+            
+            # Mark email as classified
+            email = EmailMessage.objects.get(id=prediction.object_id)
+            email.is_classified = True
+            email.classification_label = prediction.predicted_label
+            email.classified_at = timezone.now()
+            email.save()
             
             # Add to training data
             email_id = prediction.object_id
@@ -288,8 +400,15 @@ class EmailClassificationService:
             prediction.status = 'rejected'
             prediction.reviewed_by = user
             prediction.reviewed_at = timezone.now()
-            prediction.actual_label = correct_label
+            prediction.correct_label = correct_label
             prediction.save()
+            
+            # Mark email as classified with CORRECT label (not predicted)
+            email = EmailMessage.objects.get(id=prediction.object_id)
+            email.is_classified = True
+            email.classification_label = correct_label  # Use correct label
+            email.classified_at = timezone.now()
+            email.save()
             
             # Add corrected label to training data
             email_id = prediction.object_id
@@ -384,48 +503,57 @@ class EmailClassificationService:
             
             classifier.save_model(model_path)
             
-            # Create or update MLModel record
-            model, created = MLModel.objects.get_or_create(
-                model_name=EmailClassificationService.MODEL_NAME,
-                defaults={
-                    'model_type': 'classification',
-                    'description': 'Daycare invoice email classifier using Random Forest',
-                    'created_by': user
-                }
-            )
+            # The actual saved file has .joblib extension
+            model_file_path = f"{model_filename}.joblib"
             
-            # Deactivate previous version
-            if not created:
-                old_version = model.version
-                model.is_active = False
-                model.save()
+            # Get existing active model or find latest
+            existing_model = MLModel.objects.filter(
+                model_name=EmailClassificationService.MODEL_NAME,
+                is_active=True
+            ).first()
+            
+            if not existing_model:
+                existing_model = MLModel.objects.filter(
+                    model_name=EmailClassificationService.MODEL_NAME
+                ).order_by('-created_at').first()
+            
+            # Deactivate previous version if exists
+            if existing_model:
+                old_version = existing_model.model_version
+                existing_model.is_active = False
+                existing_model.save()
                 
                 # Create new version
-                model.pk = None  # Create new instance
-                model.is_active = True
-                model.version = EmailClassificationService._increment_version(old_version)
+                new_version = EmailClassificationService._increment_version(old_version)
+            else:
+                new_version = '1.0.0'
             
-            # Update model info
-            model.model_file = f"ai/models/{model_filename}.joblib"
-            model.performance_metrics = metrics
-            model.training_samples_count = len(training_data)
-            model.last_trained = timezone.now()
-            model.save()
+            # Create new model instance with model file path
+            model = MLModel.objects.create(
+                model_name=EmailClassificationService.MODEL_NAME,
+                model_version=new_version,
+                model_type='classification',
+                model_file=f'ai/models/{model_file_path}',
+                description='Daycare invoice email classifier using Random Forest',
+                created_by=user,
+                is_active=True,
+                performance_metrics=metrics,
+                training_samples_count=len(training_data)
+            )
             
             # Mark dataset as processed
             dataset.is_processed = True
-            dataset.processed_at = timezone.now()
             dataset.save()
             
-            logger.info(f"Model training complete. Version: {model.version}, "
+            logger.info(f"Model training complete. Version: {model.model_version}, "
                        f"Accuracy: {metrics.get('accuracy', 0):.3f}")
             
             return {
                 'success': True,
-                'model_version': model.version,
+                'model_version': model.model_version,
                 'metrics': metrics,
                 'samples_used': len(training_data),
-                'model_id': model.id
+                'model_id': model.pk
             }
             
         except Exception as e:
@@ -474,8 +602,8 @@ class EmailClassificationService:
             ).first()
             
             if model:
-                stats['model_version'] = model.version
-                stats['last_trained'] = model.last_trained
+                stats['model_version'] = model.model_version
+                stats['last_trained'] = model.created_at
                 
                 if model.performance_metrics:
                     stats['model_accuracy'] = model.performance_metrics.get('accuracy')
@@ -485,7 +613,7 @@ class EmailClassificationService:
                 # Get samples added since last training
                 new_samples = TrainingSample.objects.filter(
                     dataset=dataset,
-                    created_at__gt=model.last_trained
+                    created_at__gt=model.created_at
                 ).count()
                 
                 retrain_threshold = getattr(
@@ -503,14 +631,30 @@ class EmailClassificationService:
     @staticmethod
     def _get_or_create_model() -> MLModel:
         """Get active model or create placeholder."""
-        model, created = MLModel.objects.get_or_create(
+        # First try to get the active model
+        model = MLModel.objects.filter(
             model_name=EmailClassificationService.MODEL_NAME,
-            defaults={
-                'model_type': 'classification',
-                'description': 'Daycare invoice email classifier',
-                'version': '1.0.0',
-                'is_active': False
-            }
+            is_active=True
+        ).first()
+        
+        if model:
+            return model
+        
+        # If no active model, get the latest one
+        model = MLModel.objects.filter(
+            model_name=EmailClassificationService.MODEL_NAME
+        ).order_by('-created_at').first()
+        
+        if model:
+            return model
+        
+        # If no model exists at all, create a placeholder
+        model = MLModel.objects.create(
+            model_name=EmailClassificationService.MODEL_NAME,
+            model_version='1.0.0',
+            model_type='classification',
+            description='Daycare invoice email classifier',
+            is_active=False
         )
         return model
     

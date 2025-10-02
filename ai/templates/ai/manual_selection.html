@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manual Email Labeling{% endblock %}
+
+{% block extra_css %}
+<style>
+    .email-checkbox { transform: scale(1.3); margin-right: 10px; }
+    .email-row { cursor: pointer; transition: background-color 0.2s; }
+    .email-row:hover { background-color: #f8f9fa; }
+    .email-row.selected { background-color: #e7f3ff; }
+    .stats-card { border-left: 4px solid #28a745; }
+    .progress-card { border-left: 4px solid #ffc107; }
+    .ready-badge { font-size: 1.2em; padding: 0.5em 1em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-9">
+            <h1><i class="fas fa-tags"></i> Manual Email Labeling</h1>
+            <p class="lead">Select emails and label them to build initial training data</p>
+        </div>
+        <div class="col-lg-3 text-end">
+            <a href="{% url 'ai:email_review' %}" class="btn btn-secondary">
+                <i class="fas fa-eye"></i> Review Predictions
+            </a>
+            <a href="{% url 'ai:training_dashboard' %}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Progress Cards -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Training Samples</h6>
+                    <h2>{{ stats.total_samples }}</h2>
+                    <div class="progress mt-2" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {% if stats.total_samples > 0 %}{{ stats.positive_samples|floatformat:0|default:0 }}{% else %}0{% endif %}%">
+                            {{ stats.positive_samples }} Invoices
+                        </div>
+                        <div class="progress-bar bg-secondary" role="progressbar" 
+                             style="width: {% if stats.total_samples > 0 %}{{ stats.negative_samples|floatformat:0|default:0 }}{% else %}0{% endif %}%">
+                            {{ stats.negative_samples }} Not
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card progress-card">
+                <div class="card-body">
+                    <h6 class="text-muted">Training Progress</h6>
+                    {% if ready_to_train %}
+                    <h2 class="text-success"><i class="fas fa-check-circle"></i> Ready!</h2>
+                    <p class="mb-0">You have enough samples to train</p>
+                    {% else %}
+                    <h2>{{ min_samples_needed }} more needed</h2>
+                    <div class="progress mt-2" style="height: 25px;">
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             style="width: {% widthratio stats.total_samples 20 100 %}%">
+                            {{ stats.total_samples }} / 20
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if ready_to_train %}
+                    <button class="btn btn-success btn-lg w-100" onclick="trainModel()">
+                        <i class="fas fa-brain"></i> Train Initial Model
+                    </button>
+                    <small class="text-muted mt-2 d-block">
+                        Model will train with {{ stats.total_samples }} samples
+                    </small>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Need {{ min_samples_needed }} more samples</strong><br>
+                        <small>Label at least 20 emails (10+ of each type) to train</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selection Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" id="labelForm">
+                        {% csrf_token %}
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <button type="button" class="btn btn-outline-primary" onclick="selectAll()">
+                                    <i class="fas fa-check-square"></i> Select All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="selectNone()">
+                                    <i class="fas fa-square"></i> Clear
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-primary" id="selectedCount">0 selected</span>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button type="submit" name="action" value="mark_invoice" 
+                                        class="btn btn-success" onclick="return confirmAction('Daycare Invoices')">
+                                    <i class="fas fa-check"></i> Mark as Daycare Invoices
+                                </button>
+                                <button type="submit" name="action" value="mark_not_invoice" 
+                                        class="btn btn-secondary" onclick="return confirmAction('NOT Invoices')">
+                                    <i class="fas fa-times"></i> Mark as NOT Invoices
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-10">
+                            <input type="text" class="form-control" name="search" 
+                                   placeholder="Search by subject or sender email..." 
+                                   value="{{ request.GET.search|default:'' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emails Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope"></i> Emails
+                        <span class="badge bg-primary">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)"></th>
+                                    <th style="width: 40%;">Subject</th>
+                                    <th style="width: 25%;">Sender</th>
+                                    <th style="width: 15%;">Date</th>
+                                    <th style="width: 15%;">Info</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for email in page_obj %}
+                                <tr class="email-row" onclick="toggleRow(this, {{ email.id }})">
+                                    <td onclick="event.stopPropagation()">
+                                        <input type="checkbox" class="email-checkbox" name="email_ids" 
+                                               value="{{ email.id }}" form="labelForm" 
+                                               onchange="updateCount()">
+                                    </td>
+                                    <td>
+                                        <strong>{{ email.subject|truncatewords:15 }}</strong>
+                                        {% if email.has_attachments %}
+                                        <i class="fas fa-paperclip text-muted" title="Has {{ email.attachment_count }} attachment(s)"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ email.sender_name|default:email.sender_email }}</small><br>
+                                        <small class="text-muted">{{ email.sender_email|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>
+                                        {{ email.sent_date|date:"M d, Y" }}<br>
+                                        <small class="text-muted">{{ email.sent_date|time:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if email.has_attachments %}
+                                        <span class="badge bg-info" title="{{ email.attachment_count }} attachment(s)">
+                                            <i class="fas fa-paperclip"></i> {{ email.attachment_count }}
+                                        </span>
+                                        {% endif %}
+                                        {% if email.is_read %}
+                                        <span class="badge bg-secondary"><i class="fas fa-envelope-open"></i> Read</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if page_obj.has_other_pages %}
+                    <div class="card-footer">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+                                </li>
+                                {% endif %}
+
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                                </li>
+
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h4>No Emails Found</h4>
+                        <p class="text-muted">No emails to label at the moment.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedCount = 0;
+
+function toggleRow(row, emailId) {
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+    row.classList.toggle('selected', checkbox.checked);
+    updateCount();
+}
+
+function toggleAll(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('input[name="email_ids"]');
+    checkboxes.forEach(cb => {
+        cb.checked = masterCheckbox.checked;
+        const row = cb.closest('tr');
+        row.classList.toggle('selected', masterCheckbox.checked);
+    });
+    updateCount();
+}
+
+function selectAll() {
+    document.getElementById('selectAllCheckbox').checked = true;
+    toggleAll(document.getElementById('selectAllCheckbox'));
+}
+
+function selectNone() {
+    document.getElementById('selectAllCheckbox').checked = false;
+    toggleAll(document.getElementById('selectAllCheckbox'));
+}
+
+function updateCount() {
+    const checkboxes = document.querySelectorAll('input[name="email_ids"]:checked');
+    selectedCount = checkboxes.length;
+    document.getElementById('selectedCount').textContent = `${selectedCount} selected`;
+}
+
+function confirmAction(label) {
+    if (selectedCount === 0) {
+        alert('Please select at least one email');
+        return false;
+    }
+    return confirm(`Label ${selectedCount} email(s) as ${label}?`);
+}
+
+function trainModel() {
+    if (!confirm('Train the initial model with {{ stats.total_samples }} samples?')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training...';
+    
+    fetch('/ai/emails/train/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ min_samples: 10 })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! ${data.message}\n\nNow you can classify emails!`);
+            window.location.href = '/ai/emails/review/';
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-brain"></i> Train Initial Model';
+        }
+    })
+    .catch(error => {
+        alert('Error training model: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-brain"></i> Train Initial Model';
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialize count on page load
+updateCount();
+</script>
+{% endblock %}

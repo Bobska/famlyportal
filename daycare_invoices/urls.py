@@ -31,6 +31,7 @@ urlpatterns = [
     path('invoices/ai-email-invoices/', views.ai_invoice_emails, name='ai_invoice_emails'),
     path('invoices/email/<int:email_id>/', views.email_detail, name='email_detail'),
     path('invoices/email/<int:email_id>/attachment/<int:attachment_id>/download/', views.download_attachment, name='download_attachment'),
+    path('invoices/create-from-email/<int:email_id>/', views.invoice_create_from_email, name='invoice_create_from_email'),
     path('invoices/add/', views.invoice_create, name='invoice_create'),
     path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
     path('invoices/<int:pk>/edit/', views.invoice_update, name='invoice_update'),

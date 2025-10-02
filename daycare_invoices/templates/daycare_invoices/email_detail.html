@@ -44,6 +44,11 @@
                     <i class="bi bi-robot"></i> Analyze for Invoice Details
                 </button>
             </form>
+            {% if extraction %}
+            <a class="btn btn-outline-success ms-2" href="{% url 'daycare_invoices:invoice_create_from_email' email.id %}">
+                <i class="bi bi-receipt"></i> Create Invoice from Extraction
+            </a>
+            {% endif %}
         </div>
     </div>
 

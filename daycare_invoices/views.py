@@ -667,6 +667,64 @@ def download_attachment(request, email_id: int, attachment_id: int):
 
 @login_required
 @family_required
+def invoice_create_from_email(request, email_id: int):
+    """Prefill an invoice form from the latest verified or extracted fields for an email."""
+    family = get_user_family(request.user)
+    if not family:
+        return redirect('accounts:family_join')
+
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+    email = get_object_or_404(EmailMessage, pk=email_id, gmail_account__user_id__in=family_users)
+
+    # Fetch extraction
+    from django.contrib.contenttypes.models import ContentType
+    from ai.models import InvoiceExtraction
+    email_ct = ContentType.objects.get_for_model(EmailMessage)
+    extraction = InvoiceExtraction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-verified_at', '-created_at').first()
+
+    # Build initial data for InvoiceForm
+    initial = {}
+    if extraction:
+        initial.update({
+            'invoice_number': extraction.invoice_number or '',
+            'invoice_date': timezone.now().date(),
+            'due_date': extraction.due_date or None,
+            'amount': extraction.amount or None,
+            'description': f"Auto-generated from email {email.pk}: {email.subject[:80] if email.subject else ''}",
+        })
+
+    # Try to map provider by name/email
+    provider = None
+    if extraction and extraction.provider_name:
+        provider = DaycareProvider.objects.filter(family=family, name__icontains=extraction.provider_name).first()
+    if not provider and email.sender_email:
+        provider = DaycareProvider.objects.filter(family=family, email__iexact=email.sender_email).first()
+
+    if provider:
+        initial['provider'] = provider.pk
+
+    if request.method == 'POST':
+        form = InvoiceForm(request.POST, family=family)
+        if form.is_valid():
+            invoice = form.save(commit=False)
+            invoice.family = family
+            invoice.save()
+            messages.success(request, 'Invoice created from email extraction.')
+            return redirect('daycare_invoices:invoice_detail', pk=invoice.pk)
+    else:
+        form = InvoiceForm(initial=initial, family=family)
+
+    context = {
+        'form': form,
+        'title': 'Create Invoice from Email',
+        'email': email,
+        'extraction': extraction,
+    }
+    return render(request, 'daycare_invoices/invoice_form.html', context)
+
+
+@login_required
+@family_required
 def invoice_create(request):
     """Create a new invoice"""
     family = get_user_family(request.user)

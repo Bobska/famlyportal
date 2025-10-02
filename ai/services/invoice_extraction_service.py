@@ -4,12 +4,58 @@ from datetime import datetime, date
 import re
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any
+import os
+from django.conf import settings
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 from ai.models import InvoiceExtraction
 from gmail_integration.models import EmailMessage
+
+
+def _extract_pdf_text_for_email(email: EmailMessage) -> str:
+    """Best-effort PDF text extraction for the email's PDF attachments.
+    Returns concatenated text or empty string on failure or if no PDFs.
+    """
+    text_chunks: list[str] = []
+    try:
+        from gmail_integration.models import EmailAttachment
+        pdf_attachments = EmailAttachment.objects.filter(email=email, is_downloaded=True).filter(
+            content_type__icontains='pdf'
+        )
+        if not pdf_attachments.exists():
+            pdf_attachments = EmailAttachment.objects.filter(email=email, is_downloaded=True, filename__iendswith='.pdf')
+    except Exception:
+        pdf_attachments = []
+
+    try:
+        import PyPDF2  # type: ignore
+    except Exception:
+        # Dependency not available; skip
+        return ''
+
+    for att in pdf_attachments:
+        fp = att.file_path
+        if not fp:
+            continue
+        abs_path = fp if os.path.isabs(fp) else os.path.join(settings.MEDIA_ROOT, fp)
+        if not os.path.exists(abs_path):
+            continue
+        try:
+            with open(abs_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                for page in reader.pages:
+                    try:
+                        t = page.extract_text() or ''
+                    except Exception:
+                        t = ''
+                    if t:
+                        text_chunks.append(t)
+        except Exception:
+            # Ignore per-file errors
+            continue
+    return '\n\n'.join(text_chunks)
 
 
 @dataclass
@@ -62,7 +108,9 @@ def analyze_email_for_invoice(email: EmailMessage, user=None) -> InvoiceExtracti
     """
     body_text = email.body_text or ''
     subject = email.subject or ''
-    combined = f"{subject}\n{body_text}"
+    # Append PDF text if available
+    pdf_text = _extract_pdf_text_for_email(email)
+    combined = f"{subject}\n{body_text}\n\n{pdf_text}"
 
     amount = _parse_amount(combined)
     due_date = _parse_due_date(combined)
@@ -80,6 +128,7 @@ def analyze_email_for_invoice(email: EmailMessage, user=None) -> InvoiceExtracti
         'subject': subject,
         'sender_email': email.sender_email,
         'body_sample': body_text[:5000],
+        'pdf_chars': len(pdf_text) if pdf_text else 0,
     }
 
     ct = ContentType.objects.get_for_model(EmailMessage)

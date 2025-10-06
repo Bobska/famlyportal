@@ -430,11 +430,23 @@ def ai_invoice_emails(request):
 
     # Filters
     search = request.GET.get('search', '').strip()
-    account_id = request.GET.get('account')
-    min_conf = request.GET.get('min_conf')
-    status = request.GET.get('status')  # pending/confirmed/rejected/auto_applied
-    date_from = request.GET.get('from')
-    date_to = request.GET.get('to')
+    account_id = request.GET.get('account', '').strip()
+    min_conf = request.GET.get('min_conf', '').strip()
+    status = request.GET.get('status', '').strip()
+    date_from = request.GET.get('from', '').strip()
+    date_to = request.GET.get('to', '').strip()
+
+    # Normalize 'None' strings to empty (from URL params)
+    if account_id in ('None', 'null', ''):
+        account_id = None
+    if min_conf in ('None', 'null', ''):
+        min_conf = None
+    if status in ('None', 'null', ''):
+        status = None
+    if date_from in ('None', 'null', ''):
+        date_from = None
+    if date_to in ('None', 'null', ''):
+        date_to = None
 
     if search:
         emails = emails.filter(
@@ -444,20 +456,23 @@ def ai_invoice_emails(request):
         )
 
     if account_id:
-        emails = emails.filter(gmail_account_id=account_id)
+        try:
+            emails = emails.filter(gmail_account_id=int(account_id))
+        except (ValueError, TypeError):
+            pass
 
     if date_from:
         try:
             dt_from = datetime.fromisoformat(date_from)
             emails = emails.filter(sent_date__gte=dt_from)
-        except Exception:
+        except (ValueError, TypeError):
             pass
     if date_to:
         try:
             # include whole day by adding 1 day and using lt
             dt_to = datetime.fromisoformat(date_to) + timedelta(days=1)
             emails = emails.filter(sent_date__lt=dt_to)
-        except Exception:
+        except (ValueError, TypeError):
             pass
 
     # Annotate with latest prediction fields for filtering and display

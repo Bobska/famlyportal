@@ -68,9 +68,30 @@
                     <div><strong>Status:</strong> {{ extraction.status }}</div>
                 </div>
             </div>
-            {% if extraction.raw_fields %}
+                        {% if extraction.raw_fields %}
             <hr>
-            <pre class="mb-0" style="white-space:pre-wrap">{{ extraction.raw_fields|json_script:"raw_fields" }}</pre>
+                        <div class="row mb-2">
+                            <div class="col-md-6 small text-muted">
+                                PDFs: {{ extraction.raw_fields.pdf_attachments_count|default:0 }}
+                                — downloaded now: {{ extraction.raw_fields.pdf_downloaded_now|default:0 }}
+                                — missing: {{ extraction.raw_fields.pdf_missing_after_download|default:0 }}
+                            </div>
+                            <div class="col-md-6 small text-muted text-end">
+                                PDF text chars: {{ extraction.raw_fields.pdf_chars|default:0 }}
+                            </div>
+                        </div>
+                        {% if extraction.raw_fields.pdf_chars == 0 and extraction.raw_fields.pdf_attachments_count|default:0 > 0 %}
+                            <div class="alert alert-warning py-2">
+                                We couldn't extract text from the PDF(s). If these are scanned images, OCR is required. We can add OCR or a stronger PDF parser on request.
+                            </div>
+                        {% endif %}
+                        {% if extraction.raw_fields.pdf_text_sample %}
+                        <details class="mb-3">
+                            <summary class="btn btn-sm btn-outline-secondary">View PDF Text Sample (Debug)</summary>
+                            <pre class="mt-2 p-2 bg-light border" style="white-space:pre-wrap; max-height:300px; overflow-y:auto; font-size:0.85em;">{{ extraction.raw_fields.pdf_text_sample }}</pre>
+                        </details>
+                        {% endif %}
+                        <pre class="mb-0" style="white-space:pre-wrap">{{ extraction.raw_fields|json_script:"raw_fields" }}</pre>
             {% endif %}
         </div>
     </div>

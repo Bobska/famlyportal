@@ -282,7 +282,8 @@ function updateTransactionModalForType(type) {
         // Hide payee categories and type indicator when cleared
         hidePayeeCategories();
     }
-}
+    
+    // Auto-set date if not already set
     if (typeof setAutoDate === 'function') {
         setAutoDate('transactionDate', type);
     } else {
@@ -3421,11 +3422,13 @@ window.BudgetBasic = {
     closeSidebar,
     loadPayees,
     initializePayeeFunctionality,
+    handleTransactionSearch,
     navigateToTransactionWeek,
     highlightTransaction,
     checkForTransactionHighlight,
     showAddPayeeModal,
     showAddCategoryModal,
+    showAddTransactionModal,
     selectNewlyAddedPayee,
     selectNewlyAddedCategory,
     filterTransactions,
@@ -3629,6 +3632,7 @@ function stopResize() {
 }
 
 // Make functions available globally for onclick handlers
+window.showAddTransactionModal = showAddTransactionModal;
 window.filterTransactions = filterTransactions;
 window.currentFilterType = currentFilterType;
 window.currentTransactionSearch = currentTransactionSearch;

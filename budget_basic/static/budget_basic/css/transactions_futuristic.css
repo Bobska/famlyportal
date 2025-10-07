@@ -1,0 +1,1043 @@
+:root {
+    --tx-bg-primary: #050a14;
+    --tx-bg-secondary: #0b1529;
+    --tx-surface: rgba(12, 30, 54, 0.72);
+    --tx-surface-alt: rgba(16, 40, 68, 0.58);
+    --tx-border: rgba(79, 189, 255, 0.25);
+    --tx-border-strong: rgba(79, 189, 255, 0.6);
+    --tx-text-primary: #e6f1ff;
+    --tx-text-secondary: #8aa7d6;
+    --tx-accent: #59d2ff;
+    --tx-accent-strong: #1bc9ff;
+    --tx-danger: #ff5c8a;
+    --tx-success: #32ffc0;
+    --tx-shadow: 0 28px 45px -20px rgba(0, 24, 48, 0.9);
+}
+
+body.transactions-panel-page {
+    background: radial-gradient(circle at 15% 15%, rgba(89, 210, 255, 0.12), transparent 55%),
+                radial-gradient(circle at 85% 20%, rgba(27, 201, 255, 0.15), transparent 60%),
+                radial-gradient(circle at 50% 80%, rgba(49, 255, 192, 0.08), transparent 65%),
+                var(--tx-bg-primary);
+    color: var(--tx-text-primary);
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    min-height: 100vh;
+}
+
+body.transactions-panel-page .content-wrapper {
+    background: linear-gradient(135deg, rgba(9, 20, 40, 0.88) 0%, rgba(7, 16, 32, 0.86) 45%, rgba(6, 12, 25, 0.94) 100%);
+    border: 1px solid rgba(89, 210, 255, 0.14);
+    border-radius: 22px;
+    padding: 2.75rem 3rem;
+    box-shadow: 0 32px 80px -50px rgba(18, 58, 102, 0.75);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+}
+
+body.transactions-panel-page .content-wrapper::before,
+body.transactions-panel-page .content-wrapper::after {
+    content: "";
+    position: absolute;
+    inset: -120px;
+    background: radial-gradient(circle, rgba(89, 210, 255, 0.07) 0, transparent 60%);
+    transform: rotate(22deg);
+    pointer-events: none;
+}
+
+body.transactions-panel-page .content-wrapper::after {
+    transform: rotate(-18deg);
+    opacity: 0.6;
+}
+
+body.transactions-panel-page .page-heading-main {
+    display: grid;
+    gap: 0.35rem;
+}
+
+body.transactions-panel-page .page-title {
+    font-size: 2.4rem;
+    letter-spacing: 0.28rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--tx-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+body.transactions-panel-page .page-heading-divider {
+    width: 210px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--tx-accent), transparent);
+}
+
+body.transactions-panel-page .page-heading-description {
+    font-size: 0.95rem;
+    color: var(--tx-text-secondary);
+    max-width: 520px;
+}
+
+body.transactions-panel-page .card#transactions-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+body.transactions-panel-page .payees-panel {
+    background: linear-gradient(135deg, rgba(9, 20, 40, 0.52), rgba(7, 16, 32, 0.6));
+    border: 1px solid rgba(89, 210, 255, 0.18);
+    border-radius: 20px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(340px, 1.05fr) 12px minmax(360px, 0.95fr);
+    box-shadow: var(--tx-shadow);
+    position: relative;
+}
+
+body.transactions-panel-page .payee-list-panel,
+body.transactions-panel-page .transaction-details-panel {
+    background: linear-gradient(160deg, rgba(12, 30, 54, 0.82) 0%, rgba(10, 26, 48, 0.74) 60%, rgba(8, 20, 38, 0.85) 100%);
+    backdrop-filter: blur(16px);
+}
+
+body.transactions-panel-page .payee-list-panel {
+    border-right: 1px solid rgba(89, 210, 255, 0.18);
+}
+
+body.transactions-panel-page .transaction-details-panel {
+    border-left: 1px solid rgba(89, 210, 255, 0.18);
+}
+
+body.transactions-panel-page .panel-header {
+    padding: 1.3rem 1.8rem;
+    border-bottom: 1px solid rgba(89, 210, 255, 0.18);
+    background: rgba(9, 22, 42, 0.85);
+    position: relative;
+}
+
+body.transactions-panel-page .panel-header::after {
+    content: "";
+    position: absolute;
+    inset: auto 18px -1px 18px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(89, 210, 255, 0.45), transparent);
+}
+
+body.transactions-panel-page .panel-title span,
+body.transactions-panel-page .panel-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.32rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+body.transactions-panel-page .input-group-text,
+body.transactions-panel-page .form-control {
+    background: rgba(4, 12, 24, 0.8);
+    border: 1px solid rgba(89, 210, 255, 0.18);
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .form-control:focus {
+    border-color: var(--tx-accent);
+    box-shadow: 0 0 0 3px rgba(89, 210, 255, 0.18);
+    background: rgba(6, 16, 30, 0.92);
+}
+
+body.transactions-panel-page .btn-outline-secondary,
+body.transactions-panel-page .dropdown-toggle.btn-outline-secondary {
+    border-color: rgba(89, 210, 255, 0.32);
+    color: var(--tx-text-primary);
+    letter-spacing: 0.08rem;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    padding: 0.45rem 0.9rem;
+    background: rgba(4, 12, 24, 0.65);
+    transition: all 180ms ease;
+}
+
+body.transactions-panel-page .btn-outline-secondary:hover,
+body.transactions-panel-page .btn-outline-secondary:focus {
+    border-color: var(--tx-accent);
+    color: var(--tx-accent);
+    box-shadow: 0 0 12px rgba(89, 210, 255, 0.4);
+}
+
+body.transactions-panel-page .dropdown-menu {
+    background: rgba(4, 12, 24, 0.95);
+    border: 1px solid rgba(89, 210, 255, 0.25);
+    border-radius: 12px;
+    padding: 0.35rem 0;
+    box-shadow: 0 20px 40px -24px rgba(12, 34, 58, 0.85);
+}
+
+body.transactions-panel-page .dropdown-item {
+    color: var(--tx-text-secondary);
+    font-size: 0.74rem;
+    letter-spacing: 0.05rem;
+    text-transform: uppercase;
+}
+
+body.transactions-panel-page .dropdown-item:hover,
+body.transactions-panel-page .dropdown-item:focus,
+body.transactions-panel-page .dropdown-item.active {
+    background: rgba(89, 210, 255, 0.12);
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .payee-list-scroll {
+    height: calc(100vh - 370px);
+    padding: 0 1.5rem 1.5rem;
+}
+
+body.transactions-panel-page .payee-list-content {
+    display: grid;
+    gap: 0.85rem;
+    padding-top: 0.6rem;
+}
+
+body.transactions-panel-page .transaction-card {
+    display: grid;
+    grid-template-columns: 110px 1fr 130px;
+    align-items: center;
+    padding: 0.95rem 1.1rem;
+    border: 1px solid rgba(89, 210, 255, 0.14);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(15, 32, 58, 0.78), rgba(9, 22, 42, 0.76));
+    box-shadow: 0 16px 36px -26px rgba(24, 64, 108, 0.85);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease;
+}
+
+body.transactions-panel-page .transaction-card::before {
+    content: "";
+    position: absolute;
+    inset: -90% 65% 50% -40%;
+    transform: rotate(18deg);
+    background: linear-gradient(120deg, rgba(89, 210, 255, 0.22), transparent 55%);
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+
+body.transactions-panel-page .transaction-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: 0 24px 45px -32px rgba(24, 64, 108, 0.95);
+}
+
+body.transactions-panel-page .transaction-card:hover::before {
+    opacity: 0.75;
+}
+
+body.transactions-panel-page .transaction-card.payee-row.active,
+body.transactions-panel-page .transaction-card.payee-row.selected {
+    border-color: var(--tx-accent);
+    box-shadow: 0 0 22px -6px rgba(89, 210, 255, 0.9);
+}
+
+body.transactions-panel-page .transaction-date-cell {
+    font-size: 0.75rem;
+    letter-spacing: 0.12rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .transaction-info-cell {
+    display: grid;
+    gap: 0.2rem;
+}
+
+body.transactions-panel-page .transaction-payee-name {
+    font-size: 0.98rem;
+    letter-spacing: 0.08rem;
+    text-transform: uppercase;
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .transaction-note {
+    color: rgba(168, 194, 222, 0.55) !important;
+    font-size: 0.72rem;
+    letter-spacing: 0.06rem;
+}
+
+body.transactions-panel-page .transaction-amount {
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.08rem;
+}
+
+body.transactions-panel-page .transaction-amount.text-success {
+    color: var(--tx-success) !important;
+}
+
+body.transactions-panel-page .transaction-amount.text-danger {
+    color: var(--tx-danger) !important;
+}
+
+body.transactions-panel-page .transaction-total-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 1.8rem;
+    background: linear-gradient(135deg, rgba(10, 28, 50, 0.92), rgba(6, 16, 30, 0.9));
+    border-top: 1px solid rgba(89, 210, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(89, 210, 255, 0.08);
+}
+
+body.transactions-panel-page .transaction-total-label {
+    font-size: 0.74rem;
+    letter-spacing: 0.32rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .transaction-total-subtext {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.06rem;
+    color: rgba(168, 194, 222, 0.6);
+}
+
+body.transactions-panel-page .transaction-total-value {
+    font-size: 1.45rem;
+    letter-spacing: 0.18rem;
+    text-transform: uppercase;
+    color: var(--tx-accent);
+}
+
+body.transactions-panel-page .panel-resizer {
+    background: linear-gradient(180deg, transparent, rgba(89, 210, 255, 0.45), transparent);
+    position: relative;
+}
+
+body.transactions-panel-page .panel-resizer .resizer-handle {
+    width: 3px;
+    height: 100%;
+    margin: 0 auto;
+    background: linear-gradient(180deg, rgba(89, 210, 255, 0.65), rgba(27, 201, 255, 0.35));
+    box-shadow: 0 0 18px rgba(89, 210, 255, 0.55);
+    border-radius: 999px;
+}
+
+body.transactions-panel-page .transaction-details-panel .panel-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+
+body.transactions-panel-page .transaction-details-panel .panel-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.32rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .transaction-details-panel .detail-scroll {
+    padding: 1.5rem 1.8rem;
+    height: calc(100vh - 410px);
+}
+
+body.transactions-panel-page .transaction-details-panel .detail-content {
+    display: grid;
+    gap: 1.8rem;
+}
+
+body.transactions-panel-page .detail-heading-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.28rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .detail-name {
+    font-size: 1.35rem;
+    letter-spacing: 0.14rem;
+    text-transform: uppercase;
+    color: var(--tx-accent);
+}
+
+body.transactions-panel-page .detail-section-primary {
+    background: rgba(10, 26, 48, 0.72);
+    border: 1px solid rgba(89, 210, 255, 0.16);
+    border-radius: 16px;
+    padding: 1.35rem 1.6rem;
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.05), 0 16px 32px -30px rgba(18, 48, 82, 0.95);
+}
+
+body.transactions-panel-page .detail-section-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.26rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .detail-info-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.transactions-panel-page .detail-info-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.22rem;
+    text-transform: uppercase;
+    color: rgba(168, 194, 222, 0.65);
+}
+
+body.transactions-panel-page .detail-info-value {
+    font-size: 0.95rem;
+    letter-spacing: 0.1rem;
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page #transaction-notes-section .detail-body-text {
+    color: rgba(224, 240, 255, 0.7);
+    font-size: 0.9rem;
+    letter-spacing: 0.08rem;
+    line-height: 1.6;
+}
+
+body.transactions-panel-page .detail-actions {
+    padding: 1.2rem 1.8rem 1.8rem;
+    border-top: 1px solid rgba(89, 210, 255, 0.1);
+    display: flex;
+    gap: 0.85rem;
+    justify-content: flex-end;
+}
+
+body.transactions-panel-page .detail-actions .btn {
+    border-radius: 999px;
+    padding: 0.5rem 1.4rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.24rem;
+    text-transform: uppercase;
+    border: 1px solid rgba(89, 210, 255, 0.32);
+    background: rgba(4, 12, 24, 0.75);
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .detail-actions .btn:hover:not(:disabled) {
+    border-color: var(--tx-accent);
+    color: var(--tx-accent);
+    box-shadow: 0 12px 26px -20px rgba(89, 210, 255, 0.8);
+}
+
+body.transactions-panel-page .detail-actions .btn:disabled {
+    opacity: 0.36;
+}
+
+body.transactions-panel-page .transaction-empty-state {
+    border: 1px dashed rgba(89, 210, 255, 0.22);
+    border-radius: 16px;
+    background: rgba(6, 16, 30, 0.6);
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .transaction-empty-state i {
+    color: rgba(89, 210, 255, 0.35);
+}
+
+body.transactions-panel-page .detail-empty {
+    border: 1px dashed rgba(89, 210, 255, 0.2);
+    border-radius: 16px;
+    background: rgba(6, 16, 30, 0.58);
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .detail-empty i {
+    color: rgba(27, 201, 255, 0.35);
+}
+
+body.transactions-panel-page .payee-list-panel::-webkit-scrollbar,
+body.transactions-panel-page .detail-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+body.transactions-panel-page .payee-list-panel::-webkit-scrollbar-track,
+body.transactions-panel-page .detail-scroll::-webkit-scrollbar-track {
+    background: rgba(4, 12, 24, 0.45);
+}
+
+body.transactions-panel-page .payee-list-panel::-webkit-scrollbar-thumb,
+body.transactions-panel-page .detail-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(89, 210, 255, 0.65), rgba(27, 201, 255, 0.45));
+    border-radius: 999px;
+}
+
+body.transactions-panel-page .modal-backdrop.show {
+    background: radial-gradient(circle at 20% 20%, rgba(89, 210, 255, 0.28), transparent 65%),
+                radial-gradient(circle at 80% 25%, rgba(27, 201, 255, 0.22), transparent 60%),
+                rgba(3, 10, 22, 0.86);
+    opacity: 1;
+    backdrop-filter: blur(8px);
+}
+
+body.transactions-panel-page .futuristic-modal .modal-dialog {
+    max-width: 600px;
+    margin: 1.5rem auto;
+    width: calc(100% - 2rem);
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    align-items: center;
+}
+
+body.transactions-panel-page .futuristic-modal-content {
+    background: linear-gradient(155deg, rgba(10, 24, 46, 0.78), rgba(4, 14, 28, 0.7));
+    border: 1px solid rgba(89, 210, 255, 0.32);
+    border-radius: 18px;
+    box-shadow: 0 36px 90px -44px rgba(12, 40, 72, 0.72);
+    color: var(--tx-text-primary);
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(18px);
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+}
+
+body.transactions-panel-page .futuristic-modal-content::before,
+body.transactions-panel-page .futuristic-modal-content::after {
+    content: "";
+    position: absolute;
+    inset: -140px;
+    background: radial-gradient(circle, rgba(89, 210, 255, 0.12) 0, transparent 65%);
+    pointer-events: none;
+    opacity: 0.35;
+}
+
+body.transactions-panel-page .futuristic-modal-content::after {
+    inset: -180px;
+    transform: rotate(18deg);
+    opacity: 0.2;
+}
+
+body.transactions-panel-page .futuristic-modal-header {
+    background: linear-gradient(120deg, rgba(7, 18, 36, 0.82), rgba(8, 20, 40, 0.74));
+    padding: 1.25rem 1.4rem;
+    border-bottom: 1px solid rgba(89, 210, 255, 0.22);
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.85rem;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+body.transactions-panel-page .futuristic-modal-header .btn-close {
+    position: relative;
+    filter: invert(80%);
+    opacity: 0.6;
+    transition: opacity 0.25s ease;
+    justify-self: end;
+    align-self: start;
+}
+
+body.transactions-panel-page .futuristic-modal-header .btn-close:hover {
+    opacity: 0.9;
+}
+
+body.transactions-panel-page .modal-header-text {
+    display: grid;
+    gap: 0.35rem;
+}
+
+body.transactions-panel-page .modal-kicker {
+    letter-spacing: 0.3rem;
+    text-transform: uppercase;
+    font-size: 0.62rem;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .futuristic-modal-header .modal-title {
+    margin: 0;
+    font-size: 1.45rem;
+    letter-spacing: 0.2rem;
+    text-transform: uppercase;
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .modal-subtitle {
+    margin: 0;
+    font-size: 0.78rem;
+    color: rgba(167, 191, 226, 0.65);
+    max-width: 360px;
+}
+
+body.transactions-panel-page .modal-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(89, 210, 255, 0.45), rgba(12, 40, 72, 0.45));
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    color: var(--tx-accent);
+    box-shadow: 0 0 28px -8px rgba(89, 210, 255, 0.9);
+}
+
+body.transactions-panel-page .futuristic-modal-body {
+    padding: 1.1rem 1.2rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+body.transactions-panel-page .modal-layout {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+}
+
+body.transactions-panel-page .modal-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+body.transactions-panel-page .modal-row .modal-section {
+    height: 100%;
+}
+
+body.transactions-panel-page .modal-section {
+    border: 1px solid rgba(89, 210, 255, 0.18);
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
+    background: linear-gradient(135deg, rgba(12, 28, 52, 0.58), rgba(8, 20, 38, 0.54));
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.08);
+    display: grid;
+    gap: 0.9rem;
+}
+
+body.transactions-panel-page .compact-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+body.transactions-panel-page .compact-field-grid .compact-field {
+    min-width: 0;
+}
+
+body.transactions-panel-page .modal-collapsible {
+    border: 1px solid rgba(89, 210, 255, 0.16);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(12, 28, 52, 0.52), rgba(8, 20, 38, 0.48));
+    color: var(--tx-text-primary);
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.06);
+    overflow: hidden;
+}
+
+body.transactions-panel-page .modal-collapsible summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.95rem 1.15rem;
+    display: grid;
+    gap: 0.25rem;
+    position: relative;
+}
+
+body.transactions-panel-page .modal-collapsible summary::-webkit-details-marker {
+    display: none;
+}
+
+body.transactions-panel-page .modal-collapsible summary::after {
+    content: "\25BC";
+    position: absolute;
+    right: 1.15rem;
+    top: 50%;
+    transform: translateY(-50%) rotate(0deg);
+    font-size: 0.75rem;
+    color: rgba(167, 191, 226, 0.65);
+    transition: transform 0.2s ease;
+}
+
+body.transactions-panel-page .modal-collapsible[open] summary::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+body.transactions-panel-page .modal-collapsible .collapsible-content {
+    padding: 0 1.15rem 1.15rem;
+    display: grid;
+    gap: 0.6rem;
+    border-top: 1px solid rgba(89, 210, 255, 0.12);
+}
+
+body.transactions-panel-page .modal-collapsible .form-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.16rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .modal-section-title + .modal-section-hint {
+    line-height: 1.4;
+}
+
+body.transactions-panel-page .compact-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+body.transactions-panel-page .modal-section-header {
+    display: grid;
+    gap: 0.25rem;
+}
+
+body.transactions-panel-page .modal-section-title {
+    margin: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.22rem;
+    text-transform: uppercase;
+    color: var(--tx-text-secondary);
+}
+
+body.transactions-panel-page .modal-section-hint {
+    margin: 0;
+    font-size: 0.72rem;
+    color: rgba(167, 191, 226, 0.58);
+}
+
+body.transactions-panel-page .futuristic-type-toggle .btn {
+    border: 1px solid rgba(89, 210, 255, 0.35);
+    color: var(--tx-text-secondary);
+    background: rgba(4, 12, 24, 0.58);
+    font-size: 0.72rem;
+    letter-spacing: 0.1rem;
+    text-transform: uppercase;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    transition: all 0.25s ease;
+}
+
+body.transactions-panel-page .futuristic-type-toggle .btn i {
+    font-size: 0.95rem;
+}
+
+body.transactions-panel-page .futuristic-type-toggle .btn-check:checked + .btn,
+body.transactions-panel-page .futuristic-type-toggle .btn:hover {
+    color: var(--tx-text-primary);
+    border-color: var(--tx-accent);
+    box-shadow: 0 0 14px -6px rgba(89, 210, 255, 0.85);
+}
+
+body.transactions-panel-page .futuristic-type-toggle #typeExpense:checked + .btn,
+body.transactions-panel-page .futuristic-type-toggle .btn.btn-outline-danger:hover {
+    background: linear-gradient(135deg, rgba(255, 92, 138, 0.28), rgba(120, 22, 58, 0.3));
+}
+
+body.transactions-panel-page .futuristic-type-toggle #typeIncome:checked + .btn,
+body.transactions-panel-page .futuristic-type-toggle .btn.btn-outline-success:hover {
+    background: linear-gradient(135deg, rgba(50, 255, 192, 0.24), rgba(8, 76, 64, 0.28));
+}
+
+body.transactions-panel-page .input-wrapper,
+body.transactions-panel-page .stack-field {
+    display: grid;
+    gap: 0.75rem;
+}
+
+body.transactions-panel-page .input-with-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+body.transactions-panel-page .futuristic-input-group {
+    display: flex;
+    align-items: stretch;
+}
+
+body.transactions-panel-page .futuristic-input-group .form-control {
+    flex: 1;
+}
+
+body.transactions-panel-page .input-with-actions > .btn {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0.3rem 0.55rem;
+}
+
+body.transactions-panel-page .input-with-actions > .form-select,
+body.transactions-panel-page .input-with-actions > .form-control {
+    flex: 1;
+}
+
+body.transactions-panel-page .futuristic-modal-form .form-control,
+body.transactions-panel-page .futuristic-modal-form .form-select,
+body.transactions-panel-page .futuristic-modal-form .input-group-text {
+    background: rgba(6, 16, 30, 0.85);
+    border: 1px solid rgba(89, 210, 255, 0.22);
+    color: var(--tx-text-primary);
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-size: 0.85rem;
+}
+
+body.transactions-panel-page .futuristic-modal-form .form-control,
+body.transactions-panel-page .futuristic-modal-form .form-select {
+    padding: 0.45rem 0.65rem;
+}
+
+body.transactions-panel-page .futuristic-modal-form .input-group-text {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.78rem;
+}
+
+body.transactions-panel-page .futuristic-modal-form .form-control:focus,
+body.transactions-panel-page .futuristic-modal-form .form-select:focus {
+    border-color: var(--tx-accent);
+    box-shadow: 0 0 0 3px rgba(89, 210, 255, 0.22);
+    background: rgba(8, 22, 40, 0.92);
+}
+
+body.transactions-panel-page .futuristic-modal-form textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+body.transactions-panel-page .futuristic-modal-form .form-select option {
+    background: #02060f;
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .payee-indicator {
+    border-left: 2px solid var(--tx-accent);
+    padding-left: 0.85rem;
+    color: var(--tx-text-secondary);
+    font-size: 0.78rem;
+}
+
+body.transactions-panel-page .payee-categories {
+    display: grid;
+    gap: 0.5rem;
+}
+
+body.transactions-panel-page .payee-categories-label {
+    font-size: 0.74rem;
+    color: rgba(167, 191, 226, 0.6);
+}
+
+body.transactions-panel-page .payee-categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+body.transactions-panel-page .payee-categories-list .badge {
+    background: rgba(89, 210, 255, 0.18);
+    border: 1px solid rgba(89, 210, 255, 0.32);
+    color: var(--tx-text-primary);
+    font-size: 0.7rem;
+    letter-spacing: 0.1rem;
+}
+
+body.transactions-panel-page .futuristic-modal-footer {
+    border-top: 1px solid rgba(89, 210, 255, 0.18);
+    background: linear-gradient(120deg, rgba(7, 18, 36, 0.82), rgba(4, 12, 24, 0.86));
+    padding: 0.9rem 1.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (max-width: 992px) {
+    body.transactions-panel-page .modal-row {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0.85rem;
+    }
+}
+
+@media (max-width: 640px) {
+    body.transactions-panel-page .compact-field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body.transactions-panel-page .modal-collapsible summary {
+        padding-right: 2.4rem;
+    }
+
+    body.transactions-panel-page .modal-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+body.transactions-panel-page .futuristic-modal-footer .footer-hint {
+    font-size: 0.68rem;
+    letter-spacing: 0.06rem;
+    text-transform: uppercase;
+    color: rgba(167, 191, 226, 0.6);
+}
+
+body.transactions-panel-page .futuristic-modal-footer .footer-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+body.transactions-panel-page #addTransactionModal .btn-outline-secondary,
+body.transactions-panel-page #addTransactionModal .btn-outline-primary {
+    border-color: rgba(89, 210, 255, 0.35);
+    color: var(--tx-text-primary);
+    background: rgba(4, 12, 24, 0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+    font-size: 0.68rem;
+    transition: all 0.23s ease;
+}
+
+body.transactions-panel-page #addTransactionModal .btn-outline-secondary:hover,
+body.transactions-panel-page #addTransactionModal .btn-outline-primary:hover {
+    border-color: var(--tx-accent);
+    color: var(--tx-accent);
+    box-shadow: 0 0 18px -6px rgba(89, 210, 255, 0.75);
+}
+
+body.transactions-panel-page #addTransactionModal .btn-danger {
+    background: linear-gradient(135deg, rgba(255, 92, 138, 0.82), rgba(120, 22, 58, 0.94));
+    border: 1px solid rgba(255, 92, 138, 0.65);
+    box-shadow: 0 12px 32px -18px rgba(255, 92, 138, 0.9);
+    letter-spacing: 0.12rem;
+    text-transform: uppercase;
+}
+
+body.transactions-panel-page #addTransactionModal .btn-success {
+    background: linear-gradient(135deg, rgba(50, 255, 192, 0.75), rgba(12, 118, 92, 0.88));
+    border: 1px solid rgba(50, 255, 192, 0.6);
+    box-shadow: 0 12px 32px -18px rgba(50, 255, 192, 0.85);
+    letter-spacing: 0.12rem;
+    text-transform: uppercase;
+}
+
+body.transactions-panel-page #addTransactionModal .btn-danger:hover,
+body.transactions-panel-page #addTransactionModal .btn-success:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 14px 36px -16px rgba(89, 210, 255, 0.85);
+}
+
+body.transactions-panel-page .optional-section {
+    background: linear-gradient(135deg, rgba(12, 28, 52, 0.45), rgba(8, 20, 38, 0.45));
+    border-style: dashed;
+    border-color: rgba(89, 210, 255, 0.22);
+}
+
+@keyframes tx-scanline {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(200%);
+    }
+}
+
+body.transactions-panel-page .payee-list-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent, rgba(89, 210, 255, 0.05), transparent);
+    opacity: 0.35;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    animation: tx-scanline 12s linear infinite;
+}
+
+@media (max-width: 992px) {
+    body.transactions-panel-page .payees-panel {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 12px auto;
+    }
+
+    body.transactions-panel-page .futuristic-modal .modal-dialog {
+        max-width: min(92vw, 670px);
+        margin: 1.5rem auto;
+    }
+
+    body.transactions-panel-page .futuristic-modal-body {
+        padding: 1.35rem 1.3rem 1.25rem;
+        gap: 1rem;
+    }
+
+    body.transactions-panel-page .modal-section {
+        padding: 1.05rem 1.1rem;
+    }
+
+    body.transactions-panel-page .panel-resizer {
+        grid-row: 2;
+        height: 12px;
+        background: linear-gradient(90deg, transparent, rgba(89, 210, 255, 0.45), transparent);
+    }
+
+    body.transactions-panel-page .panel-resizer .resizer-handle {
+        width: 60%;
+        height: 3px;
+    }
+
+    body.transactions-panel-page .payee-list-panel {
+        border-right: none;
+        border-bottom: 1px solid rgba(89, 210, 255, 0.18);
+    }
+
+    body.transactions-panel-page .transaction-details-panel {
+        border-left: none;
+        border-top: 1px solid rgba(89, 210, 255, 0.18);
+    }
+
+    body.transactions-panel-page .detail-scroll,
+    body.transactions-panel-page .payee-list-scroll {
+        height: auto;
+        max-height: none;
+    }
+}
+
+@media (max-width: 768px) {
+    body.transactions-panel-page .content-wrapper {
+        padding: 2rem 1.5rem;
+    }
+
+    body.transactions-panel-page .page-title {
+        font-size: 1.8rem;
+        letter-spacing: 0.2rem;
+    }
+
+    body.transactions-panel-page .payees-panel {
+        border-radius: 16px;
+    }
+
+    body.transactions-panel-page .transaction-card {
+        grid-template-columns: 90px 1fr;
+        grid-template-rows: auto auto;
+        row-gap: 0.6rem;
+    }
+
+    body.transactions-panel-page .transaction-amount-cell {
+        grid-column: span 2;
+        text-align: left;
+    }
+
+    body.transactions-panel-page .detail-section-primary {
+        padding: 1.1rem;
+    }
+
+    body.transactions-panel-page .detail-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.transactions-panel-page .compact-field-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -12,13 +12,15 @@
     --tx-danger: #ff5c8a;
     --tx-success: #32ffc0;
     --tx-shadow: 0 28px 45px -20px rgba(0, 24, 48, 0.9);
+    --tx-cosmos-background:
+        radial-gradient(circle at 15% 15%, rgba(89, 210, 255, 0.18), transparent 58%),
+        radial-gradient(circle at 85% 18%, rgba(27, 201, 255, 0.22), transparent 62%),
+        radial-gradient(circle at 52% 78%, rgba(49, 255, 192, 0.13), transparent 68%),
+        linear-gradient(160deg, #050a14 0%, #082144 100%);
 }
 
 body.transactions-panel-page {
-    background: radial-gradient(circle at 15% 15%, rgba(89, 210, 255, 0.12), transparent 55%),
-                radial-gradient(circle at 85% 20%, rgba(27, 201, 255, 0.15), transparent 60%),
-                radial-gradient(circle at 50% 80%, rgba(49, 255, 192, 0.08), transparent 65%),
-                var(--tx-bg-primary);
+    background: var(--tx-cosmos-background);
     color: var(--tx-text-primary);
     font-family: "Segoe UI", "Helvetica Neue", sans-serif;
     min-height: 100vh;
@@ -472,9 +474,7 @@ body.transactions-panel-page .detail-scroll::-webkit-scrollbar-thumb {
 }
 
 body.transactions-panel-page .modal-backdrop.show {
-    background: radial-gradient(circle at 20% 20%, rgba(89, 210, 255, 0.28), transparent 65%),
-                radial-gradient(circle at 80% 25%, rgba(27, 201, 255, 0.22), transparent 60%),
-                rgba(3, 10, 22, 0.86);
+    background: linear-gradient(145deg, rgba(2, 8, 18, 0.52), rgba(4, 14, 28, 0.48));
     opacity: 1;
     backdrop-filter: blur(8px);
 }
@@ -489,14 +489,15 @@ body.transactions-panel-page .futuristic-modal .modal-dialog {
 }
 
 body.transactions-panel-page .futuristic-modal-content {
-    background: linear-gradient(155deg, rgba(10, 24, 46, 0.78), rgba(4, 14, 28, 0.7));
-    border: 1px solid rgba(89, 210, 255, 0.32);
+    background: rgba(6, 20, 42, 0.28);
+    border: 1px solid var(--tx-accent-strong);
     border-radius: 18px;
-    box-shadow: 0 36px 90px -44px rgba(12, 40, 72, 0.72);
+    box-shadow: 0 32px 80px -38px rgba(12, 40, 72, 0.72), 
+                inset 0 1px 2px rgba(89, 210, 255, 0.1);
     color: var(--tx-text-primary);
     overflow: hidden;
     position: relative;
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(24px) saturate(120%);
     display: flex;
     flex-direction: column;
     max-height: 100%;
@@ -504,18 +505,7 @@ body.transactions-panel-page .futuristic-modal-content {
 
 body.transactions-panel-page .futuristic-modal-content::before,
 body.transactions-panel-page .futuristic-modal-content::after {
-    content: "";
-    position: absolute;
-    inset: -140px;
-    background: radial-gradient(circle, rgba(89, 210, 255, 0.12) 0, transparent 65%);
-    pointer-events: none;
-    opacity: 0.35;
-}
-
-body.transactions-panel-page .futuristic-modal-content::after {
-    inset: -180px;
-    transform: rotate(18deg);
-    opacity: 0.2;
+    content: none;
 }
 
 body.transactions-panel-page .futuristic-modal-header {
@@ -855,6 +845,32 @@ body.transactions-panel-page .futuristic-modal-footer {
     gap: 0.75rem;
     justify-content: space-between;
     align-items: center;
+}
+
+body.transactions-panel-page .modal.fade .modal-dialog {
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out;
+    transform: translate3d(0, 12px, 0) scale(0.985);
+    opacity: 0;
+}
+
+body.transactions-panel-page .modal.show .modal-dialog {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+}
+
+body.transactions-panel-page .modal.fade .futuristic-modal-content {
+    transition: opacity 180ms ease-out, box-shadow 200ms ease-out;
+    opacity: 0.82;
+    box-shadow: 0 18px 54px -34px rgba(12, 40, 72, 0.5);
+}
+
+body.transactions-panel-page .modal.show .futuristic-modal-content {
+    opacity: 1;
+    box-shadow: 0 32px 80px -40px rgba(12, 40, 72, 0.68);
+}
+
+body.transactions-panel-page .modal-backdrop.fade {
+    transition: opacity 180ms ease-out;
 }
 
 @media (max-width: 992px) {

@@ -1,0 +1,883 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Gmail Account: {{ account.e                                <tr>
+                                    <td><strong>Created:</strong></td>
+                                    <td>{{ account.created_at|localtime|date:"M d, Y g:i A" }}</td>
+                                </tr>
+                                {% if account.last_sync_at %}
+                                <tr>
+                                    <td><strong>Last Sync:</strong></td>
+                                    <td>{{ account.last_sync_at|localtime|date:"M d, Y g:i A" }}</td>
+                                </tr>
+                                {% endif %}ss }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_list' %}">Gmail Accounts</a></li>
+                    <li class="breadcrumb-item active">{{ account.email_address }}</li>
+                </ol>
+            </nav>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Sync Progress Alert -->
+            <div id="syncProgress" class="alert alert-info" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>
+                        <strong>Syncing emails...</strong>
+                        <div class="progress mt-2" style="width: 300px; height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <small id="syncStatus" class="text-muted">Connecting to Gmail API...</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Sync Progress Card (shown when sync is in progress) -->
+            {% if active_sync %}
+            <div class="card mb-4 border-info" id="activeSyncCard">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-spinner fa-spin"></i> Active Sync In Progress
+                        <span class="badge bg-light text-dark ms-2">Sync #{{ active_sync.id }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="text-muted">Current Task:</h6>
+                            <div id="activeSyncMessage" class="alert alert-info mb-3">
+                                <strong id="activeSyncMessageText">{{ active_sync.message|default:"Starting sync..." }}</strong>
+                            </div>
+                            
+                            <h6 class="text-muted">Progress Statistics:</h6>
+                            <div class="row text-center">
+                                <div class="col-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body p-2">
+                                            <h3 class="mb-0" id="activeSyncProcessed">{{ active_sync.emails_processed }}</h3>
+                                            <small class="text-muted">Processed</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body p-2">
+                                            <h3 class="mb-0" id="activeSyncAdded">{{ active_sync.emails_added }}</h3>
+                                            <small>New</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body p-2">
+                                            <h3 class="mb-0" id="activeSyncUpdated">{{ active_sync.emails_updated }}</h3>
+                                            <small>Updated</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="card bg-danger text-white">
+                                        <div class="card-body p-2">
+                                            <h3 class="mb-0" id="activeSyncErrors">{{ active_sync.errors_count }}</h3>
+                                            <small>Errors</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-muted">Sync Timeline:</h6>
+                            <ul class="list-group list-group-flush" id="syncTimeline">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-clock text-muted"></i> Started:</span>
+                                    <strong>{{ active_sync.started_at|localtime|date:"g:i:s A" }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-hourglass-half text-info"></i> Duration:</span>
+                                    <strong id="syncDuration">Calculating...</strong>
+                                </li>
+                            </ul>
+                            <div class="mt-3">
+                                <a href="{% url 'gmail_integration:sync_log_detail' account.id active_sync.id %}" 
+                                   class="btn btn-sm btn-outline-info w-100 mb-2" target="_blank">
+                                    <i class="fas fa-external-link-alt"></i> View Full Details
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger w-100" onclick="cancelSync({{ active_sync.id }})">
+                                    <i class="fas fa-stop-circle"></i> Stop Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recently Completed Sync Card (shown for fast syncs that complete before polling starts) -->
+            {% if recently_completed_sync %}
+            <div class="card mb-4 border-success" id="recentlyCompletedCard">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Sync Complete
+                        <span class="badge bg-light text-dark ms-2">Sync #{{ recently_completed_sync.id }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <h5 class="alert-heading mb-2">
+                            {{ recently_completed_sync.message }}
+                        </h5>
+                        <hr>
+                        <div class="row text-center mt-3">
+                            <div class="col-3">
+                                <h3 class="mb-0 text-dark">{{ recently_completed_sync.emails_processed|default:0 }}</h3>
+                                <small class="text-muted">Processed</small>
+                            </div>
+                            <div class="col-3">
+                                <h3 class="mb-0 text-success">{{ recently_completed_sync.emails_added|default:0 }}</h3>
+                                <small class="text-muted">New</small>
+                            </div>
+                            <div class="col-3">
+                                <h3 class="mb-0 text-primary">{{ recently_completed_sync.emails_updated|default:0 }}</h3>
+                                <small class="text-muted">Updated</small>
+                            </div>
+                            <div class="col-3">
+                                <h3 class="mb-0 text-danger">{{ recently_completed_sync.errors_count|default:0 }}</h3>
+                                <small class="text-muted">Errors</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-clock"></i> This message will auto-dismiss in <strong id="completionCountdown">8</strong> seconds
+                        </p>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissAndReload()">
+                            <i class="fas fa-times"></i> Dismiss Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <script>
+                // Auto-dismiss recently completed sync card
+                let completionCountdown = 8;
+                const completionInterval = setInterval(() => {
+                    completionCountdown--;
+                    const countdownEl = document.getElementById('completionCountdown');
+                    if (countdownEl) {
+                        countdownEl.textContent = completionCountdown;
+                    }
+                    if (completionCountdown <= 0) {
+                        clearInterval(completionInterval);
+                        dismissAndReload();
+                    }
+                }, 1000);
+                
+                function dismissAndReload() {
+                    const card = document.getElementById('recentlyCompletedCard');
+                    if (card) {
+                        card.style.opacity = '0';
+                        card.style.transition = 'opacity 0.5s';
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            </script>
+            {% endif %}
+
+            <!-- Sync History Timeline Card (shown when sync is in progress) -->
+            {% if active_sync %}
+            <div class="card mb-4 border-secondary" id="syncHistoryCard">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history"></i> Sync History Timeline
+                    </h6>
+                    <span class="badge bg-light text-dark" id="historyEventCount">0 events</span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="syncHistoryTimeline" style="max-height: 250px; overflow-y: auto;">
+                        <div class="text-center text-muted p-4" id="historyPlaceholder">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p>Waiting for sync events...</p>
+                        </div>
+                        <ul class="list-group list-group-flush" id="historyEventsList" style="display: none;">
+                            <!-- Events will be dynamically added here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Account Info -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Account Information</h5>
+                    <div class="btn-group">
+                        <button id="syncButton" type="button" class="btn btn-success btn-sm" onclick="startSync()">
+                            <i class="fas fa-sync"></i> Sync Emails
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="visually-hidden">Sync options</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <div class="px-3 py-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="syncAllCheckbox">
+                                        <label class="form-check-label" for="syncAllCheckbox">
+                                            <strong>Sync ALL emails</strong><br>
+                                            <small class="text-muted">Remove 1000 email limit</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                        <form method="post" action="{% url 'gmail_integration:toggle_account' account.id %}" class="d-inline ms-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-{% if account.is_active %}warning{% else %}success{% endif %} btn-sm">
+                                {% if account.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ account.email_address }}</td>
+                                </tr>
+                                {% if account.display_name %}
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td>{{ account.display_name }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if account.is_active %}success{% else %}secondary{% endif %}">
+                                            {% if account.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sync:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if account.sync_enabled %}info{% else %}secondary{% endif %}">
+                                            {% if account.sync_enabled %}Enabled{% else %}Disabled{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Connected:</strong></td>
+                                    <td>{{ account.created_at|localtime|date:"M d, Y g:i A" }}</td>
+                                </tr>
+                                {% if account.last_sync_at %}
+                                <tr>
+                                    <td><strong>Last Sync:</strong></td>
+                                    <td>{{ account.last_sync_at|localtime|date:"M d, Y g:i A" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Total Emails:</strong></td>
+                                    <td>{{ emails|length }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Emails -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Emails</h5>
+                    <div>
+                        <a href="{% url 'gmail_integration:invoice_emails' account.id %}" class="btn btn-warning btn-sm me-2">
+                            <i class="fas fa-file-invoice"></i> View Invoices
+                        </a>
+                        <a href="{% url 'gmail_integration:email_list' account.id %}" class="btn btn-outline-primary btn-sm">
+                            View All Emails
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if emails %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>From</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for email in emails %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'gmail_integration:email_detail' account.id email.id %}">
+                                                    {{ email.subject|truncatechars:50 }}
+                                                </a>
+                                                {% if email.has_attachments %}
+                                                    <i class="fas fa-paperclip text-muted"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ email.sender_email }}</td>
+                                            <td>{{ email.sent_date|localtime|date:"M d, g:i A" }}</td>
+                                            <td>
+                                                {% if not email.is_read %}
+                                                    <span class="badge bg-primary">Unread</span>
+                                                {% endif %}
+                                                {% if email.is_important %}
+                                                    <span class="badge bg-warning">Important</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No emails found. Try syncing this account.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Sync Logs -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Sync Activity</h5>
+                    <a href="{% url 'gmail_integration:sync_logs' account.id %}" class="btn btn-outline-secondary btn-sm">
+                        View All Logs
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if sync_logs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Processed</th>
+                                        <th>Added</th>
+                                        <th>Errors</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in sync_logs %}
+                                        <tr>
+                                            <td>{{ log.started_at|localtime|date:"M d, g:i A" }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if log.status == 'success' %}success{% elif log.status == 'error' %}danger{% elif log.status == 'partial' %}warning{% else %}secondary{% endif %}">
+                                                    {{ log.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ log.emails_processed }}</td>
+                                            <td>{{ log.emails_added }}</td>
+                                            <td>{{ log.errors_count }}</td>
+                                            <td>{{ log.message|truncatechars:50 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No sync activity yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let syncCheckInterval = null;
+let syncStartTime = null;
+let durationInterval = null;
+
+// Auto-start monitoring if there's an active sync on page load
+document.addEventListener('DOMContentLoaded', function() {
+    {% if active_sync %}
+        console.log('Active sync detected (ID: {{ active_sync.id }}), starting monitoring...');
+        syncStartTime = new Date('{{ active_sync.started_at|date:"c" }}');
+        checkSyncStatus({{ active_sync.id }}, true);
+        updateSyncDuration();
+        durationInterval = setInterval(updateSyncDuration, 1000); // Update duration every second
+    {% endif %}
+});
+
+function updateSyncDuration() {
+    if (!syncStartTime) return;
+    const now = new Date();
+    const diff = Math.floor((now - syncStartTime) / 1000); // seconds
+    const minutes = Math.floor(diff / 60);
+    const seconds = diff % 60;
+    const durationElement = document.getElementById('syncDuration');
+    if (durationElement) {
+        durationElement.textContent = `${minutes}m ${seconds}s`;
+    }
+}
+
+function startSync() {
+    const syncButton = document.getElementById('syncButton');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncStatus = document.getElementById('syncStatus');
+    const syncAllCheckbox = document.getElementById('syncAllCheckbox');
+    
+    // Check if user wants to sync all emails
+    const syncAll = syncAllCheckbox && syncAllCheckbox.checked;
+    
+    // Disable button and show progress
+    syncButton.disabled = true;
+    if (syncAll) {
+        syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing ALL...';
+    } else {
+        syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+    syncProgress.style.display = 'block';
+    
+    // Prepare request body
+    const requestBody = syncAll ? JSON.stringify({ sync_all: true }) : JSON.stringify({});
+    
+    // Start sync
+    fetch('{% url "gmail_integration:sync_emails" account.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: requestBody
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.sync_log_id) {
+            syncStatus.innerHTML = '<strong>🔄 Sync started! Refreshing page...</strong>';
+            // Reload page to show active sync card
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else if (data.error) {
+            showSyncError(data.error);
+        } else {
+            showSyncError('Unknown error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Sync error:', error);
+        showSyncError('Failed to start sync: ' + error.message);
+    });
+}
+
+function checkSyncStatus(syncLogId, isActiveSync = false) {
+    syncCheckInterval = setInterval(() => {
+        fetch(`{% url "gmail_integration:sync_status" 0 %}`.replace('0', syncLogId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'started') {
+                // Update active sync card if it exists
+                if (isActiveSync) {
+                    updateActiveSyncCard(data);
+                    // Also update sync history timeline
+                    updateSyncHistory(syncLogId);
+                } else {
+                    // Update inline progress (for button-initiated syncs before reload)
+                    const syncStatus = document.getElementById('syncStatus');
+                    if (syncStatus) {
+                        const message = data.message || 'Processing...';
+                        const stats = `${data.emails_processed} processed (${data.emails_added} new, ${data.emails_updated} updated)`;
+                        syncStatus.innerHTML = `<strong>${message}</strong><br><small>${stats}</small>`;
+                    }
+                }
+            } else {
+                // Sync completed - stop polling immediately
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
+                if (durationInterval) {
+                    clearInterval(durationInterval);
+                    durationInterval = null;
+                }
+                
+                if (isActiveSync) {
+                    // Show completion message before reloading
+                    showCompletionMessage(data, syncLogId);
+                } else {
+                    completeSyncUI(data);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Status check error:', error);
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
+            }
+            if (!isActiveSync) {
+                showSyncError('Failed to check sync status');
+            }
+        });
+    }, 1000); // Check every 1 second for faster updates
+}
+
+function showCompletionMessage(data, syncLogId) {
+    // Transform active sync card into completion card
+    const activeSyncCard = document.getElementById('activeSyncCard');
+    if (!activeSyncCard) {
+        // Card already gone, just reload
+        window.location.reload();
+        return;
+    }
+    
+    // Update card styling for completion
+    activeSyncCard.className = 'card mb-4 border-success';
+    
+    const statusIcon = data.status === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+    const statusColor = data.status === 'success' ? 'success' : 'warning';
+    const statusText = data.status === 'success' ? 'Sync Complete' : 'Sync Completed with Warnings';
+    
+    activeSyncCard.innerHTML = `
+        <div class="card-header bg-${statusColor} text-white">
+            <h5 class="mb-0">
+                <i class="fas ${statusIcon}"></i> ${statusText}
+                <span class="badge bg-light text-dark ms-2">Sync #${syncLogId}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-${statusColor} mb-3">
+                <h5 class="alert-heading mb-2">
+                    <i class="fas fa-info-circle"></i> ${data.message || 'Sync completed successfully!'}
+                </h5>
+                <hr>
+                <div class="row text-center mt-3">
+                    <div class="col-3">
+                        <h3 class="mb-0 text-dark">${data.emails_processed || 0}</h3>
+                        <small class="text-muted">Processed</small>
+                    </div>
+                    <div class="col-3">
+                        <h3 class="mb-0 text-success">${data.emails_added || 0}</h3>
+                        <small class="text-muted">New</small>
+                    </div>
+                    <div class="col-3">
+                        <h3 class="mb-0 text-primary">${data.emails_updated || 0}</h3>
+                        <small class="text-muted">Updated</small>
+                    </div>
+                    <div class="col-3">
+                        <h3 class="mb-0 text-danger">${data.errors_count || 0}</h3>
+                        <small class="text-muted">Errors</small>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-muted mb-2">
+                    <i class="fas fa-clock"></i> This message will auto-dismiss in <strong id="dismissCountdown">8</strong> seconds
+                </p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissCompletionAndReload()">
+                    <i class="fas fa-times"></i> Dismiss Now
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Also update history timeline one final time
+    updateSyncHistory(syncLogId);
+    
+    // Start countdown and auto-dismiss after 8 seconds
+    let countdown = 8;
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        const countdownEl = document.getElementById('dismissCountdown');
+        if (countdownEl) {
+            countdownEl.textContent = countdown;
+        }
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            dismissCompletionAndReload();
+        }
+    }, 1000);
+}
+
+function dismissCompletionAndReload() {
+    // Fade out and reload
+    const activeSyncCard = document.getElementById('activeSyncCard');
+    if (activeSyncCard) {
+        activeSyncCard.style.opacity = '0';
+        activeSyncCard.style.transition = 'opacity 0.5s';
+    }
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+function updateActiveSyncCard(data) {
+    // Update message text
+    const messageText = document.getElementById('activeSyncMessageText');
+    if (messageText && data.message) {
+        messageText.innerHTML = data.message;
+    }
+    
+    // Update statistics with smooth transition
+    const processed = document.getElementById('activeSyncProcessed');
+    const added = document.getElementById('activeSyncAdded');
+    const updated = document.getElementById('activeSyncUpdated');
+    const errors = document.getElementById('activeSyncErrors');
+    
+    if (processed) processed.textContent = data.emails_processed || 0;
+    if (added) added.textContent = data.emails_added || 0;
+    if (updated) updated.textContent = data.emails_updated || 0;
+    if (errors) errors.textContent = data.errors_count || 0;
+}
+
+// Fetch and update sync history timeline
+let lastEventCount = 0;
+
+function updateSyncHistory(syncLogId) {
+    fetch(`/gmail/sync/${syncLogId}/history/`)
+        .then(response => response.json())
+        .then(data => {
+            const events = data.events || [];
+            const eventsList = document.getElementById('historyEventsList');
+            const placeholder = document.getElementById('historyPlaceholder');
+            const eventCount = document.getElementById('historyEventCount');
+            
+            if (!eventsList) return;
+            
+            // Update event count badge
+            if (eventCount) {
+                eventCount.textContent = `${events.length} event${events.length !== 1 ? 's' : ''}`;
+            }
+            
+            if (events.length > 0) {
+                // Hide placeholder, show list
+                if (placeholder) placeholder.style.display = 'none';
+                eventsList.style.display = 'block';
+                
+                // Only update if we have new events
+                if (events.length > lastEventCount) {
+                    // Clear and rebuild list
+                    eventsList.innerHTML = '';
+                    
+                    events.forEach((event, index) => {
+                        const eventTime = new Date(event.timestamp);
+                        const timeStr = eventTime.toLocaleTimeString();
+                        
+                        // Determine icon and color based on event type
+                        let icon = 'fa-circle';
+                        let colorClass = 'text-secondary';
+                        
+                        switch(event.event_type) {
+                            case 'start':
+                                icon = 'fa-search';
+                                colorClass = 'text-info';
+                                break;
+                            case 'progress':
+                                icon = 'fa-chart-bar';
+                                colorClass = 'text-info';
+                                break;
+                            case 'fetch':
+                                icon = 'fa-download';
+                                colorClass = 'text-info';
+                                break;
+                            case 'process':
+                                icon = 'fa-cog';
+                                colorClass = 'text-primary';
+                                break;
+                            case 'complete':
+                                icon = 'fa-check-circle';
+                                colorClass = 'text-success';
+                                break;
+                            case 'finish':
+                                icon = 'fa-flag-checkered';
+                                colorClass = 'text-success';
+                                break;
+                            case 'cancel':
+                                icon = 'fa-stop-circle';
+                                colorClass = 'text-danger';
+                                break;
+                            case 'error':
+                                icon = 'fa-exclamation-triangle';
+                                colorClass = 'text-warning';
+                                break;
+                        }
+                        
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item py-2 px-3';
+                        li.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <i class="fas ${icon} ${colorClass} me-2"></i>
+                                    <span class="small">${event.message}</span>
+                                </div>
+                                <div class="text-end ms-2">
+                                    <span class="badge bg-light text-dark small">${timeStr}</span>
+                                    ${event.emails_processed > 0 ? `<br><span class="badge bg-secondary small mt-1">${event.emails_processed} emails</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                        eventsList.appendChild(li);
+                    });
+                    
+                    lastEventCount = events.length;
+                    
+                    // Auto-scroll to bottom (latest event)
+                    const timeline = document.getElementById('syncHistoryTimeline');
+                    if (timeline) {
+                        timeline.scrollTop = timeline.scrollHeight;
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Failed to fetch sync history:', error);
+        });
+}
+
+function cancelSync(syncLogId) {
+    if (!confirm('Are you sure you want to stop this sync?\n\nAll progress will be saved up to this point, but the sync will not continue.')) {
+        return;
+    }
+    
+    // Disable cancel button to prevent double-clicks
+    const cancelBtn = event.target.closest('button');
+    if (cancelBtn) {
+        cancelBtn.disabled = true;
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+    }
+    
+    fetch(`{% url "gmail_integration:cancel_sync" 0 %}`.replace('0', syncLogId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Stop polling
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
+            }
+            if (durationInterval) {
+                clearInterval(durationInterval);
+                durationInterval = null;
+            }
+            
+            // Show success message and reload
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.message);
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+                cancelBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Sync';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Cancel sync error:', error);
+        alert('❌ Failed to cancel sync: ' + error.message);
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Sync';
+        }
+    });
+}
+
+function completeSyncUI(data) {
+    const syncButton = document.getElementById('syncButton');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    // Update progress bar
+    if (data.status === 'success') {
+        syncProgress.className = 'alert alert-success';
+        syncStatus.textContent = `✓ Sync completed! ${data.emails_added} new emails added, ${data.emails_updated} updated.`;
+        
+        // Reload page after 2 seconds to show new emails
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    } else if (data.status === 'error') {
+        syncProgress.className = 'alert alert-danger';
+        syncStatus.textContent = `✗ Sync failed: ${data.message || 'Unknown error'}`;
+        
+        // Re-enable button after 3 seconds
+        setTimeout(() => {
+            syncButton.disabled = false;
+            syncButton.innerHTML = '<i class="fas fa-sync"></i> Sync Emails';
+            syncProgress.style.display = 'none';
+        }, 3000);
+    } else if (data.status === 'partial') {
+        syncProgress.className = 'alert alert-warning';
+        syncStatus.textContent = `⚠ Sync partially completed: ${data.emails_added} added, ${data.errors_count} errors.`;
+        
+        // Reload page after 2 seconds
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    }
+}
+
+function showSyncError(message) {
+    const syncButton = document.getElementById('syncButton');
+    const syncProgress = document.getElementById('syncProgress');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    syncProgress.className = 'alert alert-danger';
+    syncStatus.textContent = '✗ ' + message;
+    
+    // Re-enable button after 3 seconds
+    setTimeout(() => {
+        syncButton.disabled = false;
+        syncButton.innerHTML = '<i class="fas fa-sync"></i> Sync Emails';
+        syncProgress.style.display = 'none';
+    }, 3000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

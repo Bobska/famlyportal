@@ -20,6 +20,9 @@ ENV/
 .env.local
 .env.production
 
+# Google OAuth Credentials (NEVER commit these!)
+google_client_secrets.json
+
 # IDE Files
 .vscode/
 .idea/

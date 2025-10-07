@@ -1,217 +1,431 @@
 {% extends 'budget_basic/base.html' %}
+
 {% load static %}
+
 {% load humanize %}
 
-{% block page_header %}
-<!-- Empty - we'll include the header inside content wrapper -->
+
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+
 {% endblock %}
+
+
+
+{% block body_class %}transactions-panel-page payees-page{% endblock %}
+
+
+
+{% block page_header %}
+
+<!-- Empty - we'll include the header inside content wrapper -->
+
+{% endblock %}
+
+
 
 {% block content %}
+
 <!-- Content Wrapper for Centering -->
-<div class="content-wrapper">
+
+<div class="content-wrapper transactions-content payees-content">
+
     <!-- Week Navigation Card - Primary focal point -->
+
     <div class="card mb-4 card-week-nav">
+
         <div class="card-body py-4">
+
             <div class="d-flex justify-content-between align-items-center">
+
                 <button type="button" class="btn btn-action btn-week-nav btn-lg" style="height:48px;min-width:100px;font-size:1.1rem;" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
+
                     <i class="bi bi-chevron-left me-1"></i>
+
                     <span class="btn-week-text">Previous</span>
+
                 </button>
+
                 <div class="week-display">
+
                     <div class="week-label-large">{% if week_offset == 0 %}Current Week{% elif week_offset == -1 %}Last Week{% elif week_offset == 1 %}Next Week{% elif week_offset == -2 %}2 Weeks Ago{% elif week_offset == 2 %}In 2 Weeks{% else %}{% if week_offset < 0 %}{{ week_offset|add:"0" }} Weeks Ago{% else %}In {{ week_offset }} Weeks{% endif %}{% endif %}</div>
+
                     <div class="week-date-large">{{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}</div>
+
                 </div>
+
                 <button type="button" class="btn btn-action btn-week-nav btn-lg" style="height:48px;min-width:100px;font-size:1.1rem;" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
+
                     <span class="btn-week-text">Next</span>
+
                     <i class="bi bi-chevron-right ms-1"></i>
+
                 </button>
+
             </div>
+
         </div>
+
     </div>
+
     
-    <!-- Weekly Totals Card -->
-    <div class="card mb-3">
-        <div class="card-body py-1">
-            <div class="row text-center">
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Total Income</div>
-                        <div class="weekly-stat-value" id="weekly-income">+${{ weekly_income|floatformat:2|intcomma }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Total Expenses</div>
-                        <div class="weekly-stat-value" id="weekly-expenses">-${{ weekly_expenses|floatformat:2|intcomma }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Net Balance</div>
-                        <div class="weekly-stat-value" id="weekly-balance">{% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:"-" }}</div>
-                        <div class="weekly-stat-subtext" id="running-balance-info">
-                            <small class="text-muted">Running: <span id="running-balance">$0.00</span></small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Transactions card with integrated side panel will replace standalone panel -->
-    
-    <div class="card" id="transactions-card">
-        <!-- Always show the panel structure for consistent layout -->
-        <div class="transactions-with-panel">
-            <!-- Left Side: Transaction Cards Container -->
-            <div class="transaction-cards-container" id="transaction-list">
-                <!-- Left Panel Header -->
+
+        <div class="card flex-grow-1" id="transactions-card">
+
+        <div class="payees-panel">
+
+            <div class="payee-list-panel" id="transaction-list">
+
                 <div class="panel-header">
-                    <div class="panel-title">Transactions</div>
+
+                    <div class="panel-title">
+
+                        <span>Transactions</span>
+
+                    </div>
+
                     <div class="panel-header-actions">
-                        <!-- Add buttons group (Income/Expense) -->
-                        <div class="btn-group btn-group-sm me-2" role="group">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddIncomeModal()" title="Add Income" data-bs-toggle="tooltip" data-bs-placement="top">
-                                <i class="bi bi-plus-circle me-1"></i>
-                                <span>Income</span>
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddExpenseModal()" title="Add Expense" data-bs-toggle="tooltip" data-bs-placement="top">
-                                <i class="bi bi-dash-circle me-1"></i>
-                                <span>Expense</span>
-                            </button>
+
+                        <div class="d-none d-lg-block" style="max-width: 220px;">
+
+                            <div class="input-group input-group-sm">
+
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+
+                                <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="handleTransactionSearch(this.value)">
+
+                            </div>
+
                         </div>
-                        
-                        <!-- Filter dropdown -->
-                        <div class="dropdown">
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddTransactionModal()" title="Add" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add</span>
+                        </button>>
+
+                            <div class="input-group input-group-sm">
+
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+
+                                <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="handleTransactionSearch(this.value)">
+
+                            </div>
+
+                        </div>
+
+                        <div class="dropdown ms-2">
+
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
-                                <i class="bi bi-funnel me-1"></i>
-                                <span id="filterLabel">All</span>
+
+                                <i class="bi bi-funnel me-lg-1"></i>
+
+                                <span class="d-none d-lg-inline" id="filterLabel">All</span>
+
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="transactionFilterDropdown">
-                                <li><a class="dropdown-item" href="#" onclick="filterTransactions('all')">All Transactions</a></li>
+
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="transactionFilterDropdown">
+
+                                <li><a class="dropdown-item active" href="#" onclick="filterTransactions('all')">Show All</a></li>
+
                                 <li><a class="dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
+
                                 <li><a class="dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
+
                             </ul>
+
                         </div>
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-bs-toggle="collapse" data-bs-target="#transactionSearchBar" aria-expanded="false" aria-controls="transactionSearchBar" title="Search Transactions">
+
+                            <i class="bi bi-search"></i>
+
+                        </button>
+
                     </div>
+
                 </div>
-                
-                <!-- Transaction List Content -->
-                <div class="transaction-list-content">
-                {% if income_entries or expense_entries %}
-                    <!-- Income Transaction Data Rows -->
-                    {% for income in income_entries %}
-                    <div class="transaction-card transaction-card-data" 
-                         data-transaction-id="{{ income.id }}" 
-                         data-transaction-type="income"
-                         data-transaction-date="{{ income.date|date:"Y-m-d" }}"
-                         data-transaction-payee="{{ income.payee|escapejs }}"
-                         data-transaction-amount="{{ income.amount|floatformat:2|intcomma }}"
-                         data-transaction-notes="{{ income.notes|default:""|escapejs }}"
-                         onclick="selectTransaction(this, event)">>
-                        <div class="transaction-col transaction-date">{{ income.date|date:"D, j M" }}</div>
-                        <div class="transaction-col transaction-payee">{{ income.payee }}</div>
-                        <div class="transaction-col transaction-amount">+${{ income.amount|floatformat:2|intcomma }}</div>
-                    </div>
-                    {% endfor %}
-                    
-                    <!-- Expense Transaction Data Rows -->
-                    {% for expense in expense_entries %}
-                    <div class="transaction-card transaction-card-data" 
-                         data-transaction-id="{{ expense.id }}" 
-                         data-transaction-type="expense"
-                         data-transaction-date="{{ expense.date|date:"Y-m-d" }}"
-                         data-transaction-payee="{{ expense.payee|escapejs }}"
-                         data-transaction-amount="{{ expense.amount|floatformat:2|intcomma }}"
-                         data-transaction-notes="{{ expense.notes|default:""|escapejs }}"
-                         onclick="selectTransaction(this, event)">>
-                        <div class="transaction-col transaction-date">{{ expense.date|date:"D, j M" }}</div>
-                        <div class="transaction-col transaction-payee">{{ expense.payee }}</div>
-                        <div class="transaction-col transaction-amount">-${{ expense.amount|floatformat:2|intcomma }}</div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <!-- Empty State within the panel structure -->
-                    <div class="text-center py-5 text-muted">
-                        <div class="mb-3">
-                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+
+                <div class="collapse d-lg-none" id="transactionSearchBar">
+
+                    <div class="search-bar-wrapper">
+
+                        <div class="input-group input-group-sm">
+
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+
+                            <input type="text" class="form-control" placeholder="Search transactions..." oninput="handleTransactionSearch(this.value)">
+
                         </div>
-                        <p class="mb-0">No transactions yet</p>
-                        <small>Start by adding your first income or expense</small>
+
                     </div>
-                {% endif %}
-                </div> <!-- Close transaction-list-content -->
+
+                </div>
+
+
+
+                <div class="payee-list-scroll">
+
+                    <div class="payee-list-content">
+
+                    {% if income_entries or expense_entries %}
+
+                        {% for income in income_entries %}
+
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date|date:"Y-m-d" }}" data-transaction-payee="{{ income.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ income.amount|floatformat:'2' }}" data-transaction-notes="{{ income.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
+
+                            <div class="payee-cell transaction-date-cell text-muted">{{ income.date|date:"D, j M" }}</div>
+
+                            <div class="payee-cell payee-cell-info transaction-info-cell">
+
+                                <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
+
+                                {% if income.notes %}
+
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ income.notes }}</small>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="payee-cell transaction-amount-cell text-end">
+
+                                <span class="transaction-amount text-success">+${{ income.amount|floatformat:2|intcomma }}</span>
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+
+
+                        {% for expense in expense_entries %}
+
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date|date:"Y-m-d" }}" data-transaction-payee="{{ expense.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ expense.amount|floatformat:'2' }}" data-transaction-notes="{{ expense.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
+
+                            <div class="payee-cell transaction-date-cell text-muted">{{ expense.date|date:"D, j M" }}</div>
+
+                            <div class="payee-cell payee-cell-info transaction-info-cell">
+
+                                <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
+
+                                {% if expense.notes %}
+
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ expense.notes }}</small>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="payee-cell transaction-amount-cell text-end">
+
+                                <span class="transaction-amount text-danger">-${{ expense.amount|floatformat:2|intcomma }}</span>
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="transaction-empty-state text-center text-muted py-5">
+
+                            <div class="mb-3">
+
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+
+                            </div>
+
+                            <p class="mb-1">No transactions yet</p>
+
+                            <small>Add your first income or expense using the buttons above.</small>
+
+                        </div>
+
+                    {% endif %}
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="transaction-total-bar" id="transaction-total-bar"
+
+                     data-income="{{ weekly_income|floatformat:'2' }}"
+
+                     data-expense="{{ weekly_expenses|floatformat:'2' }}"
+
+                     data-net="{{ weekly_balance|floatformat:'2' }}"
+
+                     data-running="{{ running_balance|floatformat:'2' }}">
+
+                    <div class="transaction-total-text">
+
+                        <span class="transaction-total-label" id="transaction-total-label">Net Balance</span>
+
+                        <small class="transaction-total-subtext" id="transaction-total-subtext">
+
+                            Running balance: {% if running_balance >= 0 %}+{% else %}-{% endif %}${{ running_balance|floatformat:2|intcomma|cut:"-" }}
+
+                        </small>
+
+                    </div>
+
+                    <div class="transaction-total-value" id="transaction-total-value">
+
+                        {% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:"-" }}
+
+                    </div>
+
+                </div>
+
+
+
             </div>
-            
-            <!-- Resizable Divider -->
+
+
+
             <div class="panel-resizer" id="panel-resizer">
+
                 <div class="resizer-handle"></div>
+
             </div>
-            
-            <!-- Right Side: Details Panel -->
-            <div class="transaction-details-panel" id="transaction-details-panel">
+
+
+
+            <div class="transaction-details-panel payee-detail-panel" id="transaction-details-panel">
+
                 <div class="panel-header">
-                    <h6 class="mb-0">Transaction Details</h6>
+
+                    <div class="panel-title">Transaction Details</div>
+
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
+
                         <i class="bi bi-x"></i>
+
                     </button>
+
                 </div>
+
                 <div class="panel-content">
-                    <div class="detail-section">
-                        <div class="detail-row">
-                            <span class="detail-label">Date:</span>
-                            <span class="detail-value" id="detail-date">Select a transaction</span>
+
+                    <div id="transaction-detail-content" class="detail-content">
+
+                        <div class="detail-heading">
+
+                            <h2 class="detail-name" id="detail-payee">Select a transaction</h2>
+
+                            <div class="detail-meta">
+
+                                <div class="detail-meta-item">
+
+                                    <span class="detail-meta-label">Date</span>
+
+                                    <span class="detail-meta-value" id="detail-date">-</span>
+
+                                </div>
+
+                                <div class="detail-meta-item">
+
+                                    <span class="detail-meta-label">Type</span>
+
+                                    <span class="detail-meta-value" id="detail-type">-</span>
+
+                                </div>
+
+                            </div>
+
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Payee/Merchant:</span>
-                            <span class="detail-value" id="detail-payee">to view details</span>
+
+                        <div class="detail-section">
+
+                            <span class="detail-section-label">Amount</span>
+
+                            <div class="detail-section-body" id="detail-amount">$0.00</div>
+
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Amount:</span>
-                            <span class="detail-value" id="detail-amount">$0.00</span>
+
+                        <div class="detail-section">
+
+                            <span class="detail-section-label">Notes</span>
+
+                            <div class="detail-section-body" id="detail-notes">-</div>
+
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Type:</span>
-                            <span class="detail-value" id="detail-type">-</span>
+
+                        <div class="detail-actions">
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
+
+                                <i class="bi bi-pencil me-1"></i>Edit
+
+                            </button>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
+
+                                <i class="bi bi-trash me-1"></i>Delete
+
+                            </button>
+
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Notes:</span>
-                            <span class="detail-value" id="detail-notes">-</span>
-                        </div>
+
                     </div>
-                    <div class="panel-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
-                            <i class="bi bi-trash me-1"></i>Delete
-                        </button>
-                    </div>
+
                 </div>
+
             </div>
+
         </div>
-        </div>
+
     </div>
-</div>
+
+
+
 {% endblock %}
 
+
+
 {% block extra_js %}
+
 <script>
+
 // Initialize week navigation functionality
+
 document.addEventListener('DOMContentLoaded', function() {
+
     // Set configuration from server
+
     if (typeof setWeekDataUrl === 'function') {
+
         setWeekDataUrl('{% url "budget_basic:get_week_data" %}');
+
     }
+
     
+
     if (typeof setCurrentWeekOffset === 'function') {
+
         setCurrentWeekOffset({{ week_offset|default:0 }});
+
     }
+
     
+
     // Initialize all week navigation features
+
     if (typeof initializeWeekNavigation === 'function') {
+
         initializeWeekNavigation();
+
     }
+
 });
+
 </script>
+
 {% endblock %}
+

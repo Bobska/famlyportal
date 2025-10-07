@@ -57,6 +57,8 @@ LOCAL_APPS = [
     'subscription_tracker',
     'budget_allocation',
     'budget_basic',
+    'gmail_integration',
+    'ai',  # AI/ML Hub
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -127,7 +129,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'America/New_York'
+TIME_ZONE = 'Pacific/Auckland'  # New Zealand timezone
 USE_I18N = True
 USE_TZ = True
 
@@ -224,3 +226,33 @@ ALLOCATION_LOCKS_ENABLED = config(
     default=('False' if DEBUG else 'True'),
     cast=bool,
 )
+
+# Gmail Integration Settings
+GOOGLE_OAUTH2_CLIENT_SECRETS_FILE = config(
+    'GOOGLE_OAUTH2_CLIENT_SECRETS_FILE',
+    default='google_client_secrets.json'
+)
+
+# Gmail Integration Encryption Key (for storing OAuth tokens)
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+GMAIL_ENCRYPTION_KEY = config(
+    'GMAIL_ENCRYPTION_KEY',
+    default='generate-a-real-key-in-production'
+)
+
+# AI/ML Hub Configuration
+AI_CONFIG = {
+    'MODEL_STORAGE_PATH': 'ai/models/',
+    'DEFAULT_CLASSIFIER': 'LogisticRegression',
+    'RETRAIN_THRESHOLD': 20,  # New samples needed before retrain
+    'MIN_CONFIDENCE': 0.7,  # Minimum confidence for auto-classification
+}
+
+# Email Classification Configuration
+AI_EMAIL_CLASSIFIER = {
+    'MIN_TRAINING_SAMPLES': 10,  # Minimum samples to train initial model
+    'RETRAIN_THRESHOLD': 20,  # Retrain after this many new samples
+    'MIN_CONFIDENCE': 0.7,  # Low confidence threshold for review
+    'MODEL_STORAGE': 'ai/models/',  # Where to store trained models
+}
+

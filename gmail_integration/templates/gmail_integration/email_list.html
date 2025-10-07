@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Emails: {{ account.email_address }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_list' %}">Gmail Accounts</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'gmail_integration:account_detail' account.id %}">{{ account.email_address }}</a></li>
+                    <li class="breadcrumb-item active">All Emails</li>
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-envelope"></i> All Emails</h2>
+                    <p class="text-muted">Browse and search all synced emails for {{ account.email_address }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'gmail_integration:account_detail' account.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Account
+                    </a>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <form method="get" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Search emails by subject, sender, or content..." value="{{ search }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    {% if search %}
+                    <a href="{% url 'gmail_integration:email_list' account.id %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- Email List -->
+            {% if page_obj %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if search %}
+                            Search Results: {{ page_obj.paginator.count }} email{{ page_obj.paginator.count|pluralize }}
+                        {% else %}
+                            Total: {{ page_obj.paginator.count }} email{{ page_obj.paginator.count|pluralize }}
+                        {% endif %}
+                    </h5>
+                    <span class="text-muted">
+                        Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+                    </span>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for email in page_obj %}
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-9">
+                                <div class="d-flex align-items-start">
+                                    <!-- Email Icon -->
+                                    <div class="me-3">
+                                        {% if email.has_invoice %}
+                                            <i class="fas fa-file-invoice text-success" title="Contains invoice"></i>
+                                        {% elif email.has_attachments %}
+                                            <i class="fas fa-paperclip text-primary" title="Has attachments"></i>
+                                        {% else %}
+                                            <i class="fas fa-envelope text-secondary"></i>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Email Info -->
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'gmail_integration:email_detail' account.id email.id %}" 
+                                               class="text-decoration-none">
+                                                {{ email.subject|default:"(No Subject)" }}
+                                            </a>
+                                        </h6>
+                                        <div class="text-muted small">
+                                            <strong>From:</strong> 
+                                            {% if email.sender_name %}
+                                                {{ email.sender_name }} &lt;{{ email.sender_email }}&gt;
+                                            {% else %}
+                                                {{ email.sender_email }}
+                                            {% endif %}
+                                        </div>
+                                        {% if email.body_text %}
+                                        <div class="text-muted small mt-1">
+                                            {{ email.body_text|truncatewords:20 }}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Badges -->
+                                        <div class="mt-2">
+                                            {% if email.has_invoice %}
+                                                <span class="badge bg-success me-1">
+                                                    <i class="fas fa-file-invoice"></i> Invoice
+                                                    {% if email.invoice_confidence == 'high' %}
+                                                        (High)
+                                                    {% elif email.invoice_confidence == 'medium' %}
+                                                        (Medium)
+                                                    {% elif email.invoice_confidence == 'low' %}
+                                                        (Low)
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                            {% if email.has_attachments %}
+                                                <span class="badge bg-primary me-1">
+                                                    <i class="fas fa-paperclip"></i> {{ email.attachment_count }} attachment{{ email.attachment_count|pluralize }}
+                                                </span>
+                                            {% endif %}
+                                            {% if email.labels %}
+                                                {% for label in email.labels|slice:":3" %}
+                                                    <span class="badge bg-secondary me-1">{{ label }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Date and Actions -->
+                            <div class="col-md-3 text-end">
+                                <div class="text-muted small mb-2">
+                                    {{ email.sent_date|date:"M d, Y" }}<br>
+                                    {{ email.sent_date|date:"g:i A" }}
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'gmail_integration:email_detail' account.id email.id %}" 
+                                       class="btn btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="https://mail.google.com/mail/u/0/#inbox/{{ email.gmail_id }}" 
+                                       target="_blank" class="btn btn-outline-secondary" title="Open in Gmail">
+                                        <i class="fab fa-google"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">
+                            {% if search %}
+                                No emails found matching "{{ search }}"
+                            {% else %}
+                                No emails found. Try syncing your account.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Email pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i> First
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                            <i class="fas fa-angle-left"></i> Previous
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Page numbers -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                            Next <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}">
+                            Last <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No emails synced yet. 
+                <a href="{% url 'gmail_integration:account_detail' account.id %}">Start a sync</a> to see emails here.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

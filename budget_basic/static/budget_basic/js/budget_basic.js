@@ -2,15 +2,20 @@
 
 // Global variable to track current filter state (resets on page reload)
 let currentFilterType = 'all';
+let currentTransactionSearch = '';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Budget Basic App Initialized');
     
     // Initialize mobile sidebar
     initializeMobileSidebar();
+    initializeSidebarCollapse();
     
     // Initialize tooltips if Bootstrap tooltips are needed
     initializeTooltips();
+    
+    // Initialize add transaction form (consolidated)
+    handleAddTransactionForm();
     
     // Initialize add income form
     handleAddIncomeForm();
@@ -53,14 +58,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize filter with default state (only on pages with transactions)
     setTimeout(() => {
-        const transactionContainer = document.querySelector('.transaction-cards-container');
+        const transactionContainer = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
         if (transactionContainer) {
             filterTransactions('all'); // Set default filter to 'all' and highlight it
         }
     }, 100); // Small delay to ensure DOM is fully rendered
     
+    if (typeof window.currentWeekOffset !== 'number') {
+        window.currentWeekOffset = getCurrentWeekOffsetValue();
+    }
+
     // Note: Transaction card interactions now handled by week_navigation.js
 });
+
+function getCurrentWeekOffsetValue() {
+    if (typeof window.currentWeekOffset === 'number' && !Number.isNaN(window.currentWeekOffset)) {
+        return window.currentWeekOffset;
+    }
+
+    const body = document.body;
+    if (body && body.dataset && typeof body.dataset.weekOffset !== 'undefined') {
+        const parsed = Number(body.dataset.weekOffset);
+        if (!Number.isNaN(parsed)) {
+            return parsed;
+        }
+    }
+
+    return 0;
+}
 
 /**
  * Show coming soon modal
@@ -143,6 +168,237 @@ function showDeleteIncomeModal(incomeId, payee, amount) {
 }
 
 /**
+ * Show add transaction modal (consolidated income/expense modal)
+ */
+function showAddTransactionModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+    
+    // Reset form fields
+    const transactionForm = document.getElementById('addTransactionForm');
+    transactionForm.reset();
+    
+    // Set default to expense
+    document.getElementById('typeExpense').checked = true;
+    updateTransactionModalForType('expense');
+    
+    // Load payees for the select dropdown
+    loadPayeesForModal('transactionPayeeSelect');
+    
+    // Load categories for the select dropdown (default to expense)
+    loadCategoriesForModal('transactionCategorySelect', 'expense');
+    
+    // Setup event listeners for type switching
+    setupTransactionTypeListeners();
+    
+    // Initialize category-payee filtering (only once)
+    if (!document.getElementById('transactionCategorySelect').dataset.filteringInitialized) {
+        initializeCategoryPayeeFiltering();
+        document.getElementById('transactionCategorySelect').dataset.filteringInitialized = 'true';
+    }
+    
+    // Initialize payee category display (only once)
+    if (!document.getElementById('transactionPayeeSelect').dataset.categoryDisplayInitialized) {
+        initializePayeeCategoryDisplay();
+        document.getElementById('transactionPayeeSelect').dataset.categoryDisplayInitialized = 'true';
+    }
+    
+    modal.show();
+}
+
+/**
+ * Setup event listeners for transaction type switching
+ */
+function setupTransactionTypeListeners() {
+    const typeExpense = document.getElementById('typeExpense');
+    const typeIncome = document.getElementById('typeIncome');
+    
+    if (typeExpense && !typeExpense.dataset.listenerBound) {
+        typeExpense.addEventListener('change', function() {
+            if (this.checked) {
+                updateTransactionModalForType('expense');
+            }
+        });
+        typeExpense.dataset.listenerBound = 'true';
+    }
+    
+    if (typeIncome && !typeIncome.dataset.listenerBound) {
+        typeIncome.addEventListener('change', function() {
+            if (this.checked) {
+                updateTransactionModalForType('income');
+            }
+        });
+        typeIncome.dataset.listenerBound = 'true';
+    }
+}
+
+/**
+ * Update modal labels and styling based on transaction type
+ */
+function updateTransactionModalForType(type) {
+    const payeeLabel = document.getElementById('payeeLabel');
+    const payeeOption = document.getElementById('payeeOption');
+    const payeeHelp = document.getElementById('payeeHelp');
+    const submitBtn = document.getElementById('submitTransactionBtn');
+    const newPayeeBtn = document.getElementById('addNewPayeeTransactionBtn');
+    
+    if (type === 'expense') {
+        payeeLabel.textContent = 'Merchant';
+        payeeOption.textContent = 'Select existing merchant...';
+        payeeHelp.textContent = 'Select from existing merchants or use the + button to add a new one';
+        submitBtn.textContent = 'Add Expense';
+        submitBtn.className = 'btn btn-danger';
+        if (newPayeeBtn) {
+            newPayeeBtn.title = 'Add new merchant';
+        }
+    } else if (type === 'income') {
+        payeeLabel.textContent = 'Payee';
+        payeeOption.textContent = 'Select existing payee...';
+        payeeHelp.textContent = 'Select from existing payees or use the + button to add a new one';
+        submitBtn.textContent = 'Add Income';
+        submitBtn.className = 'btn btn-success';
+        if (newPayeeBtn) {
+            newPayeeBtn.title = 'Add new payee';
+        }
+    }
+    
+    // Reload categories for the selected transaction type
+    loadCategoriesForModal('transactionCategorySelect', type);
+    
+    // Reset category selection and reload all payees when transaction type changes
+    const categorySelect = document.getElementById('transactionCategorySelect');
+    const payeeSelect = document.getElementById('transactionPayeeSelect');
+    if (categorySelect && payeeSelect) {
+        categorySelect.value = ''; // Clear category selection
+        payeeSelect.value = '';   // Clear payee selection
+        loadPayeesForModal('transactionPayeeSelect'); // Reload all payees
+    }
+
+    if (typeof setAutoDate === 'function') {
+        setAutoDate('transactionDate', type);
+    } else {
+        const transactionDateInput = document.getElementById('transactionDate');
+        if (transactionDateInput && !transactionDateInput.value) {
+            transactionDateInput.value = new Date().toISOString().split('T')[0];
+        }
+    }
+}
+
+/**
+ * Handle add transaction form submission
+ */
+function handleAddTransactionForm() {
+    const form = document.getElementById('addTransactionForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        
+        // Remove commas from amount before validation and submission
+        const amountInput = form.querySelector('[name="amount"]');
+        const cleanAmount = removeCommasFromAmount(amountInput.value);
+        formData.set('amount', cleanAmount);
+        
+        // Validate required fields
+        const date = formData.get('date');
+        const payee_choice = formData.get('payee_choice');
+        const amount = formData.get('amount');
+        const transaction_type = formData.get('transaction_type');
+        
+        if (!date || !payee_choice || !amount || !transaction_type) {
+            alert('Please fill in all required fields (Date, Payee, Amount, Transaction Type)');
+            return;
+        }
+        
+        // Disable submit button to prevent double submission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        // Determine endpoint based on transaction type
+        const endpoint = transaction_type === 'income' ? '/budget-basic/income/add/' : '/budget-basic/expense/add/';
+        
+        // Send data to server
+        fetch(endpoint, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => {
+            console.log(`Add ${transaction_type} response status:`, response.status);
+            console.log(`Add ${transaction_type} response headers:`, Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log(`Add ${transaction_type} raw response:`, text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error(`Add ${transaction_type} JSON parse error:`, e);
+                    console.error(`Add ${transaction_type} response text:`, text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                const submittedType = transaction_type;
+                const idKey = submittedType === 'income' ? 'income_id' : 'expense_id';
+                const createdTransactionId = data[idKey];
+                const createdDate = data.date;
+
+                // Reset form for next use while keeping the last selected type
+                form.reset();
+                const defaultRadio = document.getElementById(submittedType === 'income' ? 'typeIncome' : 'typeExpense');
+                if (defaultRadio) {
+                    defaultRadio.checked = true;
+                    updateTransactionModalForType(submittedType);
+                } else {
+                    updateTransactionModalForType('expense');
+                }
+
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
+                if (addModal) {
+                    addModal.hide();
+                }
+
+                if (createdTransactionId && typeof navigateToTransactionWeek === 'function' && typeof loadWeekData === 'function') {
+                    navigateToTransactionWeek(createdDate, createdTransactionId, submittedType);
+                } else if (typeof loadWeekData === 'function') {
+                    const targetOffset = (typeof calculateWeekOffset === 'function' && createdDate)
+                        ? calculateWeekOffset(createdDate)
+                        : getCurrentWeekOffsetValue();
+                    loadWeekData(targetOffset);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                // Show error message via alert
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error(`Add ${transaction_type} fetch error:`, error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        });
+    });
+}
+
+/**
  * Show add income modal
  */
 function showAddIncomeModal() {
@@ -161,10 +417,13 @@ function showAddIncomeModal() {
         incomeInput.removeAttribute('readonly');
         incomeInput.classList.remove('bg-light');
     }
-    
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('incomeDate').value = today;
+
+    if (typeof setAutoDate === 'function') {
+        setAutoDate('incomeDate', 'income');
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('incomeDate').value = today;
+    }
     
     modal.show();
 }
@@ -211,25 +470,58 @@ function handleAddIncomeForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            // Get the response text first to see what we're actually getting
+            return response.text().then(text => {
+                console.log('Raw response:', text);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+                }
+                
+                // Try to parse as JSON
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: ${text}`);
+                }
+            });
+        })
         .then(data => {
+            console.log('Parsed data:', data);
             if (data.success) {
-                // Reset form and close modal first
                 form.reset();
                 const addIncomeModal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
-                addIncomeModal.hide();
-                
-                // Navigate to the week containing the new transaction and highlight it
-                navigateToTransactionWeek(data.date, data.income_id, 'income');
+                if (addIncomeModal) {
+                    addIncomeModal.hide();
+                }
+
+                if (typeof setAutoDate === 'function') {
+                    setAutoDate('incomeDate', 'income');
+                }
+
+                if (data.income_id && typeof navigateToTransactionWeek === 'function' && typeof loadWeekData === 'function') {
+                    navigateToTransactionWeek(data.date, data.income_id, 'income');
+                } else if (typeof loadWeekData === 'function') {
+                    const targetOffset = (typeof calculateWeekOffset === 'function' && data.date)
+                        ? calculateWeekOffset(data.date)
+                        : getCurrentWeekOffsetValue();
+                    loadWeekData(targetOffset);
+                } else {
+                    window.location.reload();
+                }
                 
             } else {
                 // Show error message via alert (keep alerts for errors)
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while saving the income entry. Please try again.');
+            console.error('Error details:', error);
+            alert('An error occurred while saving the income entry. Please try again.\nError: ' + error.message);
         })
         .finally(() => {
             // Re-enable submit button
@@ -282,7 +574,12 @@ function handleEditIncomeForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // Reset form and close modal first
@@ -290,11 +587,11 @@ function handleEditIncomeForm() {
                 const editIncomeModal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
                 editIncomeModal.hide();
                 
-                // Navigate to transaction week with highlighting
-                navigateToTransactionWeek(data.date, data.income_id, 'income');
+                // Simple page reload to show the updated transaction
+                window.location.reload();
             } else {
                 // Show error message via alert (keep alerts for errors)
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
@@ -337,28 +634,47 @@ function handleDeleteIncomeForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete income response status:', response.status);
+            console.log('Delete income response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Delete income raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Delete income JSON parse error:', e);
+                    console.error('Delete income response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close delete modal first
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
-                deleteModal.hide();
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
                 
-                // Reload current week data instead of full page reload
-                const currentOffset = window.currentWeekOffset || 0;
                 if (typeof loadWeekData === 'function') {
-                    loadWeekData(currentOffset);
+                    loadWeekData(getCurrentWeekOffsetValue());
                 } else {
                     window.location.reload();
                 }
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the income entry. Please try again.');
+            console.error('Delete income fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable button
@@ -389,10 +705,13 @@ function showAddExpenseModal() {
         expenseInput.removeAttribute('readonly');
         expenseInput.classList.remove('bg-light');
     }
-    
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('expenseDate').value = today;
+
+    if (typeof setAutoDate === 'function') {
+        setAutoDate('expenseDate', 'expense');
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('expenseDate').value = today;
+    }
     
     modal.show();
 }
@@ -502,26 +821,56 @@ function handleAddExpenseForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Add expense response status:', response.status);
+            console.log('Add expense response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Add expense raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Add expense JSON parse error:', e);
+                    console.error('Add expense response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
-                // Close add modal first
                 const addModal = bootstrap.Modal.getInstance(document.getElementById('addExpenseModal'));
-                addModal.hide();
-                
-                // Clear form
+                if (addModal) {
+                    addModal.hide();
+                }
+
                 form.reset();
-                
-                // Navigate to the week containing the new transaction and highlight it
-                navigateToTransactionWeek(data.date, data.expense_id, 'expense');
+                if (typeof setAutoDate === 'function') {
+                    setAutoDate('expenseDate', 'expense');
+                }
+
+                if (data.expense_id && typeof navigateToTransactionWeek === 'function' && typeof loadWeekData === 'function') {
+                    navigateToTransactionWeek(data.date, data.expense_id, 'expense');
+                } else if (typeof loadWeekData === 'function') {
+                    const targetOffset = (typeof calculateWeekOffset === 'function' && data.date)
+                        ? calculateWeekOffset(data.date)
+                        : getCurrentWeekOffsetValue();
+                    loadWeekData(targetOffset);
+                } else {
+                    window.location.reload();
+                }
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while adding the expense. Please try again.');
+            console.error('Add expense fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable submit button
@@ -576,23 +925,42 @@ function handleEditExpenseForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Edit expense response status:', response.status);
+            console.log('Edit expense response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Edit expense raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Edit expense JSON parse error:', e);
+                    console.error('Edit expense response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close edit modal first
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
                 editModal.hide();
                 
-                // Navigate to transaction week with highlighting
-                navigateToTransactionWeek(data.date, data.expense_id, 'expense');
+                // Simple page reload to show changes
+                window.location.reload();
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating the expense. Please try again.');
+            console.error('Edit expense fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable submit button
@@ -630,28 +998,47 @@ function handleDeleteExpenseForm() {
                 'X-CSRFToken': getCsrfToken()
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete expense response status:', response.status);
+            console.log('Delete expense response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.text().then(text => {
+                console.log('Delete expense raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Delete expense JSON parse error:', e);
+                    console.error('Delete expense response text:', text);
+                    throw new Error('Invalid JSON response');
+                }
+            });
+        })
         .then(data => {
             if (data.success) {
                 // Close delete modal first
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
-                deleteModal.hide();
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
                 
-                // Reload current week data instead of full page reload
-                const currentOffset = window.currentWeekOffset || 0;
                 if (typeof loadWeekData === 'function') {
-                    loadWeekData(currentOffset);
+                    loadWeekData(getCurrentWeekOffsetValue());
                 } else {
                     window.location.reload();
                 }
             } else {
                 // Show error message via alert
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the expense entry. Please try again.');
+            console.error('Delete expense fetch error:', error);
+            console.error('Full error object:', error);
+            alert('Network error occurred. Please try again.');
         })
         .finally(() => {
             // Re-enable button
@@ -860,7 +1247,7 @@ function getCsrfToken() {
  */
 function initializeMobileSidebar() {
     // Create mobile sidebar toggle button if it doesn't exist
-    const navbar = document.querySelector('.budget-basic-nav .navbar-nav');
+    const navbar = document.querySelector('.bb-top-nav .navbar-nav');
     if (navbar && window.innerWidth <= 768) {
         const toggleButton = document.createElement('li');
         toggleButton.className = 'nav-item d-lg-none';
@@ -888,6 +1275,59 @@ function initializeMobileSidebar() {
                 sidebarToggle && !sidebarToggle.contains(e.target)) {
                 closeSidebar();
             }
+        }
+    });
+
+    // Close sidebar when a navigation link is selected on mobile
+    document.querySelectorAll('.bb-sidebar__nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 991.98) {
+                closeSidebar();
+            }
+        });
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 991.98) {
+            closeSidebar();
+        }
+    });
+}
+
+/**
+ * Initialise desktop sidebar collapse behaviour with persisted state
+ */
+function initializeSidebarCollapse() {
+    const collapseButton = document.getElementById('sidebarCollapseButton');
+    const sidebar = document.querySelector('.bb-sidebar');
+    if (!collapseButton || !sidebar) {
+        return;
+    }
+
+    const icon = collapseButton.querySelector('i');
+    const applyState = (isCollapsed) => {
+        collapseButton.setAttribute('aria-expanded', String(!isCollapsed));
+        if (icon) {
+            icon.classList.toggle('fa-angle-left', !isCollapsed);
+            icon.classList.toggle('fa-angle-right', isCollapsed);
+        }
+    };
+
+    const storedPreference = window.localStorage?.getItem('bb.sidebar.collapsed');
+    if (storedPreference === '1') {
+        document.body.classList.add('sidebar-collapsed');
+        applyState(true);
+    } else {
+        applyState(false);
+    }
+
+    collapseButton.addEventListener('click', () => {
+        const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+        applyState(isCollapsed);
+        try {
+            window.localStorage?.setItem('bb.sidebar.collapsed', isCollapsed ? '1' : '0');
+        } catch (error) {
+            console.warn('Unable to persist sidebar state', error);
         }
     });
 }
@@ -924,6 +1364,15 @@ function formatCurrency(amount) {
         style: 'currency',
         currency: 'USD'
     }).format(amount);
+}
+
+function formatSignedCurrency(amount) {
+    const numeric = Number(amount) || 0;
+    const formatted = formatCurrency(numeric);
+    if (numeric > 0) {
+        return `+${formatted}`;
+    }
+    return formatted;
 }
 
 /**
@@ -1025,6 +1474,7 @@ function validateForm(form) {
  * Payee Management Functions
  */
 let payeeCache = [];
+let categoryCache = [];
 let currentBaseModal = null; // Track which modal opened the payee modal
 
 // Load payees from server
@@ -1043,21 +1493,89 @@ async function loadPayees() {
 }
 
 // Load payees for a specific modal
-async function loadPayeesForModal(selectId) {
+async function loadPayeesForModal(selectId, categoryId = null) {
     try {
-        const response = await fetch('/budget-basic/payees/');
+        let url = '/budget-basic/payees/';
+        if (categoryId) {
+            url += `?category_id=${categoryId}`;
+        }
+        
+        const response = await fetch(url);
         const data = await response.json();
         
         if (data.success) {
             payeeCache = data.payees;
             updatePayeeSelectById(selectId);
+            
+            // Store filtered state for reference
+            const select = document.getElementById(selectId);
+            if (select) {
+                select.dataset.filteredByCategory = data.filtered_by_category || false;
+            }
         }
     } catch (error) {
         console.error('Error loading payees for modal:', error);
     }
 }
 
-// Update a specific payee select element by ID
+// Handle category change in transaction modal
+function handleCategoryChangeForPayeeFilter(categorySelectId, payeeSelectId) {
+    const categorySelect = document.getElementById(categorySelectId);
+    const payeeSelect = document.getElementById(payeeSelectId);
+    
+    if (!categorySelect || !payeeSelect) return;
+    
+    categorySelect.addEventListener('change', async function() {
+        const selectedCategoryId = this.value;
+        
+        // Clear current payee selection
+        payeeSelect.value = '';
+        
+        // Hide payee categories display since user is selecting category manually
+        hidePayeeCategories();
+        
+        if (selectedCategoryId) {
+            // Load payees filtered by category
+            await loadPayeesForModal(payeeSelectId, selectedCategoryId);
+        } else {
+            // Load all payees when no category is selected
+            await loadPayeesForModal(payeeSelectId);
+        }
+    });
+}
+
+// Initialize payee category display for transaction modal
+function initializePayeeCategoryDisplay() {
+    const payeeSelect = document.getElementById('transactionPayeeSelect');
+    
+    if (!payeeSelect) {
+        return;
+    }
+    
+    payeeSelect.addEventListener('change', function() {
+        if (this.value) {
+            // Show categories for selected payee (as badges)
+            showPayeeCategories(this.value);
+            
+            // Filter category dropdown to only show linked categories
+            filterCategoriesByPayee('transactionCategorySelect', this.value);
+        } else {
+            // Hide categories section
+            hidePayeeCategories();
+            
+            // Reset category dropdown to show all categories
+            resetCategoryDropdown('transactionCategorySelect');
+        }
+    });
+}
+
+// Initialize category-payee filtering for transaction modal
+function initializeCategoryPayeeFiltering() {
+    // Set up filtering for the main transaction modal
+    handleCategoryChangeForPayeeFilter('transactionCategorySelect', 'transactionPayeeSelect');
+    
+    console.log('Category-payee filtering initialized');
+}
 function updatePayeeSelectById(selectId) {
     const select = document.getElementById(selectId);
     if (!select) return;
@@ -1108,12 +1626,58 @@ function handlePayeeSelection(selectElement, inputElement) {
             inputElement.value = this.value;
             inputElement.setAttribute('readonly', true);
             inputElement.classList.add('bg-light');
+            
+            // Show categories for selected payee
+            showPayeeCategories(this.value);
         } else {
             inputElement.value = '';
             inputElement.removeAttribute('readonly');
             inputElement.classList.remove('bg-light');
+            
+            // Hide categories section
+            hidePayeeCategories();
         }
     });
+}
+
+// Show categories for a selected payee
+function showPayeeCategories(payeeName) {
+    const payeeCategoriesDiv = document.getElementById('payeeCategories');
+    const payeeCategoriesList = document.getElementById('payeeCategoriesList');
+    
+    if (!payeeCategoriesDiv || !payeeCategoriesList) {
+        return; // Elements not found, might be on a different page
+    }
+    
+    // Find the payee in the cache
+    const selectedPayee = payeeCache.find(payee => payee.name === payeeName);
+    
+    if (selectedPayee && selectedPayee.categories && selectedPayee.categories.length > 0) {
+        // Clear existing categories
+        payeeCategoriesList.innerHTML = '';
+        
+        // Add each category as a badge
+        selectedPayee.categories.forEach(category => {
+            const categoryBadge = document.createElement('span');
+            categoryBadge.className = 'badge bg-secondary me-1 mb-1';
+            categoryBadge.textContent = category.name;
+            payeeCategoriesList.appendChild(categoryBadge);
+        });
+        
+        // Show the categories section
+        payeeCategoriesDiv.style.display = 'block';
+    } else {
+        // No categories found, hide the section
+        hidePayeeCategories();
+    }
+}
+
+// Hide payee categories section
+function hidePayeeCategories() {
+    const payeeCategoriesDiv = document.getElementById('payeeCategories');
+    if (payeeCategoriesDiv) {
+        payeeCategoriesDiv.style.display = 'none';
+    }
 }
 
 // Handle manual payee input
@@ -1139,6 +1703,10 @@ async function addNewPayee(payeeName) {
             method: 'POST',
             body: formData
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         
@@ -1180,24 +1748,36 @@ async function getAutoDate(weekOffset = 0, transactionType = null) {
 }
 
 // Set auto date for form
-async function setAutoDate(dateInputId) {
+async function setAutoDate(dateInputId, transactionTypeOverride = null) {
     const dateInput = document.getElementById(dateInputId);
     if (!dateInput) return;
     
     // Determine transaction type based on input ID
-    let transactionType = null;
-    if (dateInputId.toLowerCase().includes('income')) {
-        transactionType = 'income';
-    } else if (dateInputId.toLowerCase().includes('expense')) {
-        transactionType = 'expense';
+    let transactionType = transactionTypeOverride;
+    if (!transactionType) {
+        const lowerId = dateInputId.toLowerCase();
+        if (lowerId.includes('income')) {
+            transactionType = 'income';
+        } else if (lowerId.includes('expense')) {
+            transactionType = 'expense';
+        }
+    }
+
+    if (!transactionType) {
+        const selectedRadio = document.querySelector('input[name="transaction_type"]:checked');
+        if (selectedRadio) {
+            transactionType = selectedRadio.value;
+        }
     }
     
     // Get current week offset from the global variable
-    const weekOffset = typeof currentWeekOffset !== 'undefined' ? currentWeekOffset : 0;
+    const weekOffset = getCurrentWeekOffsetValue();
     const autoDate = await getAutoDate(weekOffset, transactionType);
     
     if (autoDate) {
         dateInput.value = autoDate;
+    } else if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
     }
 }
 
@@ -1205,6 +1785,24 @@ async function setAutoDate(dateInputId) {
 function initializePayeeFunctionality() {
     // Load payees on page load
     loadPayees();
+    
+    // Set up payee selection for new consolidated transaction modal
+    const addNewPayeeTransactionBtn = document.getElementById('addNewPayeeTransactionBtn');
+    if (addNewPayeeTransactionBtn) {
+        addNewPayeeTransactionBtn.addEventListener('click', function() {
+            // Determine transaction type from radio buttons
+            const transactionType = document.querySelector('input[name="transaction_type"]:checked')?.value || 'expense';
+            showAddPayeeModal(transactionType);
+        });
+    }
+    
+    // Set up category selection for new consolidated transaction modal
+    const addNewCategoryTransactionBtn = document.getElementById('addNewCategoryTransactionBtn');
+    if (addNewCategoryTransactionBtn) {
+        addNewCategoryTransactionBtn.addEventListener('click', function() {
+            showAddCategoryModal();
+        });
+    }
     
     // Set up payee selection for income modal
     const incomeSelect = document.getElementById('incomePayeeSelect');
@@ -1242,7 +1840,7 @@ function initializePayeeFunctionality() {
     
     if (autoDateIncomeBtn) {
         autoDateIncomeBtn.addEventListener('click', function() {
-            setAutoDate('incomeDate');
+            setAutoDate('incomeDate', 'income');
         });
     }
     
@@ -1282,7 +1880,7 @@ function initializePayeeFunctionality() {
     
     if (autoDateExpenseBtn) {
         autoDateExpenseBtn.addEventListener('click', function() {
-            setAutoDate('expenseDate');
+            setAutoDate('expenseDate', 'expense');
         });
     }
     
@@ -1330,19 +1928,25 @@ function initializePayeeFunctionality() {
         addPayeeForm.addEventListener('submit', handleAddPayeeModalForm);
     }
     
+    // Set up the Add Category modal form submission
+    const addCategoryForm = document.getElementById('addCategoryForm');
+    if (addCategoryForm) {
+        addCategoryForm.addEventListener('submit', handleAddCategoryModalForm);
+    }
+    
     // Auto-populate date when modals are opened
     const addIncomeModal = document.getElementById('addIncomeModal');
     const addExpenseModal = document.getElementById('addExpenseModal');
     
     if (addIncomeModal) {
         addIncomeModal.addEventListener('shown.bs.modal', function() {
-            setAutoDate('incomeDate');
+            setAutoDate('incomeDate', 'income');
         });
     }
     
     if (addExpenseModal) {
         addExpenseModal.addEventListener('shown.bs.modal', function() {
-            setAutoDate('expenseDate');
+            setAutoDate('expenseDate', 'expense');
         });
     }
 }
@@ -1460,7 +2064,7 @@ function checkForTransactionHighlight() {
 /**
  * Show the Add Payee modal on top of the current modal
  */
-function showAddPayeeModal(modalType) {
+async function showAddPayeeModal(modalType) {
     console.log('Opening Add Payee modal for:', modalType);
     
     // Store which modal opened this payee modal
@@ -1480,6 +2084,12 @@ function showAddPayeeModal(modalType) {
     if (alertContainer) {
         alertContainer.innerHTML = '';
     }
+    
+    // Load categories for selection
+    await loadCategoriesForPayeeModal();
+    
+    // Initialize the add new category button
+    initializeAddNewCategoryFromPayeeButton();
     
     // Show the add payee modal with stacked styling
     const addPayeeModal = document.getElementById('addPayeeModal');
@@ -1541,6 +2151,49 @@ function showPayeeModalMessage(message, type = 'danger') {
     }
 }
 
+// Load categories for the payee modal
+async function loadCategoriesForPayeeModal() {
+    try {
+        const response = await fetch('/budget-basic/categories-list/');
+        const data = await response.json();
+        
+        if (data.success) {
+            const categorySelect = document.getElementById('newPayeeCategories');
+            if (!categorySelect) return;
+            
+            // Clear existing options except the first one
+            while (categorySelect.children.length > 1) {
+                categorySelect.removeChild(categorySelect.lastChild);
+            }
+            
+            // Add category options
+            data.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading categories for payee modal:', error);
+    }
+}
+
+// Initialize the add new category button from payee modal
+function initializeAddNewCategoryFromPayeeButton() {
+    const addCategoryBtn = document.getElementById('addNewCategoryFromPayeeBtn');
+    if (!addCategoryBtn) return;
+    
+    // Remove any existing event listeners
+    addCategoryBtn.replaceWith(addCategoryBtn.cloneNode(true));
+    const newBtn = document.getElementById('addNewCategoryFromPayeeBtn');
+    
+    newBtn.addEventListener('click', function() {
+        // Show the add category modal (stacked on top of payee modal)
+        showAddCategoryModal();
+    });
+}
+
 /**
  * Handle Add Payee modal form submission
  */
@@ -1550,6 +2203,15 @@ async function handleAddPayeeModalForm(e) {
     const form = e.target;
     const formData = new FormData(form);
     const payeeName = formData.get('name').trim();
+    
+    // Get selected categories
+    const categorySelect = document.getElementById('newPayeeCategories');
+    const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => option.value).filter(val => val);
+    
+    // Add selected categories to form data
+    selectedCategories.forEach(categoryId => {
+        formData.append('categories', categoryId);
+    });
     
     // Clear any existing alerts
     const alertContainer = document.getElementById('addPayeeAlertContainer');
@@ -1573,6 +2235,10 @@ async function handleAddPayeeModalForm(e) {
             method: 'POST',
             body: formData
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         
@@ -1637,70 +2303,401 @@ function selectNewlyAddedPayee(payeeName) {
 }
 
 /**
+ * Category Management Functions
+ */
+
+// Load categories from server
+async function loadCategories() {
+    try {
+        const response = await fetch('/budget-basic/categories-list/');
+        const data = await response.json();
+        
+        if (data.success) {
+            categoryCache = data.categories;
+            updateCategorySelects();
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Load categories for a specific modal
+async function loadCategoriesForModal(selectId, transactionType = null) {
+    try {
+        let url = '/budget-basic/categories-list/';
+        if (transactionType) {
+            url += `?type=${transactionType}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            categoryCache = data.categories;
+            updateCategorySelectById(selectId);
+        }
+    } catch (error) {
+        console.error('Error loading categories for modal:', error);
+    }
+}
+
+// Update a specific category select element by ID
+function updateCategorySelectById(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options (except first one)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    // Add category options
+    categoryCache.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        select.appendChild(option);
+    });
+}
+
+// Filter categories by selected payee and update category dropdown
+function filterCategoriesByPayee(categorySelectId, payeeName) {
+    const categorySelect = document.getElementById(categorySelectId);
+    if (!categorySelect) return;
+    
+    // Find the payee in the cache
+    const selectedPayee = payeeCache.find(payee => payee.name === payeeName);
+    
+    if (selectedPayee && selectedPayee.categories && selectedPayee.categories.length > 0) {
+        // Clear existing options (except first one)
+        while (categorySelect.children.length > 1) {
+            categorySelect.removeChild(categorySelect.lastChild);
+        }
+        
+        // Add only the categories linked to this payee
+        selectedPayee.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = category.name;
+            categorySelect.appendChild(option);
+        });
+    } else {
+        // No categories linked to this payee, show all categories
+        updateCategorySelectById(categorySelectId);
+    }
+}
+
+// Reset category dropdown to show all categories
+function resetCategoryDropdown(categorySelectId) {
+    updateCategorySelectById(categorySelectId);
+}
+
+/**
+ * Show add category modal
+ */
+function showAddCategoryModal() {
+    console.log('Opening Add Category modal');
+    
+    // Find the currently open modal and add fade effect
+    const openModals = document.querySelectorAll('.modal.show');
+    openModals.forEach(modal => {
+        modal.classList.add('modal-faded');
+    });
+    
+    // Clear the add category form and alert container
+    const form = document.getElementById('addCategoryForm');
+    if (form) form.reset();
+    
+    // Pre-select category type based on current transaction type
+    const transactionType = document.querySelector('input[name="transaction_type"]:checked')?.value || 'expense';
+    const categoryTypeSelect = document.getElementById('newCategoryType');
+    if (categoryTypeSelect) {
+        categoryTypeSelect.value = transactionType;
+    }
+    
+    const alertContainer = document.getElementById('addCategoryAlertContainer');
+    if (alertContainer) {
+        alertContainer.innerHTML = '';
+    }
+    
+    // Show the add category modal with stacked styling
+    const addCategoryModal = document.getElementById('addCategoryModal');
+    if (addCategoryModal) {
+        addCategoryModal.classList.add('modal-stacked');
+        const modal = new bootstrap.Modal(addCategoryModal, {
+            backdrop: 'static', // Prevent closing by clicking backdrop
+            keyboard: true
+        });
+        modal.show();
+        
+        // Focus on the name input when modal is shown
+        addCategoryModal.addEventListener('shown.bs.modal', function() {
+            const nameInput = document.getElementById('newCategoryName');
+            if (nameInput) nameInput.focus();
+        }, { once: true });
+        
+        // Handle modal close to remove stacked styling and fade effect
+        addCategoryModal.addEventListener('hidden.bs.modal', function() {
+            addCategoryModal.classList.remove('modal-stacked');
+            
+            // Remove fade effect from base modals
+            const openModals = document.querySelectorAll('.modal.show');
+            openModals.forEach(modal => {
+                modal.classList.remove('modal-faded');
+            });
+        }, { once: true });
+    }
+}
+
+/**
+ * Show message in category modal alert container
+ */
+function showCategoryModalMessage(message, type = 'danger') {
+    const alertContainer = document.getElementById('addCategoryAlertContainer');
+    if (!alertContainer) return;
+    
+    // Clear existing alerts
+    alertContainer.innerHTML = '';
+    
+    // Create alert
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    alertContainer.innerHTML = alertHtml;
+}
+
+/**
+ * Handle add category form submission
+ */
+async function handleAddCategoryModalForm(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding...';
+    
+    try {
+        const formData = new FormData(form);
+        const response = await fetch('/budget-basic/category/create/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add to cache and update dropdowns
+            categoryCache.push(data.category);
+            categoryCache.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Update payee modal category dropdown if it exists
+            const payeeCategorySelect = document.getElementById('newPayeeCategories');
+            if (payeeCategorySelect) {
+                const option = document.createElement('option');
+                option.value = data.category.id;
+                option.textContent = data.category.name;
+                payeeCategorySelect.appendChild(option);
+                
+                // Auto-select the newly created category
+                option.selected = true;
+            }
+            
+            // Get current transaction type and reload categories
+            const transactionTypeSelect = document.getElementById('transactionTypeSelect');
+            const currentType = transactionTypeSelect ? transactionTypeSelect.value : 'expense';
+            
+            // Reload categories for the current transaction type
+            loadCategoriesForModal(currentType).then(() => {
+                // Select the newly added category in the transaction modal
+                selectNewlyAddedCategory(data.category.name);
+            });
+            
+            // Show success message briefly then close modal
+            showCategoryModalMessage(`Category "${data.category.name}" added successfully!`, 'success');
+            
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
+                if (modal) modal.hide();
+            }, 1000);
+            
+        } else {
+            showCategoryModalMessage(data.error || 'Failed to add category');
+        }
+        
+    } catch (error) {
+        console.error('Error adding category:', error);
+        showCategoryModalMessage('An error occurred while adding the category');
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+/**
+ * Select newly added category in dropdown
+ */
+function selectNewlyAddedCategory(categoryName) {
+    const selectElement = document.getElementById('transactionCategorySelect');
+    
+    if (selectElement) {
+        // Find the option with the matching category name
+        for (let option of selectElement.options) {
+            if (option.textContent === categoryName) {
+                selectElement.value = option.value;
+                break;
+            }
+        }
+        
+        // Trigger change event to update any dependent elements
+        selectElement.dispatchEvent(new Event('change'));
+    }
+}
+
+/**
  * Filter transactions by type (income, expense, or all)
  */
 function filterTransactions(filterType) {
-    console.log('Filtering transactions by:', filterType);
-    
-    // Update current filter state (both local and global)
     currentFilterType = filterType;
     window.currentFilterType = filterType;
-    console.log('Current filter type set to:', currentFilterType);
-    
-    const allCards = document.querySelectorAll('.transaction-card');
-    console.log('Found transaction cards:', allCards.length);
-    
-    // More reliable way to identify income vs expense cards
-    const incomeTransactions = [];
-    const expenseTransactions = [];
-    
-    allCards.forEach(card => {
-        const amountElement = card.querySelector('.transaction-amount');
-        if (amountElement) {
-            const amountText = amountElement.textContent.trim();
-            console.log('Amount text:', amountText);
-            if (amountText.startsWith('+')) {
-                incomeTransactions.push(card);
-            } else if (amountText.startsWith('-')) {
-                expenseTransactions.push(card);
-            }
-        }
-    });
-    
-    console.log('Income transactions:', incomeTransactions.length);
-    console.log('Expense transactions:', expenseTransactions.length);
-    
-    // Update filter label
+
     const filterLabel = document.getElementById('filterLabel');
-    
-    // Update dropdown active states
-    updateDropdownActiveState(filterType);
-    
-    switch (filterType) {
-        case 'income':
-            incomeTransactions.forEach(card => card.style.display = 'flex');
-            expenseTransactions.forEach(card => card.style.display = 'none');
-            if (filterLabel) filterLabel.textContent = 'Income';
-            break;
-        case 'expense':
-            incomeTransactions.forEach(card => card.style.display = 'none');
-            expenseTransactions.forEach(card => card.style.display = 'flex');
-            if (filterLabel) filterLabel.textContent = 'Expenses';
-            break;
-        case 'all':
-        default:
-            allCards.forEach(card => card.style.display = 'flex');
-            if (filterLabel) filterLabel.textContent = 'All';
-            break;
+    if (filterLabel) {
+        switch (filterType) {
+            case 'income':
+                filterLabel.textContent = 'Income';
+                break;
+            case 'expense':
+                filterLabel.textContent = 'Expenses';
+                break;
+            default:
+                filterLabel.textContent = 'All';
+        }
     }
-    
-    // Update empty state message if needed
-    updateEmptyStateMessage(filterType, incomeTransactions.length, expenseTransactions.length);
+
+    updateDropdownActiveState(filterType);
+    applyTransactionFilters();
 }
 
 /**
  * Update dropdown active state highlighting
  */
+function applyTransactionFilters() {
+    const cards = document.querySelectorAll('.transaction-card');
+    const normalizedSearch = currentTransactionSearch.trim().toLowerCase();
+    let visibleIncome = 0;
+    let visibleExpense = 0;
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+
+    cards.forEach(card => {
+        const { transactionType = '', transactionPayee = '', transactionNotes = '', transactionAmount = '' } = card.dataset || {};
+        const type = transactionType;
+        const payee = transactionPayee.toLowerCase();
+        const notes = transactionNotes.toLowerCase();
+        const amount = transactionAmount.toString().toLowerCase();
+        const numericAmount = Number.parseFloat(transactionAmount || '0');
+
+        const matchesType = currentFilterType === 'all' || currentFilterType === type;
+        const matchesSearch = !normalizedSearch || payee.includes(normalizedSearch) || notes.includes(normalizedSearch) || amount.includes(normalizedSearch);
+
+        const shouldShow = matchesType && matchesSearch;
+        card.style.display = shouldShow ? 'flex' : 'none';
+
+        if (shouldShow) {
+            if (type === 'income') {
+                visibleIncome += 1;
+                if (Number.isFinite(numericAmount)) {
+                    incomeTotal += numericAmount;
+                }
+            } else if (type === 'expense') {
+                visibleExpense += 1;
+                if (Number.isFinite(numericAmount)) {
+                    expenseTotal += numericAmount;
+                }
+            }
+        }
+    });
+
+    updateTransactionTotalsDisplay(currentFilterType, {
+        incomeTotal,
+        expenseTotal,
+        visibleCount: visibleIncome + visibleExpense
+    });
+
+    updateEmptyStateMessage(currentFilterType, visibleIncome, visibleExpense);
+}
+
+function updateTransactionTotalsDisplay(filterType, totals = {}) {
+    const bar = document.getElementById('transaction-total-bar');
+    if (!bar) {
+        return;
+    }
+
+    const { incomeTotal = 0, expenseTotal = 0, visibleCount = 0 } = totals;
+    const labelElement = document.getElementById('transaction-total-label');
+    const valueElement = document.getElementById('transaction-total-value');
+    const subtextElement = document.getElementById('transaction-total-subtext');
+
+    let label = 'Net Balance';
+    let numericValue = incomeTotal - expenseTotal;
+
+    if (filterType === 'income') {
+        label = 'Total Income';
+        numericValue = incomeTotal;
+    } else if (filterType === 'expense') {
+        label = 'Total Expenses';
+        numericValue = -expenseTotal;
+    }
+
+    if (labelElement) {
+        labelElement.textContent = label;
+    }
+
+    if (valueElement) {
+        valueElement.textContent = formatSignedCurrency(numericValue);
+        valueElement.classList.remove('is-positive', 'is-negative', 'is-neutral');
+        if (numericValue > 0) {
+            valueElement.classList.add('is-positive');
+        } else if (numericValue < 0) {
+            valueElement.classList.add('is-negative');
+        } else {
+            valueElement.classList.add('is-neutral');
+        }
+    }
+
+    bar.dataset.income = incomeTotal.toFixed(2);
+    bar.dataset.expense = expenseTotal.toFixed(2);
+    bar.dataset.net = (incomeTotal - expenseTotal).toFixed(2);
+    bar.dataset.currentFilter = filterType;
+
+    if (subtextElement) {
+        const runningValue = Number.parseFloat(bar.dataset.running || '0');
+        if (Number.isFinite(runningValue)) {
+            subtextElement.textContent = `Running balance: ${formatSignedCurrency(runningValue)}`;
+        } else {
+            subtextElement.textContent = '';
+        }
+    }
+}
+
+function handleTransactionSearch(query) {
+    currentTransactionSearch = (query || '').toString();
+    window.currentTransactionSearch = currentTransactionSearch;
+    applyTransactionFilters();
+}
+
 function updateDropdownActiveState(activeFilter) {
     const dropdownItems = document.querySelectorAll('#transactionFilterDropdown + .dropdown-menu .dropdown-item');
     
@@ -1725,47 +2722,60 @@ function updateDropdownActiveState(activeFilter) {
  * Update empty state message based on filter
  */
 function updateEmptyStateMessage(filterType, incomeCount, expenseCount) {
-    const container = document.querySelector('.transaction-cards-container');
-    
-    // Only proceed if we're on a page with transaction container
+    const container = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
+
     if (!container) {
         return;
     }
-    
-    const emptyMessage = document.querySelector('.no-transactions-message');
-    
+
+    if (document.body.classList.contains('payees-page')) {
+        const existingMessage = container.querySelector('.no-transactions-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        return;
+    }
+
+    const listHost = container.querySelector('.transaction-list-content') || container;
+    let emptyMessage = listHost.querySelector('.no-transactions-message');
+
+    const hasSearch = typeof currentTransactionSearch === 'string' && currentTransactionSearch.trim() !== '';
+
     let showEmpty = false;
     let message = '';
-    
+
     switch (filterType) {
         case 'income':
             showEmpty = incomeCount === 0;
-            message = 'No income transactions for this week.';
+            message = hasSearch ? 'No income transactions match your search.' : 'No income transactions for this week.';
             break;
         case 'expense':
             showEmpty = expenseCount === 0;
-            message = 'No expense transactions for this week.';
+            message = hasSearch ? 'No expense transactions match your search.' : 'No expense transactions for this week.';
             break;
-        case 'all':
+        default:
             showEmpty = (incomeCount + expenseCount) === 0;
-            message = 'No transactions for this week.';
+            message = hasSearch ? 'No transactions match your search.' : 'No transactions for this week.';
             break;
     }
-    
+
     if (showEmpty) {
         if (!emptyMessage) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'no-transactions-message text-center text-muted py-4';
-            messageDiv.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
-            container.appendChild(messageDiv);
+            emptyMessage = document.createElement('div');
+            emptyMessage.className = 'no-transactions-message text-center text-muted py-4';
+            emptyMessage.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
+            listHost.appendChild(emptyMessage);
         } else {
-            emptyMessage.querySelector('p').textContent = message;
+            const paragraph = emptyMessage.querySelector('p');
+            if (paragraph) {
+                paragraph.textContent = message;
+            } else {
+                emptyMessage.innerHTML = `<i class="bi bi-inbox-fill fs-1 mb-3 d-block"></i><p class="mb-0">${message}</p>`;
+            }
             emptyMessage.style.display = 'block';
         }
-    } else {
-        if (emptyMessage) {
-            emptyMessage.style.display = 'none';
-        }
+    } else if (emptyMessage) {
+        emptyMessage.style.display = 'none';
     }
 }
 
@@ -1871,34 +2881,56 @@ function clearTransactionSelection() {
  * Show the transaction details panel
  */
 function showTransactionPanel(data) {
-    const container = document.querySelector('.transactions-with-panel');
+    const container = document.querySelector('.transactions-with-panel') || document.querySelector('.payees-panel');
     const panel = document.getElementById('transaction-details-panel');
     
     if (!container || !panel) {
         return;
     }
     
+    // Hide empty state and show content
+    const transactionEmpty = document.getElementById('transaction-detail-empty');
+    const transactionContent = document.getElementById('transaction-detail-content');
+    if (transactionEmpty && transactionContent) {
+        transactionEmpty.hidden = true;
+        transactionContent.hidden = false;
+    }
+    
     // Activate panel layout
-    container.classList.add('panel-active');
     panel.classList.add('has-content');
     
-    // Ensure panel maintains flex display
-    panel.style.display = 'flex';
-    
     // Populate panel data
-    document.getElementById('detail-date').textContent = data.date;
-    document.getElementById('detail-payee').textContent = data.payee;
-    document.getElementById('detail-amount').textContent = 
-        (data.type === 'income' ? '+' : '-') + '$' + data.amount;
-    document.getElementById('detail-type').textContent = 
-        data.type.charAt(0).toUpperCase() + data.type.slice(1);
-    document.getElementById('detail-notes').textContent = data.notes;
-    
-    // Store transaction data for edit/delete actions
+    const detailContent = document.getElementById('transaction-detail-content');
+
+    const payeeName = (data.payee || 'Transaction').trim() || 'Transaction';
+    const notes = (data.notes || '').trim();
+    const numericAmount = Number(data.amount || 0);
+    const formattedAmount = formatCurrency(Math.abs(numericAmount));
+    let amountDisplay = formattedAmount;
+    if (data.type === 'expense' && numericAmount >= 0) {
+        amountDisplay = '-' + formattedAmount;
+    } else if (data.type === 'income' && numericAmount >= 0) {
+        amountDisplay = '+' + formattedAmount;
+    }
+
+    document.getElementById('detail-payee').textContent = payeeName;
+    let displayDate = '-';
+    if (data.date) {
+        const dateCandidate = new Date(`${data.date}T00:00:00`);
+        if (!Number.isNaN(dateCandidate.getTime())) {
+            displayDate = dateCandidate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        } else {
+            displayDate = data.date;
+        }
+    }
+    document.getElementById('detail-date').textContent = displayDate;
+    document.getElementById('detail-type').textContent = (data.type || '-').charAt(0).toUpperCase() + (data.type || '-').slice(1);
+    document.getElementById('detail-amount').textContent = amountDisplay;
+    setTransactionNotesContent(notes);
+
     panel.setAttribute('data-selected-id', data.id);
     panel.setAttribute('data-selected-type', data.type);
-    
-    // Show and enable action buttons
+
     showActionButtons();
 }
 
@@ -1906,20 +2938,16 @@ function showTransactionPanel(data) {
  * Hide the transaction details panel
  */
 function hideTransactionPanel() {
-    const container = document.querySelector('.transactions-with-panel');
+    const container = document.querySelector('.transactions-with-panel') || document.querySelector('.payees-panel');
     const panel = document.getElementById('transaction-details-panel');
     
     if (!container || !panel) return;
     
     // Deactivate panel layout
-    container.classList.remove('panel-active');
     panel.classList.remove('has-content');
     
     // Clear the panel content to show it's empty
     clearPanelContent();
-    
-    // Remove any inline display styles and let CSS handle it
-    panel.style.removeProperty('display');
     
     // Clear stored data
     panel.removeAttribute('data-selected-id');
@@ -1933,12 +2961,52 @@ function hideTransactionPanel() {
  * Clear panel content to show empty state
  */
 function clearPanelContent() {
-    // Reset panel content to empty/placeholder state
-    document.getElementById('detail-date').textContent = 'No transaction selected';
-    document.getElementById('detail-payee').textContent = 'Select a transaction to view details';
-    document.getElementById('detail-amount').textContent = '$0.00';
-    document.getElementById('detail-type').textContent = '';
-    document.getElementById('detail-notes').textContent = 'No transaction selected';
+    // Show empty state and hide content for transaction panels
+    const transactionEmpty = document.getElementById('transaction-detail-empty');
+    const transactionContent = document.getElementById('transaction-detail-content');
+    if (transactionEmpty && transactionContent) {
+        transactionEmpty.hidden = false;
+        transactionContent.hidden = true;
+    }
+    
+    // Show empty state and hide content for payee panels  
+    const payeeEmpty = document.getElementById('payee-detail-empty');
+    const payeeContent = document.getElementById('payee-detail-content');
+    if (payeeEmpty && payeeContent) {
+        payeeEmpty.hidden = false;
+        payeeContent.hidden = true;
+    }
+    
+    // Reset panel content to empty/placeholder state (fallback for panels without empty states)
+    const detailPayee = document.getElementById('detail-payee');
+    if (detailPayee) detailPayee.textContent = 'Select a transaction';
+    
+    const detailDate = document.getElementById('detail-date');
+    if (detailDate) detailDate.textContent = '-';
+    
+    const detailAmount = document.getElementById('detail-amount');
+    if (detailAmount) detailAmount.textContent = '$0.00';
+    
+    const detailType = document.getElementById('detail-type');
+    if (detailType) detailType.textContent = '-';
+    
+    setTransactionNotesContent('');
+}
+
+function setTransactionNotesContent(notesValue) {
+    const notesEl = document.getElementById('detail-notes');
+    if (!notesEl) return;
+
+    const hasNotes = Boolean(notesValue && notesValue.trim());
+    const content = hasNotes ? notesValue.trim() : 'No description added yet';
+    notesEl.textContent = content;
+    
+    // Add or remove muted and italic classes based on content
+    if (hasNotes) {
+        notesEl.classList.remove('text-muted', 'fst-italic');
+    } else {
+        notesEl.classList.add('text-muted', 'fst-italic');
+    }
 }
 
 /**
@@ -2040,7 +3108,9 @@ window.BudgetBasic = {
     highlightTransaction,
     checkForTransactionHighlight,
     showAddPayeeModal,
+    showAddCategoryModal,
     selectNewlyAddedPayee,
+    selectNewlyAddedCategory,
     filterTransactions,
     selectTransaction,
     clearTransactionSelection,
@@ -2060,10 +3130,22 @@ let startLeftWidth = 0;
  * Initialize panel resizer functionality
  */
 function initializePanelResizer() {
+    // Check for 3-panel layout first (categories page)
+    const resizer1 = document.getElementById('panel-resizer-1');
+    const resizer2 = document.getElementById('panel-resizer-2');
+    
+    if (resizer1 || resizer2) {
+        // 3-panel layout detected, skip single panel resizer
+        return;
+    }
+    
     const resizer = document.getElementById('panel-resizer');
     
     if (!resizer) {
-        console.warn('Panel resizer element not found');
+        // Not a warning on categories page since it uses different resizers
+        if (!document.querySelector('.categories-page')) {
+            console.warn('Panel resizer element not found');
+        }
         return;
     }
     
@@ -2084,7 +3166,7 @@ function initializePanelResizer() {
  */
 function initializeTransactionSelection() {
     try {
-        const transactionCardsContainer = document.querySelector('.transaction-cards-container');
+        const transactionCardsContainer = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
         
         if (!transactionCardsContainer) {
             console.warn('Transaction cards container not found - selection system not initialized');
@@ -2107,21 +3189,29 @@ function initializeTransactionSelection() {
     }
 }
 
+
+function getResizablePanels() {
+    const container = document.querySelector('.transactions-with-panel') || document.querySelector('.payees-panel');
+    const leftPanel = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
+    const rightPanel = document.querySelector('.transaction-details-panel') || document.querySelector('.payee-detail-panel');
+
+    return { container, leftPanel, rightPanel };
+}
+
 /**
  * Start panel resize operation
  */
 function startResize(e) {
     isResizing = true;
     startX = e.clientX;
-    
-    const leftPanel = document.querySelector('.transaction-cards-container');
-    const rightPanel = document.querySelector('.transaction-details-panel');
-    
+
+    const { leftPanel, rightPanel } = getResizablePanels();
+
     if (leftPanel) {
         startLeftWidth = leftPanel.offsetWidth;
         leftPanel.classList.add('resizing');
     }
-    
+
     if (rightPanel) {
         rightPanel.classList.add('resizing');
     }
@@ -2143,31 +3233,52 @@ function startResize(e) {
  */
 function doResize(e) {
     if (!isResizing) return;
-    
-    const container = document.querySelector('.transactions-with-panel');
-    const leftPanel = document.querySelector('.transaction-cards-container');
-    const rightPanel = document.querySelector('.transaction-details-panel');
-    
+
+    const { container, leftPanel, rightPanel } = getResizablePanels();
+
     if (!container || !leftPanel || !rightPanel) return;
     
     const deltaX = e.clientX - startX;
-    const newLeftWidth = startLeftWidth + deltaX;
-    const containerWidth = container.offsetWidth;
-    const resizerWidth = 6; // Width of the resizer
-    
-    // Set minimum and maximum widths
-    const minLeftWidth = 300; // Minimum width for transaction list
-    const minRightWidth = 250; // Minimum width for details panel
-    const maxLeftWidth = containerWidth - minRightWidth - resizerWidth;
-    
-    // Clamp the new width within bounds
-    const clampedLeftWidth = Math.max(minLeftWidth, Math.min(newLeftWidth, maxLeftWidth));
-    const rightWidth = containerWidth - clampedLeftWidth - resizerWidth;
-    
-    // Apply the new widths
-    leftPanel.style.width = clampedLeftWidth + 'px';
-    rightPanel.style.width = rightWidth + 'px';
-    
+    const desiredLeftWidth = startLeftWidth + deltaX;
+
+    const containerStyles = getComputedStyle(container);
+    const paddingLeft = parseFloat(containerStyles.paddingLeft) || 0;
+    const paddingRight = parseFloat(containerStyles.paddingRight) || 0;
+    const containerWidth = container.clientWidth;
+    const availableWidth = containerWidth - paddingLeft - paddingRight;
+
+    const resizer = document.getElementById('panel-resizer');
+    const resizerWidth = resizer ? resizer.offsetWidth : 6;
+
+    const isPayeesPage = document.body.classList.contains('payees-page');
+    const minLeftWidth = isPayeesPage ? 200 : 300; // ensure list stays readable
+    const minRightWidth = isPayeesPage ? 200 : 250; // keep detail panel legible
+    const maxLeftWidth = availableWidth - minRightWidth - resizerWidth;
+
+    const targetLeft = Math.max(minLeftWidth, Math.min(desiredLeftWidth, maxLeftWidth));
+    const targetRight = availableWidth - targetLeft - resizerWidth;
+
+    if (leftPanel) {
+        leftPanel.style.width = `${targetLeft}px`;
+        leftPanel.style.flex = `0 0 ${targetLeft}px`;
+    }
+
+    if (rightPanel) {
+        const appliedRightWidth = Math.max(minRightWidth, targetRight);
+        rightPanel.style.width = `${appliedRightWidth}px`;
+        rightPanel.style.flex = `0 0 ${appliedRightWidth}px`;
+    }
+
+    // Dispatch custom event for panel resize listeners
+    document.dispatchEvent(new CustomEvent('panelResized', {
+        detail: {
+            leftWidth: targetLeft,
+            rightWidth: targetRight,
+            leftPanel: leftPanel,
+            rightPanel: rightPanel
+        }
+    }));
+
     e.preventDefault();
 }
 
@@ -2176,13 +3287,12 @@ function doResize(e) {
  */
 function stopResize() {
     if (!isResizing) return;
-    
+
     isResizing = false;
-    
+
     // Remove dragging and resizing states
     const resizer = document.getElementById('panel-resizer');
-    const leftPanel = document.querySelector('.transaction-cards-container');
-    const rightPanel = document.querySelector('.transaction-details-panel');
+    const { leftPanel, rightPanel } = getResizablePanels();
     
     if (resizer) {
         resizer.classList.remove('dragging');
@@ -2204,6 +3314,8 @@ function stopResize() {
 // Make functions available globally for onclick handlers
 window.filterTransactions = filterTransactions;
 window.currentFilterType = currentFilterType;
+window.currentTransactionSearch = currentTransactionSearch;
+window.handleTransactionSearch = handleTransactionSearch;
 window.selectTransaction = selectTransaction;
 window.clearTransactionSelection = clearTransactionSelection;
 window.setPanelVisibilityMode = setPanelVisibilityMode;
@@ -2212,3 +3324,6 @@ window.deleteSelectedTransaction = deleteSelectedTransaction;
 window.initializePanelResizer = initializePanelResizer;
 window.showActionButtons = showActionButtons;
 window.hideActionButtons = hideActionButtons;
+window.updateTransactionTotalsDisplay = updateTransactionTotalsDisplay;
+window.formatSignedCurrency = formatSignedCurrency;
+

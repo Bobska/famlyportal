@@ -1,0 +1,364 @@
+{% extends 'budget_basic/base.html' %}
+
+{% load static %}
+
+{% load humanize %}
+
+
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+
+{% endblock %}
+
+
+
+{% block body_class %}transactions-panel-page payees-page{% endblock %}
+
+
+
+{% block page_header %}
+
+<!-- Empty - we'll include the header inside content wrapper -->
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<!-- Content Wrapper for Centering -->
+
+<div class="content-wrapper transactions-content payees-content">
+
+    <div class="page-heading mb-3">
+        <div class="page-heading-main">
+            <h1 class="page-title">Weekly Overview</h1>
+            <div class="page-heading-divider" aria-hidden="true"></div>
+            <p class="page-heading-description mb-0">Navigate week by week to review income and expenses in a focused workspace.</p>
+        </div>
+        <div class="page-heading-actions week-heading-actions-compact" role="group" aria-label="Week navigation">
+            <button type="button" class="btn btn-week-nav-compact btn-week-nav-left" onclick="previousWeek()" title="Go to Previous Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="week-heading-display-compact">
+                <span class="week-heading-label">{% if week_offset == 0 %}Current Week{% elif week_offset == -1 %}Last Week{% elif week_offset == 1 %}Next Week{% elif week_offset == -2 %}2 Weeks Ago{% elif week_offset == 2 %}In 2 Weeks{% else %}{% if week_offset < 0 %}{{ week_offset|add:"0" }} Weeks Ago{% else %}In {{ week_offset }} Weeks{% endif %}{% endif %}</span>
+                <span class="week-heading-dates">{{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}</span>
+            </div>
+            <button type="button" class="btn btn-week-nav-compact btn-week-nav-right" onclick="nextWeek()" title="Go to Next Week" data-bs-toggle="tooltip" data-bs-placement="top">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+        <div class="card flex-grow-1" id="transactions-card">
+
+        <div class="payees-panel">
+
+            <div class="payee-list-panel" id="transaction-list">
+
+                <div class="panel-header">
+
+                    <div class="panel-title">
+
+                        <span>Transactions</span>
+
+                    </div>
+
+                    <div class="panel-header-actions">
+
+                        <div style="max-width: 220px;">
+
+                            <div class="input-group input-group-sm">
+
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+
+                                <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="handleTransactionSearch(this.value)">
+
+                            </div>
+
+                        </div>
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAddTransactionModal()" title="Add" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span>Add</span>
+                        </button>
+
+                        <div class="dropdown ms-2">
+
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
+                                <i class="bi bi-funnel me-1"></i>
+                                <span id="filterLabel">All</span>
+                            </button>
+
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="transactionFilterDropdown">
+
+                                <li><a class="dropdown-item active" href="#" onclick="filterTransactions('all')">Show All</a></li>
+
+                                <li><a class="dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
+
+                                <li><a class="dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
+
+                            </ul>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="payee-list-scroll">
+
+                    <div class="payee-list-content">
+
+                    {% if income_entries or expense_entries %}
+
+                        {% for income in income_entries %}
+
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date|date:"Y-m-d" }}" data-transaction-payee="{{ income.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ income.amount|floatformat:'2' }}" data-transaction-notes="{{ income.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
+
+                            <div class="payee-cell transaction-date-cell text-muted">{{ income.date|date:"D, j M" }}</div>
+
+                            <div class="payee-cell payee-cell-info transaction-info-cell">
+
+                                <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
+
+                                {% if income.notes %}
+
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ income.notes }}</small>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="payee-cell transaction-amount-cell text-end">
+
+                                <span class="transaction-amount text-success">+${{ income.amount|floatformat:2|intcomma }}</span>
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+
+
+                        {% for expense in expense_entries %}
+
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date|date:"Y-m-d" }}" data-transaction-payee="{{ expense.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ expense.amount|floatformat:'2' }}" data-transaction-notes="{{ expense.notes|default_if_none:''|escapejs }}" onclick="selectTransaction(this)">
+
+                            <div class="payee-cell transaction-date-cell text-muted">{{ expense.date|date:"D, j M" }}</div>
+
+                            <div class="payee-cell payee-cell-info transaction-info-cell">
+
+                                <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
+
+                                {% if expense.notes %}
+
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ expense.notes }}</small>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="payee-cell transaction-amount-cell text-end">
+
+                                <span class="transaction-amount text-danger">-${{ expense.amount|floatformat:2|intcomma }}</span>
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="transaction-empty-state text-center text-muted py-5">
+
+                            <div class="mb-3">
+
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+
+                            </div>
+
+                            <p class="mb-1">No transactions yet</p>
+
+                            <small>Add your first income or expense using the buttons above.</small>
+
+                        </div>
+
+                    {% endif %}
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="transaction-total-bar" id="transaction-total-bar"
+
+                     data-income="{{ weekly_income|floatformat:'2' }}"
+
+                     data-expense="{{ weekly_expenses|floatformat:'2' }}"
+
+                     data-net="{{ weekly_balance|floatformat:'2' }}"
+
+                     data-running="{{ running_balance|floatformat:'2' }}">
+
+                    <div class="transaction-total-text">
+
+                        <span class="transaction-total-label" id="transaction-total-label">Net Balance</span>
+
+                        <small class="transaction-total-subtext" id="transaction-total-subtext">
+
+                            Running balance: {% if running_balance >= 0 %}+{% else %}-{% endif %}${{ running_balance|floatformat:2|intcomma|cut:"-" }}
+
+                        </small>
+
+                    </div>
+
+                    <div class="transaction-total-value" id="transaction-total-value">
+
+                        {% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:"-" }}
+
+                    </div>
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="panel-resizer" id="panel-resizer">
+
+                <div class="resizer-handle"></div>
+
+            </div>
+
+
+
+            <div class="transaction-details-panel payee-detail-panel details-panel" id="transaction-details-panel">
+
+                <div class="panel-header">
+
+                    <div class="panel-title">Details</div>
+
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
+
+                        <i class="bi bi-x"></i>
+
+                    </button>
+
+                </div>
+
+                <div class="panel-content">
+                    <div class="detail-scroll">
+                        <div id="transaction-detail-empty" class="detail-empty text-center text-muted py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-receipt" style="font-size: 2.5rem; opacity: 0.35;"></i>
+                            </div>
+                            <p class="mb-1">Select a transaction</p>
+                            <small>Details will appear here after you pick one</small>
+                        </div>
+                        <div id="transaction-detail-content" class="detail-content" hidden>
+                            <div class="detail-heading">
+                                <span class="detail-heading-label">Transaction</span>
+                                <h2 class="detail-name" id="detail-payee">Select a transaction</h2>
+                            </div>
+                            <div class="detail-section detail-section-primary">
+                                <span class="detail-section-label">Summary</span>
+                                <div class="detail-section-body">
+                                    <dl class="detail-info-grid mb-0">
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Date</dt>
+                                            <dd class="detail-info-value" id="detail-date">-</dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Type</dt>
+                                            <dd class="detail-info-value" id="detail-type">-</dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Amount</dt>
+                                            <dd class="detail-info-value" id="detail-amount">$0.00</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                            <div class="detail-section detail-section-primary" id="transaction-notes-section">
+                                <span class="detail-section-label">Notes</span>
+                                <div class="detail-section-body">
+                                    <p class="detail-body-text text-muted fst-italic" id="detail-notes">No description added yet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
+<script>
+
+// Initialize week navigation functionality
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    if (typeof PanelHeaderLabelManager !== 'undefined') {
+        PanelHeaderLabelManager.init();
+    }
+
+    // Set configuration from server
+
+    if (typeof setWeekDataUrl === 'function') {
+
+        setWeekDataUrl('{% url "budget_basic:get_week_data" %}');
+
+    }
+
+    
+
+    if (typeof setCurrentWeekOffset === 'function') {
+        const parsedWeekOffset = Number('{{ week_offset|default:"0" }}');
+        setCurrentWeekOffset(Number.isNaN(parsedWeekOffset) ? 0 : parsedWeekOffset);
+    }
+
+    
+
+    // Initialize all week navigation features
+
+    if (typeof initializeWeekNavigation === 'function') {
+
+        initializeWeekNavigation();
+
+    }
+
+});
+
+</script>
+
+{% endblock %}

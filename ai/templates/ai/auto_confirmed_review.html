@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metrics-card {
+        border-left: 4px solid #28a745;
+    }
+    .confidence-badge {
+        font-size: 0.9rem;
+        padding: 0.35rem 0.65rem;
+    }
+    .error-rate-low {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .error-rate-medium {
+        color: #ffc107;
+        font-weight: bold;
+    }
+    .error-rate-high {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .email-subject {
+        max-width: 400px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .prediction-label {
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-check-circle text-success"></i> 
+                Auto-Confirmed Emails Review
+            </h2>
+            <p class="text-muted">
+                Review emails that were automatically confirmed (≥95% confidence) to validate accuracy.
+                Flag any incorrect predictions to improve the model.
+            </p>
+        </div>
+    </div>
+
+    <!-- Metrics Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card metrics-card">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Auto-Confirmed</h6>
+                    <h3 class="card-title mb-0">{{ total_auto_confirmed }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Corrections Made</h6>
+                    <h3 class="card-title mb-0">{{ corrections_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Error Rate</h6>
+                    <h3 class="card-title mb-0 {% if error_rate < 3 %}error-rate-low{% elif error_rate < 7 %}error-rate-medium{% else %}error-rate-high{% endif %}">
+                        {{ error_rate }}%
+                    </h3>
+                    <small class="text-muted">Target: &lt;5%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Avg Confidence</h6>
+                    <h3 class="card-title mb-0">{{ avg_confidence_percent }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="date_filter" class="form-label">Date Range</label>
+                    <select name="date_filter" id="date_filter" class="form-select">
+                        <option value="7" {% if date_filter == '7' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30" {% if date_filter == '30' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
+                        <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="confidence_band" class="form-label">Confidence Band</label>
+                    <select name="confidence_band" id="confidence_band" class="form-select">
+                        <option value="all" {% if confidence_band == 'all' %}selected{% endif %}>All (≥95%)</option>
+                        <option value="95-97" {% if confidence_band == '95-97' %}selected{% endif %}>95-97%</option>
+                        <option value="97-99" {% if confidence_band == '97-99' %}selected{% endif %}>97-99%</option>
+                        <option value="99-100" {% if confidence_band == '99-100' %}selected{% endif %}>99-100%</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
+                    <a href="{% url 'ai:auto_confirmed_review' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Auto-Confirmed Predictions</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if predictions %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Sender</th>
+                            <th>Prediction</th>
+                            <th>Confidence</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in predictions %}
+                        <tr id="row-{{ item.prediction.id }}">
+                            <td>
+                                <small>{{ item.prediction.predicted_at|date:"M d, Y" }}</small><br>
+                                <small class="text-muted">{{ item.prediction.predicted_at|time:"g:i A" }}</small>
+                            </td>
+                            <td>
+                                <div class="email-subject" title="{{ item.email.subject }}">
+                                    {{ item.email.subject|truncatechars:50 }}
+                                </div>
+                            </td>
+                            <td>
+                                <small>{{ item.email.sender|truncatechars:30 }}</small>
+                            </td>
+                            <td>
+                                <span class="prediction-label {% if item.predicted_label == 'daycare_invoice' %}text-success{% else %}text-secondary{% endif %}">
+                                    {% if item.predicted_label == 'daycare_invoice' %}
+                                        <i class="fas fa-file-invoice"></i> INVOICE
+                                    {% else %}
+                                        <i class="fas fa-times-circle"></i> NOT INVOICE
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge confidence-badge {% if item.confidence_percent >= 99 %}bg-success{% elif item.confidence_percent >= 97 %}bg-info{% else %}bg-warning{% endif %}">
+                                    {{ item.confidence_percent }}%
+                                </span>
+                            </td>
+                            <td>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-sm btn-outline-danger flag-incorrect-btn"
+                                    data-prediction-id="{{ item.prediction.id }}"
+                                    data-current-label="{{ item.predicted_label }}"
+                                    data-email-subject="{{ item.email.subject|truncatechars:40 }}"
+                                >
+                                    <i class="fas fa-flag"></i> Flag as Incorrect
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if predictions.has_other_pages %}
+            <div class="p-3">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if predictions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ predictions.previous_page_number }}&date_filter={{ date_filter }}&confidence_band={{ confidence_band }}">
+                                Previous
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                Page {{ predictions.number }} of {{ predictions.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if predictions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ predictions.next_page_number }}&date_filter={{ date_filter }}&confidence_band={{ confidence_band }}">
+                                Next
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>No auto-confirmed emails found for the selected filters.</p>
+                <a href="{% url 'ai:auto_confirmed_review' %}" class="btn btn-outline-primary">Clear Filters</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-3">
+        <a href="{% url 'ai:email_review' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Main Review
+        </a>
+    </div>
+</div>
+
+<!-- Flag Correction Modal -->
+<div class="modal fade" id="flagCorrectionModal" tabindex="-1" aria-labelledby="flagCorrectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="flagCorrectionModalLabel">
+                    <i class="fas fa-flag text-danger"></i> Flag Incorrect Prediction
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Email:</strong> <span id="modalEmailSubject"></span><br>
+                    <strong>Current Prediction:</strong> <span id="modalCurrentLabel"></span>
+                </div>
+                <p>What should this email be labeled as?</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success btn-lg correction-btn" data-correct-label="INVOICE">
+                        <i class="fas fa-file-invoice"></i> INVOICE (Daycare Invoice)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg correction-btn" data-correct-label="NOT_INVOICE">
+                        <i class="fas fa-times-circle"></i> NOT INVOICE
+                    </button>
+                </div>
+                <div class="mt-3">
+                    <label for="correctionNote" class="form-label">Note (optional):</label>
+                    <textarea id="correctionNote" class="form-control" rows="2" placeholder="Why was this incorrect?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentPredictionId = null;
+    const modal = new bootstrap.Modal(document.getElementById('flagCorrectionModal'));
+
+    // Open modal when flag button clicked
+    document.querySelectorAll('.flag-incorrect-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentPredictionId = this.dataset.predictionId;
+            document.getElementById('modalEmailSubject').textContent = this.dataset.emailSubject;
+            
+            const currentLabel = this.dataset.currentLabel === 'daycare_invoice' ? 'INVOICE' : 'NOT INVOICE';
+            document.getElementById('modalCurrentLabel').textContent = currentLabel;
+            
+            modal.show();
+        });
+    });
+
+    // Handle correction submission
+    document.querySelectorAll('.correction-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const correctLabel = this.dataset.correctLabel;
+            const note = document.getElementById('correctionNote').value;
+            
+            submitCorrection(currentPredictionId, correctLabel, note);
+        });
+    });
+
+    function submitCorrection(predictionId, correctLabel, note) {
+        // Disable buttons
+        document.querySelectorAll('.correction-btn').forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
+        });
+
+        fetch(`/ai/emails/flag-auto-confirmed/${predictionId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                correct_label: correctLabel,
+                note: note
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from table
+                const row = document.getElementById(`row-${predictionId}`);
+                row.style.transition = 'opacity 0.3s';
+                row.style.opacity = '0';
+                setTimeout(() => row.remove(), 300);
+
+                // Show success message
+                showAlert('success', 'Correction recorded! This will be used to improve the model.');
+                
+                // Close modal
+                modal.hide();
+                
+                // Reload page after short delay to update metrics
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', `Error: ${data.error}`);
+                // Re-enable buttons
+                document.querySelectorAll('.correction-btn').forEach(btn => {
+                    btn.disabled = false;
+                    const icon = btn.dataset.correctLabel === 'INVOICE' ? 
+                        '<i class="fas fa-file-invoice"></i>' : 
+                        '<i class="fas fa-times-circle"></i>';
+                    btn.innerHTML = icon + ' ' + btn.dataset.correctLabel.replace('_', ' ');
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Network error. Please try again.');
+            // Re-enable buttons
+            document.querySelectorAll('.correction-btn').forEach(btn => {
+                btn.disabled = false;
+                const icon = btn.dataset.correctLabel === 'INVOICE' ? 
+                    '<i class="fas fa-file-invoice"></i>' : 
+                    '<i class="fas fa-times-circle"></i>';
+                btn.innerHTML = icon + ' ' + btn.dataset.correctLabel.replace('_', ' ');
+            });
+        });
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

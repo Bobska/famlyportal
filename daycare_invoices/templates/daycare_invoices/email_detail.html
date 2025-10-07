@@ -1,0 +1,395 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Details{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attachment-item { display:flex; align-items:center; justify-content:space-between; padding:.75rem; border:1px solid #dee2e6; border-radius:4px; margin-bottom:.5rem; }
+    .meta { color:#6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <a href="{% url 'daycare_invoices:ai_invoice_emails' %}" class="btn btn-outline-secondary mb-3">&larr; Back to AI Emails</a>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h3 class="card-title mb-3">{{ email.subject|default:"(No subject)" }}</h3>
+            <div class="meta mb-2">
+                <div><strong>From:</strong> {{ email.sender_name|default:email.sender_email }} &lt;{{ email.sender_email }}&gt;</div>
+                <div><strong>Date:</strong> {{ email.sent_date|date:"M d, Y g:i A" }}</div>
+                <div><strong>Account:</strong> {{ email.gmail_account.email_address }}</div>
+                {% if latest_prediction %}
+                  <div><strong>AI:</strong> {{ latest_prediction.predicted_label }} ({{ latest_prediction.confidence_score|floatformat:2 }}) — {{ latest_prediction.get_status_display }}</div>
+                {% endif %}
+                {% if email.is_classified %}
+                  <div><strong>Final Label:</strong> {{ email.classification_label }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                {% if email.body_text %}
+                    <pre class="mb-0" style="white-space:pre-wrap">{{ email.body_text }}</pre>
+                {% elif email.body_html %}
+                    <div class="border p-2 bg-light">{{ email.body_html|safe }}</div>
+                {% else %}
+                    <div class="text-muted">No body content.</div>
+                {% endif %}
+            </div>
+            <form method="post" class="d-inline-block">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="analyze" />
+                <button class="btn btn-primary">
+                    <i class="bi bi-robot"></i> Analyze for Invoice Details
+                </button>
+            </form>
+            {% if extraction %}
+            <a class="btn btn-outline-success ms-2" href="{% url 'daycare_invoices:invoice_create_from_email' email.id %}">
+                <i class="bi bi-receipt"></i> Create Invoice from Extraction
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if extraction %}
+    <div class="card mb-3">
+        <div class="card-header">Extracted Invoice Details</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div><strong>Provider:</strong> {{ extraction.provider_name|default:"—" }}</div>
+                    <div><strong>Invoice Number:</strong> {{ extraction.invoice_number|default:"—" }}</div>
+                    <div><strong>Reference Number:</strong> {{ extraction.reference_number|default:"—" }}</div>
+                    <div><strong>Issue Date:</strong> {% if extraction.raw_fields.issue_date %}{{ extraction.raw_fields.issue_date }}{% else %}—{% endif %}</div>
+                    <div><strong>Due Date:</strong> {{ extraction.due_date|date:"M d, Y"|default:"—" }}{% if extraction.raw_fields.due_date_defaulted %} <span class="badge bg-info" title="Calculated as 7 days after issue date">auto</span>{% endif %}</div>
+                </div>
+                <div class="col-md-6">
+                    <div><strong>Current Invoice:</strong> {% if extraction.current_invoice_total %}${{ extraction.current_invoice_total }}{% else %}—{% endif %} <span class="text-muted small">(new charges only)</span></div>
+                    <div><strong>Amount Due:</strong> {% if extraction.amount %}${{ extraction.amount }}{% else %}—{% endif %} <span class="text-muted small">(inc. previous balance)</span></div>
+                    <div><strong>Confidence:</strong> {{ extraction.confidence|floatformat:2 }}</div>
+                    <div><strong>Status:</strong> {{ extraction.status }}</div>
+                </div>
+            </div>
+            
+            {% if extraction.line_items %}
+            <hr>
+            <h6 class="mb-2">📋 Invoice Line Items <span class="badge bg-secondary">AI Learning Data</span></h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in extraction.line_items %}
+                        <tr>
+                            <td>
+                                {% if item.type == 'debit' %}
+                                    <span class="badge bg-danger">Debit</span>
+                                {% elif item.type == 'credit' %}
+                                    <span class="badge bg-success">Credit</span>
+                                {% elif item.type == 'discount' %}
+                                    <span class="badge bg-warning text-dark">Discount</span>
+                                {% elif item.type == 'previous_balance' %}
+                                    <span class="badge bg-info">Previous Balance</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.description }}</td>
+                            <td class="text-end {% if item.amount < 0 %}text-success{% endif %}">
+                                ${{ item.amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if extraction.current_invoice_total %}
+                        <tr class="table-light">
+                            <td colspan="2"><strong>Current Invoice Subtotal</strong> <span class="text-muted small">(new charges only)</span></td>
+                            <td class="text-end"><strong>${{ extraction.current_invoice_total|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-primary fw-bold">
+                            <td colspan="2">Total Amount Due <span class="text-muted small fw-normal">(inc. previous balance)</span></td>
+                            <td class="text-end">${{ extraction.amount|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-info py-2 small">
+                <strong>💡 How AI Learns:</strong> These line items are stored in the database. When you verify invoices, the AI learns patterns like:
+                <ul class="mb-0 mt-1">
+                    <li>How different providers format fees vs discounts</li>
+                    <li>Where to find previous balances</li>
+                    <li>How to calculate the final "Amount Due"</li>
+                </ul>
+                After 20-30 verified samples, the AI can auto-extract from new providers without hard-coded rules!
+            </div>
+            {% endif %}
+                        {% if extraction.raw_fields %}
+            <hr>
+                        <div class="row mb-2">
+                            <div class="col-md-6 small text-muted">
+                                PDFs: {{ extraction.raw_fields.pdf_attachments_count|default:0 }}
+                                — downloaded now: {{ extraction.raw_fields.pdf_downloaded_now|default:0 }}
+                                — missing: {{ extraction.raw_fields.pdf_missing_after_download|default:0 }}
+                            </div>
+                            <div class="col-md-6 small text-muted text-end">
+                                PDF text chars: {{ extraction.raw_fields.pdf_chars|default:0 }}
+                            </div>
+                        </div>
+                        {% if extraction.raw_fields.pdf_chars == 0 and extraction.raw_fields.pdf_attachments_count|default:0 > 0 %}
+                            <div class="alert alert-warning py-2">
+                                We couldn't extract text from the PDF(s). If these are scanned images, OCR is required. We can add OCR or a stronger PDF parser on request.
+                            </div>
+                        {% endif %}
+                        {% if extraction.raw_fields.pdf_text_sample %}
+                        <details class="mb-3">
+                            <summary class="btn btn-sm btn-outline-secondary">View PDF Text Sample (Debug)</summary>
+                            <pre class="mt-2 p-2 bg-light border" style="white-space:pre-wrap; max-height:300px; overflow-y:auto; font-size:0.85em;">{{ extraction.raw_fields.pdf_text_sample }}</pre>
+                        </details>
+                        {% endif %}
+                        <pre class="mb-0" style="white-space:pre-wrap">{{ extraction.raw_fields|json_script:"raw_fields" }}</pre>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if extraction %}
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-pencil-square"></i> Verify / Correct Extracted Details
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3" id="verifyForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="verify" />
+                
+                <div class="col-12">
+                    <h6 class="border-bottom pb-2 mb-3">Invoice Information</h6>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">Provider Name</label>
+                    <input class="form-control" name="provider_name" value="{{ extraction.provider_name }}" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Invoice Number</label>
+                    <input class="form-control" name="invoice_number" value="{{ extraction.invoice_number }}" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Reference Number</label>
+                    <input class="form-control" name="reference_number" value="{{ extraction.reference_number }}" placeholder="e.g., SG300" />
+                    <small class="text-muted">Child/customer reference</small>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">Issue Date</label>
+                    <input class="form-control" type="date" name="issue_date" value="{% if extraction.raw_fields.issue_date %}{{ extraction.raw_fields.issue_date }}{% endif %}" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Due Date</label>
+                    <input class="form-control" type="date" name="due_date" value="{{ extraction.due_date|date:'Y-m-d' }}" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Child</label>
+                    <select class="form-select" name="child_id">
+                        <option value="">-- Select Child --</option>
+                        {% for member in family_children %}
+                        <option value="{{ member.user.id }}">{{ member.user.get_full_name|default:member.user.username }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Which child is this invoice for?</small>
+                </div>
+                
+                <div class="col-12">
+                    <h6 class="border-bottom pb-2 mb-3 mt-2">Line Items Breakdown</h6>
+                </div>
+                
+                <div class="col-12">
+                    <div id="lineItemsContainer" class="mb-3">
+                        <!-- Previous Balance -->
+                        <div class="row g-2 mb-2 line-item-row">
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm" name="line_item_type[]">
+                                    <option value="previous_balance" {% if extraction.line_items.0.type == 'previous_balance' %}selected{% endif %}>Previous Balance</option>
+                                    <option value="debit">Debit/Fee</option>
+                                    <option value="credit">Credit</option>
+                                    <option value="discount">Discount</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control form-control-sm" name="line_item_description[]" 
+                                       placeholder="Description" value="{% if extraction.line_items.0 %}{{ extraction.line_items.0.description }}{% else %}Previous Balance{% endif %}" />
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" step="0.01" class="form-control form-control-sm line-item-amount" name="line_item_amount[]" 
+                                       placeholder="Amount" value="{% if extraction.line_items.0 %}{{ extraction.line_items.0.amount }}{% endif %}" />
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-line-item" onclick="removeLineItem(this)">×</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Debit Items -->
+                        {% for item in extraction.line_items %}
+                        {% if item.type == 'debit' or item.type == 'discount' or item.type == 'credit' %}
+                        <div class="row g-2 mb-2 line-item-row">
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm" name="line_item_type[]">
+                                    <option value="previous_balance">Previous Balance</option>
+                                    <option value="debit" {% if item.type == 'debit' %}selected{% endif %}>Debit/Fee</option>
+                                    <option value="credit" {% if item.type == 'credit' %}selected{% endif %}>Credit</option>
+                                    <option value="discount" {% if item.type == 'discount' %}selected{% endif %}>Discount</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control form-control-sm" name="line_item_description[]" 
+                                       placeholder="Description" value="{{ item.description }}" />
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" step="0.01" class="form-control form-control-sm line-item-amount" name="line_item_amount[]" 
+                                       placeholder="Amount" value="{{ item.amount }}" />
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-line-item" onclick="removeLineItem(this)">×</button>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addLineItem()">
+                        <i class="bi bi-plus-circle"></i> Add Line Item
+                    </button>
+                </div>
+                
+                <div class="col-12">
+                    <h6 class="border-bottom pb-2 mb-3 mt-3">Calculated Totals</h6>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Current Invoice Total <small class="text-muted">(new charges only)</small></label>
+                    <input class="form-control bg-light" name="current_invoice_total" id="currentInvoiceTotal" 
+                           value="{{ extraction.current_invoice_total }}" readonly />
+                    <small class="text-muted">Auto-calculated from line items (excluding previous balance)</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Total Amount Due <small class="text-muted">(inc. previous balance)</small></label>
+                    <input class="form-control bg-light" name="amount" id="totalAmountDue" 
+                           value="{{ extraction.amount }}" readonly />
+                    <small class="text-muted">Auto-calculated from all line items</small>
+                </div>
+                
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-check2-circle"></i> Save Verified Details & Create Training Sample
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="calculateTotals()">
+                        <i class="bi bi-calculator"></i> Recalculate Totals
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    // Auto-calculate totals when line items change
+    function calculateTotals() {
+        const amounts = document.querySelectorAll('.line-item-amount');
+        const types = document.querySelectorAll('select[name="line_item_type[]"]');
+        
+        let currentInvoiceTotal = 0;
+        let totalAmountDue = 0;
+        
+        amounts.forEach((input, index) => {
+            const amount = parseFloat(input.value) || 0;
+            const type = types[index].value;
+            
+            totalAmountDue += amount;
+            
+            // Exclude previous_balance from current invoice total
+            if (type !== 'previous_balance') {
+                currentInvoiceTotal += amount;
+            }
+        });
+        
+        document.getElementById('currentInvoiceTotal').value = currentInvoiceTotal.toFixed(2);
+        document.getElementById('totalAmountDue').value = totalAmountDue.toFixed(2);
+    }
+    
+    // Add new line item
+    function addLineItem() {
+        const container = document.getElementById('lineItemsContainer');
+        const newRow = document.createElement('div');
+        newRow.className = 'row g-2 mb-2 line-item-row';
+        newRow.innerHTML = `
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" name="line_item_type[]">
+                    <option value="previous_balance">Previous Balance</option>
+                    <option value="debit" selected>Debit/Fee</option>
+                    <option value="credit">Credit</option>
+                    <option value="discount">Discount</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="text" class="form-control form-control-sm" name="line_item_description[]" 
+                       placeholder="Description" />
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control form-control-sm line-item-amount" name="line_item_amount[]" 
+                       placeholder="Amount" onchange="calculateTotals()" />
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-line-item" onclick="removeLineItem(this)">×</button>
+            </div>
+        `;
+        container.appendChild(newRow);
+    }
+    
+    // Remove line item
+    function removeLineItem(button) {
+        button.closest('.line-item-row').remove();
+        calculateTotals();
+    }
+    
+    // Attach change listeners to existing line items
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.line-item-amount').forEach(input => {
+            input.addEventListener('change', calculateTotals);
+        });
+        document.querySelectorAll('select[name="line_item_type[]"]').forEach(select => {
+            select.addEventListener('change', calculateTotals);
+        });
+    });
+    </script>
+    {% endif %}
+
+    {% if email.has_attachments %}
+    <div class="card">
+        <div class="card-header">Attachments ({{ email.attachment_count }})</div>
+        <div class="card-body">
+            {% for a in email.attachments.all %}
+            <div class="attachment-item">
+                <div>
+                    <strong>{{ a.filename }}</strong>
+                    <span class="text-muted ms-2">{{ a.get_size_display }}</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'daycare_invoices:download_attachment' email.id a.id %}?view=1" target="_blank">
+                        View
+                    </a>
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'daycare_invoices:download_attachment' email.id a.id %}">
+                        Download
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-muted">No attachments found.</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

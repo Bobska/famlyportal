@@ -1,0 +1,1124 @@
+{% extends 'budget_basic/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+{% endblock %}
+
+{% block body_class %}payees-page{% endblock %}
+
+{% block page_header %}
+<!-- Empty - we'll include the header inside content wrapper -->
+{% endblock %}
+
+{% block content %}
+<!-- Content Wrapper for Centering -->
+<div class="content-wrapper payees-content">
+    <!-- Category Stats Card - matches the weekly totals card from transactions -->
+    <div class="card mb-3">
+        <div class="card-body py-1">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Total Categories</div>
+                        <div class="weekly-stat-value" id="total-categories">{{ categories|length }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Active Categories</div>
+                        <div class="weekly-stat-value" id="active-categories">{{ categories|length }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="weekly-stat">
+                        <div class="weekly-stat-label">Recently Added</div>
+                        <div class="weekly-stat-value">{{ categories|length }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Categories card with integrated side panel - matches transactions structure -->
+    <div class="card" id="categories-card">
+        <!-- Always show the panel structure for consistent layout -->
+        <div class="payees-panel">
+            <!-- Left Side: Category List Panel -->
+            <div class="payee-list-panel" id="category-list">
+                <!-- Left Panel Header -->
+                <div class="panel-header">
+                    <div class="panel-title">Categories</div>
+                    <div class="panel-header-actions">
+                        <!-- Add category button -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span class="d-none d-lg-inline">Add Category</span>
+                        </button>
+                        
+                        <div class="d-none d-lg-block" style="max-width: 220px;">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="category-search" placeholder="Search..." oninput="handleCategorySearch(this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown ms-2">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
+                                <i class="bi bi-sort-alpha-down me-lg-1"></i>
+                                <span class="d-none d-lg-inline" id="sortLabel">Name</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="categorySortDropdown">
+                                <li><a class="dropdown-item active" href="#" onclick="sortCategories('name')">Sort by Name</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="sortCategories('date')">Sort by Date Added</a></li>
+                            </ul>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-bs-toggle="collapse" data-bs-target="#categorySearchBar" aria-expanded="false" aria-controls="categorySearchBar" title="Search Categories">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="collapse d-lg-none" id="categorySearchBar">
+                    <div class="search-bar-wrapper">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" placeholder="Search categories..." oninput="handleCategorySearch(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payee-list-scroll">
+                    <div class="payee-list-content">
+                    <div class="payee-list-content">
+                    {% if categories %}
+                        <!-- Category Data Rows -->
+                        {% for category in categories %}
+                        <div class="transaction-card transaction-card-data payee-row payee-card" 
+                             data-category-id="{{ category.id }}" 
+                             data-category-name="{{ category.name|escapejs }}"
+                             data-category-description="{{ category.description|default:""|escapejs }}"
+                             data-category-created="{{ category.created_at|date:"Y-m-d" }}"
+                             data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
+                             onclick="selectCategory(this)">
+                            <div class="payee-cell transaction-date-cell text-muted">{{ category.created_at|date:"D, j M" }}</div>
+                            <div class="payee-cell payee-cell-info transaction-info-cell">
+                                <span class="transaction-payee-name transaction-name">{{ category.name }}</span>
+                                {% if category.description %}
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ category.description|truncatechars:50 }}</small>
+                                {% else %}
+                                <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="payee-cell transaction-amount-cell text-end">
+                                <small class="text-muted">{{ category.updated_at|date:"j M" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="transaction-empty-state text-center text-muted py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-tags" style="font-size: 3rem;"></i>
+                            </div>
+                            <p class="mb-0">No categories yet</p>
+                            <small>Start by adding your first category to organize transactions</small>
+                        </div>
+                    {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-resizer" id="panel-resizer">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <div class="payee-detail-panel" id="category-details-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Category Details</div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCategorySelection()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <div id="category-detail-content" class="detail-content">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Name:</strong></div>
+                            <div class="col-sm-8" id="detail-category-name">Select a category</div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-sm-4"><strong>Description:</strong></div>
+                            <div class="col-sm-8" id="detail-category-description">-</div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-sm-4"><strong>Created:</strong></div>
+                            <div class="col-sm-8" id="detail-category-created">-</div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-sm-4"><strong>Last Updated:</strong></div>
+                            <div class="col-sm-8" id="detail-category-updated">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-actions">
+                        <button type="button" class="btn btn-outline-primary" id="edit-category-btn" onclick="editSelectedCategory()" disabled>
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="delete-category-btn" onclick="deleteSelectedCategory()" disabled>
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+                            <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                        </div>
+                        <p class="mb-0">Select a category</p>
+                        <small>to see its linked payees</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel 3: Details Panel -->
+            <div class="panel panel-details" id="details-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Details</div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllSelections()" id="clear-selection-btn" style="display: none;">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="panel-content" id="details-content">
+                    <div class="empty-state text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-info-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                        </div>
+                        <p class="mb-0">Select an item</p>
+                        <small>to view detailed information</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div id="message-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addCategoryForm" onsubmit="submitAddCategory(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="add-category-name" class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="add-category-name" name="name" required>
+                        <div class="form-text">Enter the category name (e.g., Food, Transport, Entertainment)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-category-description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="add-category-description" name="description" rows="3" placeholder="Brief description of this category..."></textarea>
+                        <div class="form-text">Optional description to help identify the purpose of this category</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Add Category</span>
+                        <span class="btn-loading d-none">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            Adding...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editCategoryForm" onsubmit="submitEditCategory(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit-category-name" class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit-category-name" name="name" required>
+                        <div class="form-text">Update the category name</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-category-description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="edit-category-description" name="description" rows="3" placeholder="Brief description of this category..."></textarea>
+                        <div class="form-text">Optional description to help identify the purpose of this category</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Update Category</span>
+                        <span class="btn-loading d-none">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            Updating...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCategoryModalLabel">Delete Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Are you sure you want to delete <strong id="delete-category-name"></strong>?
+                </div>
+                <p class="text-muted mb-0">This action cannot be undone. The category can only be deleted if it's not being used in any transactions.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteCategory()">
+                    <span class="btn-text">Delete Category</span>
+                    <span class="btn-loading d-none">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        Deleting...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables
+let currentEditCategoryId = null;
+let currentDeleteCategoryId = null;
+let selectedCategoryCard = null;
+let selectedPayeeCard = null;
+
+// Category selection functionality - three panel layout
+function selectCategory(card, event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    // Remove previous selections
+    if (selectedCategoryCard) {
+        selectedCategoryCard.classList.remove('selected');
+    }
+    clearPayeeSelection();
+    
+    // Select new card
+    selectedCategoryCard = card;
+    card.classList.add('selected');
+    
+    // Get category data from attributes
+    const categoryId = card.getAttribute('data-category-id');
+    const categoryName = card.getAttribute('data-category-name');
+    const categoryDescription = card.getAttribute('data-category-description');
+    
+    // Load payees for this category in Panel 2
+    loadPayeesForCategory(categoryId, categoryName);
+    
+    // Show category details in Panel 3
+    showCategoryDetails(categoryId, categoryName, categoryDescription);
+    
+    // Enable action buttons
+    document.getElementById('edit-category-btn').disabled = false;
+    document.getElementById('delete-category-btn').disabled = false;
+}
+
+// Load payees linked to selected category
+function loadPayeesForCategory(categoryId, categoryName) {
+    const payeesPanel = document.getElementById('payees-list');
+    const payeesPanelElement = document.querySelector('.panel-payees');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    
+    if (!payeesPanel) {
+        console.error('Payees panel not found');
+        return;
+    }
+    
+    // Update subtitle
+    if (payeesSubtitle) {
+        payeesSubtitle.textContent = `Linked to ${categoryName}`;
+    }
+    
+    // Show loading state
+    payeesPanel.innerHTML = `
+        <div class="panel-empty">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Loading payees...
+        </div>
+    `;
+    payeesPanelElement.classList.add('has-content');
+    
+    // Make AJAX call to fetch payees
+    fetch(`/budget-basic/category/${categoryId}/payees/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPayees(data.payees, categoryName);
+        } else {
+            showPayeesError(data.error, categoryName);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching payees:', error);
+        showPayeesError('Network error. Please try again.', categoryName);
+    });
+}
+
+// Display payees in Panel 2
+function displayPayees(payees, categoryName) {
+    const payeesPanel = document.getElementById('payees-list');
+    
+    if (payees.length === 0) {
+        // No payees linked
+        payeesPanel.innerHTML = `
+            <div class="panel-empty">
+                <div class="text-muted text-center py-4">
+                    <i class="bi bi-person-plus mb-2" style="font-size: 2rem;"></i>
+                    <p class="mb-1">No payees linked</p>
+                    <small>Link payees to "${categoryName}" on the Payees page</small>
+                    <div class="mt-3">
+                        <a href="{% url 'budget_basic:payee_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-arrow-right me-1"></i>
+                            Go to Payees
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Display payees as cards
+    let payeesHtml = '';
+    payees.forEach(payee => {
+        const createdDate = new Date(payee.created_at).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        payeesHtml += `
+            <div class="transaction-card transaction-card-data payee-card" 
+                 data-payee-id="${payee.id}"
+                 data-payee-name="${payee.name}"
+                 data-payee-categories="${payee.categories_display}"
+                 data-payee-created="${payee.created_at}"
+                 data-payee-updated="${payee.updated_at}"
+                 onclick="selectPayee(this, event)">
+                <div class="transaction-col transaction-date">${createdDate}</div>
+                <div class="transaction-col transaction-payee">
+                    <div class="d-flex align-items-center">
+                        <div class="payee-icon me-2">
+                            <i class="bi bi-person-fill text-muted"></i>
+                        </div>
+                        <div>
+                            <div class="payee-name">${payee.name}</div>
+                            <small class="text-muted">${payee.categories_display}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="transaction-col transaction-amount">
+                    <small class="text-muted">Linked</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    payeesPanel.innerHTML = payeesHtml;
+}
+
+// Show error message in payees panel
+function showPayeesError(errorMessage, categoryName) {
+    const payeesPanel = document.getElementById('payees-list');
+    
+    payeesPanel.innerHTML = `
+        <div class="panel-empty">
+            <div class="text-muted text-center py-4">
+                <i class="bi bi-exclamation-triangle mb-2" style="font-size: 2rem; color: #dc3545;"></i>
+                <p class="mb-1">Error loading payees</p>
+                <small>${errorMessage}</small>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="loadPayeesForCategory(${selectedCategoryCard.getAttribute('data-category-id')}, '${categoryName}')">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Show category details in Panel 3
+function showCategoryDetails(categoryId, categoryName, categoryDescription) {
+    const detailsPanel = document.getElementById('details-content');
+    const detailsPanelElement = document.querySelector('.panel-details');
+    
+    if (!detailsPanel) {
+        console.error('Details panel not found');
+        return;
+    }
+    
+    const created = selectedCategoryCard.getAttribute('data-category-created');
+    const updated = selectedCategoryCard.getAttribute('data-category-updated');
+    
+    detailsPanel.innerHTML = `
+        <div class="detail-content">
+            <h5 class="mb-3">${categoryName}</h5>
+            <div class="mb-3">
+                <label class="form-label text-muted small">Description</label>
+                <p class="mb-0">${categoryDescription || 'No description provided'}</p>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Created</label>
+                    <p class="mb-0">${new Date(created).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Updated</label>
+                    <p class="mb-0">${new Date(updated).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="badge bg-success">Active</span>
+            </div>
+        </div>
+    `;
+    
+    detailsPanelElement.classList.add('has-content');
+}
+
+// Payee selection in Panel 2
+function selectPayee(card, event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    // Remove previous payee selection
+    if (selectedPayeeCard) {
+        selectedPayeeCard.classList.remove('selected');
+    }
+    
+    // Select new payee card
+    selectedPayeeCard = card;
+    card.classList.add('selected');
+    
+    // Get payee data from attributes
+    const payeeName = card.getAttribute('data-payee-name');
+    const payeeCategories = card.getAttribute('data-payee-categories');
+    const payeeCreated = card.getAttribute('data-payee-created');
+    const payeeUpdated = card.getAttribute('data-payee-updated');
+    
+    // Show payee details in Panel 3
+    showPayeeDetails(payeeName, payeeCategories, payeeCreated, payeeUpdated);
+}
+
+// Show payee details in Panel 3
+function showPayeeDetails(payeeName, payeeCategories, payeeCreated, payeeUpdated) {
+    const detailsPanel = document.getElementById('details-content');
+    const detailsPanelElement = document.querySelector('.panel-details');
+    
+    if (!detailsPanel) {
+        console.error('Details panel not found');
+        return;
+    }
+    
+    detailsPanel.innerHTML = `
+        <div class="detail-content">
+            <h5 class="mb-3">${payeeName}</h5>
+            <div class="mb-3">
+                <label class="form-label text-muted small">Categories</label>
+                <p class="mb-0">${payeeCategories || 'No categories assigned'}</p>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Created</label>
+                    <p class="mb-0">${new Date(payeeCreated).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label text-muted small">Updated</label>
+                    <p class="mb-0">${new Date(payeeUpdated).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}</p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="badge bg-primary">Linked to ${selectedCategoryCard.getAttribute('data-category-name')}</span>
+            </div>
+        </div>
+    `;
+    
+    detailsPanelElement.classList.add('has-content');
+}
+
+// Clear all selections
+function clearAllSelections() {
+    clearCategorySelection();
+    clearPayeeSelection();
+    clearDetailsPanel();
+}
+
+// Clear category selection
+function clearCategorySelection() {
+    if (selectedCategoryCard) {
+        selectedCategoryCard.classList.remove('selected');
+        selectedCategoryCard = null;
+    }
+    
+    // Disable action buttons
+    document.getElementById('edit-category-btn').disabled = true;
+    document.getElementById('delete-category-btn').disabled = true;
+}
+
+// Clear payee selection
+function clearPayeeSelection() {
+    if (selectedPayeeCard) {
+        selectedPayeeCard.classList.remove('selected');
+        selectedPayeeCard = null;
+    }
+    
+    // Clear payees panel
+    const payeesPanel = document.getElementById('payees-list');
+    const payeesPanelElement = document.querySelector('.panel-payees');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    
+    if (payeesSubtitle) {
+        payeesSubtitle.textContent = 'Select a category';
+    }
+    
+    if (payeesPanel) {
+        payeesPanel.innerHTML = `
+            <div class="empty-state text-center py-5 text-muted">
+                <div class="mb-3">
+                    <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                </div>
+                <p class="mb-0">Select a category</p>
+                <small>to see its linked payees</small>
+            </div>
+        `;
+    }
+    
+    if (payeesPanelElement) {
+        payeesPanelElement.classList.remove('has-content');
+    }
+}
+
+// Clear details panel
+function clearDetailsPanel() {
+    const detailsPanel = document.getElementById('details-content');
+    const detailsPanelElement = document.querySelector('.panel-details');
+    
+    if (detailsPanel) {
+        detailsPanel.innerHTML = `
+            <div class="empty-state text-center py-5 text-muted">
+                <div class="mb-3">
+                    <i class="bi bi-info-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                </div>
+                <p class="mb-0">Select an item</p>
+                <small>to view detailed information</small>
+            </div>
+        `;
+    }
+    
+    if (detailsPanelElement) {
+        detailsPanelElement.classList.remove('has-content');
+    }
+}
+
+// Edit selected category
+function editSelectedCategory() {
+    if (!selectedCategoryCard) return;
+    
+    const categoryId = selectedCategoryCard.getAttribute('data-category-id');
+    const categoryName = selectedCategoryCard.getAttribute('data-category-name');
+    const categoryDescription = selectedCategoryCard.getAttribute('data-category-description');
+    
+    showEditCategoryModal(categoryId, categoryName, categoryDescription);
+}
+
+// Delete selected category
+function deleteSelectedCategory() {
+    if (!selectedCategoryCard) return;
+    
+    const categoryId = selectedCategoryCard.getAttribute('data-category-id');
+    const categoryName = selectedCategoryCard.getAttribute('data-category-name');
+    
+    showDeleteCategoryModal(categoryId, categoryName);
+}
+
+// Show add category modal
+function showAddCategoryModal() {
+    document.getElementById('add-category-name').value = '';
+    document.getElementById('add-category-description').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+    modal.show();
+    
+    // Focus on name input after modal is shown
+    setTimeout(() => {
+        document.getElementById('add-category-name').focus();
+    }, 200);
+}
+
+// Show edit category modal
+function showEditCategoryModal(categoryId, categoryName, categoryDescription) {
+    currentEditCategoryId = categoryId;
+    document.getElementById('edit-category-name').value = categoryName;
+    document.getElementById('edit-category-description').value = categoryDescription || '';
+    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+    modal.show();
+    
+    // Focus on name input after modal is shown
+    setTimeout(() => {
+        document.getElementById('edit-category-name').select();
+    }, 200);
+}
+
+// Show delete category modal
+function showDeleteCategoryModal(categoryId, categoryName) {
+    currentDeleteCategoryId = categoryId;
+    document.getElementById('delete-category-name').textContent = categoryName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
+    modal.show();
+}
+
+// Submit add category form
+function submitAddCategory(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.querySelector('#addCategoryForm button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(document.getElementById('addCategoryForm'));
+    
+    fetch('{% url "budget_basic:category_create" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+            
+            // Show success message
+            showMessage(data.message, 'success');
+            
+            // Add category to list if list exists
+            if (document.querySelector('.transaction-list-content')) {
+                addCategoryToList(data.category);
+            } else {
+                // Reload page if no list (empty state)
+                location.reload();
+            }
+            
+            // Update stats
+            updateCategoryStats();
+            
+        } else {
+            showMessage(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Network error. Please try again.', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset loading state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+    });
+}
+
+// Submit edit category form
+function submitEditCategory(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.querySelector('#editCategoryForm button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(document.getElementById('editCategoryForm'));
+    
+    fetch(`/budget-basic/category/${currentEditCategoryId}/update/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
+            
+            // Show success message
+            showMessage(data.message, 'success');
+            
+            // Update category in list
+            updateCategoryInList(currentEditCategoryId, data.category);
+            
+        } else {
+            showMessage(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Network error. Please try again.', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset loading state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+        currentEditCategoryId = null;
+    });
+}
+
+// Confirm delete category
+function confirmDeleteCategory() {
+    const submitBtn = document.querySelector('#deleteCategoryModal .btn-danger');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    
+    fetch(`/budget-basic/category/${currentDeleteCategoryId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('deleteCategoryModal')).hide();
+            
+            // Show success message
+            showMessage(data.message, 'success');
+            
+            // Remove category from list
+            removeCategoryFromList(currentDeleteCategoryId);
+            
+            // Update stats
+            updateCategoryStats();
+            
+        } else {
+            showMessage(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Network error. Please try again.', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset loading state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+        currentDeleteCategoryId = null;
+    });
+}
+
+// Add category to list
+function addCategoryToList(category) {
+    const listContent = document.querySelector('.transaction-list-content');
+    
+    // Remove empty state if present
+    const emptyState = listContent.querySelector('.text-center.py-5');
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    const categoryCard = document.createElement('div');
+    categoryCard.className = 'transaction-card transaction-card-data category-card';
+    categoryCard.setAttribute('data-category-id', category.id);
+    categoryCard.setAttribute('data-category-name', category.name);
+    categoryCard.setAttribute('data-category-description', category.description || '');
+    
+    const now = new Date();
+    categoryCard.setAttribute('data-category-created', now.toISOString().split('T')[0]);
+    categoryCard.setAttribute('data-category-updated', now.toISOString().split('T')[0]);
+    
+    categoryCard.onclick = function(event) { selectCategory(this, event); };
+    
+    const nowFormatted = now.toLocaleDateString('en-US', { 
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+    });
+    
+    categoryCard.innerHTML = `
+        <div class="transaction-col transaction-date">${nowFormatted}</div>
+        <div class="transaction-col transaction-payee">
+            <div class="d-flex align-items-center">
+                <div class="category-icon me-2">
+                    <i class="bi bi-tag-fill text-muted"></i>
+                </div>
+                <div>
+                    <div class="category-name">${category.name}</div>
+                    ${category.description ? `<small class="text-muted">${category.description}</small>` : ''}
+                </div>
+            </div>
+        </div>
+        <div class="transaction-col transaction-amount">
+            <small class="text-muted">${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small>
+        </div>
+    `;
+    
+    listContent.appendChild(categoryCard);
+}
+
+// Update category in list
+function updateCategoryInList(categoryId, categoryData) {
+    const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
+    if (categoryCard) {
+        // Update data attributes
+        categoryCard.setAttribute('data-category-name', categoryData.name);
+        categoryCard.setAttribute('data-category-description', categoryData.description || '');
+        
+        // Update displayed name and description
+        const nameElement = categoryCard.querySelector('.category-name');
+        nameElement.textContent = categoryData.name;
+        
+        const descElement = categoryCard.querySelector('small.text-muted');
+        if (categoryData.description) {
+            if (descElement) {
+                descElement.textContent = categoryData.description;
+            } else {
+                const nameContainer = nameElement.parentElement;
+                const newDesc = document.createElement('small');
+                newDesc.className = 'text-muted';
+                newDesc.textContent = categoryData.description;
+                nameContainer.appendChild(newDesc);
+            }
+        } else {
+            if (descElement) {
+                descElement.remove();
+            }
+        }
+        
+        // If this is the selected category, update details panel
+        if (categoryCard === selectedCategoryCard) {
+            showCategoryDetails(categoryId, categoryData.name, categoryData.description);
+        }
+    }
+}
+
+// Remove category from list
+function removeCategoryFromList(categoryId) {
+    const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
+    if (categoryCard) {
+        // Clear selection if this category was selected
+        if (categoryCard === selectedCategoryCard) {
+            clearAllSelections();
+        }
+        
+        categoryCard.remove();
+        
+        // Check if list is now empty
+        const listContent = document.querySelector('.transaction-list-content');
+        const remainingCategories = listContent.querySelectorAll('.category-card');
+        
+        if (remainingCategories.length === 0) {
+            // Add empty state
+            listContent.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3">
+                        <i class="bi bi-tags" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="mb-0">No categories yet</p>
+                    <small>Start by adding your first category to organize transactions</small>
+                </div>
+            `;
+        }
+    }
+}
+
+// Update category statistics
+function updateCategoryStats() {
+    const totalCategories = document.querySelectorAll('.category-card').length;
+    document.getElementById('total-categories').textContent = totalCategories;
+    document.getElementById('active-categories').textContent = totalCategories;
+}
+
+// Filter categories
+function filterCategories() {
+    const searchTerm = document.getElementById('category-search').value.toLowerCase();
+    const categoryCards = document.querySelectorAll('.category-card');
+    
+    categoryCards.forEach(card => {
+        const categoryName = card.getAttribute('data-category-name').toLowerCase();
+        const categoryDescription = card.getAttribute('data-category-description').toLowerCase();
+        
+        if (categoryName.includes(searchTerm) || categoryDescription.includes(searchTerm)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Sort categories
+function sortCategories(sortBy) {
+    const listContent = document.querySelector('.transaction-list-content');
+    if (!listContent) return;
+    
+    const categoryCards = Array.from(listContent.querySelectorAll('.category-card'));
+    
+    // Update dropdown label and active state
+    document.getElementById('sortLabel').textContent = sortBy === 'name' ? 'Name' : 'Date Added';
+    document.querySelectorAll('#categorySortDropdown + .dropdown-menu .dropdown-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    categoryCards.sort((a, b) => {
+        if (sortBy === 'name') {
+            const nameA = a.getAttribute('data-category-name').toLowerCase();
+            const nameB = b.getAttribute('data-category-name').toLowerCase();
+            return nameA.localeCompare(nameB);
+        } else if (sortBy === 'date') {
+            const dateA = new Date(a.getAttribute('data-category-created'));
+            const dateB = new Date(b.getAttribute('data-category-created'));
+            return dateB - dateA; // Newest first
+        }
+        return 0;
+    });
+    
+    // Reorder cards
+    categoryCards.forEach(card => listContent.appendChild(card));
+}
+
+// Show message helper
+function showMessage(message, type) {
+    const container = document.getElementById('message-container');
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const icon = type === 'error' ? 'bi-exclamation-triangle' : 'bi-check-circle';
+    
+    const alert = document.createElement('div');
+    alert.className = `alert ${alertClass} alert-dismissible fade show`;
+    alert.setAttribute('role', 'alert');
+    alert.innerHTML = `
+        <i class="bi ${icon} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    container.appendChild(alert);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.classList.remove('show');
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Highlight a payee by ID (for navigation to payees page)
+function highlightPayeeById(payeeId) {
+    // For now, just show a message about the relationship
+    const payeeName = document.querySelector(`[data-payee-id="${payeeId}"]`)?.textContent?.trim();
+    if (payeeName) {
+        showMessage(`This category is linked to payee: ${payeeName}`, 'info');
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Add CSRF token to all forms if not present
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        if (!form.querySelector('[name=csrfmiddlewaretoken]')) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+            form.appendChild(csrfInput);
+        }
+    });
+    
+    // Add background click handler for deselection
+    document.addEventListener('click', function(event) {
+        // Check if click is inside any panel or interactive element
+        const clickedPanel = event.target.closest('.panel');
+        const clickedModal = event.target.closest('.modal');
+        const clickedButton = event.target.closest('button');
+        const clickedForm = event.target.closest('form');
+        
+        // If clicked outside all panels, modals, buttons, and forms, clear all selections
+        if (!clickedPanel && !clickedModal && !clickedButton && !clickedForm && (selectedCategoryCard || selectedPayeeCard)) {
+            clearAllSelections();
+        }
+    });
+});
+</script>
+{% endblock %}

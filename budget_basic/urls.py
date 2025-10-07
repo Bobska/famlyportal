@@ -5,17 +5,21 @@ app_name = 'budget_basic'
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
-    path('transactions/', views.main, name='main'),
+    path('transactions/', views.transactions, name='transactions'),
+    path('weekly/', views.weekly, name='weekly'),
     path('week-data/', views.get_week_data, name='get_week_data'),
     # Payee URLs (existing)
     path('payees/', views.get_payees, name='get_payees'),
     path('payee/add/', views.add_payee, name='add_payee'),
+    # Category URLs (existing)
+    path('categories-list/', views.get_categories, name='get_categories'),
     # Payee Management URLs (new)
     path('payees-manage/', views.payee_list, name='payee_list'),
     path('payee/create/', views.payee_create, name='payee_create'),
     path('payee/<int:payee_id>/update/', views.payee_update, name='payee_update'),
     path('payee/<int:payee_id>/delete/', views.payee_delete, name='payee_delete'),
     path('payee/search/', views.payee_search, name='payee_search'),
+    path('payee/filter/', views.payee_filter, name='payee_filter'),
     # Other URLs
     path('auto-date/', views.get_auto_date, name='get_auto_date'),
     # Income URLs

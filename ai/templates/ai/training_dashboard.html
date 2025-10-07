@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Classification Training Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card { border-left: 4px solid; }
+    .stat-card.accuracy { border-color: #28a745; }
+    .stat-card.samples { border-color: #007bff; }
+    .stat-card.version { border-color: #6f42c1; }
+    .stat-card.pending { border-color: #ffc107; }
+    .chart-container { position: relative; height: 300px; }
+    .feature-bar { height: 25px; background: linear-gradient(to right, #28a745, #17a2b8); margin-bottom: 5px; }
+    .version-history { max-height: 400px; overflow-y: auto; }
+    .feedback-item { border-left: 3px solid; padding-left: 10px; margin-bottom: 10px; }
+    .feedback-item.confirmed { border-color: #28a745; }
+    .feedback-item.rejected { border-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-9">
+            <h1><i class="fas fa-chart-bar"></i> Training Dashboard</h1>
+            <p class="lead">Monitor model performance and training progress</p>
+        </div>
+        <div class="col-lg-3 text-end">
+            <a href="{% url 'ai:manual_selection' %}" class="btn btn-primary">
+                <i class="fas fa-tags"></i> Label Emails
+            </a>
+            <a href="{% url 'ai:email_review' %}" class="btn btn-secondary">
+                <i class="fas fa-eye"></i> Review
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card stat-card accuracy">
+                <div class="card-body">
+                    <h6 class="text-muted">Model Accuracy</h6>
+                    <h2>
+                        {% if current_model %}
+                        {{ current_model.accuracy|floatformat:1 }}%
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </h2>
+                    <small class="text-muted">
+                        {% if current_model %}
+                        Version {{ current_model.version }}
+                        {% else %}
+                        No model trained yet
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card samples">
+                <div class="card-body">
+                    <h6 class="text-muted">Training Samples</h6>
+                    <h2>{{ stats.total_samples }}</h2>
+                    <small class="text-success">{{ stats.positive_samples }} Invoices</small> |
+                    <small class="text-secondary">{{ stats.negative_samples }} Not</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card version">
+                <div class="card-body">
+                    <h6 class="text-muted">Model Versions</h6>
+                    <h2>{{ model_history|length }}</h2>
+                    <small class="text-muted">
+                        {% if current_model %}
+                        Last trained {{ current_model.trained_at|timesince }} ago
+                        {% else %}
+                        Never trained
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card pending">
+                <div class="card-body">
+                    <h6 class="text-muted">Pending Feedback</h6>
+                    <h2>{{ stats.pending_review }}</h2>
+                    <small class="text-muted">Predictions awaiting review</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Accuracy Trend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Sample Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Importance -->
+    {% if feature_importance %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-star"></i> Top 10 Important Features</h5>
+                </div>
+                <div class="card-body">
+                    {% for feature in feature_importance %}
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span><strong>{{ feature.feature }}</strong></span>
+                            <span class="badge bg-primary">{{ feature.importance|floatformat:3 }}</span>
+                        </div>
+                        <div class="feature-bar" style="width: {{ feature.importance_percent }}%;"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Model History and Recent Feedback -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Model Version History</h5>
+                    <button class="btn btn-sm btn-success" onclick="trainNewModel()">
+                        <i class="fas fa-brain"></i> Train New Version
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {% if model_history %}
+                    <div class="version-history">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Version</th>
+                                    <th>Accuracy</th>
+                                    <th>Samples</th>
+                                    <th>Trained</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in model_history %}
+                                <tr {% if model.is_active %}class="table-success"{% endif %}>
+                                    <td>
+                                        <strong>v{{ model.version }}</strong>
+                                        {% if model.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ model.accuracy|floatformat:1 }}%</td>
+                                    <td>{{ model.training_samples }}</td>
+                                    <td>
+                                        <small>{{ model.trained_at|date:"M d, H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if model.is_active %}
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> In Use</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Archived</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-brain fa-3x text-muted mb-3"></i>
+                        <h5>No Models Trained Yet</h5>
+                        <p class="text-muted">Label at least 20 emails to train your first model</p>
+                        <a href="{% url 'ai:manual_selection' %}" class="btn btn-primary">
+                            <i class="fas fa-tags"></i> Start Labeling
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-comments"></i> Recent Feedback</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_feedback %}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for feedback in recent_feedback %}
+                        <div class="feedback-item {% if feedback.is_positive %}confirmed{% else %}rejected{% endif %}">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ feedback.email_subject|truncatewords:10 }}</strong>
+                                {% if feedback.is_positive %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Confirmed</span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i> Rejected</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">
+                                {{ feedback.created_at|timesince }} ago
+                                {% if feedback.predicted_label and feedback.corrected_label %}
+                                <br>
+                                Predicted: <strong>{{ feedback.predicted_label }}</strong> 
+                                → Corrected: <strong>{{ feedback.corrected_label }}</strong>
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-comment-slash fa-3x text-muted mb-3"></i>
+                        <h5>No Feedback Yet</h5>
+                        <p class="text-muted">Review predictions to provide feedback</p>
+                        <a href="{% url 'ai:email_review' %}" class="btn btn-secondary">
+                            <i class="fas fa-eye"></i> Review Predictions
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export and Actions -->
+    <div class="row mt-4 mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5><i class="fas fa-tools"></i> Advanced Actions</h5>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-primary w-100" onclick="exportTrainingData()">
+                                <i class="fas fa-download"></i> Export Training Data
+                            </button>
+                            <small class="text-muted d-block mt-1">Download all labeled samples as CSV</small>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-warning w-100" onclick="clearPredictions()">
+                                <i class="fas fa-eraser"></i> Clear Old Predictions
+                            </button>
+                            <small class="text-muted d-block mt-1">Remove predictions older than 30 days</small>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-info w-100" onclick="recomputeMetrics()">
+                                <i class="fas fa-calculator"></i> Recompute Metrics
+                            </button>
+                            <small class="text-muted d-block mt-1">Recalculate model accuracy from test set</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Accuracy Trend Chart
+const accuracyCtx = document.getElementById('accuracyChart');
+if (accuracyCtx) {
+    const accuracyData = {
+        labels: [{% for model in model_history %}'v{{ model.version }}',{% endfor %}],
+        datasets: [{
+            label: 'Accuracy (%)',
+            data: [{% for model in model_history %}{{ model.accuracy|floatformat:2 }},{% endfor %}],
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    };
+
+    new Chart(accuracyCtx, {
+        type: 'line',
+        data: accuracyData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Model Accuracy Over Time'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) { return value + '%'; }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Distribution Pie Chart
+const distCtx = document.getElementById('distributionChart');
+if (distCtx) {
+    const distributionData = {
+        labels: ['Daycare Invoices', 'Not Invoices'],
+        datasets: [{
+            data: [{{ stats.positive_samples }}, {{ stats.negative_samples }}],
+            backgroundColor: ['#28a745', '#6c757d'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    };
+
+    new Chart(distCtx, {
+        type: 'doughnut',
+        data: distributionData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Training Sample Distribution'
+                }
+            }
+        }
+    });
+}
+
+function trainNewModel() {
+    if (!confirm('Train a new model version with current training data?')) return;
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training...';
+    
+    fetch('/ai/emails/train/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! ${data.message}\n\nAccuracy: ${data.accuracy}%`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    })
+    .catch(error => {
+        alert('Error training model: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    });
+}
+
+function exportTrainingData() {
+    window.location.href = '/ai/emails/export-training-data/';
+}
+
+function clearPredictions() {
+    if (!confirm('Clear all predictions older than 30 days? This cannot be undone.')) return;
+    
+    fetch('/ai/emails/clear-predictions/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ days: 30 })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Cleared ${data.count} old predictions`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => alert('Error: ' + error));
+}
+
+function recomputeMetrics() {
+    if (!confirm('Recompute metrics for all model versions? This may take a moment.')) return;
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Computing...';
+    
+    fetch('/ai/emails/recompute-metrics/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Metrics recomputed for ${data.count} models`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

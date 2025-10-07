@@ -17,6 +17,22 @@
                         <input type="text" class="form-control" id="newPayeeName" name="name" placeholder="Enter payee/merchant name..." required maxlength="200">
                         <div class="form-text text-muted small">This will be added to your payee list for future use</div>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label for="newPayeeCategories" class="form-label fw-bold">Categories (Optional)</label>
+                        <div class="d-flex align-items-end mb-2">
+                            <select class="form-select" id="newPayeeCategories" name="categories" multiple>
+                                <option value="">Select categories (optional)...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="addNewCategoryFromPayeeBtn" title="Add new category">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small">
+                            <strong>Tip:</strong> Link categories to this merchant for easier transaction categorization. 
+                            Hold <kbd>Ctrl</kbd> (or <kbd>Cmd</kbd> on Mac) to select multiple categories.
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>

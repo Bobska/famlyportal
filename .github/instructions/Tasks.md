@@ -1,7 +1,10 @@
-
-* Create page to view All Transactions, Categories and Merchants/Payees
-* Remove 'Add Income/Add Expense' from top nav
-* Remove 'Reports' from top nav
-* Add 'active' state for top nav
-* Add button to sidebar nav to minimise/maximise it
-* Create separate css files for different templates where applicable
+* I want to see the following in sidebar nav balance (update):
+    * Income
+    * Expense
+    * Balance
+    * Previouse Balance
+    * Total Balance 
+    (Wording on balance can be changed to something more suitable)
+* The maximise/minimise button in sidebar nav is hard to see, no icons or texts
+* When sidebar nav is minimised, no icons or texts for nav items
+* 

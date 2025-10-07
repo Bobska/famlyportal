@@ -1,134 +1,114 @@
 {% extends 'budget_basic/base.html' %}
 {% load static %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+{% endblock %}
+
+{% block body_class %}payees-page categories-page{% endblock %}
+
 {% block page_header %}
 <!-- Empty - we'll include the header inside content wrapper -->
 {% endblock %}
 
 {% block content %}
 <!-- Content Wrapper for Centering -->
-<div class="content-wrapper">
-    <!-- Category Stats Card - matches the weekly totals card from transactions -->
-    <div class="card mb-3">
-        <div class="card-body py-1">
-            <div class="row text-center">
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Total Categories</div>
-                        <div class="weekly-stat-value" id="total-categories">{{ categories|length }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Active Categories</div>
-                        <div class="weekly-stat-value" id="active-categories">{{ categories|length }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="weekly-stat">
-                        <div class="weekly-stat-label">Recently Added</div>
-                        <div class="weekly-stat-value">{{ categories|length }}</div>
-                    </div>
-                </div>
-            </div>
+<div class="content-wrapper payees-content">
+    <div class="page-heading mb-3">
+        <div class="page-heading-main">
+            <h1 class="page-title">Categories</h1>
+            <div class="page-heading-divider" aria-hidden="true"></div>
+            <p class="page-heading-description mb-0">Manage your categories, linked payees, and activity without losing sight of the details.</p>
         </div>
     </div>
-    
-    <!-- Categories card with three-panel layout -->
-    <div class="card" id="categories-card">
-        <!-- Three-panel structure: Categories | Payees | Details -->
-        <div class="three-panel-layout">
-            <!-- Panel 1: Categories List -->
-            <div class="panel panel-categories" id="categories-panel">
+
+    <!-- Categories card with integrated side panel - matches transactions structure -->
+    <div class="card flex-grow-1" id="categories-card">
+        <!-- Always show the panel structure for consistent layout -->
+        <div class="payees-panel panel-layout-3">
+            <!-- Left Side: Category List Panel -->
+            <div class="payee-list-panel categories-panel" id="category-list">
                 <div class="panel-header">
                     <div class="panel-title">Categories</div>
                     <div class="panel-header-actions">
-                        <!-- Add category button -->
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            <span>Add</span>
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex me-2" id="resetLayoutBtn" title="Reset Layout" data-bs-toggle="tooltip" data-bs-placement="top" onclick="resetCategoryLayout()">
+                            <i class="bi bi-arrow-counterclockwise"></i>
                         </button>
-                    </div>
-                </div>
-                <div class="panel-content" id="category-list">
-                <!-- Left Panel Header -->
-                <div class="panel-header">
-                    <div class="panel-title">Categories</div>
-                    <div class="panel-header-actions">
-                        <!-- Add category button -->
-                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-plus-circle me-1"></i>
                             <span>Add Category</span>
                         </button>
-                        
-                        <!-- Search input -->
-                        <div class="input-group input-group-sm" style="max-width: 200px;">
-                            <span class="input-group-text">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" class="form-control" id="category-search" placeholder="Search..." onkeyup="filterCategories()">
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none me-2" onclick="showAddCategoryModal()" title="Add New Category" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                        <div class="d-none d-lg-block" style="max-width: 200px;">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="category-search" placeholder="Search..." oninput="handleCategorySearch(this.value)">
+                            </div>
                         </div>
-                        
-                        <!-- Sort dropdown -->
                         <div class="dropdown ms-2">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-none d-lg-inline-flex" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
                                 <i class="bi bi-sort-alpha-down me-1"></i>
                                 <span id="sortLabel">Name</span>
                             </button>
+                            <button class="btn btn-outline-secondary btn-sm action-btn dropdown-toggle d-lg-none" type="button" id="categorySortDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Sort Categories">
+                                <i class="bi bi-sort-alpha-down"></i>
+                                <span class="visually-hidden" id="sortLabel">Name</span>
+                            </button>
                             <ul class="dropdown-menu" aria-labelledby="categorySortDropdown">
-                                <li><a class="dropdown-item active" href="#" onclick="sortCategories('name')">Sort by Name</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="sortCategories('date')">Sort by Date Added</a></li>
+                                <li><a class="dropdown-item active" href="#" onclick="sortCategories('name', event)">Sort by Name</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="sortCategories('date', event)">Sort by Date Added</a></li>
                             </ul>
                         </div>
-                        
-                        <!-- Action buttons for selected category -->
-                        <div class="ms-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="edit-category-btn" onclick="editSelectedCategory()" disabled title="Edit Selected Category">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" id="delete-category-btn" onclick="deleteSelectedCategory()" disabled title="Delete Selected Category">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-bs-toggle="collapse" data-bs-target="#categorySearchBar" aria-expanded="false" aria-controls="categorySearchBar" title="Search Categories">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="collapse d-lg-none" id="categorySearchBar">
+                    <div class="search-bar-wrapper">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" placeholder="Search categories..." oninput="handleCategorySearch(this.value)">
                         </div>
                     </div>
                 </div>
-                
-                <!-- Category List Content -->
-                <div class="transaction-list-content">
+                <div class="payee-list-scroll">
                 {% if categories %}
-                    <!-- Category Data Rows -->
                     {% for category in categories %}
-                    <div class="transaction-card transaction-card-data category-card" 
-                         data-category-id="{{ category.id }}" 
+                <div class="payee-row payee-card"
+                         data-category-id="{{ category.id }}"
                          data-category-name="{{ category.name|escapejs }}"
                          data-category-description="{{ category.description|default:""|escapejs }}"
                          data-category-created="{{ category.created_at|date:"Y-m-d" }}"
-                         data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
-                         onclick="selectCategory(this, event)">
-                        <div class="transaction-col transaction-date">{{ category.created_at|date:"D, j M" }}</div>
-                        <div class="transaction-col transaction-payee">
+                    data-category-updated="{{ category.updated_at|date:"Y-m-d" }}"
+                    data-category-type="{{ category.get_category_type_display }}"
+                    data-category-payee-count="{{ category.get_payees_count }}"
+                         onclick="selectCategoryWithToggle(this)">
+                        <div class="payee-cell payee-cell-info">
                             <div class="d-flex align-items-center">
-                                <div class="category-icon me-2">
-                                    <i class="bi bi-tag-fill text-muted"></i>
+                                <div class="payee-avatar me-3">
+                                    <i class="bi bi-tags text-muted"></i>
                                 </div>
                                 <div>
-                                    <div class="category-name">{{ category.name }}</div>
+                                    <div class="payee-name">{{ category.name }}</div>
                                     {% if category.description %}
-                                        <small class="text-muted">{{ category.description|truncatechars:50 }}</small>
+                                        <div class="payee-categories">
+                                            <span class="badge bg-light text-dark">{{ category.description|truncatechars:50 }}</span>
+                                        </div>
                                     {% else %}
-                                        <small class="text-muted">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</small>
+                                        <div class="payee-categories">
+                                            <span class="badge bg-light text-dark">{{ category.get_payees_count }} payee{{ category.get_payees_count|pluralize }}</span>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                        <div class="transaction-col transaction-amount">
-                            <small class="text-muted">{{ category.updated_at|date:"j M" }}</small>
-                        </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <!-- Empty State within the panel structure -->
-                    <div class="text-center py-5 text-muted">
+                    <div class="transaction-empty-state text-center text-muted py-5">
                         <div class="mb-3">
                             <i class="bi bi-tags" style="font-size: 3rem;"></i>
                         </div>
@@ -136,50 +116,133 @@
                         <small>Start by adding your first category to organize transactions</small>
                     </div>
                 {% endif %}
-                </div> <!-- Close categories list -->
-            </div>
-            
-            <!-- Panel 2: Payees List (shows when category is selected) -->
-            <div class="panel panel-payees" id="payees-panel">
-                <div class="panel-header">
-                    <div class="panel-title">Payees</div>
-                    <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
                 </div>
-                <div class="panel-content" id="payees-list">
-                    <div class="empty-state text-center py-5 text-muted">
-                        <div class="mb-3">
-                            <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+            </div>
+
+            <div class="panel-resizer" id="panel-resizer-1">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <div class="payee-list-panel payees-panel-3" id="payees-panel">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">Payees</div>
+                        <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
+                    </div>
+                    <div class="panel-header-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" data-target-url="{% url 'budget_basic:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-people me-1"></i>
+                            <span>Manage Payees</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-target-url="{% url 'budget_basic:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-people"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="payee-list-scroll">
+                    <div class="payee-list-content" id="payees-list-content">
+                        <div class="empty-state text-center text-muted py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                            </div>
+                            <p class="mb-0">Select a category</p>
+                            <small>to see its linked payees</small>
                         </div>
-                        <p class="mb-0">Select a category</p>
-                        <small>to see its linked payees</small>
                     </div>
                 </div>
             </div>
-            
-            <!-- Panel 3: Details Panel -->
-            <div class="panel panel-details" id="details-panel">
+
+            <div class="panel-resizer" id="panel-resizer-2">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <div class="payee-detail-panel details-panel" id="category-details-panel">
                 <div class="panel-header">
-                    <div class="panel-title">Details</div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllSelections()" id="clear-selection-btn" style="display: none;">
+                    <div class="panel-title d-flex align-items-center gap-2">
+                        <i class="bi bi-folder2-open text-muted d-none d-lg-inline"></i>
+                        <span>Category details</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCategorySelection()">
                         <i class="bi bi-x"></i>
+                        <span class="d-none d-lg-inline ms-1">Clear</span>
                     </button>
                 </div>
-                <div class="panel-content" id="details-content">
-                    <div class="empty-state text-center py-5 text-muted">
-                        <div class="mb-3">
-                            <i class="bi bi-info-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                <div class="panel-content">
+                    <div class="detail-scroll">
+                        <div id="category-detail-empty" class="detail-empty text-center text-muted py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-folder" style="font-size: 2.5rem; opacity: 0.35;"></i>
+                            </div>
+                            <p class="mb-1">Select a category</p>
+                            <small>Details will appear here after you pick one</small>
                         </div>
-                        <p class="mb-0">Select an item</p>
-                        <small>to view detailed information</small>
+                        <div id="category-detail-content" class="detail-content" hidden>
+                            <div class="detail-heading">
+                                <span class="detail-heading-label">Category</span>
+                                <h2 class="detail-name" id="detail-category-name"></h2>
+                            </div>
+                            <div class="detail-section detail-section-primary" id="category-description-section">
+                                <span class="detail-section-label">Description</span>
+                                <div class="detail-section-body">
+                                    <p class="detail-body-text" id="detail-category-description"></p>
+                                </div>
+                            </div>
+                            <div class="detail-section detail-section-payee" id="category-selected-payee-section" hidden>
+                                <span class="detail-heading-label detail-subheading-label">Payee</span>
+                                <div class="detail-section-body">
+                                    <div class="detail-selected-payee-name" id="detail-selected-payee-name"></div>
+                                    <div class="detail-selected-payee-meta" id="detail-selected-payee-meta"></div>
+                                    <div class="detail-selected-payee-tags" id="detail-selected-payee-tags"></div>
+                                </div>
+                            </div>
+                            <div class="detail-section detail-section-meta detail-section-condensed" id="category-history-section">
+                                <span class="detail-section-label">History</span>
+                                <div class="detail-section-body">
+                                    <dl class="detail-info-grid mb-0">
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Created</dt>
+                                            <dd class="detail-info-value" id="detail-category-created"></dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Last updated</dt>
+                                            <dd class="detail-info-value" id="detail-category-updated"></dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Type</dt>
+                                            <dd class="detail-info-value" id="detail-category-type"></dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Linked payees</dt>
+                                            <dd class="detail-info-value" id="detail-category-payee-count"></dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-actions">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary"
+                                id="detail-edit-btn"
+                                onclick="handleDetailEditAction()"
+                                disabled>
+                            <i class="bi bi-pencil me-1"></i>
+                            <span id="detail-edit-label">Edit category</span>
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary"
+                                id="detail-delete-btn"
+                                onclick="handleDetailDeleteAction()"
+                                disabled>
+                            <i class="bi bi-trash me-1"></i>
+                            <span id="detail-delete-label">Delete category</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Success/Error Messages -->
-<div id="message-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 
 <!-- Add Category Modal -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
@@ -189,28 +252,21 @@
                 <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addCategoryForm" onsubmit="submitAddCategory(event)">
+            <form id="addCategoryForm" method="post" action="{% url 'budget_basic:category_create' %}">
                 <div class="modal-body">
+                    {% csrf_token %}
                     <div class="mb-3">
-                        <label for="add-category-name" class="form-label">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="add-category-name" name="name" required>
-                        <div class="form-text">Enter the category name (e.g., Food, Transport, Entertainment)</div>
+                        <label for="categoryName" class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="categoryName" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="add-category-description" class="form-label">Description (Optional)</label>
-                        <textarea class="form-control" id="add-category-description" name="description" rows="3" placeholder="Brief description of this category..."></textarea>
-                        <div class="form-text">Optional description to help identify the purpose of this category</div>
+                        <label for="categoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="categoryDescription" name="description" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-text">Add Category</span>
-                        <span class="btn-loading d-none">
-                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                            Adding...
-                        </span>
-                    </button>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
                 </div>
             </form>
         </div>
@@ -225,390 +281,445 @@
                 <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="editCategoryForm" onsubmit="submitEditCategory(event)">
+            <form id="editCategoryForm" method="post" onsubmit="handleEditCategoryForm(event)">
                 <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editCategoryId" name="category_id">
                     <div class="mb-3">
-                        <label for="edit-category-name" class="form-label">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="edit-category-name" name="name" required>
-                        <div class="form-text">Update the category name</div>
+                        <label for="editCategoryName" class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editCategoryName" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="edit-category-description" class="form-label">Description (Optional)</label>
-                        <textarea class="form-control" id="edit-category-description" name="description" rows="3" placeholder="Brief description of this category..."></textarea>
-                        <div class="form-text">Optional description to help identify the purpose of this category</div>
+                        <label for="editCategoryType" class="form-label">Category Type</label>
+                        <select class="form-select" id="editCategoryType" name="category_type" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                            <option value="both">Both Income & Expense</option>
+                        </select>
+                        <div class="form-text text-muted small">Choose whether this category applies to income, expenses, or both</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editCategoryDescription" name="description" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-text">Update Category</span>
-                        <span class="btn-loading d-none">
-                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                            Updating...
-                        </span>
-                    </button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Delete Category Modal -->
-<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteCategoryModalLabel">Delete Category</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    Are you sure you want to delete <strong id="delete-category-name"></strong>?
+        <!-- Inline Edit Payee Modal -->
+        <div class="modal fade" id="categoriesEditPayeeModal" tabindex="-1" aria-labelledby="categoriesEditPayeeModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="categoriesEditPayeeModalLabel">Edit Payee</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="inlineEditPayeeForm" onsubmit="submitInlineEditPayee(event)">
+                        <div class="modal-body">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="inline-edit-payee-name" class="form-label">Payee name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="inline-edit-payee-name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="inline-edit-payee-categories" class="form-label">Categories</label>
+                                <select class="form-select" id="inline-edit-payee-categories" name="categories" multiple>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Hold Ctrl/Cmd to select more than one category.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </div>
+                    </form>
                 </div>
-                <p class="text-muted mb-0">This action cannot be undone. The category can only be deleted if it's not being used in any transactions.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteCategory()">
-                    <span class="btn-text">Delete Category</span>
-                    <span class="btn-loading d-none">
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                        Deleting...
-                    </span>
-                </button>
             </div>
         </div>
-    </div>
-</div>
+
+        <!-- Inline Delete Payee Modal -->
+        <div class="modal fade" id="categoriesDeletePayeeModal" tabindex="-1" aria-labelledby="categoriesDeletePayeeModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="categoriesDeletePayeeModalLabel">Delete Payee</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Are you sure you want to delete <strong id="inline-delete-payee-name"></strong>?
+                        </div>
+                        <p class="mb-0 text-muted">This action can only complete if the payee isn't used in any transactions.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmInlineDeletePayee(this)">Delete payee</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
 <script>
-// Global variables
-let currentEditCategoryId = null;
-let currentDeleteCategoryId = null;
+// Category management JavaScript - matches transactions/payees pattern
 let selectedCategoryCard = null;
-let selectedPayeeCard = null;
+let selectedPayeeRow = null;
+let detailActionMode = 'none';
+let currentInlineEditPayeeId = null;
+let currentInlineDeletePayeeId = null;
 
-// Category selection functionality - three panel layout
-function selectCategory(card, event) {
-    // Prevent event bubbling
-    if (event) {
-        event.stopPropagation();
-    }
-    
-    // Remove previous selections
+function selectCategory(element) {
+    // Remove previous selection
     if (selectedCategoryCard) {
         selectedCategoryCard.classList.remove('selected');
     }
-    clearPayeeSelection();
     
-    // Select new card
-    selectedCategoryCard = card;
-    card.classList.add('selected');
+    // Add selection to current element
+    element.classList.add('selected');
+    selectedCategoryCard = element;
     
-    // Get category data from attributes
-    const categoryId = card.getAttribute('data-category-id');
-    const categoryName = card.getAttribute('data-category-name');
-    const categoryDescription = card.getAttribute('data-category-description');
-    
-    // Load payees for this category in Panel 2
-    loadPayeesForCategory(categoryId, categoryName);
-    
-    // Show category details in Panel 3
-    showCategoryDetails(categoryId, categoryName, categoryDescription);
-    
-    // Enable action buttons
-    document.getElementById('edit-category-btn').disabled = false;
-    document.getElementById('delete-category-btn').disabled = false;
+    // Show category details and payees
+    const data = getCategoryData(element);
+    showCategoryPanel(data);
+    loadPayeesForCategory(data);
 }
 
-// Load payees linked to selected category
-function loadPayeesForCategory(categoryId, categoryName) {
-    const payeesPanel = document.getElementById('payees-list');
-    const payeesPanelElement = document.querySelector('.panel-payees');
-    const payeesSubtitle = document.getElementById('payees-subtitle');
+function getCategoryData(element) {
+    return {
+        id: element.dataset.categoryId,
+        name: element.dataset.categoryName,
+        description: element.dataset.categoryDescription,
+        created: element.dataset.categoryCreated,
+        updated: element.dataset.categoryUpdated,
+        categoryType: element.dataset.categoryType,
+        payeeCount: parseInt(element.dataset.categoryPayeeCount || '0', 10)
+    };
+}
+
+function showCategoryPanel(data) {
+    const panel = document.getElementById('category-details-panel');
+    if (!panel) return;
     
-    if (!payeesPanel) {
-        console.error('Payees panel not found');
+    panel.classList.add('has-content');
+    clearSelectedPayeeDetails();
+    toggleCategoryDetailContent(true);
+
+    selectedPayeeRow = null;
+    setDetailActionMode('category');
+
+    setTextContent('detail-category-name', data.name);
+    setTextContent('detail-category-created', formatDate(data.created));
+    setTextContent('detail-category-updated', formatDate(data.updated));
+    setTextContent('detail-category-type', data.categoryType || 'Expense');
+    updateCategoryDescription(data.description);
+    updateCategoryPayeeCount(data.payeeCount);
+}
+
+function toggleCategoryDetailContent(hasSelection) {
+    const emptyState = document.getElementById('category-detail-empty');
+    const detailContent = document.getElementById('category-detail-content');
+    if (emptyState && detailContent) {
+        emptyState.hidden = !!hasSelection;
+        detailContent.hidden = !hasSelection;
+    }
+}
+
+function setTextContent(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        const safeValue = value === undefined || value === null ? '' : value;
+        el.textContent = safeValue;
+    }
+}
+
+function updateCategoryDescription(description) {
+    const section = document.getElementById('category-description-section');
+    const descriptionEl = document.getElementById('detail-category-description');
+    if (!descriptionEl) {
         return;
     }
-    
-    // Update subtitle
-    if (payeesSubtitle) {
-        payeesSubtitle.textContent = `Linked to ${categoryName}`;
+
+    const hasDescription = Boolean(description && description.trim());
+    const content = hasDescription ? description.trim() : 'No description added yet';
+
+    descriptionEl.textContent = content;
+    descriptionEl.classList.toggle('text-muted', !hasDescription);
+    descriptionEl.classList.toggle('fst-italic', !hasDescription);
+
+    if (section) {
+        section.hidden = false;
     }
-    
-    // Show loading state
-    payeesPanel.innerHTML = `
-        <div class="panel-empty">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-            Loading payees...
-        </div>
-    `;
-    payeesPanelElement.classList.add('has-content');
-    
-    // Make AJAX call to fetch payees
-    fetch(`/budget-basic/category/${categoryId}/payees/`, {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayPayees(data.payees, categoryName);
+}
+
+function updateCategoryPayeeCount(count) {
+    const countEl = document.getElementById('detail-category-payee-count');
+    if (!countEl) {
+        return;
+    }
+
+    const numericCount = parseInt(count, 10);
+    const safeCount = isNaN(numericCount) ? 0 : Math.max(numericCount, 0);
+    const label = safeCount === 1 ? 'payee' : 'payees';
+    countEl.textContent = `${safeCount} ${label}`;
+}
+
+function clearSelectedPayeeDetails() {
+    const section = document.getElementById('category-selected-payee-section');
+    const nameEl = document.getElementById('detail-selected-payee-name');
+    const metaEl = document.getElementById('detail-selected-payee-meta');
+    const tagsContainer = document.getElementById('detail-selected-payee-tags');
+
+    if (section) {
+        section.hidden = true;
+    }
+    if (nameEl) {
+        nameEl.textContent = '';
+    }
+    if (metaEl) {
+        metaEl.textContent = '';
+        metaEl.classList.add('d-none');
+    }
+    if (tagsContainer) {
+        tagsContainer.innerHTML = '';
+    }
+
+    selectedPayeeRow = null;
+
+    if (detailActionMode === 'payee') {
+        setDetailActionMode(selectedCategoryCard ? 'category' : 'none');
+    }
+}
+
+function showSelectedPayeeDetails(payeeElement) {
+    const section = document.getElementById('category-selected-payee-section');
+    const name = payeeElement?.dataset?.payeeName || '';
+    const created = payeeElement?.dataset?.payeeCreated || '';
+    const updated = payeeElement?.dataset?.payeeUpdated || '';
+    const categories = payeeElement?.dataset?.payeeCategories || '';
+
+    if (!section) {
+        return;
+    }
+
+    section.hidden = false;
+
+    setTextContent('detail-selected-payee-name', name);
+
+    const meta = buildPayeeMeta(created, updated);
+    const metaEl = document.getElementById('detail-selected-payee-meta');
+    if (metaEl) {
+        if (meta) {
+            metaEl.textContent = meta;
+            metaEl.classList.remove('d-none');
         } else {
-            showPayeesError(data.error, categoryName);
+            metaEl.textContent = '';
+            metaEl.classList.add('d-none');
         }
-    })
-    .catch(error => {
-        console.error('Error fetching payees:', error);
-        showPayeesError('Network error. Please try again.', categoryName);
+    }
+
+    const tagsContainer = document.getElementById('detail-selected-payee-tags');
+    if (tagsContainer) {
+        tagsContainer.innerHTML = '';
+        renderSelectedPayeeCategories(tagsContainer, categories);
+    }
+}
+
+function renderSelectedPayeeCategories(container, categoriesString) {
+    const categories = (categoriesString || '')
+        .split(',')
+        .map(label => label.trim())
+        .filter(Boolean);
+
+    if (categories.length === 0) {
+        const empty = document.createElement('span');
+        empty.className = 'text-muted fst-italic small';
+        empty.textContent = 'No linked categories';
+        container.appendChild(empty);
+        return;
+    }
+
+    categories.forEach(label => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark';
+        badge.textContent = label;
+        container.appendChild(badge);
     });
 }
 
-// Display payees in Panel 2
-function displayPayees(payees, categoryName) {
-    const payeesPanel = document.getElementById('payees-list');
-    
-    if (payees.length === 0) {
-        // No payees linked
-        payeesPanel.innerHTML = `
-            <div class="panel-empty">
-                <div class="text-muted text-center py-4">
-                    <i class="bi bi-person-plus mb-2" style="font-size: 2rem;"></i>
-                    <p class="mb-1">No payees linked</p>
-                    <small>Link payees to "${categoryName}" on the Payees page</small>
-                    <div class="mt-3">
-                        <a href="{% url 'budget_basic:payee_list' %}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-arrow-right me-1"></i>
-                            Go to Payees
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
-        return;
+function buildPayeeMeta(created, updated) {
+    const parts = [];
+    if (created) {
+        parts.push(`Added ${formatDate(created)}`);
     }
-    
-    // Display payees as cards
-    let payeesHtml = '';
-    payees.forEach(payee => {
-        const createdDate = new Date(payee.created_at).toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric'
-        });
-        
-        payeesHtml += `
-            <div class="transaction-card transaction-card-data payee-card" 
-                 data-payee-id="${payee.id}"
-                 data-payee-name="${payee.name}"
-                 data-payee-categories="${payee.categories_display}"
-                 data-payee-created="${payee.created_at}"
-                 data-payee-updated="${payee.updated_at}"
-                 onclick="selectPayee(this, event)">
-                <div class="transaction-col transaction-date">${createdDate}</div>
-                <div class="transaction-col transaction-payee">
-                    <div class="d-flex align-items-center">
-                        <div class="payee-icon me-2">
-                            <i class="bi bi-person-fill text-muted"></i>
-                        </div>
-                        <div>
-                            <div class="payee-name">${payee.name}</div>
-                            <small class="text-muted">${payee.categories_display}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="transaction-col transaction-amount">
-                    <small class="text-muted">Linked</small>
-                </div>
-            </div>
-        `;
-    });
-    
-    payeesPanel.innerHTML = payeesHtml;
-}
-
-// Show error message in payees panel
-function showPayeesError(errorMessage, categoryName) {
-    const payeesPanel = document.getElementById('payees-list');
-    
-    payeesPanel.innerHTML = `
-        <div class="panel-empty">
-            <div class="text-muted text-center py-4">
-                <i class="bi bi-exclamation-triangle mb-2" style="font-size: 2rem; color: #dc3545;"></i>
-                <p class="mb-1">Error loading payees</p>
-                <small>${errorMessage}</small>
-                <div class="mt-3">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="loadPayeesForCategory(${selectedCategoryCard.getAttribute('data-category-id')}, '${categoryName}')">
-                        <i class="bi bi-arrow-clockwise me-1"></i>
-                        Retry
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Show category details in Panel 3
-function showCategoryDetails(categoryId, categoryName, categoryDescription) {
-    const detailsPanel = document.getElementById('details-content');
-    const detailsPanelElement = document.querySelector('.panel-details');
-    
-    if (!detailsPanel) {
-        console.error('Details panel not found');
-        return;
+    if (updated) {
+        parts.push(`Updated ${formatDate(updated)}`);
     }
-    
-    const created = selectedCategoryCard.getAttribute('data-category-created');
-    const updated = selectedCategoryCard.getAttribute('data-category-updated');
-    
-    detailsPanel.innerHTML = `
-        <div class="detail-content">
-            <h5 class="mb-3">${categoryName}</h5>
-            <div class="mb-3">
-                <label class="form-label text-muted small">Description</label>
-                <p class="mb-0">${categoryDescription || 'No description provided'}</p>
-            </div>
-            <div class="row">
-                <div class="col-sm-6">
-                    <label class="form-label text-muted small">Created</label>
-                    <p class="mb-0">${new Date(created).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    })}</p>
-                </div>
-                <div class="col-sm-6">
-                    <label class="form-label text-muted small">Updated</label>
-                    <p class="mb-0">${new Date(updated).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    })}</p>
-                </div>
-            </div>
-            <div class="mt-3">
-                <span class="badge bg-success">Active</span>
-            </div>
-        </div>
-    `;
-    
-    detailsPanelElement.classList.add('has-content');
+    return parts.join(' • ');
 }
 
-// Payee selection in Panel 2
-function selectPayee(card, event) {
-    // Prevent event bubbling
-    if (event) {
-        event.stopPropagation();
-    }
-    
-    // Remove previous payee selection
-    if (selectedPayeeCard) {
-        selectedPayeeCard.classList.remove('selected');
-    }
-    
-    // Select new payee card
-    selectedPayeeCard = card;
-    card.classList.add('selected');
-    
-    // Get payee data from attributes
-    const payeeName = card.getAttribute('data-payee-name');
-    const payeeCategories = card.getAttribute('data-payee-categories');
-    const payeeCreated = card.getAttribute('data-payee-created');
-    const payeeUpdated = card.getAttribute('data-payee-updated');
-    
-    // Show payee details in Panel 3
-    showPayeeDetails(payeeName, payeeCategories, payeeCreated, payeeUpdated);
-}
-
-// Show payee details in Panel 3
-function showPayeeDetails(payeeName, payeeCategories, payeeCreated, payeeUpdated) {
-    const detailsPanel = document.getElementById('details-content');
-    const detailsPanelElement = document.querySelector('.panel-details');
-    
-    if (!detailsPanel) {
-        console.error('Details panel not found');
-        return;
-    }
-    
-    detailsPanel.innerHTML = `
-        <div class="detail-content">
-            <h5 class="mb-3">${payeeName}</h5>
-            <div class="mb-3">
-                <label class="form-label text-muted small">Categories</label>
-                <p class="mb-0">${payeeCategories || 'No categories assigned'}</p>
-            </div>
-            <div class="row">
-                <div class="col-sm-6">
-                    <label class="form-label text-muted small">Created</label>
-                    <p class="mb-0">${new Date(payeeCreated).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    })}</p>
-                </div>
-                <div class="col-sm-6">
-                    <label class="form-label text-muted small">Updated</label>
-                    <p class="mb-0">${new Date(payeeUpdated).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    })}</p>
-                </div>
-            </div>
-            <div class="mt-3">
-                <span class="badge bg-primary">Linked to ${selectedCategoryCard.getAttribute('data-category-name')}</span>
-            </div>
-        </div>
-    `;
-    
-    detailsPanelElement.classList.add('has-content');
-}
-
-// Clear all selections
-function clearAllSelections() {
-    clearCategorySelection();
-    clearPayeeSelection();
-    clearDetailsPanel();
-}
-
-// Clear category selection
 function clearCategorySelection() {
     if (selectedCategoryCard) {
         selectedCategoryCard.classList.remove('selected');
         selectedCategoryCard = null;
     }
     
-    // Disable action buttons
-    document.getElementById('edit-category-btn').disabled = true;
-    document.getElementById('delete-category-btn').disabled = true;
-}
-
-// Clear payee selection
-function clearPayeeSelection() {
-    if (selectedPayeeCard) {
-        selectedPayeeCard.classList.remove('selected');
-        selectedPayeeCard = null;
+    const panel = document.getElementById('category-details-panel');
+    if (panel) {
+        panel.classList.remove('has-content');
     }
+
+    toggleCategoryDetailContent(false);
+    setTextContent('detail-category-name', '');
+    setTextContent('detail-category-description', '');
+    setTextContent('detail-category-created', '');
+    setTextContent('detail-category-updated', '');
+    updateCategoryDescription('');
+    updateCategoryPayeeCount(0);
+    clearSelectedPayeeDetails();
     
     // Clear payees panel
-    const payeesPanel = document.getElementById('payees-list');
-    const payeesPanelElement = document.querySelector('.panel-payees');
-    const payeesSubtitle = document.getElementById('payees-subtitle');
+    clearPayeesPanel();
     
-    if (payeesSubtitle) {
-        payeesSubtitle.textContent = 'Select a category';
-    }
+    selectedPayeeRow = null;
+    setDetailActionMode('none');
+}
+
+function loadPayeesForCategory(data) {
+    const payeesPanel = document.getElementById('payees-panel');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    const payeesContent = document.getElementById('payees-list-content');
+    
+    if (!payeesPanel) return;
+    
+    // Show loading
+    payeesSubtitle.textContent = 'Loading payees...';
+    payeesContent.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
+    payeesPanel.classList.add('has-content');
+    
+    // Fetch actual payees data
+    const url = `/budget-basic/category/${data.id}/payees/`;
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            const payees = result.payees;
+            payeesSubtitle.textContent = `${payees.length} payee${payees.length !== 1 ? 's' : ''} in ${data.name}`;
+            
+            if (payees.length === 0) {
+                payeesContent.innerHTML = `
+                    <div class="empty-state text-center text-muted py-4">
+                        <div class="mb-3">
+                            <i class="bi bi-person-plus" style="font-size: 2rem; opacity: 0.3;"></i>
+                        </div>
+                        <p class="mb-0">No payees in this category</p>
+                        <small>Payees will appear here when linked to this category</small>
+                    </div>
+                `;
+                clearSelectedPayeeDetails();
+            } else {
+                const fragment = document.createDocumentFragment();
+                payees.forEach(payee => {
+                    const row = document.createElement('div');
+                    row.className = 'payee-row payee-card';
+                    row.dataset.payeeId = payee.id;
+                    row.dataset.payeeName = payee.name;
+                    row.dataset.payeeCategories = payee.categories_display || '';
+                    row.dataset.payeeCategoryIds = Array.isArray(payee.category_ids) ? payee.category_ids.join(',') : '';
+                    row.dataset.payeeCreated = payee.created_at || '';
+                    row.dataset.payeeUpdated = payee.updated_at || '';
+                    row.onclick = function () { selectPayee(this); };
+
+                    const cell = document.createElement('div');
+                    cell.className = 'payee-cell payee-cell-info';
+
+                    const flexWrapper = document.createElement('div');
+                    flexWrapper.className = 'd-flex align-items-center';
+
+                    const avatar = document.createElement('div');
+                    avatar.className = 'payee-avatar me-3';
+                    avatar.innerHTML = '<i class="bi bi-person-circle text-muted"></i>';
+
+                    const infoWrapper = document.createElement('div');
+                    infoWrapper.className = 'payee-info-wrapper';
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'payee-name';
+                    nameEl.textContent = payee.name;
+
+                    infoWrapper.appendChild(nameEl);
+
+                    if (payee.categories_display) {
+                        const categoriesEl = document.createElement('div');
+                        categoriesEl.className = 'payee-categories';
+
+                        payee.categories_display.split(',').map(label => label.trim()).filter(Boolean).forEach(label => {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-light text-dark me-1 mt-1';
+                            badge.textContent = label;
+                            categoriesEl.appendChild(badge);
+                        });
+
+                        infoWrapper.appendChild(categoriesEl);
+                    }
+
+                    flexWrapper.appendChild(avatar);
+                    flexWrapper.appendChild(infoWrapper);
+                    cell.appendChild(flexWrapper);
+                    row.appendChild(cell);
+                    fragment.appendChild(row);
+                });
+
+                payeesContent.innerHTML = '';
+                payeesContent.appendChild(fragment);
+            }
+
+            updateCategoryPayeeCount(payees.length);
+            if (selectedCategoryCard && selectedCategoryCard.dataset.categoryId === data.id) {
+                selectedCategoryCard.dataset.categoryPayeeCount = String(payees.length);
+            }
+        } else {
+            payeesSubtitle.textContent = 'Error loading payees';
+            payeesContent.innerHTML = `<div class="alert alert-warning">${result.error}</div>`;
+            clearSelectedPayeeDetails();
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching payees:', error);
+        payeesSubtitle.textContent = 'Error loading payees';
+        payeesContent.innerHTML = `<div class="alert alert-danger">Failed to load payees</div>`;
+        clearSelectedPayeeDetails();
+    });
+}
+
+
+function clearPayeesPanel() {
+    const payeesPanel = document.getElementById('payees-panel');
+    const payeesSubtitle = document.getElementById('payees-subtitle');
+    const payeesContent = document.getElementById('payees-list-content');
     
     if (payeesPanel) {
-        payeesPanel.innerHTML = `
-            <div class="empty-state text-center py-5 text-muted">
+        payeesPanel.classList.remove('has-content');
+        payeesSubtitle.textContent = 'Select a category';
+        payeesContent.innerHTML = `
+            <div class="empty-state text-center text-muted py-5">
                 <div class="mb-3">
                     <i class="bi bi-person-circle" style="font-size: 3rem; opacity: 0.3;"></i>
                 </div>
@@ -617,380 +728,342 @@ function clearPayeeSelection() {
             </div>
         `;
     }
-    
-    if (payeesPanelElement) {
-        payeesPanelElement.classList.remove('has-content');
+
+    clearSelectedPayeeDetails();
+}
+
+function selectPayee(element) {
+    const alreadySelected = element.classList.contains('selected');
+
+    // Remove previous payee selection within payees panel content
+    document.querySelectorAll('#payees-list-content .payee-row.selected, #payees-list-content .payee-card.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    if (alreadySelected) {
+        selectedPayeeRow = null;
+        clearSelectedPayeeDetails();
+        setDetailActionMode(selectedCategoryCard ? 'category' : 'none');
+        return;
+    }
+
+    element.classList.add('selected');
+    selectedPayeeRow = element;
+    showSelectedPayeeDetails(element);
+    setDetailActionMode('payee');
+}
+
+function setDetailActionMode(mode) {
+    detailActionMode = mode;
+    const editBtn = document.getElementById('detail-edit-btn');
+    const deleteBtn = document.getElementById('detail-delete-btn');
+    const editLabel = document.getElementById('detail-edit-label');
+    const deleteLabel = document.getElementById('detail-delete-label');
+
+    if (!editBtn || !deleteBtn || !editLabel || !deleteLabel) {
+        return;
+    }
+
+    const setState = (labelText, isEnabled) => {
+        editLabel.textContent = labelText.edit;
+        deleteLabel.textContent = labelText.delete;
+        editBtn.disabled = !isEnabled.edit;
+        deleteBtn.disabled = !isEnabled.delete;
+    };
+
+    if (mode === 'category') {
+        const hasCategory = Boolean(selectedCategoryCard);
+        setState(
+            { edit: 'Edit category', delete: 'Delete category' },
+            { edit: hasCategory, delete: hasCategory }
+        );
+    } else if (mode === 'payee') {
+        const hasPayee = Boolean(selectedPayeeRow);
+        setState(
+            { edit: 'Edit payee', delete: 'Delete payee' },
+            { edit: hasPayee, delete: hasPayee }
+        );
+    } else {
+        setState(
+            { edit: 'Edit', delete: 'Delete' },
+            { edit: false, delete: false }
+        );
+    }
+
+    editBtn.dataset.actionMode = mode;
+    deleteBtn.dataset.actionMode = mode;
+}
+
+function handleDetailEditAction() {
+    if (detailActionMode === 'payee') {
+        editSelectedPayee();
+    } else if (detailActionMode === 'category') {
+        editSelectedCategory();
     }
 }
 
-// Clear details panel
-function clearDetailsPanel() {
-    const detailsPanel = document.getElementById('details-content');
-    const detailsPanelElement = document.querySelector('.panel-details');
-    
-    if (detailsPanel) {
-        detailsPanel.innerHTML = `
-            <div class="empty-state text-center py-5 text-muted">
+function handleDetailDeleteAction() {
+    if (detailActionMode === 'payee') {
+        deleteSelectedPayee();
+    } else if (detailActionMode === 'category') {
+        deleteSelectedCategory();
+    }
+}
+
+function editSelectedPayee() {
+    if (!selectedPayeeRow) {
+        return;
+    }
+
+    currentInlineEditPayeeId = selectedPayeeRow.dataset.payeeId || null;
+    const modalEl = document.getElementById('categoriesEditPayeeModal');
+    if (!currentInlineEditPayeeId || !modalEl) {
+        return;
+    }
+
+    const nameInput = document.getElementById('inline-edit-payee-name');
+    const selectEl = document.getElementById('inline-edit-payee-categories');
+
+    if (nameInput) {
+        nameInput.value = selectedPayeeRow.dataset.payeeName || '';
+    }
+
+    if (selectEl) {
+        const categoryIds = (selectedPayeeRow.dataset.payeeCategoryIds || '')
+            .split(',')
+            .map(id => id.trim())
+            .filter(Boolean);
+
+        Array.from(selectEl.options).forEach(option => {
+            option.selected = categoryIds.includes(option.value);
+        });
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    setTimeout(() => {
+        if (nameInput) {
+            nameInput.focus();
+            nameInput.select();
+        }
+    }, 150);
+}
+
+function submitInlineEditPayee(event) {
+    event.preventDefault();
+
+    if (!currentInlineEditPayeeId) {
+        return;
+    }
+
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+
+    const formData = new FormData(form);
+
+    fetch(`/budget-basic/payee/${currentInlineEditPayeeId}/update/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to update payee');
+            }
+
+            const modalEl = document.getElementById('categoriesEditPayeeModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            modalInstance?.hide();
+
+            if (selectedPayeeRow && selectedPayeeRow.dataset.payeeId === String(data.payee.id)) {
+                selectedPayeeRow.dataset.payeeName = data.payee.name || '';
+                selectedPayeeRow.dataset.payeeCategories = data.payee.categories_display || '';
+                selectedPayeeRow.dataset.payeeCategoryIds = (data.payee.categories || [])
+                    .map(category => String(category.id))
+                    .join(',');
+                if (data.payee.updated_at) {
+                    selectedPayeeRow.dataset.payeeUpdated = data.payee.updated_at;
+                }
+
+                const activeCategoryId = selectedCategoryCard?.dataset?.categoryId;
+                const stillLinkedToActiveCategory = !activeCategoryId || (data.payee.categories || [])
+                    .some(category => String(category.id) === activeCategoryId);
+
+                if (!stillLinkedToActiveCategory) {
+                    removePayeeRowFromList(data.payee.id);
+                    return;
+                }
+
+                const nameEl = selectedPayeeRow.querySelector('.payee-name');
+                if (nameEl) {
+                    nameEl.textContent = data.payee.name || '';
+                }
+
+                const infoWrapper = selectedPayeeRow.querySelector('.payee-info-wrapper');
+                let categoriesContainer = selectedPayeeRow.querySelector('.payee-categories');
+
+                if ((data.payee.categories || []).length === 0) {
+                    if (categoriesContainer) {
+                        categoriesContainer.remove();
+                    }
+                } else {
+                    if (!categoriesContainer && infoWrapper) {
+                        categoriesContainer = document.createElement('div');
+                        categoriesContainer.className = 'payee-categories';
+                        infoWrapper.appendChild(categoriesContainer);
+                    }
+
+                    if (categoriesContainer) {
+                        categoriesContainer.innerHTML = '';
+                        data.payee.categories.forEach(category => {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-light text-dark me-1 mt-1';
+                            badge.textContent = category.name;
+                            categoriesContainer.appendChild(badge);
+                        });
+                    }
+                }
+
+                showSelectedPayeeDetails(selectedPayeeRow);
+                setDetailActionMode('payee');
+            }
+        })
+        .catch(error => {
+            console.error('Edit payee error:', error);
+            alert(error.message || 'Failed to update payee');
+        })
+        .finally(() => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
+            currentInlineEditPayeeId = null;
+        });
+}
+
+function deleteSelectedPayee() {
+    if (!selectedPayeeRow) {
+        return;
+    }
+
+    currentInlineDeletePayeeId = selectedPayeeRow.dataset.payeeId || null;
+    const modalEl = document.getElementById('categoriesDeletePayeeModal');
+    if (!currentInlineDeletePayeeId || !modalEl) {
+        return;
+    }
+
+    const nameEl = document.getElementById('inline-delete-payee-name');
+    if (nameEl) {
+        nameEl.textContent = selectedPayeeRow.dataset.payeeName || '';
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+function confirmInlineDeletePayee(button) {
+    if (!currentInlineDeletePayeeId) {
+        return;
+    }
+
+    if (button) {
+        button.disabled = true;
+    }
+
+    fetch(`/budget-basic/payee/${currentInlineDeletePayeeId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to delete payee');
+            }
+
+            const modalEl = document.getElementById('categoriesDeletePayeeModal');
+            bootstrap.Modal.getInstance(modalEl)?.hide();
+
+            removePayeeRowFromList(currentInlineDeletePayeeId);
+        })
+        .catch(error => {
+            console.error('Delete payee error:', error);
+            alert(error.message || 'Failed to delete payee');
+        })
+        .finally(() => {
+            if (button) {
+                button.disabled = false;
+            }
+            currentInlineDeletePayeeId = null;
+        });
+}
+
+function removePayeeRowFromList(payeeId) {
+    const payeesContent = document.getElementById('payees-list-content');
+    if (!payeesContent) {
+        return;
+    }
+
+    const row = payeesContent.querySelector(`.payee-row[data-payee-id="${payeeId}"]`);
+    if (row) {
+        row.remove();
+    }
+
+    const remainingRows = payeesContent.querySelectorAll('.payee-row').length;
+
+    if (remainingRows === 0) {
+        payeesContent.innerHTML = `
+            <div class="empty-state text-center text-muted py-4">
                 <div class="mb-3">
-                    <i class="bi bi-info-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <i class="bi bi-person-plus" style="font-size: 2rem; opacity: 0.3;"></i>
                 </div>
-                <p class="mb-0">Select an item</p>
-                <small>to view detailed information</small>
+                <p class="mb-0">No payees in this category</p>
+                <small>Payees will appear here when linked to this category</small>
             </div>
         `;
     }
-    
-    if (detailsPanelElement) {
-        detailsPanelElement.classList.remove('has-content');
+
+    if (selectedCategoryCard) {
+        selectedCategoryCard.dataset.categoryPayeeCount = String(remainingRows);
+        const data = getCategoryData(selectedCategoryCard);
+        updateCategoryPayeeCount(remainingRows);
+        const payeesSubtitle = document.getElementById('payees-subtitle');
+        if (payeesSubtitle) {
+            payeesSubtitle.textContent = `${remainingRows} payee${remainingRows !== 1 ? 's' : ''} in ${data.name}`;
+        }
+    } else {
+        updateCategoryPayeeCount(remainingRows);
     }
+
+    clearSelectedPayeeDetails();
+    setDetailActionMode(selectedCategoryCard ? 'category' : 'none');
 }
 
-// Edit selected category
-function editSelectedCategory() {
-    if (!selectedCategoryCard) return;
-    
-    const categoryId = selectedCategoryCard.getAttribute('data-category-id');
-    const categoryName = selectedCategoryCard.getAttribute('data-category-name');
-    const categoryDescription = selectedCategoryCard.getAttribute('data-category-description');
-    
-    showEditCategoryModal(categoryId, categoryName, categoryDescription);
-}
-
-// Delete selected category
-function deleteSelectedCategory() {
-    if (!selectedCategoryCard) return;
-    
-    const categoryId = selectedCategoryCard.getAttribute('data-category-id');
-    const categoryName = selectedCategoryCard.getAttribute('data-category-name');
-    
-    showDeleteCategoryModal(categoryId, categoryName);
-}
-
-// Show add category modal
-function showAddCategoryModal() {
-    document.getElementById('add-category-name').value = '';
-    document.getElementById('add-category-description').value = '';
-    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
-    modal.show();
-    
-    // Focus on name input after modal is shown
-    setTimeout(() => {
-        document.getElementById('add-category-name').focus();
-    }, 200);
-}
-
-// Show edit category modal
-function showEditCategoryModal(categoryId, categoryName, categoryDescription) {
-    currentEditCategoryId = categoryId;
-    document.getElementById('edit-category-name').value = categoryName;
-    document.getElementById('edit-category-description').value = categoryDescription || '';
-    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
-    modal.show();
-    
-    // Focus on name input after modal is shown
-    setTimeout(() => {
-        document.getElementById('edit-category-name').select();
-    }, 200);
-}
-
-// Show delete category modal
-function showDeleteCategoryModal(categoryId, categoryName) {
-    currentDeleteCategoryId = categoryId;
-    document.getElementById('delete-category-name').textContent = categoryName;
-    const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
-    modal.show();
-}
-
-// Submit add category form
-function submitAddCategory(event) {
-    event.preventDefault();
-    
-    const submitBtn = document.querySelector('#addCategoryForm button[type="submit"]');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoading = submitBtn.querySelector('.btn-loading');
-    
-    // Show loading state
-    btnText.classList.add('d-none');
-    btnLoading.classList.remove('d-none');
-    submitBtn.disabled = true;
-    
-    const formData = new FormData(document.getElementById('addCategoryForm'));
-    
-    fetch('{% url "budget_basic:category_create" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
-            
-            // Show success message
-            showMessage(data.message, 'success');
-            
-            // Add category to list if list exists
-            if (document.querySelector('.transaction-list-content')) {
-                addCategoryToList(data.category);
-            } else {
-                // Reload page if no list (empty state)
-                location.reload();
-            }
-            
-            // Update stats
-            updateCategoryStats();
-            
-        } else {
-            showMessage(data.error, 'error');
-        }
-    })
-    .catch(error => {
-        showMessage('Network error. Please try again.', 'error');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        // Reset loading state
-        btnText.classList.remove('d-none');
-        btnLoading.classList.add('d-none');
-        submitBtn.disabled = false;
-    });
-}
-
-// Submit edit category form
-function submitEditCategory(event) {
-    event.preventDefault();
-    
-    const submitBtn = document.querySelector('#editCategoryForm button[type="submit"]');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoading = submitBtn.querySelector('.btn-loading');
-    
-    // Show loading state
-    btnText.classList.add('d-none');
-    btnLoading.classList.remove('d-none');
-    submitBtn.disabled = true;
-    
-    const formData = new FormData(document.getElementById('editCategoryForm'));
-    
-    fetch(`/budget-basic/category/${currentEditCategoryId}/update/`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
-            
-            // Show success message
-            showMessage(data.message, 'success');
-            
-            // Update category in list
-            updateCategoryInList(currentEditCategoryId, data.category);
-            
-        } else {
-            showMessage(data.error, 'error');
-        }
-    })
-    .catch(error => {
-        showMessage('Network error. Please try again.', 'error');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        // Reset loading state
-        btnText.classList.remove('d-none');
-        btnLoading.classList.add('d-none');
-        submitBtn.disabled = false;
-        currentEditCategoryId = null;
-    });
-}
-
-// Confirm delete category
-function confirmDeleteCategory() {
-    const submitBtn = document.querySelector('#deleteCategoryModal .btn-danger');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoading = submitBtn.querySelector('.btn-loading');
-    
-    // Show loading state
-    btnText.classList.add('d-none');
-    btnLoading.classList.remove('d-none');
-    submitBtn.disabled = true;
-    
-    fetch(`/budget-basic/category/${currentDeleteCategoryId}/delete/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('deleteCategoryModal')).hide();
-            
-            // Show success message
-            showMessage(data.message, 'success');
-            
-            // Remove category from list
-            removeCategoryFromList(currentDeleteCategoryId);
-            
-            // Update stats
-            updateCategoryStats();
-            
-        } else {
-            showMessage(data.error, 'error');
-        }
-    })
-    .catch(error => {
-        showMessage('Network error. Please try again.', 'error');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        // Reset loading state
-        btnText.classList.remove('d-none');
-        btnLoading.classList.add('d-none');
-        submitBtn.disabled = false;
-        currentDeleteCategoryId = null;
-    });
-}
-
-// Add category to list
-function addCategoryToList(category) {
-    const listContent = document.querySelector('.transaction-list-content');
-    
-    // Remove empty state if present
-    const emptyState = listContent.querySelector('.text-center.py-5');
-    if (emptyState) {
-        emptyState.remove();
-    }
-    
-    const categoryCard = document.createElement('div');
-    categoryCard.className = 'transaction-card transaction-card-data category-card';
-    categoryCard.setAttribute('data-category-id', category.id);
-    categoryCard.setAttribute('data-category-name', category.name);
-    categoryCard.setAttribute('data-category-description', category.description || '');
-    
-    const now = new Date();
-    categoryCard.setAttribute('data-category-created', now.toISOString().split('T')[0]);
-    categoryCard.setAttribute('data-category-updated', now.toISOString().split('T')[0]);
-    
-    categoryCard.onclick = function(event) { selectCategory(this, event); };
-    
-    const nowFormatted = now.toLocaleDateString('en-US', { 
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
         weekday: 'short',
+        year: 'numeric',
         month: 'short',
         day: 'numeric'
     });
-    
-    categoryCard.innerHTML = `
-        <div class="transaction-col transaction-date">${nowFormatted}</div>
-        <div class="transaction-col transaction-payee">
-            <div class="d-flex align-items-center">
-                <div class="category-icon me-2">
-                    <i class="bi bi-tag-fill text-muted"></i>
-                </div>
-                <div>
-                    <div class="category-name">${category.name}</div>
-                    ${category.description ? `<small class="text-muted">${category.description}</small>` : ''}
-                </div>
-            </div>
-        </div>
-        <div class="transaction-col transaction-amount">
-            <small class="text-muted">${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small>
-        </div>
-    `;
-    
-    listContent.appendChild(categoryCard);
 }
 
-// Update category in list
-function updateCategoryInList(categoryId, categoryData) {
-    const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
-    if (categoryCard) {
-        // Update data attributes
-        categoryCard.setAttribute('data-category-name', categoryData.name);
-        categoryCard.setAttribute('data-category-description', categoryData.description || '');
+function handleCategorySearch(searchTerm) {
+    const cards = document.querySelectorAll('.payee-card');
+    cards.forEach(card => {
+        const categoryName = card.dataset.categoryName.toLowerCase();
+        const categoryDescription = card.dataset.categoryDescription.toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
         
-        // Update displayed name and description
-        const nameElement = categoryCard.querySelector('.category-name');
-        nameElement.textContent = categoryData.name;
-        
-        const descElement = categoryCard.querySelector('small.text-muted');
-        if (categoryData.description) {
-            if (descElement) {
-                descElement.textContent = categoryData.description;
-            } else {
-                const nameContainer = nameElement.parentElement;
-                const newDesc = document.createElement('small');
-                newDesc.className = 'text-muted';
-                newDesc.textContent = categoryData.description;
-                nameContainer.appendChild(newDesc);
-            }
-        } else {
-            if (descElement) {
-                descElement.remove();
-            }
-        }
-        
-        // If this is the selected category, update details panel
-        if (categoryCard === selectedCategoryCard) {
-            showCategoryDetails(categoryId, categoryData.name, categoryData.description);
-        }
-    }
-}
-
-// Remove category from list
-function removeCategoryFromList(categoryId) {
-    const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
-    if (categoryCard) {
-        // Clear selection if this category was selected
-        if (categoryCard === selectedCategoryCard) {
-            clearAllSelections();
-        }
-        
-        categoryCard.remove();
-        
-        // Check if list is now empty
-        const listContent = document.querySelector('.transaction-list-content');
-        const remainingCategories = listContent.querySelectorAll('.category-card');
-        
-        if (remainingCategories.length === 0) {
-            // Add empty state
-            listContent.innerHTML = `
-                <div class="text-center py-5 text-muted">
-                    <div class="mb-3">
-                        <i class="bi bi-tags" style="font-size: 3rem;"></i>
-                    </div>
-                    <p class="mb-0">No categories yet</p>
-                    <small>Start by adding your first category to organize transactions</small>
-                </div>
-            `;
-        }
-    }
-}
-
-// Update category statistics
-function updateCategoryStats() {
-    const totalCategories = document.querySelectorAll('.category-card').length;
-    document.getElementById('total-categories').textContent = totalCategories;
-    document.getElementById('active-categories').textContent = totalCategories;
-}
-
-// Filter categories
-function filterCategories() {
-    const searchTerm = document.getElementById('category-search').value.toLowerCase();
-    const categoryCards = document.querySelectorAll('.category-card');
-    
-    categoryCards.forEach(card => {
-        const categoryName = card.getAttribute('data-category-name').toLowerCase();
-        const categoryDescription = card.getAttribute('data-category-description').toLowerCase();
-        
-        if (categoryName.includes(searchTerm) || categoryDescription.includes(searchTerm)) {
+        if (categoryName.includes(searchLower) || categoryDescription.includes(searchLower)) {
             card.style.display = '';
         } else {
             card.style.display = 'none';
@@ -998,80 +1071,176 @@ function filterCategories() {
     });
 }
 
-// Sort categories
-function sortCategories(sortBy) {
-    const listContent = document.querySelector('.transaction-list-content');
-    if (!listContent) return;
+function sortCategories(sortType, ev) {
+    const container = document.querySelector('.payee-list-content');
+    const cards = Array.from(container.querySelectorAll('.payee-card'));
     
-    const categoryCards = Array.from(listContent.querySelectorAll('.category-card'));
-    
-    // Update dropdown label and active state
-    document.getElementById('sortLabel').textContent = sortBy === 'name' ? 'Name' : 'Date Added';
-    document.querySelectorAll('#categorySortDropdown + .dropdown-menu .dropdown-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    categoryCards.sort((a, b) => {
-        if (sortBy === 'name') {
-            const nameA = a.getAttribute('data-category-name').toLowerCase();
-            const nameB = b.getAttribute('data-category-name').toLowerCase();
-            return nameA.localeCompare(nameB);
-        } else if (sortBy === 'date') {
-            const dateA = new Date(a.getAttribute('data-category-created'));
-            const dateB = new Date(b.getAttribute('data-category-created'));
-            return dateB - dateA; // Newest first
+    cards.sort((a, b) => {
+        if (sortType === 'name') {
+            return a.dataset.categoryName.localeCompare(b.dataset.categoryName);
+        } else if (sortType === 'date') {
+            return new Date(b.dataset.categoryCreated) - new Date(a.dataset.categoryCreated);
         }
         return 0;
     });
     
-    // Reorder cards
-    categoryCards.forEach(card => listContent.appendChild(card));
+    // Update DOM
+    cards.forEach(card => container.appendChild(card));
+    
+    // Update dropdown label
+    const sortLabel = document.getElementById('sortLabel');
+    if (sortLabel) {
+        sortLabel.textContent = sortType === 'name' ? 'Name' : 'Date Added';
+    }
+    
+    // Update active state
+    document.querySelectorAll('#categorySortDropdown + .dropdown-menu .dropdown-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    if (ev && ev.target) {
+        ev.target.classList.add('active');
+    }
 }
 
-// Show message helper
-function showMessage(message, type) {
-    const container = document.getElementById('message-container');
-    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
-    const icon = type === 'error' ? 'bi-exclamation-triangle' : 'bi-check-circle';
+function editSelectedCategory() {
+    if (!selectedCategoryCard) return;
     
-    const alert = document.createElement('div');
-    alert.className = `alert ${alertClass} alert-dismissible fade show`;
-    alert.setAttribute('role', 'alert');
-    alert.innerHTML = `
-        <i class="bi ${icon} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
+    const data = getCategoryData(selectedCategoryCard);
     
-    container.appendChild(alert);
+    // Populate edit form
+    document.getElementById('editCategoryId').value = data.id;
+    document.getElementById('editCategoryName').value = data.name;
+    document.getElementById('editCategoryDescription').value = data.description;
     
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        if (alert.parentNode) {
-            alert.classList.remove('show');
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
-            }, 300);
+    // Set category type - need to convert display value back to database value
+    const categoryTypeSelect = document.getElementById('editCategoryType');
+    let categoryTypeValue = 'expense'; // default
+    if (data.categoryType) {
+        if (data.categoryType.includes('Income') && data.categoryType.includes('Expense')) {
+            categoryTypeValue = 'both';
+        } else if (data.categoryType.includes('Income')) {
+            categoryTypeValue = 'income';
+        } else {
+            categoryTypeValue = 'expense';
         }
-    }, 5000);
+    }
+    categoryTypeSelect.value = categoryTypeValue;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+    modal.show();
 }
 
-// Highlight a payee by ID (for navigation to payees page)
-function highlightPayeeById(payeeId) {
-    // For now, just show a message about the relationship
-    const payeeName = document.querySelector(`[data-payee-id="${payeeId}"]`)?.textContent?.trim();
-    if (payeeName) {
-        showMessage(`This category is linked to payee: ${payeeName}`, 'info');
+async function handleEditCategoryForm(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    const categoryId = document.getElementById('editCategoryId').value;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(`{% url 'budget_basic:category_update' 0 %}`.replace('0', categoryId), {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update the category in the list
+            updateCategoryInList(data.category);
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCategoryModal'));
+            if (modal) modal.hide();
+            
+            // Show success message (you may want to add a toast notification here)
+            console.log(data.message);
+            
+        } else {
+            alert(data.error || 'Failed to update category');
+        }
+        
+    } catch (error) {
+        console.error('Error updating category:', error);
+        alert('An error occurred while updating the category');
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+function updateCategoryInList(updatedCategory) {
+    // Find the category row in the list
+    const categoryRow = document.querySelector(`[data-category-id="${updatedCategory.id}"]`);
+    if (categoryRow) {
+        // Update dataset attributes
+        categoryRow.dataset.categoryName = updatedCategory.name;
+        categoryRow.dataset.categoryDescription = updatedCategory.description;
+        categoryRow.dataset.categoryType = updatedCategory.category_type;
+        categoryRow.dataset.categoryUpdated = new Date().toISOString().split('T')[0];
+        
+        // Update displayed name
+        const nameElement = categoryRow.querySelector('.payee-name');
+        if (nameElement) {
+            nameElement.textContent = updatedCategory.name;
+        }
+        
+        // Update displayed description
+        const descElement = categoryRow.querySelector('.payee-meta');
+        if (descElement) {
+            descElement.textContent = updatedCategory.description || '';
+        }
+        
+        // If this category is currently selected, update the detail panel
+        if (categoryRow === selectedCategoryCard) {
+            const data = getCategoryData(categoryRow);
+            showCategoryPanel(data);
+        }
+    }
+}
+
+function deleteSelectedCategory() {
+    if (!selectedCategoryCard) return;
+    
+    const data = getCategoryData(selectedCategoryCard);
+    
+    if (confirm(`Are you sure you want to delete "${data.name}"?`)) {
+        const formData = new FormData();
+        formData.append('category_id', data.id);
+
+        fetch(`{% url 'budget_basic:category_delete' 0 %}`.replace('0', data.id), {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                selectedCategoryCard.remove();
+                clearCategorySelection();
+            } else {
+                alert('Error deleting category: ' + data.error);
+            }
+        });
     }
 }
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    // Add CSRF token to all forms if not present
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
+    // Auto-submit forms
+    document.querySelectorAll('form').forEach(form => {
         if (!form.querySelector('[name=csrfmiddlewaretoken]')) {
             const csrfInput = document.createElement('input');
             csrfInput.type = 'hidden';
@@ -1081,19 +1250,374 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add background click handler for deselection
-    document.addEventListener('click', function(event) {
-        // Check if click is inside any panel or interactive element
-        const clickedPanel = event.target.closest('.panel');
-        const clickedModal = event.target.closest('.modal');
-        const clickedButton = event.target.closest('button');
-        const clickedForm = event.target.closest('form');
-        
-        // If clicked outside all panels, modals, buttons, and forms, clear all selections
-        if (!clickedPanel && !clickedModal && !clickedButton && !clickedForm && (selectedCategoryCard || selectedPayeeCard)) {
-            clearAllSelections();
+    // Initialize tooltips
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+
+    if (typeof PanelHeaderLabelManager !== 'undefined') {
+        PanelHeaderLabelManager.init();
+    }
+    
+    // One-time width lock: capture actual rendered pixel widths then freeze as flex-basis
+    const catEl = document.querySelector('.categories-panel');
+    const payEl = document.getElementById('payees-panel');
+    const detEl = document.getElementById('category-details-panel');
+    if (catEl && payEl && detEl && !document.body.dataset.categoriesWidthLocked) {
+        // Try persisted layout first
+        let persisted = null;
+        try { persisted = JSON.parse(localStorage.getItem('categoriesLayout')||'null'); } catch(e) {}
+        if (persisted && typeof persisted.cat==='number' && typeof persisted.pay==='number' && typeof persisted.det==='number') {
+            // Apply persisted pixel widths
+            const container = catEl.parentElement;
+            const metrics = CategoryPanelLayoutMetrics.calc(container);
+            const totalRaw = persisted.cat + persisted.pay + persisted.det;
+            let scale = 1;
+            if (metrics.availablePanels > 0 && totalRaw > 0) {
+                scale = metrics.availablePanels / totalRaw;
+            }
+            let catW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, persisted.cat * scale);
+            let payW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, persisted.pay * scale);
+            let detW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, persisted.det * scale);
+            let sum = catW + payW + detW;
+            if (sum !== metrics.availablePanels) {
+                detW += (metrics.availablePanels - sum);
+            }
+            catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+            payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+            detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+            const total = catW + payW + detW;
+            document.documentElement.style.setProperty('--categories-panel-width', (catW/total*100).toFixed(2)+'%');
+            document.documentElement.style.setProperty('--payees-panel-width', (payW/total*100).toFixed(2)+'%');
+            document.documentElement.style.setProperty('--details-panel-width', (detW/total*100).toFixed(2)+'%');
+            document.body.dataset.categoriesWidthLocked = 'true';
+        } else {
+            // No persisted layout: enforce equal thirds within available panel space (minus resizers & padding)
+            const metrics = CategoryPanelLayoutMetrics.calc(catEl.parentElement);
+            if (metrics.availablePanels > 0) {
+                let third = Math.floor(metrics.availablePanels / 3);
+                if (third < CategoryPanelLayoutMetrics.MIN_PX) third = CategoryPanelLayoutMetrics.MIN_PX;
+                let catW = third;
+                let payW = third;
+                let detW = metrics.availablePanels - (catW + payW);
+                if (detW < CategoryPanelLayoutMetrics.MIN_PX) {
+                    detW = CategoryPanelLayoutMetrics.MIN_PX;
+                    const remaining = metrics.availablePanels - detW;
+                    catW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, Math.floor(remaining / 2));
+                    payW = Math.max(CategoryPanelLayoutMetrics.MIN_PX, remaining - catW);
+                }
+                // Normalize again
+                let sum = catW + payW + detW;
+                if (sum !== metrics.availablePanels) detW += (metrics.availablePanels - sum);
+                catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+                payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+                detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+                const total = catW + payW + detW;
+                document.documentElement.style.setProperty('--categories-panel-width', (catW/total*100).toFixed(2)+'%');
+                document.documentElement.style.setProperty('--payees-panel-width', (payW/total*100).toFixed(2)+'%');
+                document.documentElement.style.setProperty('--details-panel-width', (detW/total*100).toFixed(2)+'%');
+                document.body.dataset.categoriesWidthLocked = 'true';
+            }
         }
-    });
+    }
+    
+    // Initialize panel resizers
+    initializePanelResizers();
+    
+    // Add click handlers for deselection
+    addDeselectionHandlers();
 });
+
+// Pixel-based 3-panel resizer (consistent with 2-panel implementation patterns)
+const CategoryPanelResizer = (() => {
+    let resizing = false;
+    let handle = null;
+    let startX = 0;
+    let startCat = 0, startPay = 0, startDet = 0, totalWidth = 0;
+    const MIN_PX = 200; // duplicate constant (also in metrics helper, synced with CSS min-width)
+
+    function getPanelAvailableWidth(container){
+        return CategoryPanelLayoutMetrics.calc(container).availablePanels;
+    }
+
+    function syncCssVars(cat, pay, det) {
+        const total = cat + pay + det;
+        if (total <= 0) return;
+        document.documentElement.style.setProperty('--categories-panel-width', (cat / total * 100).toFixed(2) + '%');
+        document.documentElement.style.setProperty('--payees-panel-width', (pay / total * 100).toFixed(2) + '%');
+        document.documentElement.style.setProperty('--details-panel-width', (det / total * 100).toFixed(2) + '%');
+        savePersisted(cat, pay, det);
+    }
+
+    function apply(cat, pay, det) {
+        const catEl = document.querySelector('.categories-panel');
+        const payEl = document.getElementById('payees-panel');
+        const detEl = document.getElementById('category-details-panel');
+        if (!catEl || !payEl || !detEl) return;
+        catEl.style.flex = `0 0 ${cat}px`; catEl.style.width = cat + 'px';
+        payEl.style.flex = `0 0 ${pay}px`; payEl.style.width = pay + 'px';
+        detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det + 'px';
+        syncCssVars(cat, pay, det);
+        if (typeof PanelHeaderLabelManager !== 'undefined') {
+            PanelHeaderLabelManager.refresh();
+        }
+    }
+
+    function onDown(e, which) {
+        const catEl = document.querySelector('.categories-panel');
+        const payEl = document.getElementById('payees-panel');
+        const detEl = document.getElementById('category-details-panel');
+        const container = document.querySelector('.panel-layout-3');
+        if (!catEl || !payEl || !detEl || !container) return;
+
+        // Ensure explicit pixel widths (fallback if none yet)
+        if (!catEl.style.width) catEl.style.width = catEl.offsetWidth + 'px';
+        if (!payEl.style.width) payEl.style.width = payEl.offsetWidth + 'px';
+        if (!detEl.style.width) detEl.style.width = detEl.offsetWidth + 'px';
+
+        startCat = catEl.offsetWidth;
+        startPay = payEl.offsetWidth;
+        startDet = detEl.offsetWidth;
+        // Base total available width on container interior minus padding and resizers
+        totalWidth = getPanelAvailableWidth(container);
+        if(totalWidth <= 0){
+            totalWidth = startCat + startPay + startDet; // fallback
+        }
+        resizing = true;
+        handle = which;
+        startX = e.clientX;
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    }
+
+    function onMove(e) {
+        if (!resizing) return;
+        const dx = e.clientX - startX;
+        let cat = startCat, pay = startPay, det = startDet;
+
+        if (handle === 'panel-resizer-1') {
+            cat = Math.max(MIN_PX, startCat + dx);
+            let remaining = totalWidth - cat;
+            if (remaining < MIN_PX * 2) {
+                cat = totalWidth - MIN_PX * 2;
+                remaining = MIN_PX * 2;
+            }
+            // Preserve pay:det ratio
+            const ratio = startPay / (startPay + startDet || 1);
+            pay = Math.max(MIN_PX, remaining * ratio);
+            det = Math.max(MIN_PX, remaining - pay);
+            if (pay + det !== remaining) det = remaining - pay; // minor correction
+            // Re-adjust if one fell below min
+            if (pay < MIN_PX) { pay = MIN_PX; det = remaining - pay; }
+            if (det < MIN_PX) { det = MIN_PX; pay = remaining - det; }
+        } else if (handle === 'panel-resizer-2') {
+            pay = Math.max(MIN_PX, startPay + dx);
+            let remaining = totalWidth - startCat - pay;
+            if (remaining < MIN_PX) {
+                pay = totalWidth - startCat - MIN_PX;
+                remaining = MIN_PX;
+            }
+            det = remaining;
+            cat = startCat; // unchanged
+        }
+        // Comprehensive normalization respecting available width
+        const norm = CategoryPanelLayoutMetrics.normalize(cat, pay, det, totalWidth);
+        cat = norm.cat; pay = norm.pay; det = norm.det;
+        apply(cat, pay, det);
+        e.preventDefault();
+    }
+
+    function onUp() {
+        if (!resizing) return;
+        resizing = false;
+        handle = null;
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+    }
+
+    function savePersisted(cat, pay, det){
+        try {
+            localStorage.setItem('categoriesLayout', JSON.stringify({cat, pay, det, ts: Date.now()}));
+        } catch(e) { /* ignore quota */ }
+    }
+    function loadPersisted(){
+        try {
+            const raw = localStorage.getItem('categoriesLayout');
+            if(!raw) return null;
+            const data = JSON.parse(raw);
+            if(['cat','pay','det'].every(k=>typeof data[k]==='number' && data[k]>50)) { // simple sanity; >50px
+                return data;
+            }
+        } catch(e) { /* ignore */ }
+        return null;
+    }
+    function applyPersistedIfAny(){
+        const p = loadPersisted();
+        if(!p) return false;
+        const container = document.querySelector('.panel-layout-3');
+        const avail = getPanelAvailableWidth(container);
+        if(avail > 0){
+            const total = p.cat + p.pay + p.det;
+            const scale = total > 0 ? (avail / total) : 1;
+            let cat = p.cat * scale;
+            let pay = p.pay * scale;
+            let det = p.det * scale;
+            const norm = CategoryPanelLayoutMetrics.normalize(cat, pay, det, avail);
+            apply(norm.cat, norm.pay, norm.det);
+        } else {
+            const norm = CategoryPanelLayoutMetrics.normalize(p.cat, p.pay, p.det, p.cat + p.pay + p.det);
+            apply(norm.cat, norm.pay, norm.det);
+        }
+        return true;
+    }
+    function init() {
+        const r1 = document.getElementById('panel-resizer-1');
+        const r2 = document.getElementById('panel-resizer-2');
+        if (!r1 && !r2) return;
+        // Try applying stored layout before user interacts
+        applyPersistedIfAny();
+        r1 && r1.addEventListener('mousedown', (e)=>onDown(e,'panel-resizer-1'));
+        r2 && r2.addEventListener('mousedown', (e)=>onDown(e,'panel-resizer-2'));
+        // Touch support
+        r1 && r1.addEventListener('touchstart', (e)=>onDown(e.touches[0],'panel-resizer-1'), {passive:false});
+        r2 && r2.addEventListener('touchstart', (e)=>onDown(e.touches[0],'panel-resizer-2'), {passive:false});
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        document.addEventListener('mouseleave', onUp);
+        window.addEventListener('blur', onUp);
+        document.addEventListener('touchmove', (e)=>{ if(resizing) onMove(e.touches[0]); }, {passive:false});
+        document.addEventListener('touchend', onUp);
+        document.addEventListener('touchcancel', onUp);
+    }
+    return { init, loadPersisted, applyPersistedIfAny, savePersisted };
+})();
+
+function initializePanelResizers(){
+    CategoryPanelResizer.init();
+}
+
+// Reset layout to equal thirds
+function resetCategoryLayout(){
+    const catEl = document.querySelector('.categories-panel');
+    const payEl = document.getElementById('payees-panel');
+    const detEl = document.getElementById('category-details-panel');
+    if(!catEl || !payEl || !detEl) return;
+    const metrics = CategoryPanelLayoutMetrics.calc(catEl.parentElement);
+    const total = metrics.availablePanels;
+    let third = Math.max(CategoryPanelLayoutMetrics.MIN_PX, Math.floor(total/3));
+    let catW = third, payW = third, detW = total - (catW + payW);
+    const norm = CategoryPanelLayoutMetrics.normalize(catW, payW, detW, total);
+    catW = norm.cat; payW = norm.pay; detW = norm.det;
+    catEl.style.flex = `0 0 ${catW}px`; catEl.style.width = catW + 'px';
+    payEl.style.flex = `0 0 ${payW}px`; payEl.style.width = payW + 'px';
+    detEl.style.flex = `0 0 ${detW}px`; detEl.style.width = detW + 'px';
+    const overall = catW + payW + detW;
+    document.documentElement.style.setProperty('--categories-panel-width', (catW/overall*100).toFixed(2)+'%');
+    document.documentElement.style.setProperty('--payees-panel-width', (payW/overall*100).toFixed(2)+'%');
+    document.documentElement.style.setProperty('--details-panel-width', (detW/overall*100).toFixed(2)+'%');
+    try { localStorage.removeItem('categoriesLayout'); } catch(e) {}
+}
+
+// Recalculate pixel widths on window resize (maintain proportions)
+window.addEventListener('resize', () => {
+    const stored = (()=>{ try { return JSON.parse(localStorage.getItem('categoriesLayout')||'null'); } catch(e){ return null;} })();
+    const catEl = document.querySelector('.categories-panel');
+    const payEl = document.getElementById('payees-panel');
+    const detEl = document.getElementById('category-details-panel');
+    if(!catEl || !payEl || !detEl) return;
+    const container = catEl.parentElement;
+    if(!container) return;
+    // Use same available width logic as resizer (subtract padding + resizers)
+    const width = CategoryPanelLayoutMetrics.calc(container).availablePanels;
+    if(stored){
+        const total = stored.cat + stored.pay + stored.det;
+        if(total > 0){
+            const scale = width / total;
+            let cat = stored.cat * scale;
+            let pay = stored.pay * scale;
+            let det = stored.det * scale;
+            const norm = CategoryPanelLayoutMetrics.normalize(cat, pay, det, width);
+            cat = norm.cat; pay = norm.pay; det = norm.det;
+            catEl.style.flex = `0 0 ${cat}px`; catEl.style.width = cat+'px';
+            payEl.style.flex = `0 0 ${pay}px`; payEl.style.width = pay+'px';
+            detEl.style.flex = `0 0 ${det}px`; detEl.style.width = det+'px';
+        }
+    }
+});
+
+// Global functions for onclick handlers
+function showAddCategoryModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+    modal.show();
+}
+
+function addDeselectionHandlers() {
+    // Allow deselection by clicking on empty space or the same item
+    const categoryList = document.getElementById('category-list');
+    if (categoryList) {
+        categoryList.addEventListener('click', function(e) {
+            // If clicking on empty space (not on a category card)
+            if (e.target === this || e.target.classList.contains('payee-list-content') || e.target.classList.contains('payee-list-scroll')) {
+                clearCategorySelection();
+            }
+        });
+    }
+}
+
+// Update selectCategory to handle deselection when clicking same item
+function selectCategoryWithToggle(element) {
+    // If clicking the same category, deselect it
+    if (selectedCategoryCard === element) {
+        clearCategorySelection();
+        return;
+    }
+    
+    selectCategory(element);
+}
+
+// Unified layout metrics helper to avoid duplication & overflow errors
+const CategoryPanelLayoutMetrics = {
+    RESIZER_WIDTH: 16,
+    RESIZER_COUNT: 2,
+    MIN_PX: 200,
+    calc(container){
+        if(!container) return {availablePanels:0, innerWidth:0, paddingLeft:0, paddingRight:0};
+        const style = getComputedStyle(container);
+        const paddingLeft = parseFloat(style.paddingLeft)||0;
+        const paddingRight = parseFloat(style.paddingRight)||0;
+        const innerWidth = container.clientWidth - paddingLeft - paddingRight; // includes resizers
+        const reserved = this.RESIZER_WIDTH * this.RESIZER_COUNT;
+        const availablePanels = Math.max(0, innerWidth - reserved);
+        return {availablePanels, innerWidth, paddingLeft, paddingRight};
+    },
+    normalize(cat, pay, det, available){
+        cat = Math.max(this.MIN_PX, cat);
+        pay = Math.max(this.MIN_PX, pay);
+        det = Math.max(this.MIN_PX, det);
+        if(available <= 0) return {cat, pay, det};
+        let sum = cat + pay + det;
+        if(sum === available) return {cat, pay, det};
+        if(sum > available){
+            const excess = sum - available;
+            let adjustable = (cat - this.MIN_PX)+(pay - this.MIN_PX)+(det - this.MIN_PX);
+            if(adjustable > 0){
+                const rc = (cat - this.MIN_PX)/adjustable * excess;
+                const rp = (pay - this.MIN_PX)/adjustable * excess;
+                const rd = (det - this.MIN_PX)/adjustable * excess;
+                cat -= rc; pay -= rp; det -= rd;
+            } else {
+                det -= excess; // fallback
+            }
+            cat = Math.max(this.MIN_PX, Math.round(cat));
+            pay = Math.max(this.MIN_PX, Math.round(pay));
+            det = Math.max(this.MIN_PX, Math.round(det));
+            sum = cat + pay + det;
+            if(sum !== available) det += (available - sum);
+        } else if(sum < available){
+            det += (available - sum); // give slack to details
+        }
+        return {cat, pay, det};
+    }
+};
 </script>
 {% endblock %}

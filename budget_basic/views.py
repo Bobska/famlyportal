@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Max, Sum
+from django.db.models import Max, Sum, Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -97,6 +97,7 @@ class TransactionPayload:
     date: date
     payee_name: str
     amount: Decimal
+    category_id: int | None = None
     notes: str = ''
 
 def build_transaction_payload(data) -> TransactionPayload:
@@ -124,7 +125,18 @@ def build_transaction_payload(data) -> TransactionPayload:
         raise ValidationError('Amount must be positive.')
 
     notes = (data.get('notes') or '').strip()
-    return TransactionPayload(date=parsed_date, payee_name=payee_name, amount=amount, notes=notes)
+    
+    # Handle category selection (optional)
+    category_id = None
+    category_choice = (data.get('category_choice') or '').strip()
+    if category_choice:
+        try:
+            category_id = int(category_choice)
+        except (ValueError, TypeError):
+            # Invalid category ID, ignore rather than error
+            category_id = None
+    
+    return TransactionPayload(date=parsed_date, payee_name=payee_name, amount=amount, category_id=category_id, notes=notes)
 
 
 def persist_transaction(model, user, payload: TransactionPayload, *, instance=None):
@@ -136,6 +148,18 @@ def persist_transaction(model, user, payload: TransactionPayload, *, instance=No
     record.payee = payload.payee_name
     record.amount = payload.amount
     record.notes = payload.notes
+    
+    # Handle category assignment
+    if payload.category_id:
+        try:
+            category = Category.objects.get(id=payload.category_id, user=user)
+            record.category = category
+        except Category.DoesNotExist:
+            # Invalid category ID or category doesn't belong to user, ignore
+            record.category = None
+    else:
+        record.category = None
+    
     record.save()
     return record
 
@@ -150,16 +174,12 @@ def get_cumulative_balance_up_to_week(user, target_week_offset):
     total_expenses = cumulative_total(Expense, user, end_date=window.end)
     return total_income - total_expenses
 
-
-
 def get_week_balance_only(user, week_offset):
     """Return the net balance for a single week window."""
     window = resolve_week_window(week_offset)
     weekly_income = amount_sum(weekly_transactions(Income, user, window))
     weekly_expenses = amount_sum(weekly_transactions(Expense, user, window))
     return weekly_income - weekly_expenses
-
-
 
 def get_auto_date_for_week(user, week_offset, transaction_type=None):
     """Return the latest transaction date for the resolved week and type."""
@@ -181,8 +201,6 @@ def get_auto_date_for_week(user, week_offset, transaction_type=None):
 
     latest_candidates = [d for d in (latest_for_model(Income), latest_for_model(Expense)) if d]
     return max(latest_candidates) if latest_candidates else window.start
-
-
 
 def get_or_create_payee(user, payee_name):
     """Get or create a payee for the given user."""
@@ -210,14 +228,13 @@ def dashboard(request):
         'page_title': 'Budget Basic',
         'app_name': 'budget_basic',
         'current_balance': current_balance,
+        **build_sidebar_summary_context(request),
     }
     return render(request, 'budget_basic/dashboard.html', context)
 
 
-@login_required
-def main(request):
-    """Budget Basic main transactions view."""
-
+def build_weekly_context(request):
+    """Return the base context payload for weekly transaction views."""
     week_offset = int(request.GET.get('week_offset', 0))
     week_window = resolve_week_window(week_offset)
 
@@ -227,6 +244,7 @@ def main(request):
     weekly_income = amount_sum(income_entries)
     weekly_expenses = amount_sum(expense_entries)
     weekly_balance = weekly_income - weekly_expenses
+    running_balance = get_cumulative_balance_up_to_week(request.user, week_offset)
 
     today = timezone.localdate()
     monthly_income = amount_sum(
@@ -237,22 +255,94 @@ def main(request):
     )
     monthly_balance = monthly_income - monthly_expenses
 
-    context = {
-        'page_title': 'Transactions',
-        'app_name': 'budget_basic',
+    return {
         'income_entries': income_entries,
         'expense_entries': expense_entries,
         'weekly_income': weekly_income,
         'weekly_expenses': weekly_expenses,
         'weekly_balance': weekly_balance,
+    'running_balance': running_balance,
         'monthly_income': monthly_income,
         'monthly_expenses': monthly_expenses,
         'monthly_balance': monthly_balance,
+        'sidebar_week_start': week_window.start,
+        'sidebar_week_end': week_window.end,
+        'sidebar_week_label': describe_week_offset(week_offset),
         'week_offset': week_offset,
         'target_monday': week_window.start,
         'target_sunday': week_window.end,
     }
-    return render(request, 'budget_basic/main.html', context)
+
+
+def build_sidebar_summary_context(request, *, week_offset: int | None = None) -> dict[str, object]:
+    """Return weekly summary metrics for sidebar widgets."""
+    resolved_offset = week_offset if week_offset is not None else int(request.GET.get('week_offset', 0))
+    week_window = resolve_week_window(resolved_offset)
+
+    weekly_income = amount_sum(
+        Income.objects.filter(
+            user=request.user,
+            date__gte=week_window.start,
+            date__lte=week_window.end,
+        )
+    )
+    weekly_expenses = amount_sum(
+        Expense.objects.filter(
+            user=request.user,
+            date__gte=week_window.start,
+            date__lte=week_window.end,
+        )
+    )
+    weekly_balance = weekly_income - weekly_expenses
+
+    return {
+        'weekly_income': weekly_income,
+        'weekly_expenses': weekly_expenses,
+        'weekly_balance': weekly_balance,
+        'sidebar_week_start': week_window.start,
+        'sidebar_week_end': week_window.end,
+        'sidebar_week_label': describe_week_offset(resolved_offset),
+    }
+
+
+def build_all_transactions_context(request):
+    """Return the base context payload for the full transactions view."""
+    income_entries = Income.objects.filter(user=request.user).order_by('-date', '-id')
+    expense_entries = Expense.objects.filter(user=request.user).order_by('-date', '-id')
+
+    total_income = amount_sum(income_entries)
+    total_expenses = amount_sum(expense_entries)
+    net_balance = total_income - total_expenses
+
+    return {
+        'income_entries': income_entries,
+        'expense_entries': expense_entries,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': net_balance,
+    }
+
+@login_required
+def weekly(request):
+    """Weekly transactions overview."""
+    context = {
+        'page_title': 'Weekly',
+        'app_name': 'budget_basic',
+        **build_weekly_context(request),
+    }
+    return render(request, 'budget_basic/weekly.html', context)
+
+
+@login_required
+def transactions(request):
+    """All transactions view without weekly navigation."""
+    context = {
+        'page_title': 'Transactions',
+        'app_name': 'budget_basic',
+        **build_all_transactions_context(request),
+        **build_sidebar_summary_context(request),
+    }
+    return render(request, 'budget_basic/transactions.html', context)
 
 
 @login_required
@@ -296,8 +386,6 @@ def get_week_data(request):
     }
     return JsonResponse(response)
 
-
-
 @login_required
 @require_POST
 def add_income(request):
@@ -321,8 +409,6 @@ def add_income(request):
         'income_id': income.id,
         'date': income.date.isoformat(),
     })
-
-
 
 @login_required
 @require_POST
@@ -352,8 +438,6 @@ def edit_income(request, income_id):
         'date': income.date.strftime('%Y-%m-%d'),
     })
 
-
-
 @login_required
 def get_income(request, income_id):
     """Get income entry data for editing via AJAX."""
@@ -373,8 +457,6 @@ def get_income(request, income_id):
         },
     })
 
-
-
 @login_required
 @require_POST
 def delete_income(request, income_id):
@@ -392,8 +474,6 @@ def delete_income(request, income_id):
         'success': True,
         'message': f'Income entry deleted successfully: ${amount_display} from {payee}',
     })
-
-
 
 # ===== EXPENSE VIEWS =====
 
@@ -420,8 +500,6 @@ def add_expense(request):
         'expense_id': expense.id,
         'date': expense.date.isoformat(),
     })
-
-
 
 @login_required
 @require_POST
@@ -451,8 +529,6 @@ def edit_expense(request, expense_id):
         'date': expense.date.strftime('%Y-%m-%d'),
     })
 
-
-
 @login_required
 def get_expense(request, expense_id):
     """Get expense entry data for editing via AJAX."""
@@ -472,8 +548,6 @@ def get_expense(request, expense_id):
         },
     })
 
-
-
 @login_required
 @require_POST
 def delete_expense(request, expense_id):
@@ -492,18 +566,71 @@ def delete_expense(request, expense_id):
         'message': f'Expense entry deleted successfully: ${amount_display} to {payee}',
     })
 
-
-
 @login_required
 def get_payees(request):
-    """Get list of payees for the current user."""
+    """Get list of payees for the current user, optionally filtered by category."""
     try:
-        payees = Payee.objects.filter(user=request.user).order_by('name')
-        payee_list = [{'id': p.id, 'name': p.name} for p in payees]
+        category_id = request.GET.get('category_id', None)
+        
+        payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+        
+        # Filter by category if provided
+        if category_id:
+            try:
+                category_id = int(category_id)
+                payees = payees.filter(categories__id=category_id)
+            except (ValueError, TypeError):
+                # Invalid category ID, return all payees
+                pass
+        
+        payees = payees.order_by('name').distinct()
+        payee_list = [
+            {
+                'id': p.id, 
+                'name': p.name,
+                'categories': [{'id': cat.id, 'name': cat.name} for cat in p.categories.all()]
+            } 
+            for p in payees
+        ]
         
         return JsonResponse({
             'success': True,
-            'payees': payee_list
+            'payees': payee_list,
+            'filtered_by_category': bool(category_id)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+def get_categories(request):
+    """Get list of categories for the current user, optionally filtered by transaction type."""
+    try:
+        transaction_type = request.GET.get('type', None)  # 'income', 'expense', or None for all
+        
+        categories = Category.objects.filter(user=request.user)
+        
+        # Filter by transaction type if specified
+        if transaction_type in ['income', 'expense']:
+            categories = categories.filter(
+                Q(category_type=transaction_type) | Q(category_type='both')
+            )
+        
+        categories = categories.order_by('name')
+        category_list = [
+            {
+                'id': c.id, 
+                'name': c.name,
+                'category_type': c.category_type,
+                'type_display': c.get_type_display_short()
+            } 
+            for c in categories
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'categories': category_list
         })
         
     except Exception as e:
@@ -531,9 +658,10 @@ def get_auto_date(request):
 @login_required
 @require_POST
 def add_payee(request):
-    """Add a new payee for the current user."""
+    """Add a new payee for the current user with optional category assignment."""
     try:
         payee_name = request.POST.get('name', '').strip()
+        category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not payee_name:
             return JsonResponse({'success': False, 'error': 'Payee name is required'})
@@ -545,9 +673,22 @@ def add_payee(request):
         # Create new payee
         payee = Payee.objects.create(user=request.user, name=payee_name)
         
+        # Assign categories if provided
+        if category_ids:
+            # Filter to only valid categories owned by the user
+            valid_categories = Category.objects.filter(
+                user=request.user, 
+                id__in=category_ids
+            )
+            payee.categories.set(valid_categories)
+        
         return JsonResponse({
             'success': True,
-            'payee': {'id': payee.id, 'name': payee.name},
+            'payee': {
+                'id': payee.id, 
+                'name': payee.name,
+                'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()]
+            },
             'message': f'Payee "{payee_name}" added successfully'
         })
         
@@ -562,13 +703,27 @@ def add_payee(request):
 @login_required
 def payee_list(request):
     """Display list of all payees for the current user."""
-    payees = Payee.objects.filter(user=request.user).prefetch_related('categories').order_by('name')
+    category_filter = request.GET.get('category_filter', 'all')
+    
+    payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+    
+    # Apply category filtering
+    if category_filter == 'none':
+        # Filter payees with no categories
+        payees = payees.filter(categories__isnull=True)
+    elif category_filter != 'all' and category_filter.isdigit():
+        # Filter payees by specific category
+        payees = payees.filter(categories__id=int(category_filter))
+    
+    payees = payees.order_by('name').distinct()
     categories = Category.objects.filter(user=request.user).order_by('name')
     
     context = {
         'page_title': 'Manage Payees',
         'payees': payees,
         'categories': categories,
+        'current_category_filter': category_filter,
+        **build_sidebar_summary_context(request),
     }
     return render(request, 'budget_basic/payees.html', context)
 
@@ -748,6 +903,57 @@ def payee_search(request):
     return JsonResponse({'payees': payee_list})
 
 
+@login_required
+def payee_filter(request):
+    """Filter payees by category for the payees management page."""
+    try:
+        category_filter = request.GET.get('category_filter', 'all')
+        search_query = request.GET.get('search', '').strip()
+        
+        payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+        
+        # Apply search filter if provided
+        if search_query:
+            payees = payees.filter(name__icontains=search_query)
+        
+        # Apply category filtering
+        if category_filter == 'none':
+            payees = payees.filter(categories__isnull=True)
+        elif category_filter != 'all' and category_filter.isdigit():
+            payees = payees.filter(categories__id=int(category_filter))
+        
+        payees = payees.order_by('name').distinct()
+        
+        # Serialize payees data for the frontend
+        payees_data = []
+        for payee in payees:
+            category_names = [cat.name for cat in payee.categories.all()]
+            category_ids = [cat.id for cat in payee.categories.all()]
+            
+            payees_data.append({
+                'id': payee.id,
+                'name': payee.name,
+                'categories_display': payee.get_categories_display(),
+                'category_names': category_names,
+                'category_ids': category_ids,
+                'created_at': payee.created_at.strftime('%Y-%m-%d'),
+                'updated_at': payee.updated_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'payees': payees_data,
+            'count': len(payees_data),
+            'filter': category_filter
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        })
+
+
 # ==============================
 # CATEGORY MANAGEMENT VIEWS
 # ==============================
@@ -756,10 +962,11 @@ def payee_search(request):
 def category_list(request):
     """Display all categories for the current user with statistics."""
     categories = Category.objects.filter(user=request.user).prefetch_related('payees')
-    
-    return render(request, 'budget_basic/categories.html', {
-        'categories': categories
-    })
+    context = {
+        'categories': categories,
+        **build_sidebar_summary_context(request),
+    }
+    return render(request, 'budget_basic/categories.html', context)
 
 
 @login_required  
@@ -825,12 +1032,17 @@ def category_update(request, category_id):
         
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
+        category_type = request.POST.get('category_type', 'expense').strip()
         
         if not name:
             return JsonResponse({
                 'success': False,
                 'error': 'Category name is required.'
             })
+        
+        # Validate category_type
+        if category_type not in ['income', 'expense', 'both']:
+            category_type = 'expense'
         
         # Check for duplicate names (excluding current category)
         if Category.objects.filter(
@@ -845,6 +1057,7 @@ def category_update(request, category_id):
         # Update category
         category.name = name
         category.description = description or None
+        category.category_type = category_type
         category.save()
         
         return JsonResponse({
@@ -854,6 +1067,7 @@ def category_update(request, category_id):
                 'id': category.id,
                 'name': category.name,
                 'description': category.description or '',
+                'category_type': category.get_category_type_display(),
                 'payees_count': category.get_payees_count(),
                 'payees_display': category.get_payees_display(),
                 'created_at': category.created_at.isoformat(),
@@ -941,13 +1155,14 @@ def category_payees(request, category_id):
         category = Category.objects.get(id=category_id, user=request.user)
         
         # Get all payees linked to this category
-        payees = category.payees.all().order_by('name')
+        payees = category.payees.all().prefetch_related('categories').order_by('name')
         
         payee_list = [
             {
                 'id': payee.id,
                 'name': payee.name,
                 'categories_display': payee.get_categories_display(),
+                'category_ids': [cat.id for cat in payee.categories.all()],
                 'created_at': payee.created_at.isoformat(),
                 'updated_at': payee.updated_at.isoformat(),
             }
@@ -974,3 +1189,4 @@ def category_payees(request, category_id):
             'success': False,
             'error': f'Error fetching payees: {str(e)}'
         })
+

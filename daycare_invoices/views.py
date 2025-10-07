@@ -29,6 +29,10 @@ from .forms import (
     DaycareProviderForm, ChildForm, InvoiceForm, PaymentForm,
     QuickInvoiceForm, InvoiceFilterForm, ProviderFilterForm, PaymentFilterForm
 )
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import OuterRef, Subquery
+from gmail_integration.models import EmailMessage, GmailAccount
+from ai.models import Prediction
 
 
 def get_user_family(user):
@@ -396,6 +400,405 @@ def invoice_list(request):
     }
     
     return render(request, 'daycare_invoices/invoice_list.html', context)
+
+
+# AI-classified daycare invoice emails
+@login_required
+@family_required
+def ai_invoice_emails(request):
+    """
+    List all emails classified by the AI as daycare invoices.
+
+    - Scoped to the current user's family (all family members' Gmail accounts)
+    - Filters: date range, Gmail account, min confidence, prediction status, search
+    - Shows latest prediction per email (confidence, status, predicted_at)
+    """
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access daycare invoices.")
+        return redirect('accounts:family_join')
+
+    # Family scoping: gather all users in the family
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+
+    # Start with emails that AI classified as daycare invoices
+    emails = EmailMessage.objects.filter(
+        gmail_account__user_id__in=family_users,
+        is_classified=True,
+        classification_label='daycare_invoice'
+    ).select_related('gmail_account').order_by('-sent_date')
+
+    # Filters
+    search = request.GET.get('search', '').strip()
+    account_id = request.GET.get('account', '').strip()
+    min_conf = request.GET.get('min_conf', '').strip()
+    status = request.GET.get('status', '').strip()
+    date_from = request.GET.get('from', '').strip()
+    date_to = request.GET.get('to', '').strip()
+
+    # Normalize 'None' strings to empty (from URL params)
+    if account_id in ('None', 'null', ''):
+        account_id = None
+    if min_conf in ('None', 'null', ''):
+        min_conf = None
+    if status in ('None', 'null', ''):
+        status = None
+    if date_from in ('None', 'null', ''):
+        date_from = None
+    if date_to in ('None', 'null', ''):
+        date_to = None
+
+    if search:
+        emails = emails.filter(
+            Q(subject__icontains=search) |
+            Q(sender_email__icontains=search) |
+            Q(sender_name__icontains=search)
+        )
+
+    if account_id:
+        try:
+            emails = emails.filter(gmail_account_id=int(account_id))
+        except (ValueError, TypeError):
+            pass
+
+    if date_from:
+        try:
+            dt_from = datetime.fromisoformat(date_from)
+            emails = emails.filter(sent_date__gte=dt_from)
+        except (ValueError, TypeError):
+            pass
+    if date_to:
+        try:
+            # include whole day by adding 1 day and using lt
+            dt_to = datetime.fromisoformat(date_to) + timedelta(days=1)
+            emails = emails.filter(sent_date__lt=dt_to)
+        except (ValueError, TypeError):
+            pass
+
+    # Annotate with latest prediction fields for filtering and display
+    email_ct = ContentType.objects.get_for_model(EmailMessage)
+    latest_preds = Prediction.objects.filter(
+        content_type=email_ct,
+        object_id=OuterRef('pk')
+    ).order_by('-predicted_at')
+
+    emails = emails.annotate(
+        latest_status=Subquery(latest_preds.values('status')[:1]),
+        latest_conf=Subquery(latest_preds.values('confidence_score')[:1]),
+        latest_label=Subquery(latest_preds.values('predicted_label')[:1]),
+        latest_predicted_at=Subquery(latest_preds.values('predicted_at')[:1]),
+    )
+
+    # Apply filters based on latest prediction
+    if status:
+        emails = emails.filter(latest_status=status)
+    if min_conf:
+        try:
+            mc = float(min_conf)
+            emails = emails.filter(latest_conf__gte=mc)
+        except ValueError:
+            pass
+
+    # Pagination after all filters
+    paginator = Paginator(emails, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Accounts list for filter dropdown
+    accounts = GmailAccount.objects.filter(user_id__in=family_users).order_by('email_address')
+
+    # Enriched rows
+    rows = []
+    for email in page_obj.object_list:
+        rows.append({
+            'email': email,
+            'prediction': {
+                'status': getattr(email, 'latest_status', None),
+                'predicted_label': getattr(email, 'latest_label', None),
+                'predicted_at': getattr(email, 'latest_predicted_at', None),
+                'confidence_score': getattr(email, 'latest_conf', None),
+            },
+            'confidence_percent': int(((getattr(email, 'latest_conf', 0) or 0) * 100)) if getattr(email, 'latest_conf', None) is not None else None,
+        })
+
+    context = {
+        'page_obj': page_obj,
+        'rows': rows,
+        'accounts': accounts,
+        'filters': {
+            'search': search,
+            'account': account_id,
+            'min_conf': min_conf,
+            'status': status,
+            'from': date_from,
+            'to': date_to,
+        },
+        'total_count': emails.count(),
+    }
+
+    return render(request, 'daycare_invoices/ai_invoice_emails.html', context)
+
+
+# Email detail within Daycare Invoices (family-scoped)
+@login_required
+@family_required
+def email_detail(request, email_id: int):
+    """Show an AI-classified email with metadata and attachments; allow analysis trigger."""
+    family = get_user_family(request.user)
+    if not family:
+        messages.error(request, "You must be part of a family to access emails.")
+        return redirect('accounts:family_join')
+
+    # Family scoping: email must belong to a GmailAccount of any family member
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+    email = get_object_or_404(
+        EmailMessage.objects.select_related('gmail_account'),
+        pk=email_id,
+        gmail_account__user_id__in=family_users,
+    )
+
+    # Lazy-load last prediction for display
+    from django.contrib.contenttypes.models import ContentType
+    email_ct = ContentType.objects.get_for_model(EmailMessage)
+    latest_pred = Prediction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-predicted_at').first()
+
+    # Optional: handle analysis trigger
+    analysis_result = None
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'analyze':
+            try:
+                from ai.services.invoice_extraction_service import analyze_email_for_invoice
+                analysis_result = analyze_email_for_invoice(email, user=request.user)
+                messages.success(request, 'Analysis complete.')
+            except Exception as e:
+                messages.error(request, f'Failed to analyze email: {e}')
+        elif action == 'verify':
+            # Save user-verified fields and add training sample
+            from django.contrib.contenttypes.models import ContentType
+            from ai.models import InvoiceExtraction, TrainingDataset, TrainingSample
+            ct = ContentType.objects.get_for_model(EmailMessage)
+            extraction = InvoiceExtraction.objects.filter(content_type=ct, object_id=email.pk).order_by('-created_at').first()
+            if extraction:
+                # Update basic fields from form
+                extraction.provider_name = request.POST.get('provider_name', '')
+                extraction.invoice_number = request.POST.get('invoice_number', '')
+                extraction.reference_number = request.POST.get('reference_number', '')
+                
+                # Update dates
+                due = request.POST.get('due_date')
+                if due:
+                    try:
+                        extraction.due_date = date.fromisoformat(due)
+                    except Exception:
+                        pass
+                
+                issue = request.POST.get('issue_date')
+                if issue:
+                    extraction.raw_fields = extraction.raw_fields or {}
+                    extraction.raw_fields['issue_date'] = issue
+                
+                # Parse line items from form
+                line_item_types = request.POST.getlist('line_item_type[]')
+                line_item_descriptions = request.POST.getlist('line_item_description[]')
+                line_item_amounts = request.POST.getlist('line_item_amount[]')
+                
+                line_items = []
+                current_invoice_total = Decimal('0')
+                total_amount = Decimal('0')
+                
+                for i, (item_type, desc, amt_str) in enumerate(zip(line_item_types, line_item_descriptions, line_item_amounts)):
+                    try:
+                        amt = Decimal(amt_str) if amt_str else Decimal('0')
+                        line_items.append({
+                            'type': item_type,
+                            'description': desc,
+                            'amount': float(amt)
+                        })
+                        
+                        # Calculate totals
+                        total_amount += amt
+                        if item_type != 'previous_balance':
+                            current_invoice_total += amt
+                    except Exception:
+                        pass
+                
+                extraction.line_items = line_items
+                extraction.current_invoice_total = current_invoice_total
+                extraction.amount = total_amount
+                
+                # Store child ID if provided
+                child_id = request.POST.get('child_id')
+                if child_id:
+                    extraction.raw_fields = extraction.raw_fields or {}
+                    extraction.raw_fields['child_id'] = child_id
+                
+                extraction.verified_at = timezone.now()
+                extraction.verified_by = request.user
+                extraction.status = 'complete'
+                extraction.save()
+
+                # Create or find dataset for invoice extraction learning
+                dataset, _ = TrainingDataset.objects.get_or_create(
+                    dataset_name='invoice_extraction_feedback',
+                    model_name='email_invoice_extraction',
+                    defaults={'data_source': 'user_feedback', 'created_by': request.user}
+                )
+                # Add training sample using structured fields as features and label as 'invoice'
+                # Precompute serializable due_date string
+                due_date_str = extraction.due_date.isoformat() if extraction.due_date else None
+
+                TrainingSample.objects.create(
+                    dataset=dataset,
+                    sample_identifier=f"Email {email.pk} extraction",
+                    content_type=ct,
+                    object_id=email.pk,
+                    features={
+                        'provider_name': extraction.provider_name,
+                        'invoice_number': extraction.invoice_number,
+                        'reference_number': extraction.reference_number,
+                        'due_date': due_date_str,
+                        'amount': float(extraction.amount) if extraction.amount is not None else None,
+                        'current_invoice_total': float(extraction.current_invoice_total) if extraction.current_invoice_total is not None else None,
+                        'line_items': extraction.line_items,  # Include for AI to learn invoice structure
+                        'child_id': child_id,
+                        'sender_email': email.sender_email,
+                        'subject': email.subject,
+                    },
+                    label='invoice',
+                    source='user_feedback',
+                    created_by=request.user,
+                )
+                dataset.update_counts()
+                messages.success(request, 'Verified details saved and added to training data.')
+
+    # Fetch latest stored analysis if exists
+    try:
+        from ai.models import InvoiceExtraction
+        last_extraction = InvoiceExtraction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-created_at').first()
+    except Exception:
+        last_extraction = None
+    
+    # Get family children for the child selector
+    family_children = FamilyMember.objects.filter(
+        family=family,
+        role='child'
+    ).select_related('user').order_by('user__first_name', 'user__username')
+
+    context = {
+        'email': email,
+        'latest_prediction': latest_pred,
+        'extraction': analysis_result or last_extraction,
+        'family_children': family_children,
+    }
+    return render(request, 'daycare_invoices/email_detail.html', context)
+
+
+@login_required
+@family_required
+def download_attachment(request, email_id: int, attachment_id: int):
+    """Securely stream a PDF or other attachment for an email with family scoping."""
+    family = get_user_family(request.user)
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+
+    from gmail_integration.models import EmailAttachment
+    email = get_object_or_404(EmailMessage, pk=email_id, gmail_account__user_id__in=family_users)
+    attachment = get_object_or_404(EmailAttachment, pk=attachment_id, email=email)
+
+    # If the attachment is an external URL, redirect
+    if attachment.file_path and (attachment.file_path.startswith('http://') or attachment.file_path.startswith('https://')):
+        return redirect(attachment.file_path)
+
+    # Otherwise, ensure the file exists locally; if not, fetch on-demand from Gmail
+    from django.http import FileResponse, Http404
+    from django.conf import settings
+    import os
+    
+    rel_path = attachment.file_path
+    abs_path = None
+    if rel_path:
+        abs_path = rel_path if os.path.isabs(rel_path) else os.path.join(settings.MEDIA_ROOT, rel_path)
+    
+    if not rel_path or not abs_path or not os.path.exists(abs_path):
+        # Attempt on-demand fetch
+        try:
+            from gmail_integration.services import GmailService
+            svc = GmailService(gmail_account=email.gmail_account)
+            new_rel = svc.download_attachment_to_storage(email=email, attachment=attachment)
+            if new_rel:
+                rel_path = new_rel
+                abs_path = rel_path if os.path.isabs(rel_path) else os.path.join(settings.MEDIA_ROOT, rel_path)
+        except Exception:
+            pass
+    
+    if not abs_path or not os.path.exists(abs_path):
+        raise Http404('Attachment not available yet. Try syncing again or contact support.')
+    
+    # Decide inline vs attachment based on query param and content type
+    view_inline = request.GET.get('view') == '1' or (attachment.content_type and 'pdf' in attachment.content_type.lower())
+    disposition_type = 'inline' if view_inline else 'attachment'
+    
+    response = FileResponse(open(abs_path, 'rb'), content_type=attachment.content_type or 'application/octet-stream')
+    response['Content-Disposition'] = f"{disposition_type}; filename=\"{attachment.filename}\""
+    return response
+
+
+@login_required
+@family_required
+def invoice_create_from_email(request, email_id: int):
+    """Prefill an invoice form from the latest verified or extracted fields for an email."""
+    family = get_user_family(request.user)
+    if not family:
+        return redirect('accounts:family_join')
+
+    family_users = FamilyMember.objects.filter(family=family).values_list('user_id', flat=True)
+    email = get_object_or_404(EmailMessage, pk=email_id, gmail_account__user_id__in=family_users)
+
+    # Fetch extraction
+    from django.contrib.contenttypes.models import ContentType
+    from ai.models import InvoiceExtraction
+    email_ct = ContentType.objects.get_for_model(EmailMessage)
+    extraction = InvoiceExtraction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-verified_at', '-created_at').first()
+
+    # Build initial data for InvoiceForm
+    initial = {}
+    if extraction:
+        initial.update({
+            'invoice_number': extraction.invoice_number or '',
+            'invoice_date': timezone.now().date(),
+            'due_date': extraction.due_date or None,
+            'amount': extraction.amount or None,
+            'description': f"Auto-generated from email {email.pk}: {email.subject[:80] if email.subject else ''}",
+        })
+
+    # Try to map provider by name/email
+    provider = None
+    if extraction and extraction.provider_name:
+        provider = DaycareProvider.objects.filter(family=family, name__icontains=extraction.provider_name).first()
+    if not provider and email.sender_email:
+        provider = DaycareProvider.objects.filter(family=family, email__iexact=email.sender_email).first()
+
+    if provider:
+        initial['provider'] = provider.pk
+
+    if request.method == 'POST':
+        form = InvoiceForm(request.POST, family=family)
+        if form.is_valid():
+            invoice = form.save(commit=False)
+            invoice.family = family
+            invoice.save()
+            messages.success(request, 'Invoice created from email extraction.')
+            return redirect('daycare_invoices:invoice_detail', pk=invoice.pk)
+    else:
+        form = InvoiceForm(initial=initial, family=family)
+
+    context = {
+        'form': form,
+        'title': 'Create Invoice from Email',
+        'email': email,
+        'extraction': extraction,
+    }
+    return render(request, 'daycare_invoices/invoice_form.html', context)
 
 
 @login_required

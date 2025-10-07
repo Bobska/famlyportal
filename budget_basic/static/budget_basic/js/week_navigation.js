@@ -43,9 +43,11 @@ function nextWeek() {
 
 function loadWeekData(offset) {
     // Show loading state
-    const weekLabel = document.querySelector('.week-label-large');
-    const weekDate = document.querySelector('.week-date-large');
-    weekLabel.textContent = 'Loading...';
+    const weekLabel = document.querySelector('.week-heading-label');
+    const weekDate = document.querySelector('.week-heading-dates');
+    if (weekLabel) {
+        weekLabel.textContent = 'Loading...';
+    }
     
     console.log(`Loading week data for offset: ${offset}`);
     console.log('Week data URL:', weekDataUrl);
@@ -72,23 +74,21 @@ function loadWeekData(offset) {
                 clearWeekNavSelection();
 
                 // Update week display
-                weekLabel.textContent = data.week_label;
-                weekDate.textContent = `${data.week_start} - ${data.week_end}`;
+                if (weekLabel) {
+                    weekLabel.textContent = data.week_label;
+                }
+                if (weekDate) {
+                    weekDate.textContent = `${data.week_start} - ${data.week_end}`;
+                }
                 
-                // Update weekly totals
-                document.getElementById('weekly-income').textContent = `+$${data.weekly_income.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                document.getElementById('weekly-expenses').textContent = `-$${data.weekly_expenses.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                
-                const balanceElement = document.getElementById('weekly-balance');
-                const balanceValue = data.weekly_balance;
-                balanceElement.textContent = `${balanceValue >= 0 ? '+' : '-'}$${Math.abs(balanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                balanceElement.className = `weekly-stat-value`; // Remove color classes, use grayscale styling
-                
-                // Update running balance display
-                const runningBalanceElement = document.getElementById('running-balance');
-                const runningBalanceValue = data.running_balance;
-                runningBalanceElement.textContent = `${runningBalanceValue >= 0 ? '+' : '-'}$${Math.abs(runningBalanceValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-                runningBalanceElement.className = runningBalanceValue >= 0 ? 'text-success' : 'text-danger';
+                // Update transaction total bar data
+                const totalBar = document.getElementById('transaction-total-bar');
+                if (totalBar) {
+                    totalBar.dataset.income = data.weekly_income.toFixed(2);
+                    totalBar.dataset.expense = data.weekly_expenses.toFixed(2);
+                    totalBar.dataset.net = data.weekly_balance.toFixed(2);
+                    totalBar.dataset.running = data.running_balance.toFixed(2);
+                }
                 
                 // Update transactions
                 console.log('Updating transactions:', data.income_entries.length + data.expense_entries.length + ' total');
@@ -100,6 +100,16 @@ function loadWeekData(offset) {
                     window.filterTransactions(window.currentFilterType);
                 } else if (window.filterTransactions) {
                     window.filterTransactions('all');
+                }
+                
+                // Update total bar display after filtering
+                if (window.updateTransactionTotalsDisplay && totalBar) {
+                    const currentFilter = window.currentFilterType || 'all';
+                    window.updateTransactionTotalsDisplay(currentFilter, {
+                        incomeTotal: data.weekly_income,
+                        expenseTotal: data.weekly_expenses,
+                        visibleCount: data.income_entries.length + data.expense_entries.length
+                    });
                 }
                 
                 // Re-initialize transaction card event listeners after updating
@@ -115,13 +125,17 @@ function loadWeekData(offset) {
             } else {
                 console.error('Failed to load week data:', data);
                 console.error('Response structure:', JSON.stringify(data, null, 2));
-                weekLabel.textContent = 'Error Loading Week';
+                if (weekLabel) {
+                    weekLabel.textContent = 'Error Loading Week';
+                }
             }
         })
         .catch(error => {
             console.error('Error loading week data:', error);
             console.error('Error details:', error.message);
-            weekLabel.textContent = 'Network Error';
+            if (weekLabel) {
+                weekLabel.textContent = 'Network Error';
+            }
         });
 }
 
@@ -129,7 +143,7 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
     console.log('Updating transactions container with:', incomeEntries.length, 'income,', expenseEntries.length, 'expense entries');
     
     // Find the transaction list content container (always exists now)
-    const container = document.querySelector('.transaction-list-content');
+    const container = document.querySelector('.transaction-list-content') || document.querySelector('.payee-list-content');
     
     if (!container) {
         console.error('Transaction list content container not found');
@@ -155,90 +169,156 @@ function updateTransactionsList(incomeEntries, expenseEntries) {
     }
     
     // Add income transactions
+    const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     incomeEntries.forEach(income => {
+        const payeeAttr = escapeHtml(income.payee || '');
+        const notesAttr = escapeHtml(income.notes || '');
+        const payeeName = escapeHtml(income.payee || 'Unnamed Income');
+        const noteMarkup = income.notes ? `<small class="transaction-note transaction-meta text-muted d-none d-xl-inline">${escapeHtml(income.notes)}</small>` : '';
+        const amountDisplay = escapeHtml(income.amount_display || `+$${Number(income.amount || 0).toFixed(2)}`);
+
         const transactionHtml = `
-            <div class="transaction-card transaction-card-data" 
+            <div class="transaction-card transaction-card-data payee-row payee-card" 
                  data-transaction-id="${income.id}" 
                  data-transaction-type="income"
                  data-transaction-date="${income.date}"
-                 data-transaction-payee="${income.payee.replace(/"/g, '&quot;')}"
+                 data-transaction-payee="${payeeAttr}"
                  data-transaction-amount="${income.amount}"
-                 data-transaction-notes="${(income.notes || '').replace(/"/g, '&quot;')}"
+                 data-transaction-notes="${notesAttr}"
                  onclick="selectTransaction(this)">
-                <div class="transaction-col transaction-date">${formatTransactionDate(income.date)}</div>
-                <div class="transaction-col transaction-payee">${income.payee}</div>
-                <div class="transaction-col transaction-amount">+$${parseFloat(income.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+                <div class="payee-cell transaction-date-cell text-muted">${formatTransactionDate(income.date)}</div>
+                <div class="payee-cell payee-cell-info transaction-info-cell">
+                    <span class="transaction-payee-name transaction-name">${payeeName}</span>
+                    ${noteMarkup}
+                </div>
+                <div class="payee-cell transaction-amount-cell text-end">
+                    <span class="transaction-amount text-success">${amountDisplay}</span>
+                </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
     });
-    
+
     // Add expense transactions
     expenseEntries.forEach(expense => {
+        const payeeAttr = escapeHtml(expense.payee || '');
+        const notesAttr = escapeHtml(expense.notes || '');
+        const payeeName = escapeHtml(expense.payee || 'Unnamed Expense');
+        const noteMarkup = expense.notes ? `<small class="transaction-note transaction-meta text-muted d-none d-xl-inline">${escapeHtml(expense.notes)}</small>` : '';
+        const amountDisplay = escapeHtml(expense.amount_display || `-$${Number(expense.amount || 0).toFixed(2)}`);
+
         const transactionHtml = `
-            <div class="transaction-card transaction-card-data" 
+            <div class="transaction-card transaction-card-data payee-row payee-card" 
                  data-transaction-id="${expense.id}" 
                  data-transaction-type="expense"
                  data-transaction-date="${expense.date}"
-                 data-transaction-payee="${expense.payee.replace(/"/g, '&quot;')}"
+                 data-transaction-payee="${payeeAttr}"
                  data-transaction-amount="${expense.amount}"
-                 data-transaction-notes="${(expense.notes || '').replace(/"/g, '&quot;')}"
+                 data-transaction-notes="${notesAttr}"
                  onclick="selectTransaction(this)">
-                <div class="transaction-col transaction-date">${formatTransactionDate(expense.date)}</div>
-                <div class="transaction-col transaction-payee">${expense.payee}</div>
-                <div class="transaction-col transaction-amount">-$${parseFloat(expense.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+                <div class="payee-cell transaction-date-cell text-muted">${formatTransactionDate(expense.date)}</div>
+                <div class="payee-cell payee-cell-info transaction-info-cell">
+                    <span class="transaction-payee-name transaction-name">${payeeName}</span>
+                    ${noteMarkup}
+                </div>
+                <div class="payee-cell transaction-amount-cell text-end">
+                    <span class="transaction-amount text-danger">${amountDisplay}</span>
+                </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', transactionHtml);
     });
-    
+
     console.log('Transactions list updated successfully');
 }
 
 // Function to show transaction details
 function showTransactionDetails(transactionCard) {
     const detailsPanel = document.getElementById('transaction-details-panel');
-    const transactionId = transactionCard.dataset.transactionId;
-    
-    // Extract data from the transaction card
-    const date = transactionCard.querySelector('.transaction-col.transaction-date').textContent;
-    const payee = transactionCard.querySelector('.transaction-col.transaction-payee').textContent;
-    const amount = transactionCard.querySelector('.transaction-col.transaction-amount').textContent;
-    const type = amount.startsWith('+') ? 'Income' : 'Expense';
-    
-    // Update the details panel
-    document.getElementById('detail-date').textContent = date;
-    document.getElementById('detail-payee').textContent = payee;
-    document.getElementById('detail-amount').textContent = amount;
-    document.getElementById('detail-type').textContent = type;
-    
-    // Show the panel - use flex instead of block to maintain layout
-    detailsPanel.style.display = 'flex';
+    const detailContent = document.getElementById('transaction-detail-content');
+
+    if (detailContent) {
+        detailContent.hidden = false;
+    }
+
+    if (detailsPanel) {
+        detailsPanel.style.display = 'flex';
+    }
+
+    const payeeName = (transactionCard.dataset.transactionPayee || transactionCard.querySelector('.transaction-payee-name')?.textContent || 'Transaction').trim() || 'Transaction';
+    const notes = (transactionCard.dataset.transactionNotes || '').trim();
+    const rawDate = transactionCard.dataset.transactionDate || '-';
+    const type = (transactionCard.dataset.transactionType || '-').toLowerCase();
+    const numericAmount = Number(transactionCard.dataset.transactionAmount || 0);
+    const formattedAmount = typeof formatCurrency === 'function' ? formatCurrency(Math.abs(numericAmount)) : `$${Math.abs(numericAmount).toFixed(2)}`;
+    let amountDisplay = formattedAmount;
+    if (type === 'expense' && numericAmount >= 0) {
+        amountDisplay = '-' + formattedAmount;
+    } else if (type === 'income' && numericAmount >= 0) {
+        amountDisplay = '+' + formattedAmount;
+    }
+
+    document.getElementById('detail-payee').textContent = payeeName;
+    let formattedDate = '-';
+    if (rawDate && rawDate !== '-') {
+        formattedDate = typeof formatTransactionDate === 'function' ? formatTransactionDate(rawDate) : rawDate;
+    }
+    document.getElementById('detail-date').textContent = formattedDate || '-';
+    document.getElementById('detail-type').textContent = type ? type.charAt(0).toUpperCase() + type.slice(1) : '-';
+    document.getElementById('detail-amount').textContent = amountDisplay;
+    if (typeof setTransactionNotesContent === 'function') {
+        setTransactionNotesContent(notes);
+    } else {
+        const notesEl = document.getElementById('detail-notes');
+        if (notesEl) {
+            const hasNotes = Boolean(notes);
+            const content = hasNotes ? notes : 'No description added yet';
+            notesEl.textContent = content;
+            if (hasNotes) {
+                notesEl.classList.remove('text-muted', 'fst-italic');
+            } else {
+                notesEl.classList.add('text-muted', 'fst-italic');
+            }
+        }
+    }
 }
 
 // Function to hide transaction details
 function hideTransactionDetails() {
     console.log('Resetting transaction details panel');
     const detailsPanel = document.getElementById('transaction-details-panel');
-    if (detailsPanel) {
-        // Reset panel content to default values
-        document.getElementById('detail-date').textContent = 'Select a transaction';
-        document.getElementById('detail-payee').textContent = 'to view details';
-        document.getElementById('detail-amount').textContent = '$0.00';
-        document.getElementById('detail-type').textContent = '-';
-        document.getElementById('detail-notes').textContent = '-';
-        
-        // Disable action buttons
-        const editBtn = document.getElementById('edit-transaction-btn');
-        const deleteBtn = document.getElementById('delete-transaction-btn');
-        if (editBtn) editBtn.disabled = true;
-        if (deleteBtn) deleteBtn.disabled = true;
+    const detailContent = document.getElementById('transaction-detail-content');
+
+    if (detailContent) {
+        detailContent.hidden = true;
     }
-    
-    // Clear all selections
+
+    if (detailsPanel) {
+        detailsPanel.style.display = '';
+    }
+
+    document.getElementById('detail-payee').textContent = 'Select a transaction';
+    document.getElementById('detail-date').textContent = '-';
+    document.getElementById('detail-amount').textContent = '$0.00';
+    document.getElementById('detail-type').textContent = '-';
+    if (typeof setTransactionNotesContent === 'function') {
+        setTransactionNotesContent('');
+    } else {
+        const notesEl = document.getElementById('detail-notes');
+        if (notesEl) {
+            notesEl.textContent = 'No description added yet';
+            notesEl.classList.add('text-muted', 'fst-italic');
+        }
+    }
+
+    const editBtn = document.getElementById('edit-transaction-btn');
+    const deleteBtn = document.getElementById('delete-transaction-btn');
+    if (editBtn) editBtn.disabled = true;
+    if (deleteBtn) deleteBtn.disabled = true;
+
     const activeCards = document.querySelectorAll('.transaction-card-data.selected');
     if (activeCards.length > 0) {
-        console.log('Clearing', activeCards.length, 'selected transaction cards');
         activeCards.forEach(card => card.classList.remove('selected'));
     }
 }

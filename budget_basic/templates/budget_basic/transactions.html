@@ -14,14 +14,16 @@
 {% endblock %}
 
 {% block content %}
+<!-- Content Wrapper for Centering -->
 <div class="content-wrapper transactions-content payees-content">
     <div class="page-heading mb-3">
         <div class="page-heading-main">
-            <h1 class="page-title">Transactions</h1>
+            <h1 class="page-title">All Transactions</h1>
             <div class="page-heading-divider" aria-hidden="true"></div>
             <p class="page-heading-description mb-0">Review every income and expense entry and drill into the details without losing your place.</p>
         </div>
     </div>
+
     <div class="card flex-grow-1" id="transactions-card">
         <div class="payees-panel">
             <div class="payee-list-panel" id="transaction-list">
@@ -30,7 +32,7 @@
                         <span>Transactions</span>
                     </div>
                     <div class="panel-header-actions">
-                        <div class="d-none d-lg-block" style="max-width: 220px;">
+                        <div style="max-width: 220px;">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="handleTransactionSearch(this.value)">
@@ -40,8 +42,6 @@
                             <i class="bi bi-plus-circle me-1"></i>
                             <span>Add</span>
                         </button>
-                        </div>
-                        </div>
                         <div class="dropdown ms-2">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
                                 <i class="bi bi-funnel me-1"></i>
@@ -52,17 +52,6 @@
                                 <li><a class="dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
                             </ul>
-                        </div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-bs-toggle="collapse" data-bs-target="#transactionSearchBar" aria-expanded="false" aria-controls="transactionSearchBar" title="Search Transactions">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="collapse d-lg-none" id="transactionSearchBar">
-                    <div class="search-bar-wrapper">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" placeholder="Search transactions..." oninput="handleTransactionSearch(this.value)">
                         </div>
                     </div>
                 </div>
@@ -110,6 +99,22 @@
                     {% endif %}
                     </div>
                 </div>
+
+                <div class="transaction-total-bar" id="transaction-total-bar"
+                     data-income="{{ total_income|floatformat:'2' }}"
+                     data-expense="{{ total_expenses|floatformat:'2' }}"
+                     data-net="{{ net_balance|floatformat:'2' }}">
+                    <div class="transaction-total-text">
+                        <span class="transaction-total-label" id="transaction-total-label">Net Balance</span>
+                        <small class="transaction-total-subtext" id="transaction-total-subtext">
+                            All time: Income ${{ total_income|floatformat:2|intcomma }} - Expenses ${{ total_expenses|floatformat:2|intcomma }}
+                        </small>
+                    </div>
+                    <div class="transaction-total-value" id="transaction-total-value">
+                        {% if net_balance >= 0 %}+{% else %}-{% endif %}${{ net_balance|floatformat:2|intcomma|cut:"-" }}
+                    </div>
+                </div>
+
             </div>
 
             <div class="panel-resizer" id="panel-resizer">
@@ -118,7 +123,7 @@
 
             <div class="transaction-details-panel payee-detail-panel details-panel" id="transaction-details-panel">
                 <div class="panel-header">
-                    <div class="panel-title">Transaction Details</div>
+                    <div class="panel-title">Details</div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTransactionSelection()">
                         <i class="bi bi-x"></i>
                     </button>
@@ -133,36 +138,44 @@
                             <small>Details will appear here after you pick one</small>
                         </div>
                         <div id="transaction-detail-content" class="detail-content" hidden>
-                        <div class="detail-heading">
-                            <h2 class="detail-name" id="detail-payee">Select a transaction</h2>
-                            <div class="detail-meta">
-                                <div class="detail-meta-item">
-                                    <span class="detail-meta-label">Date</span>
-                                    <span class="detail-meta-value" id="detail-date">-</span>
+                            <div class="detail-heading">
+                                <span class="detail-heading-label">Transaction</span>
+                                <h2 class="detail-name" id="detail-payee">Select a transaction</h2>
+                            </div>
+                            <div class="detail-section detail-section-primary">
+                                <span class="detail-section-label">Summary</span>
+                                <div class="detail-section-body">
+                                    <dl class="detail-info-grid mb-0">
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Date</dt>
+                                            <dd class="detail-info-value" id="detail-date">-</dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Type</dt>
+                                            <dd class="detail-info-value" id="detail-type">-</dd>
+                                        </div>
+                                        <div class="detail-info-item">
+                                            <dt class="detail-info-label">Amount</dt>
+                                            <dd class="detail-info-value" id="detail-amount">$0.00</dd>
+                                        </div>
+                                    </dl>
                                 </div>
-                                <div class="detail-meta-item">
-                                    <span class="detail-meta-label">Type</span>
-                                    <span class="detail-meta-value" id="detail-type">-</span>
+                            </div>
+                            <div class="detail-section detail-section-primary" id="transaction-notes-section">
+                                <span class="detail-section-label">Notes</span>
+                                <div class="detail-section-body">
+                                    <p class="detail-body-text text-muted fst-italic" id="detail-notes">No description added yet</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="detail-section">
-                            <span class="detail-section-label">Amount</span>
-                            <div class="detail-section-body" id="detail-amount">$0.00</div>
-                        </div>
-                        <div class="detail-section">
-                            <span class="detail-section-label">Notes</span>
-                            <div class="detail-section-body" id="detail-notes">-</div>
-                        </div>
-                        <div class="detail-actions">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
-                                <i class="bi bi-pencil me-1"></i>Edit
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
-                                <i class="bi bi-trash me-1"></i>Delete
-                            </button>
-                        </div>
-                        </div>
+                    </div>
+                    <div class="detail-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="editSelectedTransaction()" disabled>
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="deleteSelectedTransaction()" disabled>
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
                     </div>
                 </div>
             </div>

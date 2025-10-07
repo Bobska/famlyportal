@@ -19,6 +19,15 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="newPayeeType" class="form-label fw-bold">Transaction Type</label>
+                        <select class="form-select" id="newPayeeType" name="transaction_type" required>
+                            <option value="expense" selected>Expense</option>
+                            <option value="income">Income</option>
+                        </select>
+                        <div class="form-text text-muted small">Select whether this merchant is typically for income or expenses</div>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="newPayeeCategories" class="form-label fw-bold">Categories (Optional)</label>
                         <div class="d-flex align-items-end mb-2">
                             <select class="form-select" id="newPayeeCategories" name="categories" multiple>

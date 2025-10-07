@@ -588,6 +588,7 @@ def get_payees(request):
             {
                 'id': p.id, 
                 'name': p.name,
+                'transaction_type': p.transaction_type,
                 'categories': [{'id': cat.id, 'name': cat.name} for cat in p.categories.all()]
             } 
             for p in payees
@@ -661,6 +662,7 @@ def add_payee(request):
     """Add a new payee for the current user with optional category assignment."""
     try:
         payee_name = request.POST.get('name', '').strip()
+        transaction_type = request.POST.get('transaction_type', 'expense')
         category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not payee_name:
@@ -671,7 +673,11 @@ def add_payee(request):
             return JsonResponse({'success': False, 'error': 'Payee already exists'})
         
         # Create new payee
-        payee = Payee.objects.create(user=request.user, name=payee_name)
+        payee = Payee.objects.create(
+            user=request.user, 
+            name=payee_name,
+            transaction_type=transaction_type
+        )
         
         # Assign categories if provided
         if category_ids:
@@ -687,6 +693,7 @@ def add_payee(request):
             'payee': {
                 'id': payee.id, 
                 'name': payee.name,
+                'transaction_type': payee.transaction_type,
                 'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()]
             },
             'message': f'Payee "{payee_name}" added successfully'

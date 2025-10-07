@@ -1649,6 +1649,8 @@ function handlePayeeSelection(selectElement, inputElement) {
 function showPayeeCategories(payeeName) {
     const payeeCategoriesDiv = document.getElementById('payeeCategories');
     const payeeCategoriesList = document.getElementById('payeeCategoriesList');
+    const payeeTypeIndicator = document.getElementById('payeeTypeIndicator');
+    const payeeTypeBadge = document.getElementById('payeeTypeBadge');
     
     if (!payeeCategoriesDiv || !payeeCategoriesList) {
         return; // Elements not found, might be on a different page
@@ -1657,31 +1659,55 @@ function showPayeeCategories(payeeName) {
     // Find the payee in the cache
     const selectedPayee = payeeCache.find(payee => payee.name === payeeName);
     
-    if (selectedPayee && selectedPayee.categories && selectedPayee.categories.length > 0) {
-        // Clear existing categories
-        payeeCategoriesList.innerHTML = '';
+    if (selectedPayee) {
+        // Show transaction type badge
+        if (payeeTypeIndicator && payeeTypeBadge) {
+            const typeText = selectedPayee.transaction_type === 'income' ? 'Income Merchant' : 'Expense Merchant';
+            const badgeClass = selectedPayee.transaction_type === 'income' ? 'badge bg-success' : 'badge bg-primary';
+            
+            payeeTypeBadge.textContent = typeText;
+            payeeTypeBadge.className = badgeClass;
+            payeeTypeIndicator.style.display = 'block';
+        }
         
-        // Add each category as a badge
-        selectedPayee.categories.forEach(category => {
-            const categoryBadge = document.createElement('span');
-            categoryBadge.className = 'badge bg-secondary me-1 mb-1';
-            categoryBadge.textContent = category.name;
-            payeeCategoriesList.appendChild(categoryBadge);
-        });
-        
-        // Show the categories section
-        payeeCategoriesDiv.style.display = 'block';
+        // Show categories if available
+        if (selectedPayee.categories && selectedPayee.categories.length > 0) {
+            // Clear existing categories
+            payeeCategoriesList.innerHTML = '';
+            
+            // Add each category as a badge
+            selectedPayee.categories.forEach(category => {
+                const categoryBadge = document.createElement('span');
+                categoryBadge.className = 'badge bg-secondary me-1 mb-1';
+                categoryBadge.textContent = category.name;
+                payeeCategoriesList.appendChild(categoryBadge);
+            });
+            
+            // Show the categories section
+            payeeCategoriesDiv.style.display = 'block';
+        } else {
+            // No categories found, hide the section
+            payeeCategoriesDiv.style.display = 'none';
+        }
     } else {
-        // No categories found, hide the section
+        // No payee found, hide everything
         hidePayeeCategories();
+        if (payeeTypeIndicator) {
+            payeeTypeIndicator.style.display = 'none';
+        }
     }
 }
 
 // Hide payee categories section
 function hidePayeeCategories() {
     const payeeCategoriesDiv = document.getElementById('payeeCategories');
+    const payeeTypeIndicator = document.getElementById('payeeTypeIndicator');
+    
     if (payeeCategoriesDiv) {
         payeeCategoriesDiv.style.display = 'none';
+    }
+    if (payeeTypeIndicator) {
+        payeeTypeIndicator.style.display = 'none';
     }
 }
 

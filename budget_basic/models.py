@@ -74,8 +74,19 @@ class Payee(models.Model):
     The unique constraint prevents duplicate payees per user so dropdowns stay clean
     across the UI. Many-to-many relationship with categories allows flexible categorization.
     """
+    TRANSACTION_TYPE_CHOICES = [
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
+    transaction_type = models.CharField(
+        max_length=10,
+        choices=TRANSACTION_TYPE_CHOICES,
+        default='expense',
+        help_text="Whether this merchant is typically used for income or expenses"
+    )
     categories = models.ManyToManyField(
         Category, 
         blank=True, 

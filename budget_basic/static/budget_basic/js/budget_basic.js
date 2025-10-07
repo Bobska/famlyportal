@@ -269,15 +269,20 @@ function updateTransactionModalForType(type) {
     // Reload categories for the selected transaction type
     loadCategoriesForModal('transactionCategorySelect', type);
     
-    // Reset category selection and reload all payees when transaction type changes
+    // Reset category selection and filter payees by transaction type
     const categorySelect = document.getElementById('transactionCategorySelect');
     const payeeSelect = document.getElementById('transactionPayeeSelect');
     if (categorySelect && payeeSelect) {
         categorySelect.value = ''; // Clear category selection
         payeeSelect.value = '';   // Clear payee selection
-        loadPayeesForModal('transactionPayeeSelect'); // Reload all payees
+        
+        // Filter payees by transaction type
+        filterPayeesByType('transactionPayeeSelect', type);
+        
+        // Hide payee categories and type indicator when cleared
+        hidePayeeCategories();
     }
-
+}
     if (typeof setAutoDate === 'function') {
         setAutoDate('transactionDate', type);
     } else {
@@ -1599,6 +1604,33 @@ function updatePayeeSelectById(selectId) {
     });
 }
 
+// Filter payees by transaction type and update payee dropdown
+function filterPayeesByType(selectId, type) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options (except first one)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    // Filter payees by transaction type
+    const filteredPayees = payeeCache.filter(payee => payee.transaction_type === type);
+    
+    if (filteredPayees.length > 0) {
+        // Add only payees matching the transaction type
+        filteredPayees.forEach(payee => {
+            const option = document.createElement('option');
+            option.value = payee.name;
+            option.textContent = payee.name;
+            select.appendChild(option);
+        });
+    } else {
+        // No payees of this type - leave dropdown empty
+        select.value = '';
+    }
+}
+
 // Update all payee select elements
 function updatePayeeSelects() {
     const incomeSelect = document.getElementById('incomePayeeSelect');
@@ -2346,6 +2378,19 @@ async function showAddPayeeModal(modalType) {
     const alertContainer = document.getElementById('addPayeeAlertContainer');
     if (alertContainer) {
         alertContainer.innerHTML = '';
+    }
+    
+    // Pre-populate transaction type based on modalType
+    const newPayeeType = document.getElementById('newPayeeType');
+    if (newPayeeType) {
+        // Extract transaction type from modalType ('expense', 'income', 'edit-expense', 'edit-income')
+        if (modalType && typeof modalType === 'string') {
+            if (modalType.includes('income')) {
+                newPayeeType.value = 'income';
+            } else if (modalType.includes('expense')) {
+                newPayeeType.value = 'expense';
+            }
+        }
     }
     
     // Load categories for selection

@@ -99,6 +99,7 @@
                     <div class="payee-row payee-card"
                          data-payee-id="{{ payee.id }}"
                          data-payee-name="{{ payee.name|escapejs }}"
+                         data-payee-type="{{ payee.transaction_type }}"
                          data-payee-categories="{{ payee.get_categories_display|escapejs }}"
                          data-payee-category-ids="{% for cat in payee.categories.all %}{{ cat.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
                          data-payee-created="{{ payee.created_at|date:"Y-m-d" }}"
@@ -109,8 +110,13 @@
                                 <div class="payee-avatar me-3">
                                     <i class="bi bi-person-circle text-muted"></i>
                                 </div>
-                                <div>
-                                    <div class="payee-name">{{ payee.name }}</div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="payee-name">{{ payee.name }}</div>
+                                        <span class="badge {% if payee.transaction_type == 'income' %}bg-success{% else %}bg-primary{% endif %} ms-2">
+                                            {% if payee.transaction_type == 'income' %}Income{% else %}Expense{% endif %}
+                                        </span>
+                                    </div>
                                     {% if payee.categories.exists %}
                                         <div class="payee-categories">
                                             {% for category in payee.categories.all %}
@@ -152,6 +158,10 @@
                         <div class="detail-heading">
                             <h2 class="detail-name" id="detail-payee-name"></h2>
                             <div class="detail-meta">
+                                <div class="detail-meta-item">
+                                    <span class="detail-meta-label">Type</span>
+                                    <span class="detail-meta-value" id="detail-payee-type"></span>
+                                </div>
                                 <div class="detail-meta-item">
                                     <span class="detail-meta-label">Date added</span>
                                     <span class="detail-meta-value" id="detail-payee-created"></span>
@@ -241,6 +251,14 @@
                         <label for="edit-payee-name" class="form-label">Payee Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="edit-payee-name" name="name" required>
                         <div class="form-text">Update the name of this payee</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-payee-type" class="form-label">Transaction Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit-payee-type" name="transaction_type" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                        </select>
+                        <div class="form-text">Select whether this merchant is typically for income or expenses</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit-payee-categories" class="form-label">Categories</label>
@@ -343,6 +361,7 @@ function selectPayee(card, event) {
 
     const payeeId = card.getAttribute('data-payee-id');
     const payeeName = card.getAttribute('data-payee-name');
+    const payeeType = card.getAttribute('data-payee-type');
     const payeeCreated = card.getAttribute('data-payee-created');
     const payeeUpdated = card.getAttribute('data-payee-updated');
     const payeeCategories = card.getAttribute('data-payee-categories');
@@ -376,6 +395,7 @@ function selectPayee(card, event) {
     currentPayeeData = {
         id: payeeId,
         name: payeeName,
+        type: payeeType,
         categories: payeeCategories,
         categoryIds: payeeCategoryIds ? payeeCategoryIds.split(',').filter(id => id.trim()) : []
     };
@@ -392,6 +412,15 @@ function selectPayee(card, event) {
     }
 
     document.getElementById('detail-payee-name').textContent = payeeName;
+    
+    // Display transaction type with badge
+    const payeeTypeElement = document.getElementById('detail-payee-type');
+    if (payeeTypeElement) {
+        const typeText = payeeType === 'income' ? 'Income' : 'Expense';
+        const badgeClass = payeeType === 'income' ? 'badge bg-success' : 'badge bg-primary';
+        payeeTypeElement.innerHTML = `<span class="${badgeClass}">${typeText}</span>`;
+    }
+    
     document.getElementById('detail-payee-created').textContent = formatDate(payeeCreated);
     document.getElementById('detail-payee-updated').textContent = formatDate(payeeUpdated);
 
@@ -468,6 +497,14 @@ function showEditPayeeModal(payeeId, payeeName) {
     
     // Populate name field
     document.getElementById('edit-payee-name').value = payeeName;
+    
+    // Populate transaction type if currentPayeeData is available
+    const typeSelect = document.getElementById('edit-payee-type');
+    if (currentPayeeData && currentPayeeData.type) {
+        typeSelect.value = currentPayeeData.type;
+    } else {
+        typeSelect.value = 'expense'; // default
+    }
     
     // Populate categories if currentPayeeData is available
     const categoriesSelect = document.getElementById('edit-payee-categories');
@@ -708,6 +745,7 @@ function updatePayeeInList(payeeId, payeeData) {
     const payeeCard = document.querySelector(`[data-payee-id="${payeeId}"]`);
     if (payeeCard) {
         payeeCard.setAttribute('data-payee-name', payeeData.name);
+        payeeCard.setAttribute('data-payee-type', payeeData.transaction_type || 'expense');
         payeeCard.setAttribute('data-payee-categories', payeeData.categories_display || 'No categories');
         payeeCard.setAttribute('data-payee-category-ids', payeeData.categories ? payeeData.categories.map(c => c.id).join(',') : '');
 
@@ -722,35 +760,62 @@ function updatePayeeInList(payeeId, payeeData) {
         if (nameElement) {
             nameElement.textContent = payeeData.name;
         }
-
+        
+        // Update transaction type badge in list
         const payeeContainer = payeeCard.querySelector('.payee-cell.payee-cell-info > .d-flex > div:last-child');
         if (payeeContainer) {
+            const typeText = payeeData.transaction_type === 'income' ? 'Income' : 'Expense';
+            const badgeClass = payeeData.transaction_type === 'income' ? 'bg-success' : 'bg-primary';
+            
+            // Update the name row with type badge
+            const nameRow = payeeContainer.querySelector('.d-flex.align-items-center.justify-content-between');
+            if (nameRow) {
+                const existingBadge = nameRow.querySelector('.badge');
+                if (existingBadge) {
+                    existingBadge.className = `badge ${badgeClass} ms-2`;
+                    existingBadge.textContent = typeText;
+                }
+            }
+        }
+
+        const payeeContainerInner = payeeCard.querySelector('.payee-cell.payee-cell-info > .d-flex > div:last-child');
+        if (payeeContainerInner) {
             let categoriesHtml = '';
             if (payeeData.categories && payeeData.categories.length > 0) {
                 const categoryBadges = payeeData.categories.map(cat =>
                     `<span class="badge bg-light text-dark me-1">${cat.name}</span>`
                 ).join('');
                 categoriesHtml = `<div class="payee-categories">${categoryBadges}</div>`;
-            } else {
-                categoriesHtml = `<small class="text-muted">No categories</small>`;
             }
 
-            const existingCategories = payeeContainer.querySelector('.payee-categories, small');
+            const existingCategories = payeeContainerInner.querySelector('.payee-categories');
             if (existingCategories) {
                 existingCategories.remove();
             }
-
-            payeeContainer.insertAdjacentHTML('beforeend', categoriesHtml);
+            
+            if (categoriesHtml) {
+                payeeContainerInner.insertAdjacentHTML('beforeend', categoriesHtml);
+            }
         }
 
         if (payeeCard === selectedPayeeCard) {
             document.getElementById('detail-payee-name').textContent = payeeData.name;
+            
+            // Update transaction type in detail panel
+            const payeeTypeElement = document.getElementById('detail-payee-type');
+            if (payeeTypeElement) {
+                const typeText = payeeData.transaction_type === 'income' ? 'Income' : 'Expense';
+                const badgeClass = payeeData.transaction_type === 'income' ? 'badge bg-success' : 'badge bg-primary';
+                payeeTypeElement.innerHTML = `<span class="${badgeClass}">${typeText}</span>`;
+            }
+            
             document.getElementById('detail-payee-created').textContent = formatDate(payeeCard.getAttribute('data-payee-created'));
             document.getElementById('detail-payee-updated').textContent = formatDate(payeeCard.getAttribute('data-payee-updated'));
 
             currentPayeeData = {
                 id: payeeId,
                 name: payeeData.name,
+                type: payeeData.transaction_type,
                 categories: payeeData.categories_display,
                 categoryIds: payeeData.categories ? payeeData.categories.map(c => c.id.toString()) : []
             };

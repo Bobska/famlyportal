@@ -844,6 +844,7 @@ def payee_update(request, payee_id):
     try:
         payee = Payee.objects.get(id=payee_id, user=request.user)
         new_name = request.POST.get('name', '').strip()
+        transaction_type = request.POST.get('transaction_type', 'expense')
         category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not new_name:
@@ -861,6 +862,7 @@ def payee_update(request, payee_id):
         
         old_name = payee.name
         payee.name = new_name
+        payee.transaction_type = transaction_type
         payee.save()
         
         # Update categories
@@ -877,6 +879,7 @@ def payee_update(request, payee_id):
             'payee': {
                 'id': payee.id,
                 'name': payee.name,
+                'transaction_type': payee.transaction_type,
                 'categories_display': payee.get_categories_display(),
                 'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()],
                 'updated_at': payee.updated_at.strftime('%Y-%m-%d %H:%M')

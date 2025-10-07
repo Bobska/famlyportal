@@ -580,21 +580,59 @@ def email_detail(request, email_id: int):
             ct = ContentType.objects.get_for_model(EmailMessage)
             extraction = InvoiceExtraction.objects.filter(content_type=ct, object_id=email.pk).order_by('-created_at').first()
             if extraction:
-                # Update fields from form
+                # Update basic fields from form
                 extraction.provider_name = request.POST.get('provider_name', '')
                 extraction.invoice_number = request.POST.get('invoice_number', '')
+                extraction.reference_number = request.POST.get('reference_number', '')
+                
+                # Update dates
                 due = request.POST.get('due_date')
                 if due:
                     try:
                         extraction.due_date = date.fromisoformat(due)
                     except Exception:
                         pass
-                amount = request.POST.get('amount')
-                try:
-                    from decimal import Decimal
-                    extraction.amount = Decimal(amount) if amount else extraction.amount
-                except Exception:
-                    pass
+                
+                issue = request.POST.get('issue_date')
+                if issue:
+                    extraction.raw_fields = extraction.raw_fields or {}
+                    extraction.raw_fields['issue_date'] = issue
+                
+                # Parse line items from form
+                line_item_types = request.POST.getlist('line_item_type[]')
+                line_item_descriptions = request.POST.getlist('line_item_description[]')
+                line_item_amounts = request.POST.getlist('line_item_amount[]')
+                
+                line_items = []
+                current_invoice_total = Decimal('0')
+                total_amount = Decimal('0')
+                
+                for i, (item_type, desc, amt_str) in enumerate(zip(line_item_types, line_item_descriptions, line_item_amounts)):
+                    try:
+                        amt = Decimal(amt_str) if amt_str else Decimal('0')
+                        line_items.append({
+                            'type': item_type,
+                            'description': desc,
+                            'amount': float(amt)
+                        })
+                        
+                        # Calculate totals
+                        total_amount += amt
+                        if item_type != 'previous_balance':
+                            current_invoice_total += amt
+                    except Exception:
+                        pass
+                
+                extraction.line_items = line_items
+                extraction.current_invoice_total = current_invoice_total
+                extraction.amount = total_amount
+                
+                # Store child ID if provided
+                child_id = request.POST.get('child_id')
+                if child_id:
+                    extraction.raw_fields = extraction.raw_fields or {}
+                    extraction.raw_fields['child_id'] = child_id
+                
                 extraction.verified_at = timezone.now()
                 extraction.verified_by = request.user
                 extraction.status = 'complete'
@@ -618,8 +656,12 @@ def email_detail(request, email_id: int):
                     features={
                         'provider_name': extraction.provider_name,
                         'invoice_number': extraction.invoice_number,
+                        'reference_number': extraction.reference_number,
                         'due_date': due_date_str,
                         'amount': float(extraction.amount) if extraction.amount is not None else None,
+                        'current_invoice_total': float(extraction.current_invoice_total) if extraction.current_invoice_total is not None else None,
+                        'line_items': extraction.line_items,  # Include for AI to learn invoice structure
+                        'child_id': child_id,
                         'sender_email': email.sender_email,
                         'subject': email.subject,
                     },
@@ -636,11 +678,18 @@ def email_detail(request, email_id: int):
         last_extraction = InvoiceExtraction.objects.filter(content_type=email_ct, object_id=email.pk).order_by('-created_at').first()
     except Exception:
         last_extraction = None
+    
+    # Get family children for the child selector
+    family_children = FamilyMember.objects.filter(
+        family=family,
+        role='child'
+    ).select_related('user').order_by('user__first_name', 'user__username')
 
     context = {
         'email': email,
         'latest_prediction': latest_pred,
         'extraction': analysis_result or last_extraction,
+        'family_children': family_children,
     }
     return render(request, 'daycare_invoices/email_detail.html', context)
 

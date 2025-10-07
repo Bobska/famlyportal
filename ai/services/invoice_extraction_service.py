@@ -144,6 +144,29 @@ def _parse_amount(text: str) -> Optional[Decimal]:
     return None
 
 
+def _parse_issue_date(text: str) -> Optional[date]:
+    """Parse issue/issued date from invoice."""
+    patterns = [
+        # "Issued: 29 September 2025"
+        (r"(?i)issued?[:\s]+(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})", "%d %B %Y"),
+        (r"(?i)issued?[:\s]+([A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4})", "%B %d, %Y"),
+        (r"(?i)issued?[:\s]+([A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4})", "%b %d, %Y"),
+        # Date formats
+        (r"(?i)(?:invoice date|date)[:\s]+(\d{1,2}/\d{1,2}/\d{4})", "%d/%m/%Y"),
+        (r"(?i)(?:invoice date|date)[:\s]+(\d{4}-\d{2}-\d{2})", "%Y-%m-%d"),
+    ]
+    
+    for pattern, date_format in patterns:
+        m = re.search(pattern, text)
+        if m:
+            val = m.group(1).replace(',', '').strip()
+            try:
+                return datetime.strptime(val, date_format).date()
+            except ValueError:
+                continue
+    return None
+
+
 def _parse_due_date(text: str) -> Optional[date]:
     """Parse due dates with multiple format strategies."""
     patterns = [
@@ -176,22 +199,48 @@ def _parse_due_date(text: str) -> Optional[date]:
 
 
 def _parse_invoice_number(text: str) -> Optional[str]:
-    """Parse invoice numbers with flexible patterns."""
+    """Parse invoice numbers with flexible patterns, handling multi-line breaks."""
+    # Remove line breaks within fields (common in PDF extraction)
+    text_cleaned = re.sub(r'(\d{3,})\n(\d{3,})', r'\1\2', text)
+    
     patterns = [
+        # INV 78969993 or INV 7896993 (with potential line breaks)
+        r"(?i)INV\s+([0-9]{5,10})",
         r"(?i)invoice\s*(?:number|no\.?|#)?[:\s]*([A-Za-z0-9-]{3,20})",
         r"(?i)inv\.?\s*(?:no\.?|#)?[:\s]*([A-Za-z0-9-]{3,20})",
-        r"(?i)(?:reference|ref)\s*(?:no\.?|#)?[:\s]*([A-Za-z0-9-]{3,20})",
         r"(?i)bill\s*(?:no\.?|#)?[:\s]*([A-Za-z0-9-]{3,20})",
         r"#([A-Za-z0-9-]{4,20})",  # Standalone # followed by alphanumeric
     ]
     
     for pattern in patterns:
-        m = re.search(pattern, text)
+        m = re.search(pattern, text_cleaned)
         if m:
             num = m.group(1).strip()
             # Filter out common false positives
             if num.lower() not in ['page', 'date', 'total', 'amount']:
                 return num
+    return None
+
+
+def _parse_reference_number(text: str) -> Optional[str]:
+    """Parse reference/child reference numbers (like SG300, 7896993)."""
+    patterns = [
+        # "Reference: SG300" or "Ref: SG300"
+        r"(?i)reference[:\s]+([A-Za-z0-9-]{2,20})",
+        r"(?i)ref[:\s]+([A-Za-z0-9-]{2,20})",
+        # "quoting your child's reference number SG300"
+        r"(?i)reference\s+number[:\s]+([A-Za-z0-9-]{2,20})",
+        # In remittance section
+        r"(?i)Name:[^\n]+Reference:[:\s]+([A-Za-z0-9-]{2,20})",
+    ]
+    
+    for pattern in patterns:
+        m = re.search(pattern, text)
+        if m:
+            ref = m.group(1).strip()
+            # Filter out common false positives
+            if ref.lower() not in ['page', 'invoice', 'statement', 'number']:
+                return ref
     return None
 
 
@@ -225,6 +274,106 @@ def _parse_provider_name(text: str, sender_name: str, sender_email: str) -> str:
     return ''
 
 
+def _parse_line_items(text: str) -> list:
+    """
+    Parse invoice line items (debits, credits, discounts, previous balance).
+    Returns list of dicts: [{"type": "debit|credit|previous_balance|discount", "description": "", "amount": Decimal}]
+    
+    This allows AI to learn different invoice structures without hard-coding formats.
+    """
+    line_items = []
+    processed_amounts = set()  # Track amounts to avoid duplicates
+    
+    # Strategy 1: Look for "Previous Balance" line
+    prev_balance_patterns = [
+        r"(?i)previous\s+balance[:\s]*\$?\s*([0-9,]+\.?\d{0,2})",
+        r"(?i)balance\s+(?:brought\s+)?forward[:\s]*\$?\s*([0-9,]+\.?\d{0,2})",
+        r"(?i)opening\s+balance[:\s]*\$?\s*([0-9,]+\.?\d{0,2})",
+    ]
+    for pattern in prev_balance_patterns:
+        m = re.search(pattern, text)
+        if m:
+            try:
+                amount = Decimal(m.group(1).replace(',', ''))
+                key = f"prev_{amount}"
+                if key not in processed_amounts:
+                    line_items.append({
+                        'type': 'previous_balance',
+                        'description': 'Previous Balance',
+                        'amount': float(amount)
+                    })
+                    processed_amounts.add(key)
+                    break
+            except:
+                pass
+    
+    # Strategy 2: Parse structured table lines
+    # Look for lines with explicit item numbers (1, 2, 3) followed by description and amount
+    table_line_pattern = r"(?m)^\s*(\d+)\s+([^$]+?)\s+(-?\$\s*[0-9,]+\.?\d{0,2})\s*$"
+    for m in re.finditer(table_line_pattern, text):
+        try:
+            item_num = m.group(1)
+            description = m.group(2).strip()
+            amount_str = m.group(3).replace('$', '').replace(',', '').strip()
+            amount = Decimal(amount_str)
+            
+            # Determine if it's a discount/credit based on keywords OR negative amount
+            is_discount = any(word in description.lower() for word in ['discount', 'rebate', 'reduction']) or amount < 0
+            is_credit = any(word in description.lower() for word in ['credit', 'adjustment', 'refund'])
+            
+            # Skip if looks like a total line
+            if any(word in description.lower() for word in ['total', 'amount due', 'balance']):
+                continue
+            
+            key = f"{item_num}_{abs(amount)}"
+            if key not in processed_amounts:
+                if is_discount:
+                    line_items.append({
+                        'type': 'discount',
+                        'description': description[:100],
+                        'amount': -float(abs(amount))  # Discounts are negative
+                    })
+                elif is_credit:
+                    line_items.append({
+                        'type': 'credit',
+                        'description': description[:100],
+                        'amount': -float(abs(amount))  # Credits are negative
+                    })
+                else:
+                    line_items.append({
+                        'type': 'debit',
+                        'description': description[:100],
+                        'amount': float(amount)
+                    })
+                processed_amounts.add(key)
+        except:
+            pass
+    
+    # Strategy 3: Look for explicit "INV" lines if not already captured
+    # Pattern: "Description ... INV 123456 ... $amount"
+    if len(line_items) <= 1:  # Only if we haven't found table items
+        inv_pattern = r"([^$\n]+?INV\s+\d+[^$]+?)\$\s*([0-9,]+\.?\d{0,2})"
+        for m in re.finditer(inv_pattern, text):
+            try:
+                description = m.group(1).strip()
+                amount = Decimal(m.group(2).replace(',', ''))
+                
+                is_discount = 'discount' in description.lower()
+                key = f"inv_{amount}"
+                
+                if key not in processed_amounts:
+                    line_items.append({
+                        'type': 'discount' if is_discount else 'debit',
+                        'description': description[:100],
+                        'amount': -float(amount) if is_discount else float(amount)
+                    })
+                    processed_amounts.add(key)
+            except:
+                pass
+    
+    return line_items
+
+
 def analyze_email_for_invoice(email: EmailMessage, user=None) -> InvoiceExtraction:
     """Lightweight rule-based extraction to bootstrap structured data.
     Stores InvoiceExtraction and returns it.
@@ -236,15 +385,39 @@ def analyze_email_for_invoice(email: EmailMessage, user=None) -> InvoiceExtracti
     combined = f"{subject}\n{body_text}\n\n{pdf_text}"
 
     amount = _parse_amount(combined)
+    issue_date = _parse_issue_date(combined)
     due_date = _parse_due_date(combined)
+    
+    # If no due date found, default to 7 days after issue date
+    if not due_date and issue_date:
+        from datetime import timedelta
+        due_date = issue_date + timedelta(days=7)
+    
     invoice_number = _parse_invoice_number(combined)
+    reference_number = _parse_reference_number(combined)
     provider_name = _parse_provider_name(combined, email.sender_name or '', email.sender_email)
+    
+    # Parse line items for AI learning
+    line_items = _parse_line_items(combined)
+    
+    # Calculate current invoice total (excluding previous balance)
+    current_invoice_total = None
+    if line_items:
+        try:
+            current_charges = sum(
+                Decimal(str(item['amount'])) 
+                for item in line_items 
+                if item['type'] != 'previous_balance'
+            )
+            current_invoice_total = current_charges
+        except:
+            pass
 
     currency = 'USD'
 
-    # Heuristic confidence
-    signals = sum([1 if amount else 0, 1 if due_date else 0, 1 if invoice_number else 0, 1 if provider_name else 0])
-    confidence = 0.3 + 0.175 * signals  # 0.3 to 1.0 with 4 signals
+    # Heuristic confidence (now with 5 signals including reference)
+    signals = sum([1 if amount else 0, 1 if due_date else 0, 1 if invoice_number else 0, 1 if provider_name else 0, 1 if reference_number else 0])
+    confidence = 0.25 + 0.15 * signals  # 0.25 to 1.0 with 5 signals
     confidence = min(confidence, 1.0)
 
     raw_fields = {
@@ -252,6 +425,9 @@ def analyze_email_for_invoice(email: EmailMessage, user=None) -> InvoiceExtracti
         'sender_email': email.sender_email,
         'body_sample': body_text[:500],
         'pdf_text_sample': pdf_text[:1000] if pdf_text else '',  # First 1000 chars for debugging
+        'issue_date': issue_date.isoformat() if issue_date else None,
+        'reference_number': reference_number,
+        'due_date_defaulted': not _parse_due_date(combined) and issue_date is not None,  # Flag if due date was calculated
         # PDF extraction diagnostics
         'pdf_attachments_count': pdf_stats.get('pdf_attachments_count', 0),
         'pdf_downloaded_now': pdf_stats.get('pdf_downloaded_now', 0),
@@ -266,9 +442,12 @@ def analyze_email_for_invoice(email: EmailMessage, user=None) -> InvoiceExtracti
         object_id=email.pk,
         provider_name=provider_name or '',
         invoice_number=invoice_number or '',
+        reference_number=reference_number or '',
         due_date=due_date,
         amount=amount,
+        current_invoice_total=current_invoice_total,
         currency=currency,
+        line_items=line_items,  # Store parsed line items for AI learning
         confidence=confidence,
         raw_fields=raw_fields,
         status='complete',

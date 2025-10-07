@@ -425,9 +425,24 @@ class InvoiceExtraction(models.Model):
 
     provider_name = models.CharField(max_length=255, blank=True)
     invoice_number = models.CharField(max_length=100, blank=True)
+    reference_number = models.CharField(max_length=100, blank=True, help_text='Child/customer reference number (e.g., SG300)')
     due_date = models.DateField(null=True, blank=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='Total amount due (including previous balance)')
+    current_invoice_total = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text='Current invoice charges only (excluding previous balance)'
+    )
     currency = models.CharField(max_length=10, blank=True, default='USD')
+    
+    # Detailed line items for AI learning - captures invoice structure
+    line_items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of invoice line items: [{"type": "debit|credit|previous_balance|discount", "description": "", "amount": 0.00}]'
+    )
 
     confidence = models.FloatField(default=0.0)
     raw_fields = models.JSONField(default=dict, help_text='Unnormalized parsed fields for traceability')

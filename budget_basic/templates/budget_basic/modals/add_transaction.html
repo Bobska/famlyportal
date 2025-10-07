@@ -26,11 +26,23 @@
                     </div>
                     
                     <!-- Primary Fields - Main Focus -->
-                    <div class="mb-3">
-                        <label for="transactionDate" class="form-label fw-bold">Date</label>
-                        <input type="date" class="form-control" id="transactionDate" name="date" required>
+                    <!-- Date and Amount Row -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="transactionDate" class="form-label fw-bold">Date</label>
+                            <input type="date" class="form-control" id="transactionDate" name="date" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="transactionAmount" class="form-label fw-bold">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" class="form-control" id="transactionAmount" name="amount" placeholder="0.00" pattern="[\d,]+\.?\d{0,2}" required>
+                            </div>
+                        </div>
                     </div>
                     
+                    <!-- Merchant Row -->
                     <div class="mb-3">
                         <label for="transactionPayeeSelect" class="form-label fw-bold">
                             <span id="payeeLabel">Merchant</span>
@@ -52,7 +64,8 @@
                         </div>
                     </div>
                     
-                    <div class="mb-3">
+                    <!-- Category Row -->
+                    <div class="mb-4">
                         <label for="transactionCategorySelect" class="form-label fw-bold">Category</label>
                         <div class="d-flex align-items-end mb-2">
                             <select class="form-select" id="transactionCategorySelect" name="category_choice">
@@ -61,16 +74,11 @@
                             <button type="button" class="btn btn-outline-primary ms-2" id="addNewCategoryTransactionBtn" title="Add new category">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" id="linkCategoryToPayeeBtn" title="Link category to merchant" style="display: none;">
+                                <i class="bi bi-link-45deg"></i>
+                            </button>
                         </div>
                         <div class="form-text text-muted small">Categorize this transaction for better organization and reporting</div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="transactionAmount" class="form-label fw-bold">Amount</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="text" class="form-control" id="transactionAmount" name="amount" placeholder="0.00" pattern="[\d,]+\.?\d{0,2}" required>
-                        </div>
                     </div>
                     
                     <!-- Optional Notes - Less Prominent -->

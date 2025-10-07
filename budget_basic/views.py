@@ -696,6 +696,56 @@ def add_payee(request):
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
 
 
+@login_required
+def link_categories_to_payee(request):
+    """Link multiple categories to an existing payee."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    
+    try:
+        payee_id = request.POST.get('payee_id')
+        category_ids = request.POST.getlist('category_ids')
+        
+        if not payee_id:
+            return JsonResponse({'success': False, 'error': 'Payee ID is required'})
+        
+        if not category_ids:
+            return JsonResponse({'success': False, 'error': 'At least one category must be selected'})
+        
+        # Get the payee (ensure it belongs to current user)
+        try:
+            payee = Payee.objects.get(id=payee_id, user=request.user)
+        except Payee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Payee not found'})
+        
+        # Get valid categories (ensure they belong to current user)
+        valid_categories = Category.objects.filter(
+            user=request.user,
+            id__in=category_ids
+        )
+        
+        if not valid_categories.exists():
+            return JsonResponse({'success': False, 'error': 'No valid categories selected'})
+        
+        # Link the categories to the payee
+        payee.categories.set(valid_categories)
+        
+        # Return updated category list
+        categories_data = [
+            {'id': cat.id, 'name': cat.name} 
+            for cat in payee.categories.all()
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully linked {len(categories_data)} category(ies) to {payee.name}',
+            'categories': categories_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
 # ==============================================================================
 # PAYEE MANAGEMENT VIEWS
 # ==============================================================================

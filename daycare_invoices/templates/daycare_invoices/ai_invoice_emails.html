@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI-Classified Daycare Invoice Emails{% endblock %}
+
+{% block extra_css %}
+<style>
+    .subject { max-width: 520px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge-conf { font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row align-items-center mb-3">
+        <div class="col">
+            <h2><i class="fas fa-envelope-open-text"></i> AI-Classified Daycare Invoice Emails</h2>
+            <p class="text-muted mb-0">Emails that the AI classified as daycare invoices (final label = daycare_invoice).</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'daycare_invoices:invoice_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Invoices
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" value="{{ filters.search }}" class="form-control" placeholder="Subject, Sender..." />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Gmail Account</label>
+                    <select name="account" class="form-select">
+                        <option value="">All Accounts</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc.id }}" {% if filters.account == acc.id|stringformat:'s' %}selected{% endif %}>{{ acc.email_address }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Min Confidence</label>
+                    <input type="number" step="0.01" min="0" max="1" name="min_conf" value="{{ filters.min_conf }}" class="form-control" placeholder="0.95" />
+                    <small class="text-muted">0.0–1.0 (e.g. 0.95)</small>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Any</option>
+                        <option value="auto_applied" {% if filters.status == 'auto_applied' %}selected{% endif %}>Auto-applied</option>
+                        <option value="confirmed" {% if filters.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                        <option value="rejected" {% if filters.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-none">
+                    <!-- Reserved for future custom date pickers -->
+                </div>
+                <div class="col-12 text-end">
+                    <button class="btn btn-primary"><i class="fas fa-filter"></i> Apply</button>
+                    <a href="{% url 'daycare_invoices:ai_invoice_emails' %}" class="btn btn-outline-secondary"><i class="fas fa-times"></i> Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ total_count }}</strong> emails labeled as daycare invoices
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 220px;">Sent</th>
+                            <th>Subject</th>
+                            <th style="width: 260px;">From</th>
+                            <th style="width: 160px;">Confidence</th>
+                            <th style="width: 160px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td>
+                                <div><small>{{ row.email.sent_date|date:"M d, Y" }}</small></div>
+                                <div class="text-muted"><small>{{ row.email.sent_date|time:"g:i A" }}</small></div>
+                            </td>
+                            <td>
+                                <div class="subject" title="{{ row.email.subject }}">
+                                    <a href="{% url 'daycare_invoices:email_detail' row.email.id %}">
+                                        {{ row.email.subject|default:"(no subject)" }}
+                                    </a>
+                                </div>
+                                <div class="text-muted"><small>{{ row.email.gmail_account.email_address }}</small></div>
+                            </td>
+                            <td>
+                                <div><small>{{ row.email.sender_name|default:row.email.sender_email }}</small></div>
+                                <div class="text-muted"><small>{{ row.email.sender_email }}</small></div>
+                            </td>
+                            <td>
+                                {% if row.confidence_percent != None %}
+                                    <span class="badge badge-conf {% if row.confidence_percent >= 99 %}bg-success{% elif row.confidence_percent >= 97 %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ row.confidence_percent }}%</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.prediction.status == 'auto_applied' %}
+                                    <span class="badge bg-success">Auto-applied</span>
+                                {% elif row.prediction.status == 'confirmed' %}
+                                    <span class="badge bg-primary">Confirmed</span>
+                                {% elif row.prediction.status == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% elif row.prediction.status == 'pending' %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted">Unknown</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if page_obj.has_other_pages %}
+            <div class="p-3">
+                <nav aria-label="Pagination">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ filters.search|default:'' }}&account={{ filters.account|default:'' }}&min_conf={{ filters.min_conf|default:'' }}&status={{ filters.status|default:'' }}">Previous</a></li>
+                        {% endif %}
+                        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                        {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ filters.search|default:'' }}&account={{ filters.account|default:'' }}&min_conf={{ filters.min_conf|default:'' }}&status={{ filters.status|default:'' }}">Next</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>No emails found matching your filters.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

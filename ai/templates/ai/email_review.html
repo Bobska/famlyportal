@@ -1,0 +1,876 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Classification Review{% endblock %}
+
+{% block extra_css %}
+<style>
+    .confidence-badge {
+        font-size: 0.9em;
+        padding: 0.4em 0.8em;
+        font-weight: 600;
+        color: #000 !important;
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    .confidence-high { background-color: #d4edda !important; color: #155724 !important; border-color: #c3e6cb !important; }
+    .confidence-medium { background-color: #fff3cd !important; color: #856404 !important; border-color: #ffeaa7 !important; }
+    .confidence-low { background-color: #f8d7da !important; color: #721c24 !important; border-color: #f5c6cb !important; }
+    .email-row:hover { background-color: #f8f9fa; }
+    .action-btn { min-width: 100px; }
+    
+    /* Progress modal improvements */
+    #progressLog {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    #progressLog > div {
+        line-height: 1.4;
+    }
+    #progressStats, #progressDetails {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .stats-card { border-left: 4px solid #007bff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-9">
+            <h1><i class="fas fa-envelope-open-text"></i> Email Classification Review</h1>
+            <p class="lead">Review AI predictions and provide feedback to improve accuracy</p>
+        </div>
+        <div class="col-lg-3 text-end">
+            <a href="{% url 'ai:auto_confirmed_review' %}" class="btn btn-success">
+                <i class="fas fa-check-circle"></i> Review Auto-Confirmed
+            </a>
+            <a href="{% url 'ai:manual_selection' %}" class="btn btn-secondary">
+                <i class="fas fa-tags"></i> Manual Labeling
+            </a>
+            <a href="{% url 'ai:training_dashboard' %}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> Training Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Training Statistics Card -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <h6 class="text-muted">Total Emails</h6>
+                            <h3>{{ stats.total_emails }}</h3>
+                            <small class="text-success">{{ stats.classified_emails }} classified</small><br>
+                            <small class="text-warning">{{ stats.unclassified_emails }} unclassified</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="text-muted">Auto-Confirmed</h6>
+                            <h3>{{ stats.auto_confirmed_count }}</h3>
+                            <small class="text-muted">95%+ confidence predictions</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="text-muted">Model Accuracy</h6>
+                            <h3>{{ stats.model_accuracy|floatformat:1 }}%</h3>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="text-muted">Training Samples</h6>
+                            <h3>{{ stats.total_samples }}</h3>
+                            <small class="text-muted">{{ stats.positive_samples }} invoices, {{ stats.negative_samples }} not</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h6 class="text-muted">Model Version</h6>
+                            <h3>{{ stats.model_version|default:"Not trained" }}</h3>
+                            {% if stats.last_trained %}
+                            <small class="text-muted">Trained: {{ stats.last_trained|timesince }} ago</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 text-end">
+                            {% if stats.needs_retraining %}
+                            <button class="btn btn-warning mb-2" onclick="retrainModel()">
+                                <i class="fas fa-sync-alt"></i> Retrain Now
+                                <br><small>{{ stats.new_samples_since_training }} new samples</small>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-success btn-lg mb-2" id="classifyBtn" onclick="classifyUnclassifiedEmails()">
+                                <i class="fas fa-brain"></i> Classify Unclassified Emails
+                            </button>
+                            <small class="d-block text-muted">
+                                {{ stats.unclassified_emails }} unclassified
+                                {% if pending_count > 0 %}
+                                <span class="badge bg-warning text-dark ms-1">{{ pending_count }} pending</span>
+                                {% endif %}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="min_confidence" class="form-label">Min Confidence</label>
+                            <input type="number" class="form-control" id="min_confidence" name="min_confidence" 
+                                   min="0" max="1" step="0.1" value="{{ request.GET.min_confidence|default:'' }}" 
+                                   placeholder="0.0 - 1.0">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="max_confidence" class="form-label">Max Confidence</label>
+                            <input type="number" class="form-control" id="max_confidence" name="max_confidence" 
+                                   min="0" max="1" step="0.1" value="{{ request.GET.max_confidence|default:'' }}" 
+                                   placeholder="0.0 - 1.0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                                <a href="{% url 'ai:email_review' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictions Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="fas fa-list"></i> Pending Predictions 
+                            <span class="badge bg-primary">{{ pending_count }}</span>
+                        </h5>
+                    </div>
+                    <div class="btn-group" role="group" id="bulkActions" style="display: none;">
+                        <button class="btn btn-sm btn-success" onclick="bulkConfirm()">
+                            <i class="fas fa-check"></i> Confirm Selected (<span id="selectedCount">0</span>)
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="bulkReject()">
+                            <i class="fas fa-times"></i> Reject Selected (<span id="selectedCountReject">0</span>)
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="autoConfirmHigh()">
+                            <i class="fas fa-magic"></i> Auto-Confirm 100%
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if predictions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 3%;">
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all">
+                                    </th>
+                                    <th style="width: 25%;">Subject</th>
+                                    <th style="width: 13%;">Sender</th>
+                                    <th style="width: 10%;">Date</th>
+                                    <th style="width: 13%;">AI Prediction</th>
+                                    <th style="width: 10%;">Confidence</th>
+                                    <th style="width: 8%;">View</th>
+                                    <th style="width: 18%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in predictions %}
+                                <tr class="email-row" id="row-{{ item.prediction.id }}" data-prediction-id="{{ item.prediction.id }}" data-predicted-label="{{ item.prediction.predicted_label }}" data-confidence="{{ item.prediction.confidence_score }}">
+                                    <td>
+                                        <input type="checkbox" class="row-checkbox" onchange="updateBulkActions()" data-prediction-id="{{ item.prediction.id }}" data-predicted-label="{{ item.prediction.predicted_label }}">
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'gmail_integration:email_detail' item.email.gmail_account.id item.email.id %}" 
+                                           class="text-decoration-none text-dark" 
+                                           target="_blank"
+                                           title="Click to view full email">
+                                            <strong>{{ item.email.subject|truncatewords:10 }}</strong>
+                                            <i class="fas fa-external-link-alt fa-xs text-muted ms-1"></i>
+                                        </a>
+                                        {% if item.email.has_attachments %}
+                                        <i class="fas fa-paperclip text-muted" title="Has attachments"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ item.email.sender_email|truncatechars:25 }}</small>
+                                    </td>
+                                    <td>
+                                        <small>{{ item.email.sent_date|date:"M d, Y" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if item.prediction.predicted_label == 'daycare_invoice' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Daycare Invoice
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times"></i> Not Invoice
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge confidence-badge confidence-{{ item.confidence_class }}">
+                                            {{ item.confidence_percent }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'gmail_integration:email_detail' item.email.gmail_account.id item.email.id %}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           target="_blank"
+                                           title="View email">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-success action-btn" 
+                                                    onclick="confirmPrediction({{ item.prediction.id }})">
+                                                <i class="fas fa-check"></i> Confirm
+                                            </button>
+                                            <button class="btn btn-danger action-btn" 
+                                                    onclick="rejectPrediction({{ item.prediction.id }}, '{{ item.prediction.predicted_label }}')">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h4>No Pending Predictions</h4>
+                        <p class="text-muted">All predictions have been reviewed!</p>
+                        <a href="{% url 'ai:manual_selection' %}" class="btn btn-primary">
+                            <i class="fas fa-tags"></i> Label More Emails
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-brain me-2"></i>
+                    <span id="progressTitle">Processing Emails</span>
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6 class="text-muted mb-2" id="progressPhase" style="min-height: 1.5rem;">Initializing...</h6>
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                             role="progressbar" 
+                             id="progressBar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            <span id="progressText" class="fw-bold">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center" style="min-height: 60px;">
+                    <p class="mb-1 fw-bold" id="progressStats" style="min-height: 1.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Starting...</p>
+                    <small class="text-muted d-block" id="progressDetails" style="min-height: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></small>
+                </div>
+                <div id="progressLog" class="mt-3 p-2 bg-light rounded" style="max-height: 200px; overflow-y: auto; font-size: 0.85em; font-family: monospace;">
+                    <!-- Progress log messages will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Bulk action functions
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectedCountReject = document.getElementById('selectedCountReject');
+    
+    if (checked.length > 0) {
+        bulkActions.style.display = 'block';
+        selectedCount.textContent = checked.length;
+        selectedCountReject.textContent = checked.length;
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+function bulkConfirm() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) return;
+    
+    const predictionIds = Array.from(checked).map(cb => cb.dataset.predictionId);
+    
+    // Confirm each prediction
+    let completed = 0;
+    predictionIds.forEach(id => {
+        confirmPrediction(id, () => {
+            completed++;
+            if (completed === predictionIds.length) {
+                showAlert(`Successfully confirmed ${completed} predictions!`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    });
+}
+
+function bulkReject() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) return;
+    
+    const items = Array.from(checked).map(cb => ({
+        id: cb.dataset.predictionId,
+        label: cb.dataset.predictedLabel
+    }));
+    
+    // Reject each prediction
+    let completed = 0;
+    items.forEach(item => {
+        rejectPrediction(item.id, item.label, () => {
+            completed++;
+            if (completed === items.length) {
+                showAlert(`Successfully rejected ${completed} predictions!`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    });
+}
+
+function autoConfirmHigh() {
+    const rows = document.querySelectorAll('tr[data-confidence]');
+    const highConfidence = Array.from(rows).filter(row => {
+        const confidence = parseFloat(row.dataset.confidence);
+        return confidence >= 0.95; // 95% or higher confidence
+    });
+    
+    if (highConfidence.length === 0) {
+        showAlert('No predictions with 95%+ confidence found.', 'info');
+        return;
+    }
+    
+    // Auto-confirm all 95%+ confidence predictions
+    let completed = 0;
+    highConfidence.forEach(row => {
+        const predictionId = row.dataset.predictionId;
+        confirmPrediction(predictionId, () => {
+            completed++;
+            if (completed === highConfidence.length) {
+                showAlert(`Auto-confirmed ${completed} predictions with 95%+ confidence!`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    });
+}
+
+function updateStats() {
+    // Reload just the stats section by fetching the page again and extracting stats
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newStatsCard = doc.querySelector('.stats-card .card-body');
+            const currentStatsCard = document.querySelector('.stats-card .card-body');
+            if (newStatsCard && currentStatsCard) {
+                currentStatsCard.innerHTML = newStatsCard.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error updating stats:', error));
+}
+
+function confirmPrediction(predictionId, callback) {
+    fetch(`/ai/emails/predictions/${predictionId}/confirm/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove row with animation
+            const row = document.getElementById(`row-${predictionId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    // Update stats after row is removed
+                    updateStats();
+                    if (callback) callback();
+                }, 300);
+            } else if (callback) {
+                callback();
+            }
+            
+            if (!callback) {
+                showAlert('Success! Prediction confirmed and added to training data.', 'success');
+            }
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error confirming prediction: ' + error, 'danger');
+    });
+}
+
+function rejectPrediction(predictionId, predictedLabel, callback) {
+    // Determine correct label (opposite of prediction)
+    const correctLabel = predictedLabel === 'daycare_invoice' ? 'not_invoice' : 'daycare_invoice';
+    
+    fetch(`/ai/emails/predictions/${predictionId}/reject/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ correct_label: correctLabel })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove row with animation
+            const row = document.getElementById(`row-${predictionId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    // Update stats after row is removed
+                    updateStats();
+                    if (callback) callback();
+                }, 300);
+            } else if (callback) {
+                callback();
+            }
+            
+            if (!callback) {
+                showAlert('Success! Correction added to training data.', 'success');
+            }
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error rejecting prediction: ' + error, 'danger');
+    });
+}
+
+function retrainModel() {
+    if (!confirm('Retrain the model with new samples?')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training...';
+    
+    fetch('/ai/emails/train/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Retrain Now';
+        }
+    })
+    .catch(error => {
+        showAlert('Error training model: ' + error, 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Retrain Now';
+    });
+}
+
+function classifyUnclassifiedEmails() {
+    // Show progress modal
+    const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+    modal.show();
+    
+    // Disable the classify button
+    const btn = document.getElementById('classifyBtn');
+    if (btn) {
+        btn.disabled = true;
+    }
+    
+    // Reset progress UI
+    updateProgress(0, 'Step 1/2: Clearing old predictions...', 'Preparing to classify unclassified emails');
+    addProgressLog('🚀 Starting classification process...');
+    
+    // Step 1: Clear pending predictions for unclassified emails
+    fetch('/ai/emails/predictions/clear-pending/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateProgress(25, 'Step 1/2: Complete', `Cleared ${data.deleted_count} old predictions`);
+            addProgressLog(`✓ Cleared ${data.deleted_count} pending predictions`);
+            
+            // Step 2: Start classification
+            setTimeout(() => {
+                classifyEmails();
+            }, 500);
+        } else {
+            throw new Error(data.error || 'Failed to clear predictions');
+        }
+    })
+    .catch(error => {
+        addProgressLog(`❌ Error clearing predictions: ${error}`, 'danger');
+        updateProgress(0, 'Error', 'Failed to clear predictions');
+        setTimeout(() => {
+            modal.hide();
+            showAlert('Error: ' + error, 'danger');
+            if (btn) btn.disabled = false;
+        }, 2000);
+    });
+}
+
+function classifyEmails() {
+    updateProgress(30, 'Step 2/2: Classifying emails...', 'Running AI classifier on unclassified emails');
+    addProgressLog('🧠 Starting AI classification with real-time progress...');
+    
+    // Check if EventSource is supported
+    if (typeof(EventSource) === "undefined") {
+        console.error('EventSource not supported in this browser');
+        addProgressLog('❌ SSE not supported, falling back to batch mode', 'danger');
+        classifyEmailsFallback();
+        return;
+    }
+    
+    console.log('Opening SSE connection to /ai/emails/classify-all-sse/');
+    
+    // Use Server-Sent Events for real-time progress
+    const eventSource = new EventSource('/ai/emails/classify-all-sse/');
+    
+    let lastProgress = 30;
+    let autoConfirmedCount = 0;
+    let errorCount = 0;
+    let totalEmails = 0;
+    
+    eventSource.onopen = function(event) {
+        console.log('SSE connection opened', event);
+        addProgressLog('🔗 Connected to classification stream');
+    };
+    
+    eventSource.onmessage = function(event) {
+        console.log('SSE event received:', event.data);
+        console.log('Parsing JSON...');
+        try {
+            const data = JSON.parse(event.data);
+            console.log('Parsed data:', data);
+            
+            if (data.phase === 'test') {
+                // Connection test successful
+                console.log('SSE connection test successful:', data.message);
+                addProgressLog('✓ SSE connection established', 'success');
+                
+            } else if (data.phase === 'starting') {
+                totalEmails = data.total;
+                console.log(`Starting classification of ${totalEmails} emails`);
+                addProgressLog(`📊 Found ${totalEmails} unclassified emails to process`);
+                
+            } else if (data.phase === 'classifying') {
+                lastProgress = data.progress;
+                autoConfirmedCount = data.auto_confirmed_count || 0;
+                errorCount = data.error_count || 0;
+                
+                console.log(`Progress: ${data.progress}% (${data.current}/${data.total})`);
+                
+                // Truncate subject for display (max 35 chars)
+                const displaySubject = data.email_subject ? 
+                    (data.email_subject.length > 35 ? data.email_subject.substring(0, 35) + '...' : data.email_subject) : 
+                    'Email';
+                
+                // Update progress bar
+                updateProgress(
+                    data.progress,
+                    `Step 2/2: Classifying emails (${data.current}/${data.total})...`,
+                    `Processing: ${displaySubject}`
+                );
+                
+                // Add log entry for this email (use full subject from backend, already truncated to 40)
+                if (data.error) {
+                    addProgressLog(`❌ Error with email ${data.current}: ${data.error}`, 'danger');
+                } else if (data.auto_confirmed) {
+                    addProgressLog(`✓ ${data.current}/${data.total}: ${data.email_subject} → ${data.prediction} (${(data.confidence * 100).toFixed(0)}%)`, 'success');
+                } else {
+                    addProgressLog(`  ${data.current}/${data.total}: ${data.email_subject} → ${data.prediction} (${(data.confidence * 100).toFixed(0)}%)`);
+                }
+                
+            } else if (data.phase === 'complete') {
+                console.log('Classification complete!', data);
+                eventSource.close();
+                
+                updateProgress(100, 'Complete!', `Successfully classified ${data.processed} emails`);
+                addProgressLog(`✅ Classification complete!`, 'success');
+                addProgressLog(`📊 Total processed: ${data.processed}`, 'success');
+                if (data.auto_confirmed_count > 0) {
+                    addProgressLog(`✓ Auto-confirmed: ${data.auto_confirmed_count} predictions at 95%+ confidence`, 'success');
+                }
+                if (data.error_count > 0) {
+                    addProgressLog(`⚠ Errors encountered: ${data.error_count}`, 'warning');
+                }
+                
+                // Show completion message and reload
+                const message = `Success! Classified ${data.processed} unclassified emails.` + 
+                              (data.auto_confirmed_count ? ` ${data.auto_confirmed_count} auto-confirmed at 100%.` : '') +
+                              (data.error_count > 0 ? ` (${data.error_count} errors)` : '');
+                
+                setTimeout(() => {
+                    showAlert(message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                }, 1500);
+                
+            } else if (data.phase === 'error') {
+                console.error('Classification error:', data.error);
+                eventSource.close();
+                throw new Error(data.error || 'Classification failed');
+            } else {
+                console.warn('Unknown phase:', data.phase);
+            }
+            
+        } catch (parseError) {
+            console.error('Error parsing SSE data:', parseError);
+            console.error('Raw event data:', event.data);
+            addProgressLog(`❌ Parse error: ${parseError}`, 'danger');
+        }
+    };
+    
+    eventSource.onerror = function(error) {
+        console.error('SSE Error:', error);
+        console.error('EventSource readyState:', eventSource.readyState);
+        eventSource.close();
+        
+        addProgressLog(`❌ SSE connection failed, falling back to batch mode`, 'warning');
+        
+        // Fall back to regular batch processing
+        classifyEmailsFallback();
+    };
+}
+
+function classifyEmailsFallback() {
+    addProgressLog('🔄 Using batch classification mode (no real-time updates)');
+    
+    fetch('/ai/emails/classify-all/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ classify_all: true })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateProgress(100, 'Complete!', `Successfully classified ${data.success_count} emails`);
+            addProgressLog(`✓ Classified ${data.success_count} emails successfully`);
+            if (data.auto_confirmed_count) {
+                addProgressLog(`✓ Auto-confirmed ${data.auto_confirmed_count} predictions at 95%+ confidence`, 'success');
+            }
+            if (data.error_count > 0) {
+                addProgressLog(`⚠ ${data.error_count} errors encountered`, 'warning');
+            }
+            
+            const message = `Success! Classified ${data.success_count} unclassified emails.` + 
+                          (data.auto_confirmed_count ? ` ${data.auto_confirmed_count} auto-confirmed at 100%.` : '') +
+                          (data.error_count > 0 ? ` (${data.error_count} errors)` : '');
+            
+            setTimeout(() => {
+                showAlert(message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            }, 1500);
+        } else {
+            throw new Error(data.error || 'Classification failed');
+        }
+    })
+    .catch(error => {
+        addProgressLog(`❌ Classification error: ${error}`, 'danger');
+        updateProgress(30, 'Error', 'Classification failed');
+        setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
+            modal.hide();
+            showAlert('Error classifying emails: ' + error, 'danger');
+            const btn = document.getElementById('classifyBtn');
+            if (btn) btn.disabled = false;
+        }, 2000);
+    });
+}
+
+function updateProgress(percent, phase, details) {
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressPhase = document.getElementById('progressPhase');
+    const progressStats = document.getElementById('progressStats');
+    const progressDetails = document.getElementById('progressDetails');
+    
+    if (progressBar) {
+        progressBar.style.width = percent + '%';
+        progressBar.setAttribute('aria-valuenow', percent);
+    }
+    if (progressText) {
+        progressText.textContent = percent + '%';
+    }
+    if (progressPhase) {
+        progressPhase.textContent = phase;
+    }
+    if (progressStats) {
+        progressStats.textContent = details;
+    }
+    if (progressDetails) {
+        if (percent === 100) {
+            progressDetails.textContent = 'Refreshing page...';
+        } else if (percent === 0) {
+            progressDetails.textContent = '';
+        } else {
+            progressDetails.textContent = 'Please wait, this may take a few minutes for large datasets...';
+        }
+    }
+}
+
+function addProgressLog(message, type = 'info') {
+    const progressLog = document.getElementById('progressLog');
+    if (progressLog) {
+        const timestamp = new Date().toLocaleTimeString();
+        const colorClass = type === 'danger' ? 'text-danger' : type === 'warning' ? 'text-warning' : type === 'success' ? 'text-success' : 'text-muted';
+        const logEntry = document.createElement('div');
+        logEntry.className = `${colorClass} mb-1`;
+        logEntry.textContent = `[${timestamp}] ${message}`;
+        progressLog.appendChild(logEntry);
+        progressLog.scrollTop = progressLog.scrollHeight;
+    }
+}
+
+// Keep old function for compatibility but make it call the new one
+function classifyAllEmails() {
+    classifyUnclassifiedEmails();
+}
+
+function clearPendingPredictions() {
+    if (!confirm('Delete pending predictions for UNCLASSIFIED emails only? Classified emails will be preserved. You can re-classify afterwards.')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+    
+    fetch('/ai/emails/predictions/clear-pending/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`Success! Deleted ${data.deleted_count} predictions for unclassified emails. Classified emails preserved.`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Clear Unclassified Predictions';
+        }
+    })
+    .catch(error => {
+        showAlert('Error clearing predictions: ' + error, 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Clear Unclassified Predictions';
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

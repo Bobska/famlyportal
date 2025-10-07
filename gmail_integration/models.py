@@ -129,6 +129,23 @@ class EmailMessage(models.Model):
     is_processed = models.BooleanField(default=False)
     processing_notes = models.TextField(blank=True)
     
+    # AI Classification status
+    is_classified = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Whether this email has been classified by AI (confirmed or auto-confirmed)"
+    )
+    classification_label = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Final classification label (e.g., 'daycare_invoice', 'not_invoice')"
+    )
+    classified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this email was classified"
+    )
+    
     # Invoice detection
     has_invoice = models.BooleanField(default=False, db_index=True)
     invoice_confidence = models.CharField(

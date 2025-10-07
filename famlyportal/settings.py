@@ -248,3 +248,11 @@ AI_CONFIG = {
     'MIN_CONFIDENCE': 0.7,  # Minimum confidence for auto-classification
 }
 
+# Email Classification Configuration
+AI_EMAIL_CLASSIFIER = {
+    'MIN_TRAINING_SAMPLES': 10,  # Minimum samples to train initial model
+    'RETRAIN_THRESHOLD': 20,  # Retrain after this many new samples
+    'MIN_CONFIDENCE': 0.7,  # Low confidence threshold for review
+    'MODEL_STORAGE': 'ai/models/',  # Where to store trained models
+}
+

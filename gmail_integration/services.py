@@ -534,6 +534,162 @@ class GmailService:
             process_part(payload)
         
         return body_text.strip(), body_html.strip(), attachments
+
+    def download_attachment_to_storage(self, email: EmailMessage, attachment: EmailAttachment) -> Optional[str]:
+        """Fetch a Gmail attachment if not downloaded, save to MEDIA_ROOT, and return relative file path.
+
+        This method is resilient to cases where Gmail didn't provide an attachmentId for small attachments
+        (the data is embedded directly in the message). It will:
+        1) Try attachments.get if attachment_id is present
+        2) If missing/failed, fetch full message, locate the matching part by filename/size and decode body.data
+
+        Args:
+            email: EmailMessage instance (provides gmail_id/account)
+            attachment: EmailAttachment instance with attachment_id/filename
+
+        Returns:
+            Relative file path (under MEDIA_ROOT) if saved, else None
+        """
+        try:
+            if not self._credentials:
+                # Ensure we are authenticated on the right account
+                self.gmail_account = email.gmail_account
+                if not self.authenticate():
+                    raise ValueError("Failed to authenticate for attachment download")
+
+            # Ensure token is valid
+            self._ensure_valid_token()
+
+            import requests
+            import base64
+
+            file_bytes: Optional[bytes] = None
+
+            def _sanitize_filename(name: str) -> str:
+                # Prevent path traversal and odd characters
+                name = name or f"attachment-{attachment.pk}"
+                name = os.path.basename(name)
+                # Avoid empty basename
+                return name or f"attachment-{attachment.pk}"
+
+            # 1) Primary path: use attachments.get if we have an attachment_id
+            if getattr(attachment, 'attachment_id', None):
+                try:
+                    url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{email.gmail_id}/attachments/{attachment.attachment_id}"
+                    headers = {
+                        'Authorization': f'Bearer {self._credentials.token}',
+                        'Accept': 'application/json'
+                    }
+                    resp = requests.get(url, headers=headers, timeout=60)
+                    # If token expired between _ensure and here, try one forced refresh
+                    if resp.status_code == 401:
+                        self._ensure_valid_token(force_refresh=True)
+                        headers['Authorization'] = f'Bearer {self._credentials.token}'
+                        resp = requests.get(url, headers=headers, timeout=60)
+                    resp.raise_for_status()
+                    data = resp.json().get('data')
+                    if data:
+                        file_bytes = base64.urlsafe_b64decode(data + '===')
+                except Exception as e:
+                    logger.warning("attachments.get failed for attachment %s: %s", attachment.pk, e)
+
+            # 2) Fallback: fetch full message and decode inline part data
+            if file_bytes is None:
+                try:
+                    # Get the full message to inspect parts
+                    message = self.get_email_by_id(email.gmail_id)
+                    # message here is the parsed dict from _parse_email_message, not the raw Gmail payload
+                    # To locate inline data, we need the RAW Gmail payload. Fetch directly via requests.
+                    self._ensure_valid_token()
+                    url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{email.gmail_id}"
+                    params = {'format': 'full'}
+                    headers = {
+                        'Authorization': f'Bearer {self._credentials.token}',
+                        'Accept': 'application/json'
+                    }
+                    resp = requests.get(url, headers=headers, params=params, timeout=60)
+                    if resp.status_code == 401:
+                        self._ensure_valid_token(force_refresh=True)
+                        headers['Authorization'] = f'Bearer {self._credentials.token}'
+                        resp = requests.get(url, headers=headers, params=params, timeout=60)
+                    resp.raise_for_status()
+                    raw_msg = resp.json()
+
+                    # Walk payload parts to find a part matching filename/size
+                    target_name = (attachment.filename or '').strip()
+                    target_size = attachment.size_bytes or None
+
+                    def find_part(parts) -> Optional[dict]:
+                        for part in parts:
+                            # If this part has subparts, recurse first
+                            if part.get('parts'):
+                                found = find_part(part['parts'])
+                                if found:
+                                    return found
+                            # Match by filename when present
+                            if part.get('filename'):
+                                name = part['filename'].strip()
+                                size = part.get('body', {}).get('size')
+                                if (not target_name or name == target_name) and (not target_size or size == target_size):
+                                    return part
+                        return None
+
+                    payload = raw_msg.get('payload', {})
+                    candidate = None
+                    if payload.get('parts'):
+                        candidate = find_part(payload['parts'])
+                    else:
+                        # Single-part message could itself be the attachment
+                        candidate = payload if payload.get('filename') else None
+
+                    if candidate:
+                        body = candidate.get('body', {})
+                        data = body.get('data')
+                        if data:
+                            file_bytes = base64.urlsafe_b64decode(data + '===')
+                        elif body.get('attachmentId') and not getattr(attachment, 'attachment_id', None):
+                            # We found an attachmentId now; store it and retry primary path
+                            attachment.attachment_id = body['attachmentId']
+                            attachment.save(update_fields=['attachment_id'])
+                            url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{email.gmail_id}/attachments/{attachment.attachment_id}"
+                            resp = requests.get(url, headers=headers, timeout=60)
+                            if resp.status_code == 401:
+                                self._ensure_valid_token(force_refresh=True)
+                                headers['Authorization'] = f'Bearer {self._credentials.token}'
+                                resp = requests.get(url, headers=headers, timeout=60)
+                            resp.raise_for_status()
+                            data = resp.json().get('data')
+                            if data:
+                                file_bytes = base64.urlsafe_b64decode(data + '===')
+                except Exception as e:
+                    logger.warning("Fallback full-message decode failed for attachment %s: %s", attachment.pk, e)
+
+            if file_bytes is None:
+                logger.warning("No bytes could be retrieved for attachment %s", attachment.pk)
+                return None
+
+            # Compute storage path
+            from django.conf import settings
+            safe_filename = _sanitize_filename(attachment.filename)
+            subdir = os.path.join('gmail_attachments', str(email.pk))
+            abs_dir = os.path.join(settings.MEDIA_ROOT, subdir)
+            os.makedirs(abs_dir, exist_ok=True)
+            abs_path = os.path.join(abs_dir, safe_filename)
+
+            with open(abs_path, 'wb') as f:
+                f.write(file_bytes)
+
+            rel_path = os.path.join(subdir, safe_filename)
+
+            # Update attachment record
+            attachment.file_path = rel_path
+            attachment.is_downloaded = True
+            attachment.save(update_fields=['file_path', 'is_downloaded'])
+
+            return rel_path
+        except Exception as e:
+            logger.error("Failed to download attachment %s: %s", attachment.pk, e)
+            return None
     
     def _extract_email(self, from_header: str) -> str:
         """Extract email address from From header"""

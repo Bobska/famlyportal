@@ -198,10 +198,10 @@ class TrainingDataset(models.Model):
         samples = self.samples.all()
         self.total_samples = samples.count()
         self.positive_samples = samples.filter(
-            label__in=['positive', 'yes', 'true', '1', 'daycare']
+            label__in=['daycare_invoice', 'positive', 'yes', 'true', '1', 'daycare']
         ).count()
         self.negative_samples = samples.filter(
-            label__in=['negative', 'no', 'false', '0', 'not_daycare']
+            label__in=['not_invoice', 'negative', 'no', 'false', '0', 'not_daycare']
         ).count()
         self.save()
 
@@ -408,3 +408,58 @@ class Prediction(models.Model):
             return 'Medium'
         else:
             return 'Low'
+
+
+class InvoiceExtraction(models.Model):
+    """Structured extraction result for an email's invoice-like content."""
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('complete', 'Complete'),
+        ('error', 'Error'),
+    ]
+
+    # Link to any object (EmailMessage expected primary use)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    provider_name = models.CharField(max_length=255, blank=True)
+    invoice_number = models.CharField(max_length=100, blank=True)
+    reference_number = models.CharField(max_length=100, blank=True, help_text='Child/customer reference number (e.g., SG300)')
+    due_date = models.DateField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='Total amount due (including previous balance)')
+    current_invoice_total = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text='Current invoice charges only (excluding previous balance)'
+    )
+    currency = models.CharField(max_length=10, blank=True, default='USD')
+    
+    # Detailed line items for AI learning - captures invoice structure
+    line_items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of invoice line items: [{"type": "debit|credit|previous_balance|discount", "description": "", "amount": 0.00}]'
+    )
+
+    confidence = models.FloatField(default=0.0)
+    raw_fields = models.JSONField(default=dict, help_text='Unnormalized parsed fields for traceability')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_extractions')
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+        ]
+        verbose_name = 'Invoice Extraction'
+        verbose_name_plural = 'Invoice Extractions'
+
+    def __str__(self):
+        return f"InvoiceExtraction #{self.pk} for {self.content_type} {self.object_id}"

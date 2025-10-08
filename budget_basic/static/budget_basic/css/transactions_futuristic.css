@@ -26,30 +26,358 @@ body.transactions-panel-page {
     min-height: 100vh;
 }
 
+body.transactions-panel-page .bb-app-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+body.transactions-panel-page .bb-app-stage {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    flex: 1;
+}
+
 body.transactions-panel-page .content-wrapper {
-    background: linear-gradient(135deg, rgba(9, 20, 40, 0.88) 0%, rgba(7, 16, 32, 0.86) 45%, rgba(6, 12, 25, 0.94) 100%);
-    border: 1px solid rgba(89, 210, 255, 0.14);
-    border-radius: 22px;
-    padding: 2.75rem 3rem;
-    box-shadow: 0 32px 80px -50px rgba(18, 58, 102, 0.75);
+    background: linear-gradient(140deg, rgba(9, 20, 40, 0.92) 0%, rgba(6, 14, 28, 0.9) 52%, rgba(5, 12, 26, 0.96) 100%);
+    border: 1px solid rgba(89, 210, 255, 0.16);
+    border-radius: 18px;
+    padding: clamp(1.2rem, 1rem + 0.9vw, 2rem);
+    padding-right: 0;
+    box-shadow: 0 24px 60px -40px rgba(18, 58, 102, 0.72);
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scroll container inside wrapper */
+body.transactions-panel-page .tx-command-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.2rem, 1rem + 0.6vw, 1.8rem);
+    padding-right: clamp(1.1rem, 0.9rem + 1vw, 2.2rem);
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    scrollbar-gutter: stable;
+}
+
+/* Custom scrollbar with NO arrows - full height, clips behind corners */
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar {
+    width: 4px;
+}
+
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar-button {
+    height: 0;
+    width: 0;
+}
+
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar-track {
+    background: linear-gradient(90deg, 
+        rgba(6, 14, 28, 0.6) 0%, 
+        rgba(5, 12, 26, 0.5) 50%, 
+        rgba(8, 18, 36, 0.4) 100%
+    );
+    border-radius: 0;
+    border-left: 1px solid rgba(89, 210, 255, 0.1);
+    box-shadow: 
+        inset 2px 0 8px -3px rgba(0, 0, 0, 0.45),
+        inset -1px 0 6px -2px rgba(27, 201, 255, 0.15);
+    margin: 0;
+}
+
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar-track-piece {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(89, 210, 255, 0.68), rgba(27, 201, 255, 0.48));
+    border-radius: 3px;
+    box-shadow: 
+        0 0 8px rgba(89, 210, 255, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(89, 210, 255, 0.16);
+    margin: 0;
+}
+
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(98, 228, 255, 0.82), rgba(27, 201, 255, 0.62));
+    box-shadow: 
+        0 0 12px rgba(89, 210, 255, 0.48),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+body.transactions-panel-page .tx-command-shell::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+body.transactions-panel-page .tx-command-shell.is-scrolling::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, rgba(6, 26, 52, 0.18) 0%, rgba(4, 18, 38, 0.08) 70%, transparent 100%);
+    border-radius: 10px;
+    box-shadow: inset 1px 0 12px -6px rgba(27, 201, 255, 0.28);
+    border-left: 1px solid rgba(27, 201, 255, 0.12);
+}
+
+body.transactions-panel-page .tx-command-shell.is-scrolling::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(89, 210, 255, 0.85), rgba(27, 201, 255, 0.6));
+    border-radius: 10px;
+    box-shadow: 0 0 12px rgba(89, 210, 255, 0.35);
+    border: 1px solid rgba(89, 210, 255, 0.15);
+}
+
+body.transactions-panel-page .tx-command-shell.is-scrolling::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(98, 228, 255, 0.95), rgba(27, 201, 255, 0.74));
+    box-shadow: 0 0 16px rgba(89, 210, 255, 0.42);
+}
+
+body.transactions-panel-page .tx-command-shell.is-scrolling::-webkit-scrollbar-button,
+body.transactions-panel-page .tx-command-shell.is-scrolling::-webkit-scrollbar-button:start:decrement,
+body.transactions-panel-page .tx-command-shell.is-scrolling::-webkit-scrollbar-button:end:increment {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    appearance: none !important;
 }
 
 body.transactions-panel-page .content-wrapper::before,
 body.transactions-panel-page .content-wrapper::after {
     content: "";
     position: absolute;
-    inset: -120px;
-    background: radial-gradient(circle, rgba(89, 210, 255, 0.07) 0, transparent 60%);
-    transform: rotate(22deg);
+    inset: -140px;
+    background: radial-gradient(circle, rgba(89, 210, 255, 0.08) 0, transparent 60%);
+    transform: rotate(18deg);
     pointer-events: none;
 }
 
 body.transactions-panel-page .content-wrapper::after {
-    transform: rotate(-18deg);
-    opacity: 0.6;
+    transform: rotate(-16deg);
+    opacity: 0.55;
+}
+
+body.transactions-panel-page .tx-command-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.6rem, 1.1rem + 1vw, 2.4rem);
+}
+
+/* Futuristic modal styling */
+
+body.transactions-panel-page .tx-command-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(1.5rem, 1rem + 1.2vw, 3rem);
+    flex-wrap: wrap;
+}
+
+body.transactions-panel-page .tx-command-header__primary {
+    display: grid;
+    gap: 0.75rem;
+    max-width: min(640px, 80%);
+}
+
+body.transactions-panel-page .tx-command-kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.45rem;
+    text-transform: uppercase;
+    color: rgba(168, 194, 222, 0.62);
+}
+
+body.transactions-panel-page .tx-command-title {
+    font-size: clamp(2.2rem, 1.9rem + 1vw, 2.9rem);
+    letter-spacing: 0.3rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--tx-text-primary);
+    margin: 0;
+}
+
+body.transactions-panel-page .tx-command-subtitle {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--tx-text-secondary);
+    max-width: 560px;
+    margin: 0;
+}
+
+body.transactions-panel-page .tx-command-header__meta {
+    display: flex;
+    align-items: stretch;
+    gap: clamp(0.85rem, 0.6rem + 1vw, 1.4rem);
+    flex-wrap: wrap;
+}
+
+body.transactions-panel-page .tx-header-pill {
+    min-width: 160px;
+    border-radius: 10px;
+    border: 1px solid rgba(89, 210, 255, 0.24);
+    padding: 0.75rem 1rem;
+    background: linear-gradient(140deg, rgba(12, 30, 54, 0.48), rgba(8, 20, 38, 0.62));
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.08);
+    display: grid;
+    gap: 0.35rem;
+    flex: 1 1 160px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+body.transactions-panel-page .tx-header-pill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(89, 210, 255, 0.18), rgba(27, 201, 255, 0.08));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+    mix-blend-mode: screen;
+}
+
+body.transactions-panel-page .tx-header-pill:hover::after,
+body.transactions-panel-page .tx-header-pill:focus-within::after {
+    opacity: 0.75;
+}
+
+body.transactions-panel-page .tx-header-pill:hover,
+body.transactions-panel-page .tx-header-pill:focus-within {
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.2);
+}
+
+body.transactions-panel-page .tx-header-pill__label {
+    font-size: 0.7rem;
+    letter-spacing: 0.28rem;
+    text-transform: uppercase;
+    color: rgba(168, 194, 222, 0.65);
+}
+
+body.transactions-panel-page .tx-header-pill__value {
+    font-size: 1.05rem;
+    letter-spacing: 0.12rem;
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .tx-metric-deck {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: clamp(1rem, 0.7rem + 1vw, 1.8rem);
+}
+
+body.transactions-panel-page .tx-metric-card {
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid rgba(89, 210, 255, 0.18);
+    padding: clamp(1.1rem, 0.9rem + 0.6vw, 1.7rem);
+    background: linear-gradient(150deg, rgba(15, 34, 62, 0.58), rgba(8, 20, 38, 0.68));
+    box-shadow: 0 28px 54px -38px rgba(18, 58, 102, 0.75);
+    overflow: hidden;
+    display: grid;
+    gap: 0.55rem;
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+body.transactions-panel-page .tx-metric-card::after {
+    content: "";
+    position: absolute;
+    inset: -30% 40% 40% -20%;
+    background: radial-gradient(circle, rgba(89, 210, 255, 0.2), transparent 60%);
+    opacity: 0.35;
+    pointer-events: none;
+    transform: rotate(18deg);
+}
+
+body.transactions-panel-page .tx-metric-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(89, 210, 255, 0.5), rgba(27, 201, 255, 0.15));
+    opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+}
+
+body.transactions-panel-page .tx-metric-card:hover,
+body.transactions-panel-page .tx-metric-card:focus-within {
+    border-color: rgba(89, 210, 255, 0.55);
+    box-shadow: 0 26px 60px -30px rgba(18, 58, 102, 0.95), 0 0 28px -12px rgba(89, 210, 255, 0.75);
+    transform: translateY(-3px);
+}
+
+body.transactions-panel-page .tx-metric-card:hover::before,
+body.transactions-panel-page .tx-metric-card:focus-within::before {
+    opacity: 0.7;
+}
+
+body.transactions-panel-page .tx-metric-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 1;
+}
+
+body.transactions-panel-page .tx-metric-card__label {
+    font-size: 0.74rem;
+    letter-spacing: 0.28rem;
+    text-transform: uppercase;
+    color: rgba(168, 194, 222, 0.68);
+}
+
+body.transactions-panel-page .tx-metric-card__badge {
+    font-size: 0.7rem;
+    letter-spacing: 0.22rem;
+    text-transform: uppercase;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(89, 210, 255, 0.32);
+    color: var(--tx-accent);
+    background: rgba(89, 210, 255, 0.08);
+}
+
+body.transactions-panel-page .tx-metric-card__value {
+    margin: 0;
+    font-size: clamp(1.7rem, 1.5rem + 1vw, 2.3rem);
+    letter-spacing: 0.24rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--tx-accent);
+    z-index: 1;
+}
+
+body.transactions-panel-page .tx-metric-card__detail {
+    margin: 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.08rem;
+    color: var(--tx-text-secondary);
+    z-index: 1;
+}
+
+body.transactions-panel-page .tx-metric-card.is-expense .tx-metric-card__value {
+    color: var(--tx-danger);
+}
+
+body.transactions-panel-page .tx-metric-card.is-income .tx-metric-card__value {
+    color: var(--tx-success);
+}
+
+body.transactions-panel-page .tx-holo-grid {
+    width: 100%;
+    display: grid;
+    isolation: isolate;
 }
 
 body.transactions-panel-page .page-heading-main {
@@ -84,58 +412,96 @@ body.transactions-panel-page .card#transactions-card {
     box-shadow: none;
 }
 
-body.transactions-panel-page .payees-panel {
-    background: linear-gradient(135deg, rgba(9, 20, 40, 0.52), rgba(7, 16, 32, 0.6));
-    border: 1px solid rgba(89, 210, 255, 0.18);
-    border-radius: 20px;
+body.transactions-panel-page .payees-panel,
+body.transactions-panel-page .tx-panel-stack {
+    background: linear-gradient(140deg, rgba(9, 20, 40, 0.6), rgba(7, 16, 32, 0.68));
+    border: 1px solid rgba(89, 210, 255, 0.2);
+    border-radius: 14px;
     overflow: hidden;
     display: grid;
-    grid-template-columns: minmax(340px, 1.05fr) 12px minmax(360px, 0.95fr);
+    grid-template-columns: minmax(360px, 1.05fr) clamp(10px, 1.2vw, 16px) minmax(360px, 0.95fr);
     box-shadow: var(--tx-shadow);
     position: relative;
+    isolation: isolate;
+    min-height: clamp(520px, 52vh, 780px);
 }
 
 body.transactions-panel-page .payee-list-panel,
-body.transactions-panel-page .transaction-details-panel {
-    background: linear-gradient(160deg, rgba(12, 30, 54, 0.82) 0%, rgba(10, 26, 48, 0.74) 60%, rgba(8, 20, 38, 0.85) 100%);
-    backdrop-filter: blur(16px);
+body.transactions-panel-page .transaction-details-panel,
+body.transactions-panel-page .tx-panel {
+    background: linear-gradient(160deg, rgba(12, 30, 54, 0.84) 0%, rgba(10, 26, 48, 0.78) 55%, rgba(8, 20, 38, 0.88) 100%);
+    backdrop-filter: blur(18px);
+    position: relative;
+}
+
+body.transactions-panel-page .tx-panel--list,
+body.transactions-panel-page .tx-panel--detail {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 body.transactions-panel-page .payee-list-panel {
-    border-right: 1px solid rgba(89, 210, 255, 0.18);
+    border-right: 1px solid rgba(89, 210, 255, 0.16);
 }
 
 body.transactions-panel-page .transaction-details-panel {
-    border-left: 1px solid rgba(89, 210, 255, 0.18);
+    border-left: 1px solid rgba(89, 210, 255, 0.16);
 }
 
 body.transactions-panel-page .panel-header {
-    padding: 1.3rem 1.8rem;
+    padding: clamp(1.1rem, 1rem + 0.4vw, 1.4rem) clamp(1.3rem, 1.1rem + 0.8vw, 1.9rem);
     border-bottom: 1px solid rgba(89, 210, 255, 0.18);
-    background: rgba(9, 22, 42, 0.85);
+    background: rgba(9, 22, 42, 0.88);
     position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(1rem, 0.6rem + 1vw, 1.8rem);
 }
 
 body.transactions-panel-page .panel-header::after {
     content: "";
     position: absolute;
-    inset: auto 18px -1px 18px;
+    inset: auto clamp(1.1rem, 0.8rem + 1vw, 2rem) -1px clamp(1.1rem, 0.8rem + 1vw, 2rem);
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(89, 210, 255, 0.45), transparent);
+    pointer-events: none;
 }
 
-body.transactions-panel-page .panel-title span,
-body.transactions-panel-page .panel-title {
-    font-size: 0.85rem;
+body.transactions-panel-page .tx-panel-header__title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+body.transactions-panel-page .tx-panel-eyebrow {
+    font-size: 0.68rem;
     letter-spacing: 0.32rem;
     text-transform: uppercase;
-    color: var(--tx-text-secondary);
+    color: rgba(168, 194, 222, 0.62);
 }
 
-body.transactions-panel-page .panel-header-actions {
+body.transactions-panel-page .tx-panel-heading,
+body.transactions-panel-page .panel-title span,
+body.transactions-panel-page .panel-title {
+    font-size: 1rem;
+    letter-spacing: 0.18rem;
+    text-transform: uppercase;
+    color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .panel-header-actions,
+body.transactions-panel-page .tx-panel-header__actions {
     display: flex;
     align-items: center;
-    gap: 0.9rem;
+    gap: clamp(0.6rem, 0.35rem + 0.8vw, 1.1rem);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+body.transactions-panel-page .tx-panel-search {
+    max-width: clamp(220px, 40vw, 320px);
 }
 
 body.transactions-panel-page .input-group-text,
@@ -143,6 +509,36 @@ body.transactions-panel-page .form-control {
     background: rgba(4, 12, 24, 0.8);
     border: 1px solid rgba(89, 210, 255, 0.18);
     color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .tx-panel-search .input-group {
+    width: 100%;
+}
+
+body.transactions-panel-page .panel-header-actions .search-full .input-group,
+body.transactions-panel-page .tx-panel-header__actions .search-full .input-group {
+    width: clamp(220px, 38vw, 300px);
+}
+
+body.transactions-panel-page .panel-header-actions .search-compact .input-group,
+body.transactions-panel-page .tx-panel-header__actions .search-compact .input-group {
+    width: clamp(160px, 30vw, 220px);
+}
+
+body.transactions-panel-page .panel-header-actions .search-icon .form-control,
+body.transactions-panel-page .tx-panel-header__actions .search-icon .form-control {
+    display: none;
+}
+
+body.transactions-panel-page .panel-header-actions .search-icon .input-group-text,
+body.transactions-panel-page .tx-panel-header__actions .search-icon .input-group-text {
+    border-radius: 999px;
+    padding: 0.4rem 0.6rem;
+}
+
+body.transactions-panel-page .panel-header-actions .search-hidden,
+body.transactions-panel-page .tx-panel-header__actions .search-hidden {
+    display: none !important;
 }
 
 body.transactions-panel-page .form-control:focus {
@@ -235,15 +631,32 @@ body.transactions-panel-page .dropdown-item.active::before {
     box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.28);
 }
 
-body.transactions-panel-page .payee-list-scroll {
-    height: calc(100vh - 370px);
-    padding: 0 1.5rem 1.5rem;
+body.transactions-panel-page .payee-list-scroll,
+body.transactions-panel-page .tx-panel-scroll {
+    flex: 1;
+    padding: clamp(1.1rem, 0.9rem + 0.6vw, 1.6rem) clamp(1.1rem, 0.9rem + 0.9vw, 1.8rem) clamp(1.4rem, 1.1rem + 0.9vw, 2rem);
+    overflow-y: auto;
+    position: relative;
 }
 
-body.transactions-panel-page .payee-list-content {
+body.transactions-panel-page .payee-list-scroll::before,
+body.transactions-panel-page .tx-panel-scroll::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 120px;
+    background: linear-gradient(180deg, rgba(9, 22, 42, 0.75), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+body.transactions-panel-page .payee-list-content,
+body.transactions-panel-page .tx-ledger-stream {
     display: grid;
-    gap: 0.85rem;
-    padding-top: 0.6rem;
+    gap: clamp(0.7rem, 0.45rem + 0.8vw, 1.1rem);
+    padding-top: 1.4rem;
+    position: relative;
+    z-index: 2;
 }
 
 body.transactions-panel-page .transaction-card {
@@ -252,13 +665,45 @@ body.transactions-panel-page .transaction-card {
     align-items: center;
     padding: 0.95rem 1.1rem;
     border: 1px solid rgba(89, 210, 255, 0.14);
-    border-radius: 14px;
+    border-radius: 10px;
     background: linear-gradient(135deg, rgba(15, 32, 58, 0.78), rgba(9, 22, 42, 0.76));
     box-shadow: 0 16px 36px -26px rgba(24, 64, 108, 0.85);
     position: relative;
     overflow: hidden;
     cursor: pointer;
     transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease;
+}
+
+body.transactions-panel-page .transaction-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+body.transactions-panel-page .transaction-type-chip {
+    font-size: 0.65rem;
+    letter-spacing: 0.24rem;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(89, 210, 255, 0.32);
+    background: rgba(89, 210, 255, 0.08);
+    color: var(--tx-accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+body.transactions-panel-page .transaction-type-chip.is-expense {
+    border-color: rgba(255, 92, 138, 0.35);
+    background: rgba(255, 92, 138, 0.08);
+    color: var(--tx-danger);
+}
+
+body.transactions-panel-page .transaction-type-chip.is-income {
+    border-color: rgba(50, 255, 192, 0.32);
+    background: rgba(50, 255, 192, 0.08);
+    color: var(--tx-success);
 }
 
 body.transactions-panel-page .transaction-card::before {
@@ -271,14 +716,33 @@ body.transactions-panel-page .transaction-card::before {
     transition: opacity 180ms ease;
 }
 
-body.transactions-panel-page .transaction-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(89, 210, 255, 0.45);
-    box-shadow: 0 24px 45px -32px rgba(24, 64, 108, 0.95);
+body.transactions-panel-page .transaction-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid rgba(89, 210, 255, 0.4);
+    opacity: 0;
+    box-shadow: 0 0 20px -10px rgba(89, 210, 255, 0.8);
+    transition: opacity 180ms ease;
+    pointer-events: none;
 }
 
-body.transactions-panel-page .transaction-card:hover::before {
+body.transactions-panel-page .transaction-card:hover,
+body.transactions-panel-page .transaction-card:focus-within {
+    transform: translateY(-2px);
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: 0 24px 45px -32px rgba(24, 64, 108, 0.95), 0 0 24px -10px rgba(89, 210, 255, 0.7);
+}
+
+body.transactions-panel-page .transaction-card:hover::before,
+body.transactions-panel-page .transaction-card:focus-within::before {
     opacity: 0.75;
+}
+
+body.transactions-panel-page .transaction-card:hover::after,
+body.transactions-panel-page .transaction-card:focus-within::after {
+    opacity: 1;
 }
 
 body.transactions-panel-page .transaction-card.payee-row.active,
@@ -296,7 +760,7 @@ body.transactions-panel-page .transaction-date-cell {
 
 body.transactions-panel-page .transaction-info-cell {
     display: grid;
-    gap: 0.2rem;
+    gap: 0.45rem;
 }
 
 body.transactions-panel-page .transaction-payee-name {
@@ -326,33 +790,42 @@ body.transactions-panel-page .transaction-amount.text-danger {
     color: var(--tx-danger) !important;
 }
 
-body.transactions-panel-page .transaction-total-bar {
+body.transactions-panel-page .transaction-total-bar,
+body.transactions-panel-page .tx-total-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.2rem 1.8rem;
-    background: linear-gradient(135deg, rgba(10, 28, 50, 0.92), rgba(6, 16, 30, 0.9));
+    padding: clamp(1rem, 0.85rem + 0.8vw, 1.5rem) clamp(1.3rem, 1rem + 1vw, 1.9rem);
+    background: linear-gradient(135deg, rgba(10, 28, 50, 0.94), rgba(6, 16, 30, 0.9));
     border-top: 1px solid rgba(89, 210, 255, 0.18);
     box-shadow: inset 0 1px 0 rgba(89, 210, 255, 0.08);
+    gap: 1.2rem;
+}
+
+body.transactions-panel-page .transaction-total-text,
+body.transactions-panel-page .tx-total-text {
+    display: grid;
+    gap: 0.35rem;
 }
 
 body.transactions-panel-page .transaction-total-label {
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     letter-spacing: 0.32rem;
     text-transform: uppercase;
-    color: var(--tx-text-secondary);
+    color: rgba(168, 194, 222, 0.65);
 }
 
 body.transactions-panel-page .transaction-total-subtext {
     display: block;
-    font-size: 0.72rem;
-    letter-spacing: 0.06rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.08rem;
     color: rgba(168, 194, 222, 0.6);
 }
 
-body.transactions-panel-page .transaction-total-value {
-    font-size: 1.45rem;
-    letter-spacing: 0.18rem;
+body.transactions-panel-page .transaction-total-value,
+body.transactions-panel-page .tx-total-value {
+    font-size: clamp(1.3rem, 1.1rem + 0.9vw, 1.7rem);
+    letter-spacing: 0.22rem;
     text-transform: uppercase;
     color: var(--tx-accent);
 }
@@ -373,8 +846,6 @@ body.transactions-panel-page .panel-resizer .resizer-handle {
 
 body.transactions-panel-page .transaction-details-panel .panel-header {
     align-items: center;
-    display: flex;
-    justify-content: space-between;
 }
 
 body.transactions-panel-page .transaction-details-panel .panel-title {
@@ -384,14 +855,45 @@ body.transactions-panel-page .transaction-details-panel .panel-title {
     color: var(--tx-text-secondary);
 }
 
-body.transactions-panel-page .transaction-details-panel .detail-scroll {
-    padding: 1.5rem 1.8rem;
-    height: calc(100vh - 410px);
+body.transactions-panel-page .tx-detail-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
-body.transactions-panel-page .transaction-details-panel .detail-content {
+body.transactions-panel-page .transaction-details-panel .detail-scroll,
+body.transactions-panel-page .tx-detail-scroll {
+    flex: 1;
+    padding: clamp(1.2rem, 1rem + 0.8vw, 1.8rem);
+    overflow-y: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.2rem, 0.9rem + 0.9vw, 1.8rem);
+}
+
+body.transactions-panel-page .transaction-details-panel .detail-scroll::before,
+body.transactions-panel-page .tx-detail-scroll::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 110px;
+    background: linear-gradient(180deg, rgba(9, 22, 42, 0.75), transparent);
+    pointer-events: none;
+}
+
+body.transactions-panel-page .transaction-details-panel .detail-content,
+body.transactions-panel-page .tx-detail-content {
     display: grid;
-    gap: 1.8rem;
+    gap: clamp(1.4rem, 1.1rem + 0.8vw, 2rem);
+    position: relative;
+    z-index: 1;
+}
+
+body.transactions-panel-page .detail-heading,
+body.transactions-panel-page .tx-detail-heading {
+    display: grid;
+    gap: 0.45rem;
 }
 
 body.transactions-panel-page .detail-heading-label {
@@ -411,9 +913,35 @@ body.transactions-panel-page .detail-name {
 body.transactions-panel-page .detail-section-primary {
     background: rgba(10, 26, 48, 0.72);
     border: 1px solid rgba(89, 210, 255, 0.16);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 1.35rem 1.6rem;
     box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.05), 0 16px 32px -30px rgba(18, 48, 82, 0.95);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+body.transactions-panel-page .detail-section-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(130deg, rgba(89, 210, 255, 0.36), rgba(27, 201, 255, 0.12));
+    opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+}
+
+body.transactions-panel-page .detail-section-primary:hover,
+body.transactions-panel-page .detail-section-primary:focus-within {
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.1), 0 20px 36px -28px rgba(18, 48, 82, 0.9);
+}
+
+body.transactions-panel-page .detail-section-primary:hover::after,
+body.transactions-panel-page .detail-section-primary:focus-within::after {
+    opacity: 0.65;
 }
 
 body.transactions-panel-page .detail-section-label {
@@ -423,95 +951,137 @@ body.transactions-panel-page .detail-section-label {
     color: var(--tx-text-secondary);
 }
 
-body.transactions-panel-page .detail-info-grid {
+body.transactions-panel-page .detail-info-grid,
+body.transactions-panel-page .tx-detail-grid {
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-body.transactions-panel-page .detail-info-label {
+body.transactions-panel-page .detail-info-label,
+body.transactions-panel-page .tx-detail-grid dt {
     font-size: 0.65rem;
     letter-spacing: 0.22rem;
     text-transform: uppercase;
     color: rgba(168, 194, 222, 0.65);
 }
 
-body.transactions-panel-page .detail-info-value {
+body.transactions-panel-page .detail-info-value,
+body.transactions-panel-page .tx-detail-grid dd {
     font-size: 0.95rem;
     letter-spacing: 0.1rem;
     color: var(--tx-text-primary);
 }
 
-body.transactions-panel-page #transaction-notes-section .detail-body-text {
+body.transactions-panel-page #transaction-notes-section .detail-body-text,
+body.transactions-panel-page .tx-detail-notes {
     color: rgba(224, 240, 255, 0.7);
     font-size: 0.9rem;
     letter-spacing: 0.08rem;
     line-height: 1.6;
 }
 
-body.transactions-panel-page .detail-actions {
-    padding: 1.2rem 1.8rem 1.8rem;
-    border-top: 1px solid rgba(89, 210, 255, 0.1);
+body.transactions-panel-page .detail-actions,
+body.transactions-panel-page .tx-detail-actions {
     display: flex;
-    gap: 0.85rem;
+    gap: clamp(0.6rem, 0.45rem + 0.5vw, 1rem);
     justify-content: flex-end;
+    padding: clamp(0.9rem, 0.8rem + 0.4vw, 1.2rem) clamp(1.3rem, 1rem + 0.9vw, 1.8rem) clamp(1.1rem, 0.9rem + 0.8vw, 1.7rem);
+    border-top: 1px solid rgba(89, 210, 255, 0.14);
+    background: linear-gradient(180deg, rgba(10, 26, 48, 0.78), rgba(8, 20, 38, 0.82));
 }
 
+body.transactions-panel-page .tx-panel-action,
 body.transactions-panel-page .detail-actions .btn {
-    border-radius: 999px;
-    padding: 0.5rem 1.4rem;
-    font-size: 0.7rem;
-    letter-spacing: 0.24rem;
+    min-width: 94px;
+    letter-spacing: 0.1rem;
     text-transform: uppercase;
     border: 1px solid rgba(89, 210, 255, 0.32);
     background: rgba(4, 12, 24, 0.75);
     color: var(--tx-text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding-inline: 0.95rem;
+}
+body.transactions-panel-page .tx-detail-header .tx-panel-action {
+    min-width: auto;
+    padding-inline: 0.6rem;
+}
+body.transactions-panel-page .panel-header-actions .btn-icon,
+body.transactions-panel-page .tx-panel-header__actions .btn-icon {
+    min-width: auto;
+    padding-inline: 0.55rem;
 }
 
+body.transactions-panel-page .panel-header-actions .dropdown-icon .btn,
+body.transactions-panel-page .tx-panel-header__actions .dropdown-icon .btn {
+    padding-inline: 0.55rem;
+    min-width: auto;
+}
+body.transactions-panel-page .tx-panel-action:hover:not(:disabled),
 body.transactions-panel-page .detail-actions .btn:hover:not(:disabled) {
     border-color: var(--tx-accent);
     color: var(--tx-accent);
     box-shadow: 0 12px 26px -20px rgba(89, 210, 255, 0.8);
 }
 
+body.transactions-panel-page .tx-panel-action:disabled,
 body.transactions-panel-page .detail-actions .btn:disabled {
     opacity: 0.36;
 }
 
-body.transactions-panel-page .transaction-empty-state {
+body.transactions-panel-page .transaction-empty-state,
+body.transactions-panel-page .detail-empty,
+body.transactions-panel-page .tx-empty-state {
     border: 1px dashed rgba(89, 210, 255, 0.22);
-    border-radius: 16px;
-    background: rgba(6, 16, 30, 0.6);
+    border-radius: 12px;
+    background: rgba(6, 16, 30, 0.62);
     color: var(--tx-text-secondary);
+    padding: clamp(2rem, 1.5rem + 1vw, 2.6rem) 1.5rem;
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.08);
 }
 
-body.transactions-panel-page .transaction-empty-state i {
-    color: rgba(89, 210, 255, 0.35);
+body.transactions-panel-page .transaction-empty-state i,
+body.transactions-panel-page .detail-empty i,
+body.transactions-panel-page .tx-empty-icon,
+body.transactions-panel-page .tx-empty-icon i {
+    color: rgba(89, 210, 255, 0.38);
+    font-size: clamp(2.4rem, 2rem + 1vw, 3rem);
 }
 
-body.transactions-panel-page .detail-empty {
-    border: 1px dashed rgba(89, 210, 255, 0.2);
-    border-radius: 16px;
-    background: rgba(6, 16, 30, 0.58);
-    color: var(--tx-text-secondary);
+body.transactions-panel-page .tx-empty-title {
+    font-size: 1rem;
+    letter-spacing: 0.12rem;
+    text-transform: uppercase;
+    color: var(--tx-text-primary);
 }
 
-body.transactions-panel-page .detail-empty i {
-    color: rgba(27, 201, 255, 0.35);
+body.transactions-panel-page .tx-empty-subtitle {
+    font-size: 0.8rem;
+    letter-spacing: 0.06rem;
+    color: rgba(168, 194, 222, 0.65);
 }
 
-body.transactions-panel-page .payee-list-panel::-webkit-scrollbar,
-body.transactions-panel-page .detail-scroll::-webkit-scrollbar {
+body.transactions-panel-page .payee-list-scroll::-webkit-scrollbar,
+body.transactions-panel-page .tx-panel-scroll::-webkit-scrollbar,
+body.transactions-panel-page .detail-scroll::-webkit-scrollbar,
+body.transactions-panel-page .tx-detail-scroll::-webkit-scrollbar {
     width: 8px;
 }
 
-body.transactions-panel-page .payee-list-panel::-webkit-scrollbar-track,
-body.transactions-panel-page .detail-scroll::-webkit-scrollbar-track {
+body.transactions-panel-page .payee-list-scroll::-webkit-scrollbar-track,
+body.transactions-panel-page .tx-panel-scroll::-webkit-scrollbar-track,
+body.transactions-panel-page .detail-scroll::-webkit-scrollbar-track,
+body.transactions-panel-page .tx-detail-scroll::-webkit-scrollbar-track {
     background: rgba(4, 12, 24, 0.45);
 }
 
-body.transactions-panel-page .payee-list-panel::-webkit-scrollbar-thumb,
-body.transactions-panel-page .detail-scroll::-webkit-scrollbar-thumb {
+body.transactions-panel-page .payee-list-scroll::-webkit-scrollbar-thumb,
+body.transactions-panel-page .tx-panel-scroll::-webkit-scrollbar-thumb,
+body.transactions-panel-page .detail-scroll::-webkit-scrollbar-thumb,
+body.transactions-panel-page .tx-detail-scroll::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(89, 210, 255, 0.65), rgba(27, 201, 255, 0.45));
     border-radius: 999px;
 }
@@ -566,7 +1136,7 @@ body.transactions-panel-page .futuristic-modal.payee-modal .modal-dialog {
 body.transactions-panel-page .futuristic-modal-content {
     background: rgba(6, 20, 42, 0.5);
     border: 1px solid var(--tx-accent-strong);
-    border-radius: 18px;
+    border-radius: 12px;
     box-shadow: 0 32px 80px -38px rgba(12, 40, 72, 0.72), 
                 inset 0 1px 2px rgba(89, 210, 255, 0.1);
     color: var(--tx-text-primary);
@@ -1128,9 +1698,51 @@ body.transactions-panel-page .payee-list-panel::after {
 }
 
 @media (max-width: 992px) {
-    body.transactions-panel-page .payees-panel {
+    body.transactions-panel-page .tx-command-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    body.transactions-panel-page .tx-command-header__primary {
+        max-width: 100%;
+    }
+
+    body.transactions-panel-page .payees-panel,
+    body.transactions-panel-page .tx-panel-stack {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto 12px auto;
+        grid-template-rows: auto clamp(10px, 2vw, 14px) auto;
+    }
+
+    body.transactions-panel-page .tx-panel-header__actions {
+        justify-content: flex-start;
+    }
+
+    body.transactions-panel-page .panel-resizer {
+        grid-column: 1;
+        grid-row: 2;
+        height: clamp(10px, 2vw, 14px);
+        width: 100%;
+        background: linear-gradient(90deg, transparent, rgba(89, 210, 255, 0.45), transparent);
+    }
+
+    body.transactions-panel-page .panel-resizer .resizer-handle {
+        width: min(120px, 50%);
+        height: 3px;
+    }
+
+    body.transactions-panel-page .payee-list-panel {
+        border-right: none;
+        border-bottom: 1px solid rgba(89, 210, 255, 0.18);
+    }
+
+    body.transactions-panel-page .transaction-details-panel {
+        border-left: none;
+        border-top: 1px solid rgba(89, 210, 255, 0.18);
+    }
+
+    body.transactions-panel-page .transaction-details-panel .detail-scroll,
+    body.transactions-panel-page .payee-list-scroll {
+        max-height: none;
     }
 
     body.transactions-panel-page .futuristic-modal .modal-dialog {
@@ -1147,46 +1759,30 @@ body.transactions-panel-page .payee-list-panel::after {
         padding: 1.05rem 1.1rem;
     }
 
-    body.transactions-panel-page .panel-resizer {
-        grid-row: 2;
-        height: 12px;
-        background: linear-gradient(90deg, transparent, rgba(89, 210, 255, 0.45), transparent);
-    }
-
-    body.transactions-panel-page .panel-resizer .resizer-handle {
-        width: 60%;
-        height: 3px;
-    }
-
-    body.transactions-panel-page .payee-list-panel {
-        border-right: none;
-        border-bottom: 1px solid rgba(89, 210, 255, 0.18);
-    }
-
-    body.transactions-panel-page .transaction-details-panel {
-        border-left: none;
-        border-top: 1px solid rgba(89, 210, 255, 0.18);
-    }
-
-    body.transactions-panel-page .detail-scroll,
-    body.transactions-panel-page .payee-list-scroll {
-        height: auto;
-        max-height: none;
-    }
 }
 
 @media (max-width: 768px) {
     body.transactions-panel-page .content-wrapper {
-        padding: 2rem 1.5rem;
+    padding: 1.3rem 1rem;
+    border-radius: 12px;
     }
 
-    body.transactions-panel-page .page-title {
-        font-size: 1.8rem;
-        letter-spacing: 0.2rem;
+    body.transactions-panel-page .tx-command-title {
+        font-size: clamp(1.9rem, 1.6rem + 1vw, 2.2rem);
+        letter-spacing: 0.24rem;
     }
 
-    body.transactions-panel-page .payees-panel {
-        border-radius: 16px;
+    body.transactions-panel-page .tx-command-header__meta {
+        gap: 0.75rem;
+    }
+
+    body.transactions-panel-page .tx-metric-deck {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    body.transactions-panel-page .payees-panel,
+    body.transactions-panel-page .tx-panel-stack {
+        border-radius: 12px;
     }
 
     body.transactions-panel-page .transaction-card {
@@ -1208,7 +1804,380 @@ body.transactions-panel-page .payee-list-panel::after {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    body.transactions-panel-page .compact-field-grid {
-        grid-template-columns: 1fr;
+}
+
+/* ============================================
+   EXPANSE THEME CHROME - NAVIGATION & SIDEBAR
+   ============================================ */
+
+body.transactions-panel-page {
+    --tx-nav-height: 3.25rem;
+    --tx-nav-border: rgba(89, 210, 255, 0.22);
+    --tx-nav-bg: linear-gradient(120deg, rgba(8, 24, 46, 0.92) 0%, rgba(5, 14, 28, 0.88) 55%, rgba(10, 32, 58, 0.9) 100%);
+    --tx-nav-accent: #59d2ff;
+    --tx-nav-accent-strong: #1bc9ff;
+    --tx-nav-text: rgba(224, 240, 255, 0.86);
+    --tx-nav-text-muted: rgba(168, 194, 222, 0.62);
+    --tx-nav-shadow: 0 20px 60px -30px rgba(8, 22, 40, 0.85);
+    --tx-sidebar-width: 260px;
+    --tx-sidebar-border: rgba(89, 210, 255, 0.18);
+    --tx-sidebar-bg: linear-gradient(160deg, rgba(7, 18, 36, 0.94) 0%, rgba(3, 10, 20, 0.92) 50%, rgba(10, 30, 54, 0.9) 100%);
+    --tx-sidebar-panel-bg: linear-gradient(150deg, rgba(8, 22, 42, 0.8), rgba(4, 12, 24, 0.78));
+    --tx-sidebar-highlight: rgba(89, 210, 255, 0.22);
+    --tx-sidebar-shadow: 0 32px 90px -38px rgba(12, 40, 72, 0.9);
+    --tx-sidebar-text: rgba(214, 232, 255, 0.88);
+    --tx-sidebar-muted: rgba(140, 168, 200, 0.68);
+    --tx-glow: 0 0 26px -8px rgba(89, 210, 255, 0.85);
+    --bb-top-nav-height: var(--tx-nav-height);
+    --bb-sidebar-width: var(--tx-sidebar-width);
+    --bb-sidebar-collapsed-width: 88px;
+}
+
+body.transactions-panel-page .bb-top-nav {
+    background: transparent;
+    border-bottom: 1px solid var(--tx-nav-border);
+    box-shadow: var(--tx-nav-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+}
+
+body.transactions-panel-page .bb-top-nav::before,
+body.transactions-panel-page .bb-top-nav::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 0 0 24px 24px;
+    pointer-events: none;
+}
+
+body.transactions-panel-page .bb-top-nav::before {
+    background: var(--tx-nav-bg);
+    opacity: 0.98;
+}
+
+body.transactions-panel-page .bb-top-nav::after {
+    background: radial-gradient(circle at 12% 20%, rgba(89, 210, 255, 0.25), transparent 55%),
+                radial-gradient(circle at 86% -5%, rgba(27, 201, 255, 0.28), transparent 60%),
+                linear-gradient(140deg, rgba(10, 38, 66, 0.6), transparent 65%);
+    mix-blend-mode: screen;
+    opacity: 0.75;
+}
+
+body.transactions-panel-page .bb-top-nav .container-fluid {
+    position: relative;
+    z-index: 1;
+}
+
+body.transactions-panel-page .bb-top-nav__brand {
+    color: var(--tx-nav-text);
+    text-transform: uppercase;
+    letter-spacing: 0.18rem;
+    font-size: 0.92rem;
+}
+
+body.transactions-panel-page .bb-top-nav__brand-icon {
+    filter: drop-shadow(0 0 8px rgba(89, 210, 255, 0.55));
+    background: rgba(8, 24, 46, 0.65);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(89, 210, 255, 0.28);
+}
+
+body.transactions-panel-page .bb-top-nav__links {
+    gap: 0.45rem;
+}
+
+body.transactions-panel-page .bb-top-nav__link {
+    color: var(--tx-nav-text-muted);
+    background: rgba(5, 18, 34, 0.45);
+    border: 1px solid rgba(89, 210, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(40, 120, 200, 0.08);
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.12rem;
+    font-size: 0.76rem;
+    padding: 0.45rem 0.95rem;
+    transition: border 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body.transactions-panel-page .bb-top-nav__link i {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+body.transactions-panel-page .bb-top-nav__link:hover,
+body.transactions-panel-page .bb-top-nav__link:focus-visible {
+    color: var(--tx-nav-accent);
+    border-color: rgba(89, 210, 255, 0.32);
+    box-shadow: var(--tx-glow);
+    transform: translateY(-1px);
+    background: rgba(8, 24, 46, 0.78);
+}
+
+body.transactions-panel-page .bb-top-nav__link.is-active {
+    color: var(--tx-nav-text);
+    background: linear-gradient(135deg, rgba(16, 70, 110, 0.85), rgba(34, 106, 164, 0.92));
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: 0 18px 36px -20px rgba(27, 201, 255, 0.6);
+}
+
+body.transactions-panel-page .bb-top-nav__link.is-active i {
+    opacity: 1;
+}
+
+body.transactions-panel-page .bb-top-nav__actions {
+    gap: 1rem;
+}
+
+body.transactions-panel-page .bb-top-nav__user {
+    color: var(--tx-nav-text);
+    font-size: 0.78rem;
+    letter-spacing: 0.08rem;
+    padding: 0.45rem 0.9rem;
+    background: rgba(8, 24, 46, 0.55);
+    border-radius: 999px;
+    border: 1px solid rgba(89, 210, 255, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(27, 201, 255, 0.15);
+}
+
+body.transactions-panel-page .bb-top-nav__user:hover,
+body.transactions-panel-page .bb-top-nav__user:focus-visible {
+    color: var(--tx-nav-accent);
+    border-color: rgba(89, 210, 255, 0.4);
+    box-shadow: 0 0 18px -8px rgba(89, 210, 255, 0.65);
+}
+
+body.transactions-panel-page .bb-top-nav .dropdown-menu {
+    background: linear-gradient(160deg, rgba(8, 24, 46, 0.94), rgba(4, 12, 24, 0.88));
+    border: 1px solid rgba(89, 210, 255, 0.28);
+    box-shadow: 0 26px 60px -32px rgba(12, 40, 72, 0.85);
+    backdrop-filter: blur(14px);
+}
+
+body.transactions-panel-page .bb-top-nav .dropdown-item {
+    color: var(--tx-nav-text-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.06rem;
+    text-transform: uppercase;
+}
+
+body.transactions-panel-page .bb-top-nav .dropdown-item i {
+    color: rgba(89, 210, 255, 0.7);
+}
+
+body.transactions-panel-page .bb-top-nav .dropdown-item:hover,
+body.transactions-panel-page .bb-top-nav .dropdown-item:focus {
+    background: rgba(27, 201, 255, 0.12);
+    color: var(--tx-nav-text);
+}
+
+/* Sidebar overrides */
+body.transactions-panel-page .bb-sidebar {
+    background: transparent;
+    border-right: 1px solid var(--tx-sidebar-border);
+    box-shadow: var(--tx-sidebar-shadow);
+}
+
+body.transactions-panel-page .bb-sidebar::before,
+body.transactions-panel-page .bb-sidebar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+body.transactions-panel-page .bb-sidebar::before {
+    background: var(--tx-sidebar-bg);
+    opacity: 0.98;
+}
+
+body.transactions-panel-page .bb-sidebar::after {
+    background: radial-gradient(circle at 15% 30%, rgba(89, 210, 255, 0.18), transparent 55%),
+                radial-gradient(circle at 85% 10%, rgba(27, 201, 255, 0.16), transparent 60%),
+                linear-gradient(180deg, rgba(4, 12, 24, 0.2), rgba(4, 12, 24, 0.6));
+    mix-blend-mode: screen;
+}
+
+body.transactions-panel-page .bb-sidebar__inner {
+    position: relative;
+    z-index: 1;
+    gap: 1.75rem;
+}
+
+body.transactions-panel-page .bb-sidebar__controls {
+    background: linear-gradient(180deg, rgba(8, 24, 46, 0.92) 65%, rgba(8, 24, 46, 0));
+}
+
+body.transactions-panel-page .bb-sidebar__collapse {
+    border: 1px solid rgba(89, 210, 255, 0.28);
+    background: rgba(8, 24, 46, 0.6);
+    color: var(--tx-sidebar-muted);
+    box-shadow: 0 12px 24px -18px rgba(12, 40, 72, 0.85);
+}
+
+body.transactions-panel-page .bb-sidebar__collapse:hover,
+body.transactions-panel-page .bb-sidebar__collapse:focus-visible {
+    color: var(--tx-nav-accent);
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: var(--tx-glow);
+    background: rgba(8, 24, 46, 0.82);
+}
+
+body.transactions-panel-page .bb-sidebar__nav-link {
+    color: var(--tx-sidebar-muted);
+    background: rgba(6, 16, 30, 0.55);
+    border: 1px solid rgba(89, 210, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(20, 80, 160, 0.08);
+    text-transform: uppercase;
+    letter-spacing: 0.12rem;
+    font-size: 0.75rem;
+    transition: border 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body.transactions-panel-page .bb-sidebar__nav-link i {
+    font-size: 0.82rem;
+}
+
+body.transactions-panel-page .bb-sidebar__nav-link:hover,
+body.transactions-panel-page .bb-sidebar__nav-link:focus-visible {
+    color: var(--tx-nav-accent);
+    border-color: rgba(89, 210, 255, 0.3);
+    box-shadow: var(--tx-glow);
+    transform: translateX(3px);
+}
+
+body.transactions-panel-page .bb-sidebar__nav-link.is-active {
+    color: var(--tx-nav-text);
+    background: linear-gradient(135deg, rgba(16, 70, 110, 0.82), rgba(34, 106, 164, 0.92));
+    border-color: rgba(89, 210, 255, 0.45);
+    box-shadow: 0 18px 36px -20px rgba(27, 201, 255, 0.6);
+}
+
+body.transactions-panel-page .bb-sidebar__heading {
+    color: rgba(150, 192, 230, 0.7);
+    letter-spacing: 0.18rem;
+}
+
+body.transactions-panel-page .bb-sidebar__subheading {
+    color: rgba(168, 194, 222, 0.65);
+}
+
+body.transactions-panel-page .bb-sidebar__section {
+    background: rgba(4, 12, 24, 0.55);
+    border: 1px solid rgba(89, 210, 255, 0.16);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.08);
+    backdrop-filter: blur(12px);
+}
+
+body.transactions-panel-page .bb-sidebar__stats {
+    gap: 0.85rem;
+}
+
+body.transactions-panel-page .bb-sidebar__stat {
+    background: rgba(6, 18, 34, 0.7);
+    border: 1px solid rgba(89, 210, 255, 0.16);
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    color: var(--tx-sidebar-text);
+}
+
+body.transactions-panel-page .bb-sidebar__stat-label {
+    color: rgba(168, 194, 222, 0.65);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14rem;
+}
+
+body.transactions-panel-page .bb-sidebar__stat-value {
+    font-size: 0.9rem;
+    letter-spacing: 0.08rem;
+}
+
+body.transactions-panel-page .bb-sidebar__stat-value.text-success {
+    color: var(--tx-success) !important;
+}
+
+body.transactions-panel-page .bb-sidebar__stat-value.text-danger {
+    color: var(--tx-danger) !important;
+}
+
+body.transactions-panel-page.sidebar-collapsed .bb-sidebar__nav-link {
+    gap: 0.25rem;
+}
+
+body.transactions-panel-page.sidebar-collapsed .bb-sidebar__nav-link i {
+    font-size: 1.22rem;
+}
+
+/* Main content adjustments */
+body.transactions-panel-page .budget-basic-main {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: clamp(1.1rem, 0.9rem + 0.6vw, 1.7rem) clamp(1rem, 0.8rem + 0.8vw, 1.8rem) clamp(1.6rem, 1.2rem + 0.9vw, 2.3rem);
+    background: radial-gradient(circle at 20% -5%, rgba(89, 210, 255, 0.08), transparent 60%),
+                radial-gradient(circle at 82% 0%, rgba(27, 201, 255, 0.12), transparent 62%),
+                linear-gradient(160deg, rgba(8, 18, 36, 0.9), rgba(3, 8, 20, 0.96));
+    min-height: calc(100vh - var(--tx-nav-height));
+    scrollbar-gutter: stable;
+}
+
+body.transactions-panel-page.sidebar-collapsed .budget-basic-main {
+    margin-left: 0;
+}
+
+body.transactions-panel-page .budget-basic-main::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 12% 22%, rgba(89, 210, 255, 0.12), transparent 55%),
+                radial-gradient(circle at 75% 25%, rgba(32, 140, 255, 0.08), transparent 60%);
+    mix-blend-mode: lighten;
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.transactions-panel-page .budget-basic-main > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 991.98px) {
+    body.transactions-panel-page .bb-top-nav::before,
+    body.transactions-panel-page .bb-top-nav::after {
+        border-radius: 0;
     }
+
+    body.transactions-panel-page .bb-sidebar {
+        width: min(300px, 88vw);
+    }
+
+    body.transactions-panel-page.sidebar-open::after {
+        background: rgba(4, 12, 24, 0.72);
+        backdrop-filter: blur(2px);
+    }
+
+    body.transactions-panel-page .budget-basic-main {
+        padding: 1.9rem 1.3rem 2.2rem;
+    }
+}
+
+/* FINAL OVERRIDE: Ensure scrollbar buttons never appear anywhere */
+body.transactions-panel-page .content-wrapper::-webkit-scrollbar-button:single-button {
+    height: 0;
+    width: 0;
+    display: block;
+}
+
+body.transactions-panel-page .content-wrapper::-webkit-scrollbar-button:single-button:vertical:decrement,
+body.transactions-panel-page .content-wrapper::-webkit-scrollbar-button:single-button:vertical:increment {
+    height: 0;
+    width: 0;
+    display: block;
 }

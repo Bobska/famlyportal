@@ -4,7 +4,7 @@
 {% load humanize %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'budget_basic/css/transactions_futuristic.css' %}">
+<link rel="stylesheet" href="{% static 'budget_basic/css/transactions_futuristic.css' %}?v=20251008-012">
 {% endblock %}
 
 {% block body_class %}transactions-panel-page payees-page{% endblock %}
@@ -14,37 +14,67 @@
 {% endblock %}
 
 {% block content %}
-<!-- Content Wrapper for Centering -->
-<div class="content-wrapper transactions-content payees-content">
-    <div class="page-heading mb-3">
-        <div class="page-heading-main">
-            <h1 class="page-title">All Transactions</h1>
-            <div class="page-heading-divider" aria-hidden="true"></div>
-            <p class="page-heading-description mb-0">Review every income and expense entry and drill into the details without losing your place.</p>
+{% with income_count=income_entries|length expense_count=expense_entries|length %}
+<div class="content-wrapper transactions-content">
+    <div class="tx-command-shell">
+    <section class="tx-command-header" aria-labelledby="transactions-title">
+        <div class="tx-command-header__primary">
+            <span class="tx-command-kicker">Mission Ledger</span>
+            <h1 id="transactions-title" class="tx-command-title">Transactions Command Center</h1>
+            <p class="tx-command-subtitle">Review every income and expense entry and dive into their details without breaking the flow of your mission.</p>
         </div>
-    </div>
+        <div class="tx-command-header__meta">
+            <div class="tx-header-pill" role="presentation">
+                <span class="tx-header-pill__label">Active window</span>
+                <span class="tx-header-pill__value">{{ sidebar_week_label|default:'All time' }}</span>
+            </div>
+            <div class="tx-header-pill" role="presentation">
+                <span class="tx-header-pill__label">Entries monitored</span>
+                <span class="tx-header-pill__value">{{ income_count|add:expense_count }}</span>
+            </div>
+        </div>
+    </section>
 
-    <div class="card flex-grow-1" id="transactions-card">
-        <div class="payees-panel">
-            <div class="payee-list-panel" id="transaction-list">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        <span>Transactions</span>
+    <section class="tx-metric-deck" aria-label="Financial overview">
+        <article class="tx-metric-card is-net" role="presentation">
+            <header class="tx-metric-card__header">
+                <span class="tx-metric-card__label">Net Balance</span>
+                <span class="tx-metric-card__badge">{% if net_balance >= 0 %}Stabilized{% else %}Attention{% endif %}</span>
+            </header>
+            <p class="tx-metric-card__value">{% if net_balance >= 0 %}+{% else %}-{% endif %}${{ net_balance|floatformat:2|intcomma|cut:'-' }}</p>
+            <p class="tx-metric-card__detail">Income ${{ total_income|floatformat:2|intcomma }} • Expenses ${{ total_expenses|floatformat:2|intcomma }}</p>
+        </article>
+        <article class="tx-metric-card is-income" role="presentation">
+            <span class="tx-metric-card__label">Income Streams</span>
+            <p class="tx-metric-card__value">+${{ total_income|floatformat:2|intcomma }}</p>
+            <p class="tx-metric-card__detail">{{ income_count }} entr{{ income_count|pluralize:'y,ies' }}</p>
+        </article>
+        <article class="tx-metric-card is-expense" role="presentation">
+            <span class="tx-metric-card__label">Expense Outflow</span>
+            <p class="tx-metric-card__value">-${{ total_expenses|floatformat:2|intcomma }}</p>
+            <p class="tx-metric-card__detail">{{ expense_count }} record{{ expense_count|pluralize }}</p>
+        </article>
+    </section>
+
+    <div id="transactions-card" class="tx-holo-grid">
+        <div class="payees-panel transactions-with-panel tx-panel-stack">
+            <section class="payee-list-panel tx-panel tx-panel--list" id="transaction-list">
+                <div class="panel-header tx-panel-header">
+                    <div class="tx-panel-header__title">
+                        <span class="tx-panel-eyebrow">Ledger Stream</span>
+                        <h2 class="tx-panel-heading">Transactions</h2>
                     </div>
-                    <div class="panel-header-actions">
-                        <div style="max-width: 220px;">
+                    <div class="panel-header-actions tx-panel-header__actions">
+                        <div class="tx-panel-search">
+                            <label for="transaction-search" class="visually-hidden">Search transactions</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" id="transaction-search" placeholder="Search..." oninput="BudgetBasic.handleTransactionSearch(this.value)">
+                                <input type="text" class="form-control" id="transaction-search" placeholder="Search feed" oninput="BudgetBasic.handleTransactionSearch(this.value)">
                             </div>
                         </div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="BudgetBasic.showAddTransactionModal()" title="Add" data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            <span>Add</span>
-                        </button>
-                        <div class="dropdown ms-2">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter Transactions">
-                                <i class="bi bi-funnel me-1"></i>
+                        <div class="dropdown tx-panel-filter">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="transactionFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Filter transactions">
+                                <i class="bi bi-funnel me-1" aria-hidden="true"></i>
                                 <span id="filterLabel">All</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="transactionFilterDropdown">
@@ -53,17 +83,24 @@
                                 <li><a class="dropdown-item" href="#" onclick="BudgetBasic.filterTransactions('expense')">Expenses Only</a></li>
                             </ul>
                         </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm tx-panel-action" onclick="BudgetBasic.showAddTransactionModal()" title="Create transaction" data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>
+                            <span>Add</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="payee-list-scroll">
-                    <div class="payee-list-content">
+                <div class="payee-list-scroll tx-panel-scroll">
+                    <div class="payee-list-content tx-ledger-stream">
                     {% if income_entries or expense_entries %}
                         {% for income in income_entries %}
-                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date|date:"Y-m-d" }}" data-transaction-payee="{{ income.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ income.amount|floatformat:'2' }}" data-transaction-notes="{{ income.notes|default_if_none:''|escapejs }}" onclick="BudgetBasic.selectTransaction(this, event)">
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ income.id }}" data-transaction-type="income" data-transaction-date="{{ income.date|date:'Y-m-d' }}" data-transaction-payee="{{ income.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ income.amount|floatformat:'2' }}" data-transaction-notes="{{ income.notes|default_if_none:''|escapejs }}" onclick="BudgetBasic.selectTransaction(this, event)">
                             <div class="payee-cell transaction-date-cell text-muted">{{ income.date|date:"D, j M" }}</div>
                             <div class="payee-cell payee-cell-info transaction-info-cell">
-                                <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
+                                <div class="transaction-name-row">
+                                    <span class="transaction-payee-name transaction-name">{{ income.payee|default:'Unnamed Income' }}</span>
+                                    <span class="transaction-type-chip is-income">Income</span>
+                                </div>
                                 {% if income.notes %}
                                 <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ income.notes }}</small>
                                 {% endif %}
@@ -75,10 +112,13 @@
                         {% endfor %}
 
                         {% for expense in expense_entries %}
-                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date|date:"Y-m-d" }}" data-transaction-payee="{{ expense.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ expense.amount|floatformat:'2' }}" data-transaction-notes="{{ expense.notes|default_if_none:''|escapejs }}" onclick="BudgetBasic.selectTransaction(this, event)">
+                        <div class="transaction-card transaction-card-data payee-row payee-card" data-transaction-id="{{ expense.id }}" data-transaction-type="expense" data-transaction-date="{{ expense.date|date:'Y-m-d' }}" data-transaction-payee="{{ expense.payee|default_if_none:''|escapejs }}" data-transaction-amount="{{ expense.amount|floatformat:'2' }}" data-transaction-notes="{{ expense.notes|default_if_none:''|escapejs }}" onclick="BudgetBasic.selectTransaction(this, event)">
                             <div class="payee-cell transaction-date-cell text-muted">{{ expense.date|date:"D, j M" }}</div>
                             <div class="payee-cell payee-cell-info transaction-info-cell">
-                                <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
+                                <div class="transaction-name-row">
+                                    <span class="transaction-payee-name transaction-name">{{ expense.payee|default:'Unnamed Expense' }}</span>
+                                    <span class="transaction-type-chip is-expense">Expense</span>
+                                </div>
                                 {% if expense.notes %}
                                 <small class="transaction-note transaction-meta text-muted d-none d-xl-inline">{{ expense.notes }}</small>
                                 {% endif %}
@@ -89,63 +129,67 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="transaction-empty-state text-center text-muted py-5">
-                            <div class="mb-3">
-                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <div class="transaction-empty-state tx-empty-state text-center text-muted py-5">
+                            <div class="tx-empty-icon mb-3" aria-hidden="true">
+                                <i class="bi bi-inbox"></i>
                             </div>
-                            <p class="mb-1">No transactions yet</p>
-                            <small>Add your first income or expense using the buttons above.</small>
+                            <p class="tx-empty-title mb-1">No transactions yet</p>
+                            <small class="tx-empty-subtitle">Launch your first income or expense from the controls above.</small>
                         </div>
                     {% endif %}
                     </div>
                 </div>
 
-                <div class="transaction-total-bar" id="transaction-total-bar"
+                <div class="transaction-total-bar tx-total-bar" id="transaction-total-bar"
                      data-income="{{ total_income|floatformat:'2' }}"
                      data-expense="{{ total_expenses|floatformat:'2' }}"
                      data-net="{{ net_balance|floatformat:'2' }}">
-                    <div class="transaction-total-text">
+                    <div class="transaction-total-text tx-total-text">
                         <span class="transaction-total-label" id="transaction-total-label">Net Balance</span>
                         <small class="transaction-total-subtext" id="transaction-total-subtext">
-                            All time: Income ${{ total_income|floatformat:2|intcomma }} - Expenses ${{ total_expenses|floatformat:2|intcomma }}
+                            All time: Income ${{ total_income|floatformat:2|intcomma }} • Expenses ${{ total_expenses|floatformat:2|intcomma }}
                         </small>
                     </div>
-                    <div class="transaction-total-value" id="transaction-total-value">
-                        {% if net_balance >= 0 %}+{% else %}-{% endif %}${{ net_balance|floatformat:2|intcomma|cut:"-" }}
+                    <div class="transaction-total-value tx-total-value" id="transaction-total-value">
+                        {% if net_balance >= 0 %}+{% else %}-{% endif %}${{ net_balance|floatformat:2|intcomma|cut:'-' }}
                     </div>
                 </div>
 
-            </div>
+            </section>
 
             <div class="panel-resizer" id="panel-resizer">
                 <div class="resizer-handle"></div>
             </div>
 
-            <div class="transaction-details-panel payee-detail-panel details-panel" id="transaction-details-panel">
-                <div class="panel-header">
-                    <div class="panel-title">Details</div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="BudgetBasic.clearTransactionSelection()">
-                        <i class="bi bi-x"></i>
+            <section class="transaction-details-panel payee-detail-panel details-panel tx-panel tx-panel--detail" id="transaction-details-panel">
+                <div class="panel-header tx-panel-header tx-detail-header">
+                    <div class="tx-panel-header__title">
+                        <span class="tx-panel-eyebrow">Selection</span>
+                        <h2 class="tx-panel-heading">Details</h2>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary tx-panel-action" onclick="BudgetBasic.clearTransactionSelection()">
+                        <i class="bi bi-x" aria-hidden="true"></i>
+                        <span class="visually-hidden">Clear selection</span>
                     </button>
                 </div>
-                <div class="panel-content">
-                    <div class="detail-scroll">
-                        <div id="transaction-detail-empty" class="detail-empty text-center text-muted py-5">
-                            <div class="mb-3">
-                                <i class="bi bi-receipt" style="font-size: 2.5rem; opacity: 0.35;"></i>
+                <div class="panel-content tx-detail-body">
+                    <div class="detail-scroll tx-detail-scroll">
+                        <div id="transaction-detail-empty" class="detail-empty tx-empty-state text-center text-muted py-5">
+                            <div class="tx-empty-icon mb-3" aria-hidden="true">
+                                <i class="bi bi-receipt"></i>
                             </div>
-                            <p class="mb-1">Select a transaction</p>
-                            <small>Details will appear here after you pick one</small>
+                            <p class="tx-empty-title mb-1">Select a transaction</p>
+                            <small class="tx-empty-subtitle">Details will appear here after you pick one.</small>
                         </div>
-                        <div id="transaction-detail-content" class="detail-content" hidden>
-                            <div class="detail-heading">
+                        <div id="transaction-detail-content" class="detail-content tx-detail-content" hidden>
+                            <div class="detail-heading tx-detail-heading">
                                 <span class="detail-heading-label">Transaction</span>
                                 <h2 class="detail-name" id="detail-payee">Select a transaction</h2>
                             </div>
-                            <div class="detail-section detail-section-primary">
+                            <div class="detail-section detail-section-primary tx-detail-section">
                                 <span class="detail-section-label">Summary</span>
                                 <div class="detail-section-body">
-                                    <dl class="detail-info-grid mb-0">
+                                    <dl class="detail-info-grid tx-detail-grid mb-0">
                                         <div class="detail-info-item">
                                             <dt class="detail-info-label">Date</dt>
                                             <dd class="detail-info-value" id="detail-date">-</dd>
@@ -161,27 +205,31 @@
                                     </dl>
                                 </div>
                             </div>
-                            <div class="detail-section detail-section-primary" id="transaction-notes-section">
+                            <div class="detail-section detail-section-primary tx-detail-section" id="transaction-notes-section">
                                 <span class="detail-section-label">Notes</span>
                                 <div class="detail-section-body">
-                                    <p class="detail-body-text text-muted fst-italic" id="detail-notes">No description added yet</p>
+                                    <p class="detail-body-text tx-detail-notes" id="detail-notes">No description added yet</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="detail-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-transaction-btn" onclick="BudgetBasic.editSelectedTransaction()" disabled>
-                            <i class="bi bi-pencil me-1"></i>Edit
+                    <div class="detail-actions tx-detail-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary tx-panel-action" id="edit-transaction-btn" onclick="BudgetBasic.editSelectedTransaction()" disabled>
+                            <i class="bi bi-pencil me-1" aria-hidden="true"></i>
+                            <span>Edit</span>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-transaction-btn" onclick="BudgetBasic.deleteSelectedTransaction()" disabled>
-                            <i class="bi bi-trash me-1"></i>Delete
+                        <button type="button" class="btn btn-sm btn-outline-secondary tx-panel-action" id="delete-transaction-btn" onclick="BudgetBasic.deleteSelectedTransaction()" disabled>
+                            <i class="bi bi-trash me-1" aria-hidden="true"></i>
+                            <span>Delete</span>
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
+    </div>
 </div>
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}

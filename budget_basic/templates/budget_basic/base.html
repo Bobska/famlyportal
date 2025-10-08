@@ -27,30 +27,34 @@
     <!-- Accessibility Skip Link -->
     <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
     
-    <!-- Budget Basic Navigation -->
-    {% include 'budget_basic/navigation.html' %}
+    <div class="bb-app-shell">
+        <!-- Budget Basic Navigation -->
+        {% include 'budget_basic/navigation.html' %}
 
-    <!-- Sidebar Navigation -->
-    {% block sidebar %}
-        {% include 'budget_basic/sidebar.html' %}
-    {% endblock %}
+        <div class="bb-app-stage">
+            <!-- Sidebar Navigation -->
+            {% block sidebar %}
+                {% include 'budget_basic/sidebar.html' %}
+            {% endblock %}
 
-    <!-- Main Content Container -->
-    <main id="main-content" class="budget-basic-main" role="main">
-        <!-- System Messages -->
-        {% include 'partials/messages.html' %}
-        
-        <!-- Page Header -->
-        {% block page_header %}
-            <div class="page-header">
-                <h1>{% block page_title %}Budget Basic{% endblock %}</h1>
-                {% block page_actions %}{% endblock %}
-            </div>
-        {% endblock %}
-        
-        <!-- Main Page Content -->
-        {% block content %}{% endblock %}
-    </main>
+            <!-- Main Content Container -->
+            <main id="main-content" class="budget-basic-main {% block main_classes %}{% endblock %}" role="main">
+                <!-- System Messages -->
+                {% include 'partials/messages.html' %}
+                
+                <!-- Page Header -->
+                {% block page_header %}
+                    <div class="page-header">
+                        <h1>{% block page_title %}Budget Basic{% endblock %}</h1>
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                {% endblock %}
+                
+                <!-- Main Page Content -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
 
     <!-- Modals -->
     {% include 'budget_basic/modals/coming_soon.html' %}

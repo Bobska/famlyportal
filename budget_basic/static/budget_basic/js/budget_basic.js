@@ -61,6 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize action button states (hidden by default)
     hideActionButtons();
 
+    // Initialize scroll indicator for futuristic transactions content wrapper
+    initializeContentWrapperScrollbar();
+
     document.addEventListener('shown.bs.modal', () => {
         setTimeout(updateModalStackingState, 0);
     });
@@ -83,6 +86,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Note: Transaction card interactions now handled by week_navigation.js
 });
+
+function initializeContentWrapperScrollbar() {
+    const contentWrapper = document.querySelector('body.transactions-panel-page .content-wrapper');
+    if (!contentWrapper) {
+        return;
+    }
+
+    let scrollTimeoutId = null;
+    const SCROLLBAR_HIDE_DELAY = 800;
+
+    const showScrollbar = () => {
+        contentWrapper.classList.add('is-scrolling');
+
+        if (scrollTimeoutId) {
+            clearTimeout(scrollTimeoutId);
+        }
+
+        scrollTimeoutId = setTimeout(() => {
+            contentWrapper.classList.remove('is-scrolling');
+            scrollTimeoutId = null;
+        }, SCROLLBAR_HIDE_DELAY);
+    };
+
+    const passiveOptions = { passive: true };
+    contentWrapper.addEventListener('scroll', showScrollbar, passiveOptions);
+    contentWrapper.addEventListener('wheel', showScrollbar, passiveOptions);
+    contentWrapper.addEventListener('touchstart', showScrollbar, passiveOptions);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && scrollTimeoutId) {
+            clearTimeout(scrollTimeoutId);
+            scrollTimeoutId = null;
+            contentWrapper.classList.remove('is-scrolling');
+        }
+    });
+}
 
 function getCurrentWeekOffsetValue() {
     if (typeof window.currentWeekOffset === 'number' && !Number.isNaN(window.currentWeekOffset)) {

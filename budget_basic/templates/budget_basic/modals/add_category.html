@@ -1,5 +1,5 @@
 <!-- Add Category Modal - aligned with futuristic transaction styling -->
-<div class="modal futuristic-modal payee-modal" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" data-bs-backdrop="static">
+<div class="modal futuristic-modal payee-modal category-modal" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content futuristic-modal-content">
             <div class="modal-header futuristic-modal-header">
@@ -15,41 +15,46 @@
             </div>
             <form id="addCategoryForm" class="futuristic-modal-form">
                 {% csrf_token %}
-                <div class="modal-body futuristic-modal-body">
+                <div class="modal-body futuristic-modal-body category-modal__body">
                     <!-- Alert container for category modal messages -->
                     <div id="addCategoryAlertContainer"></div>
-
-                    <div class="modal-layout modal-layout-single">
-                        <section class="modal-section modal-section-basics">
-                            <header class="modal-section-header">
-                                <span class="modal-section-title">Category basics</span>
-                                <p class="modal-section-hint">Give it a clear name and align it to the right transaction stream.</p>
-                            </header>
-                            <div class="stack-field">
-                                <div class="compact-field">
-                                    <label for="newCategoryName" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="newCategoryName" name="name" placeholder="Fuel Depot" required maxlength="100">
-                                    <div class="modal-helper-text">Shows up immediately in the transaction category list.</div>
+                    <div class="modal-layout">
+                        <div class="modal-row category-modal__row">
+                            <section class="modal-section modal-section-basics modal-section--compact">
+                                <header class="modal-section-header">
+                                    <span class="modal-section-title">Category intel</span>
+                                    <p class="modal-section-hint">Short and precise keeps the ledger snappy.</p>
+                                </header>
+                                <div class="compact-field-grid category-modal__grid">
+                                    <div class="compact-field">
+                                        <label for="newCategoryName" class="form-label">Name</label>
+                                        <input type="text" class="form-control" id="newCategoryName" name="name" placeholder="Fuel Depot" required maxlength="100">
+                                        <div class="modal-helper-text">Appears immediately in the category selector.</div>
+                                    </div>
+                                    <div class="compact-field">
+                                        <label for="newCategoryType" class="form-label">Type</label>
+                                        <select class="form-select" id="newCategoryType" name="category_type" required>
+                                            <option value="expense">Expense</option>
+                                            <option value="income">Income</option>
+                                            <option value="both">Both Income &amp; Expense</option>
+                                        </select>
+                                        <div class="modal-helper-text">Control where this tag can be assigned.</div>
+                                    </div>
                                 </div>
-                                <div class="compact-field">
-                                    <label for="newCategoryType" class="form-label">Category Type</label>
-                                    <select class="form-select" id="newCategoryType" name="category_type" required>
-                                        <option value="expense">Expense</option>
-                                        <option value="income">Income</option>
-                                        <option value="both">Both Income &amp; Expense</option>
-                                    </select>
-                                    <div class="modal-helper-text">Choose where this category can be deployed.</div>
-                                </div>
-                            </div>
-                        </section>
+                            </section>
 
-                        <section class="modal-section modal-section-notes">
-                            <header class="modal-section-header">
-                                <span class="modal-section-title">Mission notes</span>
-                                <p class="modal-section-hint">Optional description that appears in the detail panel.</p>
-                            </header>
-                            <textarea class="form-control" id="newCategoryDescription" name="description" rows="3" placeholder="Optional intel for your crew..." maxlength="500"></textarea>
-                        </section>
+                            <section class="modal-section modal-section-notes modal-section--compact">
+                                <header class="modal-section-header">
+                                    <span class="modal-section-title">Optional briefing</span>
+                                    <p class="modal-section-hint">Surface a quick reminder for teammates.</p>
+                                </header>
+                                <div class="stack-field category-modal__notes">
+                                    <label for="newCategoryDescription" class="form-label">Description</label>
+                                    <textarea class="form-control" id="newCategoryDescription" name="description" rows="3" placeholder="Add a short mission note..." maxlength="500"></textarea>
+                                    <div class="modal-helper-text">Keep it under 120 characters for best clarity.</div>
+                                </div>
+                            </section>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer futuristic-modal-footer">

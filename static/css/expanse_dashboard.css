@@ -1,0 +1,837 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@500;600;700;900&family=Share+Tech+Mono&display=swap');
+
+/* ==========================================================================
+   THE EXPANSE - DASHBOARD COMMAND SYSTEM
+   Base Shell & Earth Defense Theme
+   ========================================================================== */
+
+:root {
+    color-scheme: dark;
+}
+
+/* Base Shell */
+body.expanse-shell {
+    --expanse-bg-primary: #0a0e14;
+    --expanse-bg-secondary: #0d1117;
+    --expanse-surface: rgba(16, 24, 38, 0.95);
+    --expanse-surface-elevated: rgba(22, 32, 48, 0.98);
+    --expanse-text-primary: #e8f0ff;
+    --expanse-text-secondary: rgba(200, 220, 255, 0.75);
+    --expanse-text-dim: rgba(160, 180, 210, 0.6);
+    
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    background: var(--expanse-bg-primary);
+    color: var(--expanse-text-primary);
+    min-height: 100vh;
+    letter-spacing: 0.02em;
+}
+
+body.expanse-shell .container {
+    max-width: 100%;
+    padding: 0;
+}
+
+.expanse-viewport {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto auto 1fr;
+    gap: clamp(1.2rem, 2vw, 2rem);
+    padding: clamp(1.2rem, 2vw, 2.4rem);
+    position: relative;
+    overflow-x: hidden;
+}
+
+.expanse-viewport::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: 
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 4px),
+        radial-gradient(circle at 15% 15%, rgba(100, 150, 255, 0.08), transparent 50%),
+        radial-gradient(circle at 85% 10%, rgba(80, 120, 200, 0.06), transparent 45%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.expanse-viewport > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ==========================================================================
+   EARTH DEFENSE THEME (Blue - UN Aesthetic)
+   ========================================================================== */
+
+body.expanse-earth {
+    --expanse-accent: #4a9eff;
+    --expanse-accent-bright: #6db4ff;
+    --expanse-accent-dim: rgba(74, 158, 255, 0.25);
+    --expanse-panel-border: rgba(74, 158, 255, 0.35);
+    --expanse-status-active: #00d4aa;
+    --expanse-status-dev: #ffaa00;
+    --expanse-status-offline: #666;
+}
+
+body.expanse-earth .expanse-viewport::before {
+    background: 
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(74,158,255,0.01) 2px, rgba(74,158,255,0.01) 4px),
+        radial-gradient(circle at 15% 15%, rgba(74, 158, 255, 0.12), transparent 50%),
+        radial-gradient(circle at 85% 10%, rgba(100, 180, 255, 0.08), transparent 45%);
+}
+
+/* ==========================================================================
+   MARS CONGRESSIONAL REPUBLIC THEME (Red/Orange - Industrial Military)
+   ========================================================================== */
+
+body.expanse-mars {
+    --expanse-accent: #ff6b4a;
+    --expanse-accent-bright: #ff8866;
+    --expanse-accent-dim: rgba(255, 107, 74, 0.25);
+    --expanse-panel-border: rgba(255, 107, 74, 0.35);
+    --expanse-status-active: #00ff88;
+    --expanse-status-dev: #ffcc00;
+    --expanse-status-offline: #555;
+    --expanse-surface: rgba(28, 16, 16, 0.95);
+    --expanse-surface-elevated: rgba(38, 22, 22, 0.98);
+}
+
+body.expanse-mars .expanse-viewport::before {
+    background: 
+        repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,107,74,0.008) 8px, rgba(255,107,74,0.008) 16px),
+        radial-gradient(circle at 15% 15%, rgba(255, 107, 74, 0.14), transparent 50%),
+        radial-gradient(circle at 85% 10%, rgba(255, 140, 80, 0.1), transparent 45%);
+}
+
+body.expanse-mars .command-bar__logo .logo-hexagon {
+    border-color: var(--expanse-accent);
+    background: linear-gradient(135deg, rgba(255, 107, 74, 0.15), transparent);
+}
+
+body.expanse-mars .command-bar__logo .logo-hexagon::before {
+    border-color: var(--expanse-accent);
+}
+
+body.expanse-mars .status-panel,
+body.expanse-mars .operation-card {
+    background: linear-gradient(145deg, rgba(38, 22, 22, 0.9), rgba(28, 18, 18, 0.95));
+    border-color: rgba(255, 107, 74, 0.28);
+}
+
+body.expanse-mars .panel-header::before,
+body.expanse-mars .operation-card::before {
+    background: linear-gradient(90deg, var(--expanse-accent), transparent);
+}
+
+/* ==========================================================================
+   OPA BELTER THEME (Cyan/Yellow - Makeshift Industrial)
+   ========================================================================== */
+
+body.expanse-opa {
+    --expanse-accent: #00d4cc;
+    --expanse-accent-bright: #00fff2;
+    --expanse-accent-dim: rgba(0, 212, 204, 0.25);
+    --expanse-panel-border: rgba(0, 212, 204, 0.32);
+    --expanse-status-active: #ffee00;
+    --expanse-status-dev: #ff8800;
+    --expanse-status-offline: #555;
+    --expanse-surface: rgba(12, 20, 22, 0.95);
+    --expanse-surface-elevated: rgba(18, 28, 30, 0.98);
+    --expanse-warning: #ffcc00;
+}
+
+body.expanse-opa {
+    font-family: 'Share Tech Mono', 'Rajdhani', monospace;
+}
+
+body.expanse-opa .expanse-viewport::before {
+    background: 
+        repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(0,212,204,0.012) 3px, rgba(0,212,204,0.012) 6px),
+        repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,238,0,0.008) 3px, rgba(255,238,0,0.008) 6px),
+        radial-gradient(circle at 15% 15%, rgba(0, 212, 204, 0.14), transparent 50%),
+        radial-gradient(circle at 85% 10%, rgba(255, 238, 0, 0.08), transparent 45%);
+}
+
+body.expanse-opa .command-bar__logo .logo-hexagon {
+    border-color: var(--expanse-accent);
+    background: linear-gradient(135deg, rgba(0, 212, 204, 0.18), rgba(255, 238, 0, 0.08));
+}
+
+body.expanse-opa .command-bar__logo .logo-hexagon::before {
+    border-color: var(--expanse-warning);
+}
+
+body.expanse-opa .status-panel,
+body.expanse-opa .operation-card {
+    background: linear-gradient(145deg, rgba(18, 28, 30, 0.92), rgba(14, 22, 24, 0.95));
+    border-color: rgba(0, 212, 204, 0.3);
+    position: relative;
+}
+
+body.expanse-opa .status-panel::after,
+body.expanse-opa .operation-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--expanse-warning), transparent);
+    opacity: 0.3;
+}
+
+body.expanse-opa .panel-header::before,
+body.expanse-opa .operation-card::before {
+    background: linear-gradient(90deg, var(--expanse-accent), var(--expanse-warning), transparent);
+}
+
+body.expanse-opa .readout-value,
+body.expanse-opa .operation-title {
+    text-shadow: 0 0 8px rgba(0, 212, 204, 0.4);
+}
+
+/* ==========================================================================
+   COMMAND BAR (Top Navigation)
+   ========================================================================== */
+
+.expanse-command-bar {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto minmax(320px, 1.2fr);
+    gap: clamp(1rem, 2vw, 2rem);
+    align-items: center;
+    padding: 1.2rem 1.6rem;
+    background: var(--expanse-surface-elevated);
+    border: 1px solid var(--expanse-panel-border);
+    border-radius: 2px;
+    position: relative;
+    backdrop-filter: blur(20px);
+}
+
+.expanse-command-bar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--expanse-accent), transparent);
+    opacity: 0.6;
+}
+
+.expanse-command-bar::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--expanse-accent), transparent);
+    opacity: 0.3;
+}
+
+.command-bar__logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-hexagon {
+    width: 42px;
+    height: 42px;
+    position: relative;
+    border: 2px solid var(--expanse-accent);
+    clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+    background: linear-gradient(135deg, var(--expanse-accent-dim), transparent);
+    flex-shrink: 0;
+}
+
+.logo-hexagon::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid var(--expanse-accent);
+    clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+}
+
+.logo-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--expanse-text-primary);
+    line-height: 1;
+}
+
+.logo-designation {
+    position: absolute;
+    bottom: -0.5rem;
+    left: 58px;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--expanse-text-dim);
+    font-weight: 500;
+}
+
+.mission-time {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    display: grid;
+    gap: 0.25rem;
+}
+
+.mission-time__label {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--expanse-text-dim);
+    font-weight: 600;
+}
+
+.mission-time__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--expanse-accent-bright);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 12px var(--expanse-accent-dim);
+}
+
+.command-bar__right {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.user-profile-deck {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 2px;
+    background: var(--expanse-accent-dim);
+    border: 1px solid var(--expanse-accent);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    color: var(--expanse-accent-bright);
+}
+
+.user-info {
+    display: grid;
+    gap: 0.15rem;
+    text-align: left;
+}
+
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--expanse-text-primary);
+}
+
+.user-designation {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--expanse-text-dim);
+    font-weight: 500;
+}
+
+.theme-selector {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.theme-selector__label {
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--expanse-text-dim);
+    font-weight: 600;
+}
+
+.theme-selector__control {
+    appearance: none;
+    background: rgba(10, 15, 25, 0.8);
+    border: 1px solid var(--expanse-panel-border);
+    border-radius: 2px;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    color: var(--expanse-text-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    font-family: 'Rajdhani', sans-serif;
+    cursor: pointer;
+    transition: border-color 180ms ease, background 180ms ease;
+    background-image: linear-gradient(45deg, transparent 50%, var(--expanse-accent) 50%),
+        linear-gradient(135deg, var(--expanse-accent) 50%, transparent 50%);
+    background-position: calc(100% - 12px) calc(50% + 2px), calc(100% - 8px) calc(50% + 2px);
+    background-size: 4px 4px, 4px 4px;
+    background-repeat: no-repeat;
+}
+
+.theme-selector__control:hover,
+.theme-selector__control:focus {
+    border-color: var(--expanse-accent);
+    background-color: rgba(10, 15, 25, 0.95);
+    outline: none;
+}
+
+/* ==========================================================================
+   STATUS PANELS
+   ========================================================================== */
+
+.status-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: clamp(1rem, 1.5vw, 1.5rem);
+}
+
+.status-panel {
+    background: var(--expanse-surface);
+    border: 1px solid var(--expanse-panel-border);
+    border-radius: 2px;
+    padding: 1.2rem 1.4rem;
+    position: relative;
+    backdrop-filter: blur(16px);
+}
+
+.status-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--expanse-accent), transparent);
+    opacity: 0.5;
+}
+
+.panel-header {
+    display: grid;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel-designation {
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    color: var(--expanse-text-dim);
+    font-weight: 600;
+}
+
+.panel-title {
+    font-size: 0.95rem;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: var(--expanse-text-primary);
+}
+
+.status-readout {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.readout-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.readout-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--expanse-text-secondary);
+    font-weight: 500;
+}
+
+.readout-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--expanse-text-primary);
+    text-align: right;
+}
+
+.readout-value--active {
+    color: var(--expanse-status-active);
+    text-shadow: 0 0 8px rgba(0, 212, 170, 0.3);
+}
+
+/* ==========================================================================
+   MISSION BRIEF
+   ========================================================================== */
+
+.mission-brief {
+    padding: 1rem 0;
+}
+
+.brief-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2rem;
+}
+
+.brief-title {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.brief-designation {
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    color: var(--expanse-text-dim);
+    font-weight: 600;
+}
+
+.brief-heading {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.6rem, 2vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--expanse-text-primary);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.brief-meta {
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    color: var(--expanse-text-dim);
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   OPERATIONS GRID (App Cards)
+   ========================================================================== */
+
+.operations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: clamp(1.2rem, 1.8vw, 1.8rem);
+    padding-bottom: 2rem;
+}
+
+.operation-card {
+    background: var(--expanse-surface);
+    border: 1px solid var(--expanse-panel-border);
+    border-radius: 2px;
+    padding: 1.4rem 1.5rem;
+    position: relative;
+    text-decoration: none;
+    color: inherit;
+    display: grid;
+    gap: 1rem;
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+}
+
+.operation-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--expanse-accent), transparent);
+    opacity: 0.4;
+    transition: opacity 220ms ease;
+}
+
+.operation-card:hover::before {
+    opacity: 0.8;
+}
+
+.operation-card--active:hover {
+    transform: translateY(-3px);
+    border-color: var(--expanse-accent);
+    box-shadow: 0 8px 32px -8px var(--expanse-accent-dim);
+}
+
+.operation-card--dev {
+    opacity: 0.92;
+}
+
+.operation-card--dev:hover {
+    transform: translateY(-2px);
+    border-color: var(--expanse-status-dev);
+    opacity: 1;
+}
+
+.operation-card--offline {
+    opacity: 0.6;
+    pointer-events: none;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.operation-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.status-indicator::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: 0.4;
+}
+
+.status-indicator--active {
+    background: var(--expanse-status-active);
+    box-shadow: 0 0 12px var(--expanse-status-active);
+    color: var(--expanse-status-active);
+}
+
+.status-indicator--dev {
+    background: var(--expanse-status-dev);
+    box-shadow: 0 0 12px var(--expanse-status-dev);
+    color: var(--expanse-status-dev);
+}
+
+.status-indicator--offline {
+    background: var(--expanse-status-offline);
+    color: var(--expanse-status-offline);
+}
+
+.status-text {
+    font-size: 0.62rem;
+    letter-spacing: 0.24em;
+    font-weight: 600;
+    color: var(--expanse-text-dim);
+}
+
+.operation-icon {
+    font-size: 2.4rem;
+    color: var(--expanse-accent);
+    opacity: 0.8;
+}
+
+.operation-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--expanse-text-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.operation-desc {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    letter-spacing: 0.05em;
+    color: var(--expanse-text-secondary);
+    margin: 0;
+}
+
+.operation-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.meta-item {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    color: var(--expanse-text-dim);
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   OFFLINE TERMINAL (No Family State)
+   ========================================================================== */
+
+.expanse-offline {
+    display: grid;
+    place-items: center;
+    padding: 4rem 2rem;
+}
+
+.offline-terminal {
+    max-width: 600px;
+    background: var(--expanse-surface);
+    border: 1px solid var(--expanse-panel-border);
+    border-radius: 2px;
+    padding: 3rem 2.5rem;
+    text-align: center;
+    position: relative;
+}
+
+.offline-terminal::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--expanse-accent), transparent);
+}
+
+.terminal-header {
+    margin-bottom: 2rem;
+}
+
+.terminal-designation {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--expanse-status-dev);
+    font-weight: 600;
+}
+
+.terminal-icon {
+    font-size: 4rem;
+    color: var(--expanse-accent);
+    margin-bottom: 1.5rem;
+    opacity: 0.7;
+}
+
+.terminal-message {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--expanse-text-primary);
+    margin-bottom: 1rem;
+}
+
+.terminal-desc {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--expanse-text-secondary);
+    margin-bottom: 2rem;
+}
+
+.terminal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.terminal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.8rem;
+    border: 1px solid var(--expanse-panel-border);
+    border-radius: 2px;
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    font-size: 0.85rem;
+    transition: all 220ms ease;
+}
+
+.terminal-btn--primary {
+    background: var(--expanse-accent);
+    color: #0a0e14;
+    border-color: var(--expanse-accent);
+}
+
+.terminal-btn--primary:hover {
+    background: var(--expanse-accent-bright);
+    border-color: var(--expanse-accent-bright);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px var(--expanse-accent);
+}
+
+.terminal-btn--secondary {
+    background: transparent;
+    color: var(--expanse-text-primary);
+}
+
+.terminal-btn--secondary:hover {
+    border-color: var(--expanse-accent);
+    background: var(--expanse-accent-dim);
+}
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    .expanse-command-bar {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .command-bar__center,
+    .command-bar__right {
+        justify-content: center;
+    }
+
+    .user-profile-deck {
+        justify-content: center;
+    }
+
+    .operations-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .expanse-viewport {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .expanse-command-bar {
+        padding: 1rem;
+    }
+
+    .logo-text {
+        font-size: 0.95rem;
+    }
+
+    .brief-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .status-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .operations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .command-bar__right {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-designation {
+        display: none;
+    }
+
+    .user-info {
+        display: none;
+    }
+
+    .mission-time__value {
+        font-size: 1.2rem;
+    }
+}

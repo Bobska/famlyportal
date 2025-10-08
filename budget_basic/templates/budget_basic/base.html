@@ -29,7 +29,9 @@
     
     <div class="bb-app-shell">
         <!-- Budget Basic Navigation -->
-        {% include 'budget_basic/navigation.html' %}
+        {% block top_navigation %}
+            {% include 'budget_basic/navigation.html' %}
+        {% endblock %}
 
         <div class="bb-app-stage">
             <!-- Sidebar Navigation -->

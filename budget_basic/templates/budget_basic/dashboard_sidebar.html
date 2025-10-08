@@ -1,0 +1,82 @@
+{% load humanize %}
+<aside class="dashboard-rail" aria-label="Dashboard auxiliary systems">
+    <div class="dashboard-rail__module dashboard-rail__module--summary">
+        <header class="dashboard-rail__header">
+            <span class="dashboard-rail__kicker">This Rotation</span>
+            <h2 class="dashboard-rail__title">{{ sidebar_week_label|default:"Mission Week" }}</h2>
+            {% if sidebar_week_start and sidebar_week_end %}
+                <p class="dashboard-rail__meta">{{ sidebar_week_start|date:'M j' }} – {{ sidebar_week_end|date:'M j' }}</p>
+            {% endif %}
+        </header>
+        <dl class="dashboard-rail__readout">
+            {% with income=weekly_income|default:0 %}
+                <div class="dashboard-rail__stat dashboard-rail__stat--income">
+                    <dt>Income</dt>
+                    <dd>+${{ income|floatformat:'2'|intcomma }}</dd>
+                </div>
+            {% endwith %}
+            {% with expenses=weekly_expenses|default:0 %}
+                <div class="dashboard-rail__stat dashboard-rail__stat--expense">
+                    <dt>Expenses</dt>
+                    <dd>-${{ expenses|floatformat:'2'|intcomma }}</dd>
+                </div>
+            {% endwith %}
+            {% with balance=weekly_balance|default:0 %}
+                <div class="dashboard-rail__stat dashboard-rail__stat--balance {% if balance < 0 %}is-negative{% elif balance > 0 %}is-positive{% endif %}">
+                    <dt>Balance</dt>
+                    <dd>{% if balance > 0 %}+{% endif %}${{ balance|floatformat:'2'|intcomma|cut:'-' }}</dd>
+                </div>
+            {% endwith %}
+        </dl>
+    </div>
+
+    <div class="dashboard-rail__module dashboard-rail__module--actions" aria-label="Quick launch">
+        <h3 class="dashboard-rail__subtitle">Launch Pads</h3>
+        <div class="dashboard-rail__actions">
+            <button type="button" class="dashboard-rail__action" onclick="showAddIncomeModal()">
+                <span class="dashboard-rail__action-icon" aria-hidden="true"></span>
+                <span class="dashboard-rail__action-content">
+                    <span class="dashboard-rail__action-label">Log Income</span>
+                    <span class="dashboard-rail__action-meta">Capture incoming resources</span>
+                </span>
+            </button>
+            <button type="button" class="dashboard-rail__action" onclick="showComingSoonModal()">
+                <span class="dashboard-rail__action-icon" aria-hidden="true"></span>
+                <span class="dashboard-rail__action-content">
+                    <span class="dashboard-rail__action-label">Add Expense</span>
+                    <span class="dashboard-rail__action-meta">Schedule outgoing credits</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-rail__module dashboard-rail__module--intel">
+        <h3 class="dashboard-rail__subtitle">Recon Links</h3>
+        <ul class="dashboard-rail__intel" aria-label="Navigation shortcuts">
+            <li>
+                <a href="{% url 'budget_basic:weekly' %}">
+                    <span class="dashboard-rail__intel-label">Weekly Ops</span>
+                    <span class="dashboard-rail__intel-meta">Analyse recurring patterns</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'budget_basic:transactions' %}">
+                    <span class="dashboard-rail__intel-label">Transactions</span>
+                    <span class="dashboard-rail__intel-meta">Ledger command center</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'budget_basic:payee_list' %}">
+                    <span class="dashboard-rail__intel-label">Payees</span>
+                    <span class="dashboard-rail__intel-meta">Configure supply partners</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'budget_basic:category_list' %}">
+                    <span class="dashboard-rail__intel-label">Categories</span>
+                    <span class="dashboard-rail__intel-meta">Define resource labels</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</aside>

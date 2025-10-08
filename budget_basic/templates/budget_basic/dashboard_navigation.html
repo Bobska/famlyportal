@@ -1,0 +1,63 @@
+{% load static %}
+<header class="dashboard-nav" aria-label="Budget Basic command navigation">
+    <div class="dashboard-nav__band">
+        <div class="dashboard-nav__brand">
+            <a href="{% url 'budget_basic:dashboard' %}" class="dashboard-nav__brand-link">
+                <span class="dashboard-nav__glyph" aria-hidden="true">
+                    <span class="dashboard-nav__glyph-core"></span>
+                </span>
+                <span class="dashboard-nav__brand-text">
+                    <span class="dashboard-nav__brand-name">Budget Command</span>
+                    <span class="dashboard-nav__brand-sub">FamlyPortal Auxiliary Deck</span>
+                </span>
+            </a>
+        </div>
+
+        <nav class="dashboard-nav__links" aria-label="Primary">
+            {% with url_name=request.resolver_match.url_name %}
+                <a class="dashboard-nav__link {% if url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'budget_basic:dashboard' %}" {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>
+                    <span class="dashboard-nav__link-label">Dashboard</span>
+                    <span class="dashboard-nav__link-meta">Telemetry</span>
+                </a>
+                <a class="dashboard-nav__link {% if url_name == 'weekly' %}is-active{% endif %}" href="{% url 'budget_basic:weekly' %}" {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
+                    <span class="dashboard-nav__link-label">Weekly</span>
+                    <span class="dashboard-nav__link-meta">Ops Log</span>
+                </a>
+                <a class="dashboard-nav__link {% if url_name == 'transactions' %}is-active{% endif %}" href="{% url 'budget_basic:transactions' %}" {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
+                    <span class="dashboard-nav__link-label">Transactions</span>
+                    <span class="dashboard-nav__link-meta">Ledger</span>
+                </a>
+                <a class="dashboard-nav__link {% if url_name == 'payee_list' %}is-active{% endif %}" href="{% url 'budget_basic:payee_list' %}" {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
+                    <span class="dashboard-nav__link-label">Payees</span>
+                    <span class="dashboard-nav__link-meta">Contacts</span>
+                </a>
+                <a class="dashboard-nav__link {% if url_name == 'category_list' %}is-active{% endif %}" href="{% url 'budget_basic:category_list' %}" {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
+                    <span class="dashboard-nav__link-label">Categories</span>
+                    <span class="dashboard-nav__link-meta">Tags</span>
+                </a>
+            {% endwith %}
+        </nav>
+
+        <div class="dashboard-nav__utility">
+            <div class="dashboard-nav__clock" data-dashboard-clock>
+                <span class="dashboard-nav__clock-time" aria-live="polite"></span>
+                <span class="dashboard-nav__clock-label">Mission Time</span>
+            </div>
+            <details class="dashboard-nav__user" data-dashboard-user>
+                <summary class="dashboard-nav__user-summary">
+                    <span class="dashboard-nav__user-avatar" aria-hidden="true">{{ user.username|first|default:"U" }}</span>
+                    <span class="dashboard-nav__user-meta">
+                        <span class="dashboard-nav__user-label">Commander</span>
+                        <span class="dashboard-nav__user-name">{{ user.get_full_name|default:user.username }}</span>
+                    </span>
+                    <span class="dashboard-nav__user-chevron" aria-hidden="true"></span>
+                </summary>
+                <div class="dashboard-nav__user-panel" role="menu">
+                    <a class="dashboard-nav__user-action" role="menuitem" href="{% url 'accounts:dashboard' %}">Main Dashboard</a>
+                    <a class="dashboard-nav__user-action" role="menuitem" href="{% url 'accounts:profile' %}">Profile</a>
+                    <a class="dashboard-nav__user-action" role="menuitem" href="{% url 'accounts:logout' %}">Logout</a>
+                </div>
+            </details>
+        </div>
+    </div>
+</header>

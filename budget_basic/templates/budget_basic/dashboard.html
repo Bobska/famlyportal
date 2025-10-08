@@ -2,124 +2,165 @@
 {% load static %}
 {% load humanize %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'budget_basic/css/dashboard_futuristic.css' %}?v=20251008-002">
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'budget_basic/js/dashboard_themes.js' %}?v=20251008-001" defer></script>
+{% endblock %}
+
+{% block body_class %}dashboard-page dashboard-shell{% endblock %}
+
+{% block main_classes %}dashboard-main{% endblock %}
+
 {% block page_title %}Dashboard{% endblock %}
 
-{% block page_actions %}
-    <div class="btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary" onclick="showAddIncomeModal()">
-            Add Income
-        </button>
-        <button type="button" class="btn btn-outline-secondary" onclick="showComingSoonModal()">
-            Add Expense
-        </button>
-    </div>
+{% block page_actions %}{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block top_navigation %}
+    {% include 'budget_basic/dashboard_navigation.html' %}
+{% endblock %}
+
+{% block sidebar %}
+    {% include 'budget_basic/dashboard_sidebar.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <!-- Overview Cards -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h5 class="card-title">Total Income</h5>
-                                <h3 class="mb-0">$0.00</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-arrow-up fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="dashboard-viewport dashboard-theme-aurora" data-dashboard-theme="aurora">
+    <section class="dashboard-hero" aria-labelledby="dashboard-heading">
+        <div class="dashboard-hero__content">
+            <span class="dashboard-hero__kicker">Mission Control</span>
+            <h1 class="dashboard-hero__title" id="dashboard-heading">Budget Command Nexus</h1>
+            <p class="dashboard-hero__subtitle">
+                Monitor your income beacons, spending anomalies, and future trajectory in real time.
+            </p>
+        </div>
+        <div class="dashboard-hero__controls">
+            <label class="dashboard-theme-picker" for="dashboardThemeSelect">
+                <span class="dashboard-theme-picker__label">Interface style</span>
+                <select class="dashboard-theme-picker__select" id="dashboardThemeSelect" aria-describedby="dashboard-theme-help">
+                    <option value="aurora">Aurora Flux</option>
+                    <option value="quantum">Quantum Forge</option>
+                    <option value="celestial">Celestial Drift</option>
+                </select>
+                <small id="dashboard-theme-help" class="dashboard-theme-picker__hint">Select how the command deck renders.</small>
+            </label>
+            <div class="dashboard-hero__actions" role="group" aria-label="Quick actions">
+                <button type="button" class="dashboard-btn dashboard-btn--primary" onclick="showAddIncomeModal()">Log Income</button>
+                <button type="button" class="dashboard-btn dashboard-btn--ghost" onclick="showComingSoonModal()">Add Expense</button>
             </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h5 class="card-title">Total Expenses</h5>
-                                <h3 class="mb-0">$0.00</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-arrow-down fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+        </div>
+        <div class="status-grid" role="list">
+            <article class="status-card" role="listitem">
+                <header class="status-card__header">
+                    <span class="status-card__label">Weekly Income</span>
+                    <i class="status-card__icon bi bi-graph-up"></i>
+                </header>
+                <p class="status-card__value">+${{ weekly_income|default:0|floatformat:2|intcomma }}</p>
+                <p class="status-card__meta">Window: {{ sidebar_week_label }}</p>
+            </article>
+            <article class="status-card status-card--warning" role="listitem">
+                <header class="status-card__header">
+                    <span class="status-card__label">Weekly Expenses</span>
+                    <i class="status-card__icon bi bi-graph-down"></i>
+                </header>
+                <p class="status-card__value">-${{ weekly_expenses|default:0|floatformat:2|intcomma }}</p>
+                <p class="status-card__meta">Tracked this cycle</p>
+            </article>
+            <article class="status-card status-card--balance" role="listitem">
+                <header class="status-card__header">
+                    <span class="status-card__label">Weekly Balance</span>
+                    <i class="status-card__icon bi bi-activity"></i>
+                </header>
+                <p class="status-card__value">
+                    {% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:'-' }}
+                </p>
+                <p class="status-card__meta">Net after expenses</p>
+            </article>
+            <article class="status-card status-card--net" role="listitem">
+                <header class="status-card__header">
+                    <span class="status-card__label">Total Balance</span>
+                    <i class="status-card__icon bi bi-wallet2"></i>
+                </header>
+                <p class="status-card__value">
+                    {% if current_balance >= 0 %}+{% else %}-{% endif %}${{ current_balance|floatformat:2|intcomma|cut:'-' }}
+                </p>
+                <p class="status-card__meta">All time ledger</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="dashboard-panels">
+        <div class="signal-panel" aria-labelledby="recent-transactions-heading">
+            <header class="signal-panel__header">
+                <div class="signal-panel__titles">
+                    <span class="signal-panel__kicker">Ledger Feed</span>
+                    <h2 class="signal-panel__title" id="recent-transactions-heading">Recent Transactions</h2>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h5 class="card-title">Balance</h5>
-                                <h3 class="mb-0 {% if current_balance < 0 %}text-danger{% elif current_balance > 0 %}text-success{% endif %}">{% if current_balance >= 0 %}+{% else %}-{% endif %}${{ current_balance|floatformat:2|intcomma|cut:"-" }}</h3>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-wallet fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+                <a href="{% url 'budget_basic:transactions' %}" class="signal-panel__cta">View All</a>
+            </header>
+            <div class="signal-panel__body">
+                <div class="signal-panel__empty">
+                    <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
+                    <p>No transactions yet</p>
+                    <small>Log an income or expense to populate the feed.</small>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Transactions -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Recent Transactions</h5>
-                <a href="{% url 'budget_basic:transactions' %}" class="btn btn-sm btn-outline-secondary">
-                    View Transactions
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="text-center py-5 text-muted">
-                    <i class="fas fa-receipt fa-3x mb-3"></i>
-                    <p class="mb-0">No transactions yet</p>
-                    <small>Start by adding your first income or expense</small>
-                </div>
-            </div>
-        </div>
-    </div>
+        <aside class="signal-aside" aria-label="Secondary insights">
+            <article class="signal-card">
+                <header class="signal-card__header">
+                    <h3 class="signal-card__title">Quick Stats</h3>
+                    <span class="signal-card__badge">Weekly</span>
+                </header>
+                <dl class="signal-card__metrics">
+                    <div class="signal-card__metric">
+                        <dt>Income</dt>
+                        <dd>+${{ weekly_income|default:0|floatformat:2|intcomma }}</dd>
+                    </div>
+                    <div class="signal-card__metric">
+                        <dt>Expenses</dt>
+                        <dd>-${{ weekly_expenses|default:0|floatformat:2|intcomma }}</dd>
+                    </div>
+                    <div class="signal-card__metric">
+                        <dt>Balance</dt>
+                        <dd>{% if weekly_balance >= 0 %}+{% else %}-{% endif %}${{ weekly_balance|floatformat:2|intcomma|cut:'-' }}</dd>
+                    </div>
+                </dl>
+                <footer class="signal-card__footer">
+                    <span class="signal-card__hint">Cycle: {{ sidebar_week_label }}</span>
+                </footer>
+            </article>
 
-    <div class="col-md-4">
-        <!-- Quick Stats -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">Quick Stats</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>This Week:</span>
-                    <span class="fw-bold">$0.00</span>
+            <article class="signal-card">
+                <header class="signal-card__header">
+                    <h3 class="signal-card__title">Category Scanner</h3>
+                    <span class="signal-card__badge">Passive</span>
+                </header>
+                <div class="signal-card__placeholder">
+                    <i class="bi bi-compass" aria-hidden="true"></i>
+                    <p>Awaiting classified intel</p>
+                    <small>Assign categories to transactions to visualise spending orbit paths.</small>
                 </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>This Month:</span>
-                    <span class="fw-bold">$0.00</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>This Year:</span>
-                    <span class="fw-bold">$0.00</span>
-                </div>
-            </div>
-        </div>
+            </article>
 
-        <!-- Category Breakdown -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">Top Categories</h6>
-            </div>
-            <div class="card-body">
-                <div class="text-center py-4 text-muted">
-                    <i class="fas fa-chart-pie fa-2x mb-2"></i>
-                    <p class="mb-0">No data yet</p>
-                    <small>Add transactions to see category breakdown</small>
-                </div>
-            </div>
-        </div>
-    </div>
+            <article class="signal-card">
+                <header class="signal-card__header">
+                    <h3 class="signal-card__title">Next Actions</h3>
+                    <span class="signal-card__badge">Autopilot</span>
+                </header>
+                <ul class="signal-card__todo" aria-label="Suggested next steps">
+                    <li>Link your most frequent merchants for one-click categorisation.</li>
+                    <li>Schedule a weekly review to calibrate your balance trajectory.</li>
+                    <li>Spin up the transactions command center to add your first log.</li>
+                </ul>
+            </article>
+        </aside>
+    </section>
 </div>
 {% endblock %}

@@ -588,6 +588,7 @@ def get_payees(request):
             {
                 'id': p.id, 
                 'name': p.name,
+                'transaction_type': p.transaction_type,
                 'categories': [{'id': cat.id, 'name': cat.name} for cat in p.categories.all()]
             } 
             for p in payees
@@ -661,6 +662,7 @@ def add_payee(request):
     """Add a new payee for the current user with optional category assignment."""
     try:
         payee_name = request.POST.get('name', '').strip()
+        transaction_type = request.POST.get('transaction_type', 'expense')
         category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not payee_name:
@@ -671,7 +673,11 @@ def add_payee(request):
             return JsonResponse({'success': False, 'error': 'Payee already exists'})
         
         # Create new payee
-        payee = Payee.objects.create(user=request.user, name=payee_name)
+        payee = Payee.objects.create(
+            user=request.user, 
+            name=payee_name,
+            transaction_type=transaction_type
+        )
         
         # Assign categories if provided
         if category_ids:
@@ -687,9 +693,60 @@ def add_payee(request):
             'payee': {
                 'id': payee.id, 
                 'name': payee.name,
+                'transaction_type': payee.transaction_type,
                 'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()]
             },
             'message': f'Payee "{payee_name}" added successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'})
+
+
+@login_required
+def link_categories_to_payee(request):
+    """Link multiple categories to an existing payee."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    
+    try:
+        payee_id = request.POST.get('payee_id')
+        category_ids = request.POST.getlist('category_ids')
+        
+        if not payee_id:
+            return JsonResponse({'success': False, 'error': 'Payee ID is required'})
+        
+        if not category_ids:
+            return JsonResponse({'success': False, 'error': 'At least one category must be selected'})
+        
+        # Get the payee (ensure it belongs to current user)
+        try:
+            payee = Payee.objects.get(id=payee_id, user=request.user)
+        except Payee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Payee not found'})
+        
+        # Get valid categories (ensure they belong to current user)
+        valid_categories = Category.objects.filter(
+            user=request.user,
+            id__in=category_ids
+        )
+        
+        if not valid_categories.exists():
+            return JsonResponse({'success': False, 'error': 'No valid categories selected'})
+        
+        # Link the categories to the payee
+        payee.categories.set(valid_categories)
+        
+        # Return updated category list
+        categories_data = [
+            {'id': cat.id, 'name': cat.name} 
+            for cat in payee.categories.all()
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully linked {len(categories_data)} category(ies) to {payee.name}',
+            'categories': categories_data
         })
         
     except Exception as e:
@@ -787,6 +844,7 @@ def payee_update(request, payee_id):
     try:
         payee = Payee.objects.get(id=payee_id, user=request.user)
         new_name = request.POST.get('name', '').strip()
+        transaction_type = request.POST.get('transaction_type', 'expense')
         category_ids = request.POST.getlist('categories')  # Get list of category IDs
         
         if not new_name:
@@ -804,6 +862,7 @@ def payee_update(request, payee_id):
         
         old_name = payee.name
         payee.name = new_name
+        payee.transaction_type = transaction_type
         payee.save()
         
         # Update categories
@@ -820,6 +879,7 @@ def payee_update(request, payee_id):
             'payee': {
                 'id': payee.id,
                 'name': payee.name,
+                'transaction_type': payee.transaction_type,
                 'categories_display': payee.get_categories_display(),
                 'categories': [{'id': cat.id, 'name': cat.name} for cat in payee.categories.all()],
                 'updated_at': payee.updated_at.strftime('%Y-%m-%d %H:%M')

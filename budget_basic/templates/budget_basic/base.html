@@ -27,30 +27,36 @@
     <!-- Accessibility Skip Link -->
     <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
     
-    <!-- Budget Basic Navigation -->
-    {% include 'budget_basic/navigation.html' %}
-
-    <!-- Sidebar Navigation -->
-    {% block sidebar %}
-        {% include 'budget_basic/sidebar.html' %}
-    {% endblock %}
-
-    <!-- Main Content Container -->
-    <main id="main-content" class="budget-basic-main" role="main">
-        <!-- System Messages -->
-        {% include 'partials/messages.html' %}
-        
-        <!-- Page Header -->
-        {% block page_header %}
-            <div class="page-header">
-                <h1>{% block page_title %}Budget Basic{% endblock %}</h1>
-                {% block page_actions %}{% endblock %}
-            </div>
+    <div class="bb-app-shell">
+        <!-- Budget Basic Navigation -->
+        {% block top_navigation %}
+            {% include 'budget_basic/navigation.html' %}
         {% endblock %}
-        
-        <!-- Main Page Content -->
-        {% block content %}{% endblock %}
-    </main>
+
+        <div class="bb-app-stage">
+            <!-- Sidebar Navigation -->
+            {% block sidebar %}
+                {% include 'budget_basic/sidebar.html' %}
+            {% endblock %}
+
+            <!-- Main Content Container -->
+            <main id="main-content" class="budget-basic-main {% block main_classes %}{% endblock %}" role="main">
+                <!-- System Messages -->
+                {% include 'partials/messages.html' %}
+                
+                <!-- Page Header -->
+                {% block page_header %}
+                    <div class="page-header">
+                        <h1>{% block page_title %}Budget Basic{% endblock %}</h1>
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                {% endblock %}
+                
+                <!-- Main Page Content -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
 
     <!-- Modals -->
     {% include 'budget_basic/modals/coming_soon.html' %}
@@ -63,6 +69,7 @@
     {% include 'budget_basic/modals/delete_expense.html' %}
     {% include 'budget_basic/modals/add_payee.html' %}
     {% include 'budget_basic/modals/add_category.html' %}
+    {% include 'budget_basic/modals/link_category_to_payee.html' %}
     {% include 'budget_basic/modals/success.html' %}
 
     <!-- Core JavaScript -->

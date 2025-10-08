@@ -11,6 +11,7 @@ urlpatterns = [
     # Payee URLs (existing)
     path('payees/', views.get_payees, name='get_payees'),
     path('payee/add/', views.add_payee, name='add_payee'),
+    path('payee/link-categories/', views.link_categories_to_payee, name='link_categories_to_payee'),
     # Category URLs (existing)
     path('categories-list/', views.get_categories, name='get_categories'),
     # Payee Management URLs (new)

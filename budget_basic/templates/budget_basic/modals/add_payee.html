@@ -1,42 +1,84 @@
-<!-- Add Payee Modal - Stacked on top of other modals -->
-<div class="modal" id="addPayeeModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Payee/Merchant</h5>
+<!-- Add Payee Modal - themed to match futuristic styling -->
+<div class="modal futuristic-modal payee-modal" id="addPayeeModal" tabindex="-1" aria-labelledby="addPayeeModalLabel" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content futuristic-modal-content">
+            <div class="modal-header futuristic-modal-header">
+                <div class="modal-header-text">
+                    <span class="modal-kicker">New Merchant</span>
+                    <h5 class="modal-title" id="addPayeeModalLabel">Add Payee</h5>
+                    <p class="modal-subtitle">Save merchants so they're ready the next time you log a transaction.</p>
+                </div>
+                <div class="modal-header-icon" aria-hidden="true">
+                    <i class="bi bi-person-plus"></i>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addPayeeForm">
+            <form id="addPayeeForm" class="futuristic-modal-form">
                 {% csrf_token %}
-                <div class="modal-body">
+                <div class="modal-body futuristic-modal-body">
                     <!-- Alert container for payee modal messages -->
                     <div id="addPayeeAlertContainer"></div>
-                    
-                    <div class="mb-3">
-                        <label for="newPayeeName" class="form-label fw-bold">Name</label>
-                        <input type="text" class="form-control" id="newPayeeName" name="name" placeholder="Enter payee/merchant name..." required maxlength="200">
-                        <div class="form-text text-muted small">This will be added to your payee list for future use</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="newPayeeCategories" class="form-label fw-bold">Categories (Optional)</label>
-                        <div class="d-flex align-items-end mb-2">
-                            <select class="form-select" id="newPayeeCategories" name="categories" multiple>
-                                <option value="">Select categories (optional)...</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-primary ms-2" id="addNewCategoryFromPayeeBtn" title="Add new category">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
+                    <div class="modal-layout">
+                        <div class="modal-row modal-row-equal">
+                            <section class="modal-section modal-section-basics">
+                                <header class="modal-section-header">
+                                    <span class="modal-section-title">Merchant basics</span>
+                                    <p class="modal-section-hint">Keep it short and we’ll surface it the next time you log a transaction.</p>
+                                </header>
+                                <div class="stack-field">
+                                    <div class="compact-field">
+                                        <label for="newPayeeName" class="form-label">Name</label>
+                                        <input type="text" class="form-control" id="newPayeeName" name="name" placeholder="Enter payee or merchant name" required maxlength="200">
+                                    </div>
+                                    <div class="compact-field">
+                                        <label for="newPayeeType" class="form-label">Transaction Type</label>
+                                        <select class="form-select" id="newPayeeType" name="transaction_type" required>
+                                            <option value="expense" selected>Expense</option>
+                                            <option value="income">Income</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </section>
+                            <section class="modal-section modal-section-assignments">
+                                <header class="modal-section-header">
+                                    <span class="modal-section-title">Categories & shortcuts</span>
+                                    <p class="modal-section-hint">Link default categories to speed up future entries.</p>
+                                </header>
+                                <div class="stack-field">
+                                    <div class="input-with-actions">
+                                        <select class="form-select" id="newPayeeCategories" name="categories" multiple>
+                                            <option value="">Select categories (optional)...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary" id="addNewCategoryFromPayeeBtn" title="Add new category">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                    <p class="modal-helper-text">
+                                        <strong>Tip:</strong> Hold <kbd>Ctrl</kbd> or <kbd>Cmd</kbd> to select more than one category.
+                                    </p>
+                                </div>
+                            </section>
                         </div>
-                        <div class="form-text text-muted small">
-                            <strong>Tip:</strong> Link categories to this merchant for easier transaction categorization. 
-                            Hold <kbd>Ctrl</kbd> (or <kbd>Cmd</kbd> on Mac) to select multiple categories.
-                        </div>
+                        <details class="modal-collapsible optional-section">
+                            <summary>
+                                <span class="modal-section-title">Guidance</span>
+                                <span class="modal-section-hint">Optional hints for power users</span>
+                            </summary>
+                            <div class="collapsible-content">
+                                <p class="modal-helper-text">Adding categories now means we’ll auto-suggest them the next time this merchant appears.</p>
+                                <p class="modal-helper-text">You can always tweak type and categories from the merchant list without leaving the timeline.</p>
+                            </div>
+                        </details>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Payee</button>
+                <div class="modal-footer futuristic-modal-footer">
+                    <div class="footer-meta">
+                        <span class="footer-hint">New payees show up instantly in the merchant dropdown.</span>
+                    </div>
+                    <div class="footer-actions">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Payee</button>
+                    </div>
                 </div>
             </form>
         </div>

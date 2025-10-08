@@ -44,6 +44,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize payee functionality
     initializePayeeFunctionality();
     
+    // Initialize link category functionality
+    initializeLinkCategoryButton();
+    handleLinkCategoryForm();
+    handleQuickAddCategoryButton();
+    
     // Initialize panel resizer functionality
     initializePanelResizer();
     
@@ -55,6 +60,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize action button states (hidden by default)
     hideActionButtons();
+
+    // Initialize scroll indicator for futuristic transactions content wrapper
+    initializeContentWrapperScrollbar();
+
+    document.addEventListener('shown.bs.modal', () => {
+        setTimeout(updateModalStackingState, 0);
+    });
+
+    document.addEventListener('hidden.bs.modal', () => {
+        setTimeout(updateModalStackingState, 0);
+    });
     
     // Initialize filter with default state (only on pages with transactions)
     setTimeout(() => {
@@ -70,6 +86,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Note: Transaction card interactions now handled by week_navigation.js
 });
+
+function initializeContentWrapperScrollbar() {
+    const contentWrapper = document.querySelector('body.transactions-panel-page .content-wrapper');
+    if (!contentWrapper) {
+        return;
+    }
+
+    let scrollTimeoutId = null;
+    const SCROLLBAR_HIDE_DELAY = 800;
+
+    const showScrollbar = () => {
+        contentWrapper.classList.add('is-scrolling');
+
+        if (scrollTimeoutId) {
+            clearTimeout(scrollTimeoutId);
+        }
+
+        scrollTimeoutId = setTimeout(() => {
+            contentWrapper.classList.remove('is-scrolling');
+            scrollTimeoutId = null;
+        }, SCROLLBAR_HIDE_DELAY);
+    };
+
+    const passiveOptions = { passive: true };
+    contentWrapper.addEventListener('scroll', showScrollbar, passiveOptions);
+    contentWrapper.addEventListener('wheel', showScrollbar, passiveOptions);
+    contentWrapper.addEventListener('touchstart', showScrollbar, passiveOptions);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && scrollTimeoutId) {
+            clearTimeout(scrollTimeoutId);
+            scrollTimeoutId = null;
+            contentWrapper.classList.remove('is-scrolling');
+        }
+    });
+}
 
 function getCurrentWeekOffsetValue() {
     if (typeof window.currentWeekOffset === 'number' && !Number.isNaN(window.currentWeekOffset)) {
@@ -246,7 +298,7 @@ function updateTransactionModalForType(type) {
         payeeOption.textContent = 'Select existing merchant...';
         payeeHelp.textContent = 'Select from existing merchants or use the + button to add a new one';
         submitBtn.textContent = 'Add Expense';
-        submitBtn.className = 'btn btn-danger';
+        submitBtn.className = 'btn futuristic-primary-action expense-mode';
         if (newPayeeBtn) {
             newPayeeBtn.title = 'Add new merchant';
         }
@@ -255,7 +307,7 @@ function updateTransactionModalForType(type) {
         payeeOption.textContent = 'Select existing payee...';
         payeeHelp.textContent = 'Select from existing payees or use the + button to add a new one';
         submitBtn.textContent = 'Add Income';
-        submitBtn.className = 'btn btn-success';
+        submitBtn.className = 'btn futuristic-primary-action income-mode';
         if (newPayeeBtn) {
             newPayeeBtn.title = 'Add new payee';
         }
@@ -264,15 +316,21 @@ function updateTransactionModalForType(type) {
     // Reload categories for the selected transaction type
     loadCategoriesForModal('transactionCategorySelect', type);
     
-    // Reset category selection and reload all payees when transaction type changes
+    // Reset category selection and filter payees by transaction type
     const categorySelect = document.getElementById('transactionCategorySelect');
     const payeeSelect = document.getElementById('transactionPayeeSelect');
     if (categorySelect && payeeSelect) {
         categorySelect.value = ''; // Clear category selection
         payeeSelect.value = '';   // Clear payee selection
-        loadPayeesForModal('transactionPayeeSelect'); // Reload all payees
+        
+        // Filter payees by transaction type
+        filterPayeesByType('transactionPayeeSelect', type);
+        
+        // Hide payee categories and type indicator when cleared
+        hidePayeeCategories();
     }
-
+    
+    // Auto-set date if not already set
     if (typeof setAutoDate === 'function') {
         setAutoDate('transactionDate', type);
     } else {
@@ -1594,6 +1652,33 @@ function updatePayeeSelectById(selectId) {
     });
 }
 
+// Filter payees by transaction type and update payee dropdown
+function filterPayeesByType(selectId, type) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options (except first one)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    // Filter payees by transaction type
+    const filteredPayees = payeeCache.filter(payee => payee.transaction_type === type);
+    
+    if (filteredPayees.length > 0) {
+        // Add only payees matching the transaction type
+        filteredPayees.forEach(payee => {
+            const option = document.createElement('option');
+            option.value = payee.name;
+            option.textContent = payee.name;
+            select.appendChild(option);
+        });
+    } else {
+        // No payees of this type - leave dropdown empty
+        select.value = '';
+    }
+}
+
 // Update all payee select elements
 function updatePayeeSelects() {
     const incomeSelect = document.getElementById('incomePayeeSelect');
@@ -1644,6 +1729,8 @@ function handlePayeeSelection(selectElement, inputElement) {
 function showPayeeCategories(payeeName) {
     const payeeCategoriesDiv = document.getElementById('payeeCategories');
     const payeeCategoriesList = document.getElementById('payeeCategoriesList');
+    const payeeTypeIndicator = document.getElementById('payeeTypeIndicator');
+    const payeeTypeBadge = document.getElementById('payeeTypeBadge');
     
     if (!payeeCategoriesDiv || !payeeCategoriesList) {
         return; // Elements not found, might be on a different page
@@ -1652,32 +1739,288 @@ function showPayeeCategories(payeeName) {
     // Find the payee in the cache
     const selectedPayee = payeeCache.find(payee => payee.name === payeeName);
     
-    if (selectedPayee && selectedPayee.categories && selectedPayee.categories.length > 0) {
-        // Clear existing categories
-        payeeCategoriesList.innerHTML = '';
+    if (selectedPayee) {
+        // Show transaction type badge
+        if (payeeTypeIndicator && payeeTypeBadge) {
+            const typeText = selectedPayee.transaction_type === 'income' ? 'Income Merchant' : 'Expense Merchant';
+            const badgeClass = selectedPayee.transaction_type === 'income' ? 'badge bg-success' : 'badge bg-primary';
+            
+            payeeTypeBadge.textContent = typeText;
+            payeeTypeBadge.className = badgeClass;
+            payeeTypeIndicator.style.display = 'block';
+        }
         
-        // Add each category as a badge
-        selectedPayee.categories.forEach(category => {
-            const categoryBadge = document.createElement('span');
-            categoryBadge.className = 'badge bg-secondary me-1 mb-1';
-            categoryBadge.textContent = category.name;
-            payeeCategoriesList.appendChild(categoryBadge);
-        });
-        
-        // Show the categories section
-        payeeCategoriesDiv.style.display = 'block';
+        // Show categories if available
+        if (selectedPayee.categories && selectedPayee.categories.length > 0) {
+            // Clear existing categories
+            payeeCategoriesList.innerHTML = '';
+            
+            // Add each category as a badge
+            selectedPayee.categories.forEach(category => {
+                const categoryBadge = document.createElement('span');
+                categoryBadge.className = 'badge bg-secondary me-1 mb-1';
+                categoryBadge.textContent = category.name;
+                payeeCategoriesList.appendChild(categoryBadge);
+            });
+            
+            // Show the categories section
+            payeeCategoriesDiv.style.display = 'block';
+        } else {
+            // No categories found, hide the section
+            payeeCategoriesDiv.style.display = 'none';
+        }
     } else {
-        // No categories found, hide the section
+        // No payee found, hide everything
         hidePayeeCategories();
+        if (payeeTypeIndicator) {
+            payeeTypeIndicator.style.display = 'none';
+        }
     }
 }
 
 // Hide payee categories section
 function hidePayeeCategories() {
     const payeeCategoriesDiv = document.getElementById('payeeCategories');
+    const payeeTypeIndicator = document.getElementById('payeeTypeIndicator');
+    
     if (payeeCategoriesDiv) {
         payeeCategoriesDiv.style.display = 'none';
     }
+    if (payeeTypeIndicator) {
+        payeeTypeIndicator.style.display = 'none';
+    }
+}
+
+// ============================================
+// LINK CATEGORY TO PAYEE FUNCTIONALITY
+// ============================================
+
+let currentLinkPayee = null;  // Store current payee being linked
+
+// Initialize link category button visibility based on payee selection
+function initializeLinkCategoryButton() {
+    const payeeSelect = document.getElementById('transactionPayeeSelect');
+    const linkButton = document.getElementById('linkCategoryToPayeeBtn');
+    
+    if (!payeeSelect || !linkButton) return;
+    
+    // Show/hide link button based on payee selection
+    payeeSelect.addEventListener('change', function() {
+        if (this.value) {
+            linkButton.style.display = 'inline-block';
+        } else {
+            linkButton.style.display = 'none';
+        }
+    });
+    
+    // Handle link button click
+    linkButton.addEventListener('click', function() {
+        const selectedPayeeName = payeeSelect.value;
+        if (selectedPayeeName) {
+            openLinkCategoryModal(selectedPayeeName);
+        }
+    });
+}
+
+// Open the link category modal
+async function openLinkCategoryModal(payeeName) {
+    // Find the payee in cache
+    const payee = payeeCache.find(p => p.name === payeeName);
+    if (!payee) {
+        showErrorMessage('Payee not found');
+        return;
+    }
+    
+    currentLinkPayee = payee;
+    
+    // Update modal title
+    document.getElementById('linkPayeeName').textContent = payeeName;
+    document.getElementById('linkPayeeId').value = payee.id;
+    
+    // Load all categories and display them
+    await loadCategoriesForLinking(payee);
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('linkCategoryToPayeeModal'));
+    modal.show();
+}
+
+// Load all categories and display with checkboxes
+async function loadCategoriesForLinking(payee) {
+    const categoriesList = document.getElementById('linkCategoriesList');
+    
+    try {
+        // Fetch all categories
+        const response = await fetch('/budget-basic/categories-list/');
+        const data = await response.json();
+        
+        if (data.success) {
+            const categories = data.categories;
+            
+            // Get currently linked category IDs
+            const linkedCategoryIds = payee.categories ? payee.categories.map(c => c.id) : [];
+            
+            // Clear loading message
+            categoriesList.innerHTML = '';
+            
+            if (categories.length === 0) {
+                categoriesList.innerHTML = '<div class="text-center text-muted py-3">No categories available. Create one first.</div>';
+                return;
+            }
+            
+            // Create checkbox for each category
+            categories.forEach(category => {
+                const isLinked = linkedCategoryIds.includes(category.id);
+                
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'form-check mb-2';
+                checkboxDiv.dataset.categoryName = category.name.toLowerCase();
+                
+                const checkbox = document.createElement('input');
+                checkbox.className = 'form-check-input';
+                checkbox.type = 'checkbox';
+                checkbox.value = category.id;
+                checkbox.id = `linkCategory_${category.id}`;
+                checkbox.checked = isLinked;
+                
+                const label = document.createElement('label');
+                label.className = 'form-check-label';
+                label.htmlFor = `linkCategory_${category.id}`;
+                label.textContent = category.name;
+                
+                // Add badge if already linked
+                if (isLinked) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-success ms-2';
+                    badge.textContent = 'Linked';
+                    label.appendChild(badge);
+                }
+                
+                checkboxDiv.appendChild(checkbox);
+                checkboxDiv.appendChild(label);
+                categoriesList.appendChild(checkboxDiv);
+            });
+            
+            // Setup search/filter
+            setupCategorySearch();
+        }
+    } catch (error) {
+        console.error('Error loading categories for linking:', error);
+        categoriesList.innerHTML = '<div class="text-danger py-3">Error loading categories. Please try again.</div>';
+    }
+}
+
+// Setup category search/filter
+function setupCategorySearch() {
+    const searchInput = document.getElementById('categorySearchInput');
+    const categoriesList = document.getElementById('linkCategoriesList');
+    
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const checkboxes = categoriesList.querySelectorAll('.form-check');
+        
+        checkboxes.forEach(checkbox => {
+            const categoryName = checkbox.dataset.categoryName || '';
+            if (categoryName.includes(searchTerm)) {
+                checkbox.style.display = 'block';
+            } else {
+                checkbox.style.display = 'none';
+            }
+        });
+    });
+}
+
+// Handle link category form submission
+function handleLinkCategoryForm() {
+    const form = document.getElementById('linkCategoryToPayeeForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!currentLinkPayee) {
+            showErrorMessage('No payee selected');
+            return;
+        }
+        
+        // Get selected category IDs
+        const checkedBoxes = form.querySelectorAll('input[type="checkbox"]:checked');
+        const categoryIds = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        if (categoryIds.length === 0) {
+            showErrorMessage('Please select at least one category');
+            return;
+        }
+        
+        // Disable submit button
+        const submitBtn = document.getElementById('linkCategoriesBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Linking...';
+        
+        try {
+            // Send to backend
+            const formData = new FormData();
+            formData.append('payee_id', currentLinkPayee.id);
+            categoryIds.forEach(id => formData.append('category_ids', id));
+            formData.append('csrfmiddlewaretoken', getCsrfToken());
+            
+            const response = await fetch('/budget-basic/payee/link-categories/', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update payee cache with new categories
+                const payeeIndex = payeeCache.findIndex(p => p.id === currentLinkPayee.id);
+                if (payeeIndex !== -1) {
+                    payeeCache[payeeIndex].categories = data.categories;
+                }
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('linkCategoryToPayeeModal'));
+                modal.hide();
+                
+                // Refresh the category dropdown in the transaction modal
+                const payeeSelect = document.getElementById('transactionPayeeSelect');
+                if (payeeSelect && payeeSelect.value) {
+                    filterCategoriesByPayee('transactionCategorySelect', payeeSelect.value);
+                    showPayeeCategories(payeeSelect.value);
+                }
+                
+                showSuccessMessage(data.message || 'Categories linked successfully!');
+            } else {
+                showErrorMessage(data.error || 'Failed to link categories');
+            }
+        } catch (error) {
+            console.error('Error linking categories:', error);
+            showErrorMessage('An error occurred while linking categories');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    });
+}
+
+// Handle quick add category button in link modal
+function handleQuickAddCategoryButton() {
+    const quickAddBtn = document.getElementById('quickAddCategoryBtn');
+    if (!quickAddBtn) return;
+    
+    quickAddBtn.addEventListener('click', function() {
+        // Close link modal
+        const linkModal = bootstrap.Modal.getInstance(document.getElementById('linkCategoryToPayeeModal'));
+        if (linkModal) {
+            linkModal.hide();
+        }
+        
+        // Open add category modal
+        showAddCategoryModal();
+    });
 }
 
 // Handle manual payee input
@@ -2061,6 +2404,23 @@ function checkForTransactionHighlight() {
  * Stacked Modal Management Functions
  */
 
+function updateModalStackingState() {
+    const openModals = Array.from(document.querySelectorAll('.modal.show'))
+        .sort((a, b) => {
+            const zA = parseInt(window.getComputedStyle(a).zIndex || '0', 10);
+            const zB = parseInt(window.getComputedStyle(b).zIndex || '0', 10);
+            return zA - zB;
+        });
+
+    openModals.forEach((modal, index) => {
+        if (index < openModals.length - 1) {
+            modal.classList.add('modal-faded');
+        } else {
+            modal.classList.remove('modal-faded');
+        }
+    });
+}
+
 /**
  * Show the Add Payee modal on top of the current modal
  */
@@ -2070,12 +2430,6 @@ async function showAddPayeeModal(modalType) {
     // Store which modal opened this payee modal
     currentBaseModal = modalType;
     
-    // Find the currently open modal and add fade effect
-    const openModals = document.querySelectorAll('.modal.show');
-    openModals.forEach(modal => {
-        modal.classList.add('modal-faded');
-    });
-    
     // Clear the add payee form and alert container
     const form = document.getElementById('addPayeeForm');
     if (form) form.reset();
@@ -2083,6 +2437,19 @@ async function showAddPayeeModal(modalType) {
     const alertContainer = document.getElementById('addPayeeAlertContainer');
     if (alertContainer) {
         alertContainer.innerHTML = '';
+    }
+    
+    // Pre-populate transaction type based on modalType
+    const newPayeeType = document.getElementById('newPayeeType');
+    if (newPayeeType) {
+        // Extract transaction type from modalType ('expense', 'income', 'edit-expense', 'edit-income')
+        if (modalType && typeof modalType === 'string') {
+            if (modalType.includes('income')) {
+                newPayeeType.value = 'income';
+            } else if (modalType.includes('expense')) {
+                newPayeeType.value = 'expense';
+            }
+        }
     }
     
     // Load categories for selection
@@ -2100,22 +2467,20 @@ async function showAddPayeeModal(modalType) {
             keyboard: true
         });
         modal.show();
+    setTimeout(updateModalStackingState, 0);
         
         // Focus on the name input when modal is shown
         addPayeeModal.addEventListener('shown.bs.modal', function() {
             const nameInput = document.getElementById('newPayeeName');
             if (nameInput) nameInput.focus();
+            updateModalStackingState();
         }, { once: true });
         
         // Handle modal close to remove stacked styling and fade effect
         addPayeeModal.addEventListener('hidden.bs.modal', function() {
             addPayeeModal.classList.remove('modal-stacked');
             
-            // Remove fade effect from base modals
-            const openModals = document.querySelectorAll('.modal.show');
-            openModals.forEach(modal => {
-                modal.classList.remove('modal-faded');
-            });
+            updateModalStackingState();
             
             currentBaseModal = null;
         }, { once: true });
@@ -2368,12 +2733,12 @@ function filterCategoriesByPayee(categorySelectId, payeeName) {
     // Find the payee in the cache
     const selectedPayee = payeeCache.find(payee => payee.name === payeeName);
     
+    // Clear existing options (except first one)
+    while (categorySelect.children.length > 1) {
+        categorySelect.removeChild(categorySelect.lastChild);
+    }
+    
     if (selectedPayee && selectedPayee.categories && selectedPayee.categories.length > 0) {
-        // Clear existing options (except first one)
-        while (categorySelect.children.length > 1) {
-            categorySelect.removeChild(categorySelect.lastChild);
-        }
-        
         // Add only the categories linked to this payee
         selectedPayee.categories.forEach(category => {
             const option = document.createElement('option');
@@ -2381,9 +2746,18 @@ function filterCategoriesByPayee(categorySelectId, payeeName) {
             option.textContent = category.name;
             categorySelect.appendChild(option);
         });
+        
+        // Auto-select if only one category exists
+        if (selectedPayee.categories.length === 1) {
+            categorySelect.value = selectedPayee.categories[0].id;
+        } else {
+            // Multiple categories, leave on default "Select category..."
+            categorySelect.value = '';
+        }
     } else {
-        // No categories linked to this payee, show all categories
-        updateCategorySelectById(categorySelectId);
+        // No categories linked to this payee - leave dropdown empty
+        // User must use "Link Category" button to add categories
+        categorySelect.value = '';
     }
 }
 
@@ -2397,12 +2771,6 @@ function resetCategoryDropdown(categorySelectId) {
  */
 function showAddCategoryModal() {
     console.log('Opening Add Category modal');
-    
-    // Find the currently open modal and add fade effect
-    const openModals = document.querySelectorAll('.modal.show');
-    openModals.forEach(modal => {
-        modal.classList.add('modal-faded');
-    });
     
     // Clear the add category form and alert container
     const form = document.getElementById('addCategoryForm');
@@ -2429,22 +2797,20 @@ function showAddCategoryModal() {
             keyboard: true
         });
         modal.show();
+    setTimeout(updateModalStackingState, 0);
         
         // Focus on the name input when modal is shown
         addCategoryModal.addEventListener('shown.bs.modal', function() {
             const nameInput = document.getElementById('newCategoryName');
             if (nameInput) nameInput.focus();
+            updateModalStackingState();
         }, { once: true });
         
         // Handle modal close to remove stacked styling and fade effect
         addCategoryModal.addEventListener('hidden.bs.modal', function() {
             addCategoryModal.classList.remove('modal-stacked');
             
-            // Remove fade effect from base modals
-            const openModals = document.querySelectorAll('.modal.show');
-            openModals.forEach(modal => {
-                modal.classList.remove('modal-faded');
-            });
+            updateModalStackingState();
         }, { once: true });
     }
 }
@@ -3104,11 +3470,13 @@ window.BudgetBasic = {
     closeSidebar,
     loadPayees,
     initializePayeeFunctionality,
+    handleTransactionSearch,
     navigateToTransactionWeek,
     highlightTransaction,
     checkForTransactionHighlight,
     showAddPayeeModal,
     showAddCategoryModal,
+    showAddTransactionModal,
     selectNewlyAddedPayee,
     selectNewlyAddedCategory,
     filterTransactions,
@@ -3312,6 +3680,7 @@ function stopResize() {
 }
 
 // Make functions available globally for onclick handlers
+window.showAddTransactionModal = showAddTransactionModal;
 window.filterTransactions = filterTransactions;
 window.currentFilterType = currentFilterType;
 window.currentTransactionSearch = currentTransactionSearch;

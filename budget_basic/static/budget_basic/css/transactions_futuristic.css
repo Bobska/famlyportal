@@ -516,10 +516,38 @@ body.transactions-panel-page .detail-scroll::-webkit-scrollbar-thumb {
     border-radius: 999px;
 }
 
-body.transactions-panel-page .modal-backdrop.show {
-    background: linear-gradient(145deg, rgba(2, 8, 18, 0.52), rgba(4, 14, 28, 0.48));
+/* ============================================
+   MODAL FADED OVERLAY - For Stacked Modals Only
+   Adds additional blur/fade to inactive modals when another modal opens on top
+   ============================================ */
+
+/* When a modal is faded (another modal is in front), add overlay to its content */
+body.transactions-panel-page .modal.modal-faded .futuristic-modal-content {
+    position: relative;
+    filter: none;
     opacity: 1;
-    backdrop-filter: blur(8px);
+    pointer-events: none;
+}
+
+/* The overlay itself - creates the "behind" effect */
+body.transactions-panel-page .modal.modal-faded .futuristic-modal-content::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(6, 20, 42, 0.5);
+    backdrop-filter: blur(2px) saturate(110%);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* Stacked modal z-index adjustment */
+body.transactions-panel-page .modal.modal-stacked {
+    z-index: 1085;
+}
+
+/* Enhanced shadow for stacked modals */
+body.transactions-panel-page .modal.modal-stacked .futuristic-modal-content {
+    box-shadow: 0 40px 88px -36px rgba(12, 40, 72, 0.85);
 }
 
 body.transactions-panel-page .futuristic-modal .modal-dialog {
@@ -536,7 +564,7 @@ body.transactions-panel-page .futuristic-modal.payee-modal .modal-dialog {
 }
 
 body.transactions-panel-page .futuristic-modal-content {
-    background: rgba(6, 20, 42, 0.28);
+    background: rgba(6, 20, 42, 0.5);
     border: 1px solid var(--tx-accent-strong);
     border-radius: 18px;
     box-shadow: 0 32px 80px -38px rgba(12, 40, 72, 0.72), 
@@ -544,7 +572,7 @@ body.transactions-panel-page .futuristic-modal-content {
     color: var(--tx-text-primary);
     overflow: hidden;
     position: relative;
-    backdrop-filter: blur(24px) saturate(120%);
+    backdrop-filter: blur(2px) saturate(100%);
     display: flex;
     flex-direction: column;
     max-height: 100%;
@@ -954,9 +982,9 @@ body.transactions-panel-page .futuristic-modal-footer {
 }
 
 body.transactions-panel-page .modal.fade .modal-dialog {
-    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out;
-    transform: translate3d(0, 12px, 0) scale(0.985);
-    opacity: 0;
+    transition: none;
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
 }
 
 body.transactions-panel-page .modal.show .modal-dialog {
@@ -964,19 +992,15 @@ body.transactions-panel-page .modal.show .modal-dialog {
     opacity: 1;
 }
 
-body.transactions-panel-page .modal.fade .futuristic-modal-content {
-    transition: opacity 180ms ease-out, box-shadow 200ms ease-out;
-    opacity: 0.82;
-    box-shadow: 0 18px 54px -34px rgba(12, 40, 72, 0.5);
-}
-
-body.transactions-panel-page .modal.show .futuristic-modal-content {
+body.transactions-panel-page .modal.fade:not(.modal-faded) .futuristic-modal-content {
+    transition: none;
     opacity: 1;
     box-shadow: 0 32px 80px -40px rgba(12, 40, 72, 0.68);
 }
 
-body.transactions-panel-page .modal-backdrop.fade {
-    transition: opacity 180ms ease-out;
+body.transactions-panel-page .modal.show:not(.modal-faded) .futuristic-modal-content {
+    opacity: 1;
+    box-shadow: 0 32px 80px -40px rgba(12, 40, 72, 0.68);
 }
 
 @media (max-width: 992px) {

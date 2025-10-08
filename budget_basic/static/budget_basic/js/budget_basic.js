@@ -60,6 +60,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize action button states (hidden by default)
     hideActionButtons();
+
+    document.addEventListener('shown.bs.modal', () => {
+        setTimeout(updateModalStackingState, 0);
+    });
+
+    document.addEventListener('hidden.bs.modal', () => {
+        setTimeout(updateModalStackingState, 0);
+    });
     
     // Initialize filter with default state (only on pages with transactions)
     setTimeout(() => {
@@ -2357,6 +2365,23 @@ function checkForTransactionHighlight() {
  * Stacked Modal Management Functions
  */
 
+function updateModalStackingState() {
+    const openModals = Array.from(document.querySelectorAll('.modal.show'))
+        .sort((a, b) => {
+            const zA = parseInt(window.getComputedStyle(a).zIndex || '0', 10);
+            const zB = parseInt(window.getComputedStyle(b).zIndex || '0', 10);
+            return zA - zB;
+        });
+
+    openModals.forEach((modal, index) => {
+        if (index < openModals.length - 1) {
+            modal.classList.add('modal-faded');
+        } else {
+            modal.classList.remove('modal-faded');
+        }
+    });
+}
+
 /**
  * Show the Add Payee modal on top of the current modal
  */
@@ -2365,12 +2390,6 @@ async function showAddPayeeModal(modalType) {
     
     // Store which modal opened this payee modal
     currentBaseModal = modalType;
-    
-    // Find the currently open modal and add fade effect
-    const openModals = document.querySelectorAll('.modal.show');
-    openModals.forEach(modal => {
-        modal.classList.add('modal-faded');
-    });
     
     // Clear the add payee form and alert container
     const form = document.getElementById('addPayeeForm');
@@ -2409,22 +2428,20 @@ async function showAddPayeeModal(modalType) {
             keyboard: true
         });
         modal.show();
+    setTimeout(updateModalStackingState, 0);
         
         // Focus on the name input when modal is shown
         addPayeeModal.addEventListener('shown.bs.modal', function() {
             const nameInput = document.getElementById('newPayeeName');
             if (nameInput) nameInput.focus();
+            updateModalStackingState();
         }, { once: true });
         
         // Handle modal close to remove stacked styling and fade effect
         addPayeeModal.addEventListener('hidden.bs.modal', function() {
             addPayeeModal.classList.remove('modal-stacked');
             
-            // Remove fade effect from base modals
-            const openModals = document.querySelectorAll('.modal.show');
-            openModals.forEach(modal => {
-                modal.classList.remove('modal-faded');
-            });
+            updateModalStackingState();
             
             currentBaseModal = null;
         }, { once: true });
@@ -2716,12 +2733,6 @@ function resetCategoryDropdown(categorySelectId) {
 function showAddCategoryModal() {
     console.log('Opening Add Category modal');
     
-    // Find the currently open modal and add fade effect
-    const openModals = document.querySelectorAll('.modal.show');
-    openModals.forEach(modal => {
-        modal.classList.add('modal-faded');
-    });
-    
     // Clear the add category form and alert container
     const form = document.getElementById('addCategoryForm');
     if (form) form.reset();
@@ -2747,22 +2758,20 @@ function showAddCategoryModal() {
             keyboard: true
         });
         modal.show();
+    setTimeout(updateModalStackingState, 0);
         
         // Focus on the name input when modal is shown
         addCategoryModal.addEventListener('shown.bs.modal', function() {
             const nameInput = document.getElementById('newCategoryName');
             if (nameInput) nameInput.focus();
+            updateModalStackingState();
         }, { once: true });
         
         // Handle modal close to remove stacked styling and fade effect
         addCategoryModal.addEventListener('hidden.bs.modal', function() {
             addCategoryModal.classList.remove('modal-stacked');
             
-            // Remove fade effect from base modals
-            const openModals = document.querySelectorAll('.modal.show');
-            openModals.forEach(modal => {
-                modal.classList.remove('modal-faded');
-            });
+            updateModalStackingState();
         }, { once: true });
     }
 }

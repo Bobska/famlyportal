@@ -1048,34 +1048,82 @@ body::-webkit-scrollbar {
     }
 }
 
-/* Modal Stacking and Backdrop Management */
-/* Increase z-index for stacked modals */
+/* ============================================
+   MODAL BACKDROP & STACKING SYSTEM
+   Universal blur/fade system for all modals
+   ============================================ */
+
+/* Base modal z-index */
 .modal {
-    z-index: 1050; /* Bootstrap default */
+    z-index: 1050;
 }
 
+/* Stacked modals appear above base modals */
 .modal.modal-stacked {
-    z-index: 1060; /* Higher z-index for stacked modals */
+    z-index: 1060;
 }
 
+/* Universal backdrop - applies blur and fade to EVERYTHING behind ANY modal */
 .modal-backdrop {
-    z-index: 1040; /* Bootstrap default backdrop */
+    z-index: 1040;
+    background: rgba(6, 20, 42, 0.5) !important;
+    backdrop-filter: blur(2px) saturate(100%) !important;
+    opacity: 1 !important;
 }
 
+/* When shown, ensure backdrop is always visible and blurred */
+.modal-backdrop.show {
+    background: rgba(6, 20, 42, 0.5) !important;
+    opacity: 1 !important;
+    backdrop-filter: blur(2px) saturate(100%) !important;
+}
+
+/* Stacked modal backdrops - between base and stacked modals */
 .modal-backdrop.modal-backdrop-stacked {
-    z-index: 1055; /* Backdrop for stacked modals - between base modal and stacked modal */
-    background-color: rgba(0, 0, 0, 0.3); /* Lighter backdrop for stacked effect */
+    z-index: 1055;
+    background: rgba(6, 20, 42, 0.5) !important;
+    backdrop-filter: blur(2px) saturate(100%) !important;
 }
 
-/* Fade effect for base modal when stacked modal is open */
-.modal.modal-faded {
-    opacity: 0.4 !important;
-    transition: opacity 0.3s ease-in-out;
-}
-
-/* Ensure modal dialogs maintain proper positioning when stacked */
+/* Slight visual offset for stacked modals */
 .modal-stacked .modal-dialog {
-    transform: translate(0, -50px); /* Slight offset for visual separation */
+    transform: translate(0, -50px);
+}
+
+/* ============================================
+   MODAL FADED OVERLAY - For Stacked Modals
+   Supports unlimited modal stacking (2, 3, 4+ modals)
+   JavaScript applies .modal-faded to ALL modals except the topmost one
+   ============================================ */
+
+/* Prevent interaction with faded modals */
+.modal.modal-faded {
+    pointer-events: none;
+}
+
+/* Apply overlay to modal content - properly respects borders and border-radius */
+.modal.modal-faded .modal-content {
+    position: relative;
+    /* Fade the border by reducing its opacity */
+    opacity: 0.6; /* Makes the entire content including border faded */
+}
+
+/* The overlay covers the modal content including borders */
+.modal.modal-faded .modal-content::before {
+    content: "";
+    position: absolute;
+    inset: 0; /* Cover entire content area including border */
+    background: rgba(6, 20, 42, 0.4); /* 40% dark overlay */
+    backdrop-filter: blur(2px) saturate(105%);
+    border-radius: inherit; /* Match content border-radius */
+    z-index: 9999; /* Above all content inside modal */
+    pointer-events: none;
+}
+
+/* Enhanced stacking support - each modal layer maintains proper z-index hierarchy */
+.modal.modal-stacked.modal-faded {
+    /* Stacked AND faded modals maintain their position in the stack */
+    pointer-events: none;
 }
 
 /* Fix dropdown z-index to appear above cards */

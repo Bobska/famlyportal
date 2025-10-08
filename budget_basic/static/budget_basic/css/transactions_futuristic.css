@@ -161,6 +161,7 @@ body.transactions-panel-page .dropdown-toggle.btn-outline-secondary {
     padding: 0.45rem 0.9rem;
     background: rgba(4, 12, 24, 0.65);
     transition: all 180ms ease;
+    border-radius: var(--bs-border-radius-sm);
 }
 
 body.transactions-panel-page .btn-outline-secondary:hover,
@@ -171,25 +172,67 @@ body.transactions-panel-page .btn-outline-secondary:focus {
 }
 
 body.transactions-panel-page .dropdown-menu {
-    background: rgba(4, 12, 24, 0.95);
-    border: 1px solid rgba(89, 210, 255, 0.25);
-    border-radius: 12px;
-    padding: 0.35rem 0;
-    box-shadow: 0 20px 40px -24px rgba(12, 34, 58, 0.85);
+    background: linear-gradient(155deg, rgba(6, 16, 30, 0.94), rgba(8, 20, 38, 0.9));
+    border: 1px solid rgba(89, 210, 255, 0.26);
+    border-radius: var(--bs-border-radius-sm);
+    padding: 0.45rem;
+    box-shadow: 0 26px 58px -34px rgba(12, 40, 72, 0.85);
+    backdrop-filter: blur(14px) saturate(120%);
+    min-width: 220px;
+    position: relative;
+    overflow: hidden;
+}
+
+body.transactions-panel-page .dropdown-menu::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: calc(var(--bs-border-radius-sm) - 0.125rem);
+    background: radial-gradient(circle at 20% -10%, rgba(89, 210, 255, 0.18), transparent 55%),
+                radial-gradient(circle at 80% 0%, rgba(27, 201, 255, 0.12), transparent 62%);
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 body.transactions-panel-page .dropdown-item {
+    position: relative;
     color: var(--tx-text-secondary);
     font-size: 0.74rem;
-    letter-spacing: 0.05rem;
+    letter-spacing: 0.06rem;
     text-transform: uppercase;
+    padding: 0.55rem 0.95rem;
+    margin: 0.12rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: var(--bs-border-radius-sm);
+    transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    z-index: 1;
+}
+
+body.transactions-panel-page .dropdown-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: inset 0 0 0 0 rgba(89, 210, 255, 0.2);
+    transition: box-shadow 0.2s ease;
+    z-index: -1;
 }
 
 body.transactions-panel-page .dropdown-item:hover,
 body.transactions-panel-page .dropdown-item:focus,
 body.transactions-panel-page .dropdown-item.active {
-    background: rgba(89, 210, 255, 0.12);
     color: var(--tx-text-primary);
+    background: linear-gradient(135deg, rgba(89, 210, 255, 0.14), rgba(27, 201, 255, 0.06));
+    box-shadow: 0 10px 24px -18px rgba(27, 201, 255, 0.5);
+}
+
+body.transactions-panel-page .dropdown-item:hover::before,
+body.transactions-panel-page .dropdown-item:focus::before,
+body.transactions-panel-page .dropdown-item.active::before {
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.28);
 }
 
 body.transactions-panel-page .payee-list-scroll {
@@ -480,12 +523,16 @@ body.transactions-panel-page .modal-backdrop.show {
 }
 
 body.transactions-panel-page .futuristic-modal .modal-dialog {
-    max-width: 600px;
+    max-width: 760px;
     margin: 1.5rem auto;
     width: calc(100% - 2rem);
     max-height: calc(100vh - 2rem);
     display: flex;
     align-items: center;
+}
+
+body.transactions-panel-page .futuristic-modal.payee-modal .modal-dialog {
+    max-width: 640px;
 }
 
 body.transactions-panel-page .futuristic-modal-content {
@@ -588,6 +635,18 @@ body.transactions-panel-page .modal-layout {
     display: grid;
     gap: 1rem;
     align-items: start;
+}
+
+body.transactions-panel-page .modal-layout.modal-layout-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+body.transactions-panel-page .payee-modal .modal-section {
+    gap: 0.75rem;
+}
+
+body.transactions-panel-page .payee-modal .modal-section .modal-section-hint {
+    max-width: 280px;
 }
 
 body.transactions-panel-page .modal-row {
@@ -788,6 +847,20 @@ body.transactions-panel-page .futuristic-modal-form .input-group-text {
     font-size: 0.78rem;
 }
 
+body.transactions-panel-page .futuristic-modal-form .form-control,
+body.transactions-panel-page .futuristic-modal-form .form-select,
+body.transactions-panel-page .futuristic-modal-form .input-group-text {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+body.transactions-panel-page .futuristic-modal-form .form-control:hover,
+body.transactions-panel-page .futuristic-modal-form .form-select:hover,
+body.transactions-panel-page .futuristic-modal-form .input-group-text:hover {
+    border-color: var(--tx-accent);
+    box-shadow: 0 0 0 3px rgba(89, 210, 255, 0.22);
+    background: rgba(10, 28, 52, 0.92);
+}
+
 body.transactions-panel-page .futuristic-modal-form .form-control:focus,
 body.transactions-panel-page .futuristic-modal-form .form-select:focus {
     border-color: var(--tx-accent);
@@ -803,6 +876,17 @@ body.transactions-panel-page .futuristic-modal-form textarea.form-control {
 body.transactions-panel-page .futuristic-modal-form .form-select option {
     background: #02060f;
     color: var(--tx-text-primary);
+}
+
+body.transactions-panel-page .payee-modal .futuristic-modal-form select[multiple] {
+    min-height: 120px;
+    max-height: 180px;
+    overflow-y: auto;
+    border-radius: 10px;
+}
+
+body.transactions-panel-page .payee-modal .futuristic-modal-form select[multiple] option {
+    padding: 0.35rem 0.5rem;
 }
 
 body.transactions-panel-page .payee-indicator {
@@ -834,6 +918,28 @@ body.transactions-panel-page .payee-categories-list .badge {
     color: var(--tx-text-primary);
     font-size: 0.7rem;
     letter-spacing: 0.1rem;
+}
+
+body.transactions-panel-page .modal-helper-text {
+    margin: 0;
+    font-size: 0.72rem;
+    color: rgba(167, 191, 226, 0.68);
+    letter-spacing: 0.04rem;
+}
+
+body.transactions-panel-page .modal-helper-text strong {
+    color: var(--tx-accent);
+    font-weight: 600;
+}
+
+body.transactions-panel-page .modal-helper-text kbd {
+    background: rgba(89, 210, 255, 0.18);
+    border: 1px solid rgba(89, 210, 255, 0.28);
+    color: var(--tx-text-primary);
+    border-radius: 6px;
+    padding: 0.08rem 0.35rem;
+    font-size: 0.65rem;
+    box-shadow: inset 0 0 0 1px rgba(89, 210, 255, 0.18);
 }
 
 body.transactions-panel-page .futuristic-modal-footer {
@@ -924,26 +1030,51 @@ body.transactions-panel-page #addTransactionModal .btn-outline-primary:hover {
     box-shadow: 0 0 18px -6px rgba(89, 210, 255, 0.75);
 }
 
-body.transactions-panel-page #addTransactionModal .btn-danger {
-    background: linear-gradient(135deg, rgba(255, 92, 138, 0.82), rgba(120, 22, 58, 0.94));
-    border: 1px solid rgba(255, 92, 138, 0.65);
-    box-shadow: 0 12px 32px -18px rgba(255, 92, 138, 0.9);
-    letter-spacing: 0.12rem;
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.35rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.14rem;
     text-transform: uppercase;
+    border-radius: var(--bs-border-radius-sm);
+    background: linear-gradient(135deg, rgba(16, 40, 70, 0.92), rgba(10, 26, 48, 0.88));
+    border: 1px solid rgba(89, 210, 255, 0.42);
+    color: var(--tx-text-primary);
+    box-shadow: 0 20px 42px -30px rgba(27, 201, 255, 0.8);
+    overflow: hidden;
+    transition: border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
-body.transactions-panel-page #addTransactionModal .btn-success {
-    background: linear-gradient(135deg, rgba(50, 255, 192, 0.75), rgba(12, 118, 92, 0.88));
-    border: 1px solid rgba(50, 255, 192, 0.6);
-    box-shadow: 0 12px 32px -18px rgba(50, 255, 192, 0.85);
-    letter-spacing: 0.12rem;
-    text-transform: uppercase;
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action.expense-mode {
+    border-color: rgba(255, 120, 170, 0.42);
+    box-shadow: 0 18px 40px -28px rgba(255, 120, 170, 0.55);
 }
 
-body.transactions-panel-page #addTransactionModal .btn-danger:hover,
-body.transactions-panel-page #addTransactionModal .btn-success:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 14px 36px -16px rgba(89, 210, 255, 0.85);
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action.income-mode {
+    border-color: rgba(50, 255, 192, 0.4);
+    box-shadow: 0 18px 40px -28px rgba(50, 255, 192, 0.48);
+}
+
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action:hover,
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action:focus {
+    border-color: var(--tx-accent);
+    box-shadow: 0 0 18px -6px rgba(89, 210, 255, 0.75);
+}
+
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action.expense-mode:hover,
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action.expense-mode:focus {
+    border-color: rgba(255, 120, 170, 0.62);
+    box-shadow: 0 0 18px -6px rgba(255, 120, 170, 0.75);
+}
+
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action.income-mode:hover,
+body.transactions-panel-page #addTransactionModal .futuristic-primary-action.income-mode:focus {
+    border-color: rgba(50, 255, 192, 0.6);
+    box-shadow: 0 0 18px -6px rgba(50, 255, 192, 0.72);
 }
 
 body.transactions-panel-page .optional-section {

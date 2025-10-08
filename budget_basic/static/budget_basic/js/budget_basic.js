@@ -251,7 +251,7 @@ function updateTransactionModalForType(type) {
         payeeOption.textContent = 'Select existing merchant...';
         payeeHelp.textContent = 'Select from existing merchants or use the + button to add a new one';
         submitBtn.textContent = 'Add Expense';
-        submitBtn.className = 'btn btn-danger';
+        submitBtn.className = 'btn futuristic-primary-action expense-mode';
         if (newPayeeBtn) {
             newPayeeBtn.title = 'Add new merchant';
         }
@@ -260,7 +260,7 @@ function updateTransactionModalForType(type) {
         payeeOption.textContent = 'Select existing payee...';
         payeeHelp.textContent = 'Select from existing payees or use the + button to add a new one';
         submitBtn.textContent = 'Add Income';
-        submitBtn.className = 'btn btn-success';
+        submitBtn.className = 'btn futuristic-primary-action income-mode';
         if (newPayeeBtn) {
             newPayeeBtn.title = 'Add new payee';
         }

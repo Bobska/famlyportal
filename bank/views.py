@@ -333,6 +333,15 @@ def dashboard(request):
 
 
 @login_required
+def shell(request):
+    """
+    Render the unified navigation shell that loads content via AJAX.
+    This provides seamless navigation between all bank views without page reloads.
+    """
+    return render(request, 'bank/shell.html', {})
+
+
+@login_required
 def accounts(request):
     """
     Render the bank-style accounts page showing multiple account types,
@@ -1474,4 +1483,239 @@ def category_payees(request, category_id):
             'success': False,
             'error': f'Error fetching payees: {str(e)}'
         })
+
+
+# ============================================================================
+# AJAX Content Loading Endpoints for Navigation Shell
+# ============================================================================
+
+@login_required
+def ajax_dashboard_content(request):
+    """Return dashboard content as HTML for AJAX loading in navigation shell."""
+    from django.template.loader import render_to_string
+    
+    # Get dashboard context (reuse existing dashboard logic)
+    context = dashboard(request).context_data if hasattr(dashboard(request), 'context_data') else {}
+    
+    # Rebuild context since dashboard() returns HttpResponse, not context
+    total_income = amount_sum(Income.objects.filter(user=request.user))
+    total_expenses = amount_sum(Expense.objects.filter(user=request.user))
+    current_balance = total_income - total_expenses
+    
+    recent_income = Income.objects.filter(user=request.user).order_by('-date', '-id')[:10]
+    recent_expenses = Expense.objects.filter(user=request.user).order_by('-date', '-id')[:10]
+    
+    recent_transactions = []
+    for income in recent_income:
+        recent_transactions.append({'type': 'income', 'entry': income})
+    for expense in recent_expenses:
+        recent_transactions.append({'type': 'expense', 'entry': expense})
+    
+    recent_transactions.sort(key=lambda x: (x['entry'].date, x['entry'].id), reverse=True)
+    
+    from django.db.models import Count, Sum
+    payee_count = Payee.objects.filter(user=request.user).count()
+    category_count = Category.objects.filter(user=request.user).count()
+    
+    income_payees = Income.objects.filter(user=request.user).values('payee').annotate(count=Count('id'))
+    expense_payees = Expense.objects.filter(user=request.user).values('payee').annotate(count=Count('id'))
+    
+    payee_totals = {}
+    for item in income_payees:
+        payee_totals[item['payee']] = payee_totals.get(item['payee'], 0) + item['count']
+    for item in expense_payees:
+        payee_totals[item['payee']] = payee_totals.get(item['payee'], 0) + item['count']
+    
+    top_payees = sorted(payee_totals.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_payees = [{'name': name, 'total_count': count} for name, count in top_payees]
+    
+    top_categories = (
+        Category.objects.filter(user=request.user)
+        .annotate(transaction_count=Count('expense_entries'))
+        .filter(transaction_count__gt=0)
+        .order_by('-transaction_count')[:3]
+    )
+    
+    from django.utils import timezone
+    today = timezone.localdate()
+    monthly_income = amount_sum(Income.objects.filter(user=request.user, date__year=today.year, date__month=today.month))
+    monthly_expenses = amount_sum(Expense.objects.filter(user=request.user, date__year=today.year, date__month=today.month))
+    monthly_balance = monthly_income - monthly_expenses
+    
+    total_transactions = Income.objects.filter(user=request.user).count() + Expense.objects.filter(user=request.user).count()
+    first_income = Income.objects.filter(user=request.user).order_by('date').first()
+    first_expense = Expense.objects.filter(user=request.user).order_by('date').first()
+    
+    weeks_active = 1
+    if first_income or first_expense:
+        earliest_date = None
+        if first_income and first_expense:
+            earliest_date = min(first_income.date, first_expense.date)
+        elif first_income:
+            earliest_date = first_income.date
+        else:
+            earliest_date = first_expense.date
+        days_active = (today - earliest_date).days
+        weeks_active = max(1, days_active // 7)
+    
+    avg_transactions_per_week = total_transactions / weeks_active if weeks_active > 0 else 0
+    
+    sidebar_context = build_sidebar_summary_context(request)
+    
+    context = {
+        'current_balance': current_balance,
+        'recent_transactions': recent_transactions[:10],
+        'payee_count': payee_count,
+        'category_count': category_count,
+        'transaction_count': len(recent_transactions[:10]),
+        'top_payees': top_payees,
+        'top_categories': top_categories,
+        'monthly_income': monthly_income,
+        'monthly_expenses': monthly_expenses,
+        'monthly_balance': monthly_balance,
+        'avg_transactions_per_week': avg_transactions_per_week,
+        **sidebar_context,
+    }
+    
+    html = render_to_string('bank/partials/dashboard_content.html', context, request=request)
+    
+    return JsonResponse({
+        'status': 'success',
+        'html': html,
+        'view': 'dashboard'
+    })
+
+
+@login_required
+def ajax_accounts_content(request):
+    """Return accounts content as HTML for AJAX loading in navigation shell."""
+    from django.template.loader import render_to_string
+    from django.db.models import Sum
+    from django.utils import timezone
+    
+    # Get all user transactions
+    all_income = Income.objects.filter(user=request.user)
+    all_expenses = Expense.objects.filter(user=request.user)
+    
+    # Calculate total balances
+    total_income = amount_sum(all_income)
+    total_expenses = amount_sum(all_expenses)
+    overall_balance = total_income - total_expenses
+    
+    # Simulate account balances
+    checking_balance = overall_balance * Decimal('0.6')
+    savings_balance = overall_balance * Decimal('0.35')
+    investment_balance = overall_balance * Decimal('0.05')
+    
+    # Recent transactions (last 15 combined)
+    recent_income = all_income.order_by('-date', '-id')[:15]
+    recent_expenses = all_expenses.order_by('-date', '-id')[:15]
+    
+    all_transactions = []
+    for income in recent_income:
+        all_transactions.append({
+            'type': 'income',
+            'entry': income,
+            'date': income.date,
+            'payee': income.payee,
+            'amount': income.amount,
+            'category': None,
+        })
+    for expense in recent_expenses:
+        all_transactions.append({
+            'type': 'expense',
+            'entry': expense,
+            'date': expense.date,
+            'payee': expense.payee,
+            'amount': expense.amount,
+            'category': expense.category,
+        })
+    
+    all_transactions.sort(key=lambda x: (x['date'], x['entry'].id), reverse=True)
+    all_transactions = all_transactions[:15]
+    
+    # Monthly metrics
+    today = timezone.localdate()
+    monthly_income = amount_sum(Income.objects.filter(user=request.user, date__year=today.year, date__month=today.month))
+    monthly_expenses = amount_sum(Expense.objects.filter(user=request.user, date__year=today.year, date__month=today.month))
+    monthly_net = monthly_income - monthly_expenses
+    
+    # Transaction counts
+    income_count = all_income.count()
+    expense_count = all_expenses.count()
+    total_transactions = income_count + expense_count
+    today_transactions = Income.objects.filter(user=request.user, date=today).count() + \
+                         Expense.objects.filter(user=request.user, date=today).count()
+    
+    # Top spending categories
+    top_spending_categories = (
+        Category.objects.filter(user=request.user)
+        .annotate(total_spent=Sum('expense_entries__amount'))
+        .filter(total_spent__gt=0)
+        .order_by('-total_spent')[:5]
+    )
+    
+    context = {
+        'overall_balance': overall_balance,
+        'checking_balance': checking_balance,
+        'savings_balance': savings_balance,
+        'investment_balance': investment_balance,
+        'recent_transactions': all_transactions,
+        'monthly_income': monthly_income,
+        'monthly_expenses': monthly_expenses,
+        'monthly_net': monthly_net,
+        'income_count': income_count,
+        'expense_count': expense_count,
+        'total_transactions': total_transactions,
+        'today_transactions': today_transactions,
+        'top_spending_categories': top_spending_categories,
+    }
+    
+    html = render_to_string('bank/partials/accounts_content.html', context, request=request)
+    
+    return JsonResponse({
+        'status': 'success',
+        'html': html,
+        'view': 'accounts'
+    })
+
+
+@login_required
+def ajax_weekly_content(request):
+    """Return weekly view content for AJAX loading (placeholder)."""
+    return JsonResponse({
+        'status': 'error',
+        'error': 'Weekly AJAX view not yet implemented',
+        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Weekly view conversion in progress</p></div>'
+    })
+
+
+@login_required
+def ajax_transactions_content(request):
+    """Return transactions view content for AJAX loading (placeholder)."""
+    return JsonResponse({
+        'status': 'error',
+        'error': 'Transactions AJAX view not yet implemented',
+        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Transactions view conversion in progress</p></div>'
+    })
+
+
+@login_required
+def ajax_payees_content(request):
+    """Return payees view content for AJAX loading (placeholder)."""
+    return JsonResponse({
+        'status': 'error',
+        'error': 'Payees AJAX view not yet implemented',
+        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Payees view conversion in progress</p></div>'
+    })
+
+
+@login_required
+def ajax_categories_content(request):
+    """Return categories view content for AJAX loading (placeholder)."""
+    return JsonResponse({
+        'status': 'error',
+        'error': 'Categories AJAX view not yet implemented',
+        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Categories view conversion in progress</p></div>'
+    })
 

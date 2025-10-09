@@ -4,12 +4,25 @@ from . import views
 app_name = 'bank'
 
 urlpatterns = [
+    # Navigation Shell (new unified entry point)
+    path('shell/', views.shell, name='shell'),
+    
+    # Traditional page routes (kept for backwards compatibility)
     path('', views.dashboard, name='dashboard'),
     path('accounts/', views.accounts, name='accounts'),
     path('transactions/', views.transactions, name='transactions'),
     path('weekly/', views.weekly, name='weekly'),
     path('weekly-expanse/', views.weekly_expanse, name='weekly_expanse'),
     path('week-data/', views.get_week_data, name='get_week_data'),
+    
+    # AJAX Content Loading Endpoints for Navigation Shell
+    path('ajax/dashboard/', views.ajax_dashboard_content, name='ajax_dashboard'),
+    path('ajax/accounts/', views.ajax_accounts_content, name='ajax_accounts'),
+    path('ajax/weekly/', views.ajax_weekly_content, name='ajax_weekly'),
+    path('ajax/transactions/', views.ajax_transactions_content, name='ajax_transactions'),
+    path('ajax/payees/', views.ajax_payees_content, name='ajax_payees'),
+    path('ajax/categories/', views.ajax_categories_content, name='ajax_categories'),
+    
     # Payee URLs (existing)
     path('payees/', views.get_payees, name='get_payees'),
     path('payee/add/', views.add_payee, name='add_payee'),

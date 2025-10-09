@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Financial Command - Bank - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/expanse_space.css' %}?v=20251010-001" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251010-001">
+<link rel="stylesheet" href="{% static 'bank/css/navigation_shell.css' %}?v=20251010-001">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/expanse_audio.js' %}?v=20251010-001"></script>
+<script src="{% static 'bank/js/navigation_shell.js' %}?v=20251010-001"></script>
+{% endblock %}
+
+{% block body_class %}bank-expanse-shell{% endblock %}
+
+{% block content %}
+<!-- Main Interface -->
+<div class="dashboard-space-interface" data-faction="un" id="bankShellInterface">
+    <div class="dashboard-holo-interface">
+        
+        <!-- Persistent Command Header -->
+        <div class="dashboard-command-header">
+            <div class="dashboard-designation">
+                <div class="dashboard-designation-icon">
+                    <i class="bi bi-bank2"></i>
+                </div>
+                <div class="dashboard-designation-text">
+                    <h1>FINANCIAL COMMAND</h1>
+                    <p>TACTICAL OPERATIONS // BANK MODULE</p>
+                </div>
+            </div>
+            
+            <!-- Tab Navigation Bar -->
+            <div class="shell-nav-tabs">
+                <button class="shell-nav-tab active" data-view="dashboard" title="Financial Command Center">
+                    <i class="bi bi-speedometer2"></i>
+                    <span class="nav-tab-label">Command</span>
+                </button>
+                <button class="shell-nav-tab" data-view="accounts" title="Account Management">
+                    <i class="bi bi-wallet2"></i>
+                    <span class="nav-tab-label">Accounts</span>
+                </button>
+                <button class="shell-nav-tab" data-view="weekly" title="Weekly Operations">
+                    <i class="bi bi-calendar-week"></i>
+                    <span class="nav-tab-label">Weekly</span>
+                </button>
+                <button class="shell-nav-tab" data-view="transactions" title="Transaction Ledger">
+                    <i class="bi bi-list-ul"></i>
+                    <span class="nav-tab-label">Transactions</span>
+                </button>
+                <button class="shell-nav-tab" data-view="payees" title="Payee Management">
+                    <i class="bi bi-people"></i>
+                    <span class="nav-tab-label">Payees</span>
+                </button>
+                <button class="shell-nav-tab" data-view="categories" title="Category Management">
+                    <i class="bi bi-tags"></i>
+                    <span class="nav-tab-label">Categories</span>
+                </button>
+            </div>
+            
+            <!-- Right Controls -->
+            <div class="dashboard-header-controls">
+                <a href="{% url 'accounts:dashboard' %}" class="dashboard-nav-btn" title="Return to Main Dashboard">
+                    <i class="bi bi-house"></i>
+                </a>
+                
+                <!-- Faction Selector -->
+                <div class="shell-faction-selector">
+                    <select id="shellFactionSelector" class="faction-select" onchange="window.bankShell && window.bankShell.changeFaction(this.value)">
+                        <option value="un">UN NAVY</option>
+                        <option value="belter">OPA</option>
+                        <option value="proto">PROTO</option>
+                    </select>
+                </div>
+                
+                <!-- Audio Toggle -->
+                <div class="dashboard-audio-status" id="audioStatus">
+                    <span class="dashboard-audio-indicator suspended" id="audioIndicator"></span>
+                    <span class="dashboard-audio-text" id="audioStatusText">AUDIO SUSPENDED</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dynamic Content Container -->
+        <div id="shell-content-container" class="shell-content-container">
+            <!-- Initial loading state -->
+            <div id="shell-content-loader" class="shell-loading-skeleton">
+                <div class="skeleton-column">
+                    <div class="skeleton-panel"></div>
+                    <div class="skeleton-panel"></div>
+                </div>
+                <div class="skeleton-column">
+                    <div class="skeleton-panel large"></div>
+                </div>
+                <div class="skeleton-column">
+                    <div class="skeleton-panel"></div>
+                    <div class="skeleton-panel"></div>
+                </div>
+            </div>
+            
+            <!-- Content will be loaded here via AJAX -->
+            <div id="shell-content-view" class="shell-content-view" style="display: none;">
+                <!-- AJAX content inserted here -->
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Status Footer -->
+    <div class="shell-status-footer">
+        <div class="shell-status-item">
+            <i class="bi bi-wifi"></i>
+            <span id="connectionStatus">CONNECTED</span>
+        </div>
+        <div class="shell-status-item">
+            <i class="bi bi-hdd"></i>
+            <span id="viewStatus">LOADING...</span>
+        </div>
+        <div class="shell-status-item">
+            <i class="bi bi-clock"></i>
+            <span id="systemTime"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize system time display
+function updateSystemTime() {
+    const timeEl = document.getElementById('systemTime');
+    if (timeEl) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        timeEl.textContent = timeStr;
+    }
+}
+
+// Update time every second
+setInterval(updateSystemTime, 1000);
+updateSystemTime();
+</script>
+{% endblock %}

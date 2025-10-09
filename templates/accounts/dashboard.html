@@ -5,7 +5,7 @@
 {% block title %}Command Interface - FamlyPortal{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/expanse_space.css' %}?v=20251009-021" rel="stylesheet">
+<link href="{% static 'css/expanse_space.css' %}?v=20251009-035" rel="stylesheet">
 <link href="{% static 'css/expanse_boot.css' %}?v=20251009-021" rel="stylesheet">
 {% endblock %}
 
@@ -207,29 +207,123 @@
                     </a>
                     {% endif %}
 
-                    <!-- Coming Soon Modules -->
-                    <div class="holo-module maintenance">
+                    {% has_app_permission 'employment_history' as can_employment %}
+                    {% if can_employment %}
+                    <a href="#" class="holo-module">
                         <div class="module-border"></div>
+                        <div class="module-glow"></div>
+                        <div class="module-header">
+                            <div class="module-icon">💼</div>
+                            <div class="module-code">EH-05</div>
+                        </div>
+                        <div class="module-title">EMPLOYMENT</div>
+                        <div class="module-desc">Career history tracking</div>
+                        <div class="module-status operational">
+                            <span class="status-dot"></span>
+                            OPERATIONAL
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% has_app_permission 'subscription_tracker' as can_subscriptions %}
+                    {% if can_subscriptions %}
+                    <a href="#" class="holo-module">
+                        <div class="module-border"></div>
+                        <div class="module-glow"></div>
+                        <div class="module-header">
+                            <div class="module-icon">🔄</div>
+                            <div class="module-code">ST-06</div>
+                        </div>
+                        <div class="module-title">SUBSCRIPTIONS</div>
+                        <div class="module-desc">Recurring payments tracker</div>
+                        <div class="module-status operational">
+                            <span class="status-dot"></span>
+                            OPERATIONAL
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% has_app_permission 'credit_cards' as can_credit_cards %}
+                    {% if can_credit_cards %}
+                    <a href="{% url 'credit_cards:dashboard' %}" class="holo-module">
+                        <div class="module-border"></div>
+                        <div class="module-glow"></div>
                         <div class="module-header">
                             <div class="module-icon">💳</div>
-                            <div class="module-code">CC-05</div>
+                            <div class="module-code">CC-07</div>
                         </div>
-                        <div class="module-title">CREDITS</div>
+                        <div class="module-title">CREDIT CARDS</div>
                         <div class="module-desc">Card management system</div>
-                        <div class="module-status maintenance">
+                        <div class="module-status operational">
                             <span class="status-dot"></span>
-                            MAINTENANCE
+                            OPERATIONAL
                         </div>
-                    </div>
+                    </a>
+                    {% endif %}
 
-                    <div class="holo-module maintenance">
+                    {% has_app_permission 'upcoming_payments' as can_upcoming_payments %}
+                    {% if can_upcoming_payments %}
+                    <a href="{% url 'upcoming_payments:dashboard' %}" class="holo-module">
                         <div class="module-border"></div>
+                        <div class="module-glow"></div>
                         <div class="module-header">
                             <div class="module-icon">📅</div>
-                            <div class="module-code">PM-06</div>
+                            <div class="module-code">UP-08</div>
                         </div>
                         <div class="module-title">PAYMENTS</div>
                         <div class="module-desc">Payment scheduling system</div>
+                        <div class="module-status operational">
+                            <span class="status-dot"></span>
+                            OPERATIONAL
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% has_app_permission 'budget_basic' as can_budget_basic %}
+                    {% if can_budget_basic %}
+                    <a href="{% url 'budget_basic:dashboard' %}" class="holo-module">
+                        <div class="module-border"></div>
+                        <div class="module-glow"></div>
+                        <div class="module-header">
+                            <div class="module-icon">�</div>
+                            <div class="module-code">BB-09</div>
+                        </div>
+                        <div class="module-title">BUDGET BASIC</div>
+                        <div class="module-desc">Simple budget tracking</div>
+                        <div class="module-status operational">
+                            <span class="status-dot"></span>
+                            OPERATIONAL
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% has_app_permission 'gmail_integration' as can_gmail %}
+                    {% if can_gmail %}
+                    <a href="{% url 'gmail_integration:account_list' %}" class="holo-module">
+                        <div class="module-border"></div>
+                        <div class="module-glow"></div>
+                        <div class="module-header">
+                            <div class="module-icon">📧</div>
+                            <div class="module-code">GM-10</div>
+                        </div>
+                        <div class="module-title">GMAIL</div>
+                        <div class="module-desc">Email integration system</div>
+                        <div class="module-status operational">
+                            <span class="status-dot"></span>
+                            OPERATIONAL
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    <!-- Coming Soon / Future Modules -->
+                    <div class="holo-module maintenance">
+                        <div class="module-border"></div>
+                        <div class="module-header">
+                            <div class="module-icon">🤖</div>
+                            <div class="module-code">AI-11</div>
+                        </div>
+                        <div class="module-title">AI ASSISTANT</div>
+                        <div class="module-desc">Intelligent automation system</div>
                         <div class="module-status maintenance">
                             <span class="status-dot"></span>
                             MAINTENANCE
@@ -256,9 +350,6 @@
                                 <option value="belter">Belter Engineering</option>
                                 <option value="proto">Protomolecule Interface</option>
                             </select>
-                            <div class="setting-description">
-                                Select your preferred tactical display theme
-                            </div>
                         </div>
                     </div>
                     
@@ -274,37 +365,16 @@
                         </div>
                     </div>
 
-                    <!-- System Logs -->
+                    <!-- Family Quick Access -->
                     <div class="diagnostic-section">
-                        <div class="diagnostic-header">SYSTEM LOG</div>
-                        <div class="system-log">
-                            <div class="log-entry">
-                                <span class="log-time">{{ now|date:"H:i:s" }}</span>
-                                <span class="log-msg">User authenticated</span>
-                            </div>
-                            <div class="log-entry">
-                                <span class="log-time">{{ now|date:"H:i:s" }}</span>
-                                <span class="log-msg">Systems online</span>
-                            </div>
-                            <div class="log-entry">
-                                <span class="log-time">{{ now|date:"H:i:s" }}</span>
-                                <span class="log-msg">Modules loaded</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Stats -->
-                    <div class="diagnostic-section">
-                        <div class="diagnostic-header">STATISTICS</div>
-                        <div class="quick-stats">
-                            <div class="stat-item">
-                                <div class="stat-value">{{ primary_family.members.count }}</div>
-                                <div class="stat-label">CREW MEMBERS</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value">100%</div>
-                                <div class="stat-label">EFFICIENCY</div>
-                            </div>
+                        <div class="diagnostic-header">QUICK ACCESS</div>
+                        <div class="quick-actions">
+                            <a href="{% url 'accounts:family' %}" class="action-link">
+                                <i class="bi bi-people-fill"></i> Family Settings
+                            </a>
+                            <a href="{% url 'accounts:profile' %}" class="action-link">
+                                <i class="bi bi-person-circle"></i> My Profile
+                            </a>
                         </div>
                     </div>
                 </div>

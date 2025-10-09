@@ -46,12 +46,40 @@ body.expanse-interface {
     height: 100vh;
 }
 
+/* Hide any scrollbar on body */
+body.expanse-interface::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* Firefox */
+body.expanse-interface {
+    scrollbar-width: none;
+}
+
+/* IE/Edge */
+body.expanse-interface {
+    -ms-overflow-style: none;
+}
+
+/* Also hide on html element */
+html:has(body.expanse-interface) {
+    overflow: hidden;
+    scrollbar-width: none;
+}
+
+html:has(body.expanse-interface)::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
 .space-interface {
     position: relative;
     width: 100vw;
     height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     
     /* Add smooth transitions for theme changes */
     transition: --faction-color 0.6s ease, 
@@ -257,11 +285,12 @@ body.expanse-interface {
 .holo-interface {
     position: relative;
     z-index: 10;
-    min-height: 100vh;
-    padding: 2rem;
+    height: 100vh;
+    padding: 1rem 1.5rem 1rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
+    overflow: hidden;
 }
 
 /* ==========================================================================
@@ -271,8 +300,8 @@ body.expanse-interface {
 .command-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    gap: 2rem;
-    padding: 1.5rem 2rem;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
     border-left: 3px solid var(--faction-color, rgba(59, 130, 246, 0.8));
@@ -493,9 +522,11 @@ body.expanse-interface {
 
 .tactical-grid {
     display: grid;
-    grid-template-columns: 280px 1fr 280px;
-    gap: 1.5rem;
+    grid-template-columns: 260px 1fr 260px;
+    gap: 1rem;
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* ==========================================================================
@@ -509,6 +540,9 @@ body.expanse-interface {
     box-shadow: 0 0 20px var(--faction-glow, rgba(59, 130, 246, 0.15)),
                 inset 0 0 30px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
 }
 
 .left-panel {
@@ -542,10 +576,52 @@ body.expanse-interface {
 }
 
 .panel-content {
-    padding: 1.5rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - Panel scrollbar with auto-hide */
+.panel-content::-webkit-scrollbar {
+    width: 3px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+/* Show scrollbar on hover */
+.panel-content:hover::-webkit-scrollbar-thumb {
+    background: var(--faction-color, rgba(59, 130, 246, 0.5));
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright, rgba(59, 130, 246, 0.8));
+}
+
+.panel-content::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.panel-content::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Specific fix for right panel - hide scrollbar if no overflow */
+.right-panel .panel-content {
+    overflow-y: auto;
 }
 
 /* Status Readouts */
@@ -915,6 +991,51 @@ body.expanse-interface {
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.action-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4));
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    clip-path: polygon(
+        6px 0, calc(100% - 6px) 0, 100% 6px,
+        100% calc(100% - 6px), calc(100% - 6px) 100%,
+        6px 100%, 0 calc(100% - 6px), 0 6px
+    );
+}
+
+.action-link:hover {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+    border-color: var(--faction-bright, rgba(59, 130, 246, 0.6));
+    box-shadow: 0 0 15px var(--faction-glow, rgba(59, 130, 246, 0.3));
+    color: var(--faction-bright, #3b82f6);
+    transform: translateX(4px);
+}
+
+.action-link i {
+    font-size: 1rem;
+    color: var(--faction-color, rgba(59, 130, 246, 0.7));
+}
+
+.action-link:hover i {
+    color: var(--faction-bright, #3b82f6);
+    text-shadow: 0 0 10px var(--faction-glow, rgba(59, 130, 246, 0.5));
+}
+
 /* ==========================================================================
    MAIN DISPLAY (CENTER)
    ========================================================================== */
@@ -925,13 +1046,18 @@ body.expanse-interface {
     backdrop-filter: blur(10px);
     box-shadow: 0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.2)),
                 inset 0 0 40px rgba(0, 0, 0, 0.5);
-    padding: 2rem;
+    padding: 1.5rem;
     clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 calc(100% - 15px), 0 15px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 100%;
 }
 
 .display-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     position: relative;
+    flex-shrink: 0;
 }
 
 .header-accent-line {
@@ -963,24 +1089,93 @@ body.expanse-interface {
 
 .operations-holo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    align-content: start;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - Operations grid scrollbar with auto-hide */
+.operations-holo-grid::-webkit-scrollbar {
+    width: 3px;
+}
+
+.operations-holo-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.operations-holo-grid::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+/* Show scrollbar on hover */
+.operations-holo-grid:hover::-webkit-scrollbar-thumb {
+    background: var(--faction-color, rgba(59, 130, 246, 0.5));
+}
+
+.operations-holo-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright, rgba(59, 130, 246, 0.8));
+}
+
+.operations-holo-grid::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.operations-holo-grid::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 .holo-module {
     position: relative;
-    background: rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
     border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
-    padding: 1.5rem;
+    padding: 1.25rem;
     text-decoration: none;
     color: inherit;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    transition: all 0.4s ease;
+    gap: 0.75rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
     overflow: visible;
-    min-height: 200px;
+    min-height: 160px;
+    backdrop-filter: blur(10px);
+}
+
+/* Corner accent lights */
+.holo-module::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 12px;
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(180deg, var(--faction-bright, #3b82f6), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.holo-module::after {
+    content: '';
+    position: absolute;
+    bottom: 12px;
+    left: 0;
+    width: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--faction-bright, #3b82f6), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.holo-module:hover::before,
+.holo-module:hover::after {
+    opacity: 0.8;
 }
 
 /* Module Expanded Details */
@@ -1082,110 +1277,173 @@ body.expanse-interface {
 .module-border {
     position: absolute;
     inset: -1px;
-    background: linear-gradient(45deg, 
-                                transparent 30%, 
-                                var(--faction-color, rgba(59, 130, 246, 0.4)) 50%, 
-                                transparent 70%);
+    background: linear-gradient(135deg, 
+                                transparent 20%, 
+                                var(--faction-color, rgba(59, 130, 246, 0.5)) 50%, 
+                                transparent 80%);
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.3s ease;
     pointer-events: none;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
 }
 
 .module-glow {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, 
-                                var(--faction-glow, rgba(59, 130, 246, 0.1)), 
-                                transparent 70%);
+    background: radial-gradient(circle at 50% 50%, 
+                                var(--faction-glow, rgba(59, 130, 246, 0.2)), 
+                                transparent 60%);
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.3s ease;
     pointer-events: none;
+    filter: blur(20px);
 }
 
 .holo-module:hover {
-    transform: translateY(-5px);
-    border-color: var(--faction-bright, rgba(59, 130, 246, 0.6));
-    box-shadow: 0 10px 40px var(--faction-glow, rgba(59, 130, 246, 0.3)),
-                inset 0 0 20px rgba(0, 0, 0, 0.5);
+    transform: translateY(-8px) scale(1.02);
+    border-color: var(--faction-bright, rgba(59, 130, 246, 0.8));
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+    box-shadow: 0 15px 50px var(--faction-glow, rgba(59, 130, 246, 0.4)),
+                0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.2)),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
-.holo-module:hover .module-border,
+.holo-module:hover .module-border {
+    opacity: 1;
+    animation: border-pulse 2s ease-in-out infinite;
+}
+
 .holo-module:hover .module-glow {
     opacity: 1;
+}
+
+@keyframes border-pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
 }
 
 .module-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.25rem;
 }
 
 .module-icon {
-    font-size: 2rem;
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 10px var(--faction-glow, rgba(59, 130, 246, 0.5)));
+    transition: all 0.3s ease;
+}
+
+.holo-module:hover .module-icon {
+    filter: drop-shadow(0 0 20px var(--faction-glow, rgba(59, 130, 246, 0.8)));
+    transform: scale(1.1) rotate(5deg);
 }
 
 .module-code {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.7rem;
-    letter-spacing: 0.15em;
-    color: var(--faction-color, rgba(59, 130, 246, 0.6));
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    letter-spacing: 0.2em;
+    color: var(--faction-bright, #3b82f6);
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
+    background: rgba(0, 0, 0, 0.5);
+    clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px);
+    text-shadow: 0 0 10px var(--faction-glow, rgba(59, 130, 246, 0.5));
+    transition: all 0.3s ease;
+}
+
+.holo-module:hover .module-code {
+    border-color: var(--faction-bright, rgba(59, 130, 246, 0.8));
+    box-shadow: 0 0 15px var(--faction-glow, rgba(59, 130, 246, 0.4));
+    text-shadow: 0 0 15px var(--faction-glow, rgba(59, 130, 246, 0.8));
 }
 
 .module-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.2em;
     color: #fff;
     margin: 0;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.holo-module:hover .module-title {
+    color: var(--faction-bright, #3b82f6);
+    text-shadow: 0 0 20px var(--faction-glow, rgba(59, 130, 246, 0.6));
 }
 
 .module-desc {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.5;
     flex: 1;
+    letter-spacing: 0.05em;
+    transition: color 0.3s ease;
+}
+
+.holo-module:hover .module-desc {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .module-status {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 0.6rem 0.9rem;
     border: 1px solid;
-    border-radius: 2px;
     margin-top: auto;
+    clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+    transition: all 0.3s ease;
 }
 
 .module-status.operational {
     color: #22c55e;
-    border-color: rgba(34, 197, 94, 0.3);
-    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.4);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.holo-module:hover .module-status.operational {
+    border-color: rgba(34, 197, 94, 0.8);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.1));
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
 }
 
 .module-status.maintenance {
     color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.3);
-    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
 }
 
 .status-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: currentColor;
-    box-shadow: 0 0 10px currentColor;
+    box-shadow: 0 0 12px currentColor, inset 0 0 4px currentColor;
     animation: pulse-dot 2s ease-in-out infinite;
 }
 
 @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
 }
 
 .holo-module.maintenance {
@@ -1201,11 +1459,12 @@ body.expanse-interface {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
+    padding: 0.75rem 1.5rem;
     background: rgba(0, 0, 0, 0.8);
     border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
     border-top: 2px solid var(--faction-color, rgba(59, 130, 246, 0.5));
     backdrop-filter: blur(10px);
+    flex-shrink: 0;
 }
 
 .status-section {

@@ -92,11 +92,30 @@ body.weekly-expanse-interface {
 /* Hide scrollbars on body */
 body.weekly-expanse-interface::-webkit-scrollbar {
     display: none;
+    width: 0;
+    height: 0;
 }
 
+/* Firefox */
 body.weekly-expanse-interface {
     scrollbar-width: none;
+}
+
+/* IE/Edge */
+body.weekly-expanse-interface {
     -ms-overflow-style: none;
+}
+
+/* Also hide on html element */
+html:has(body.weekly-expanse-interface) {
+    overflow: hidden;
+    scrollbar-width: none;
+}
+
+html:has(body.weekly-expanse-interface)::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 /* ==========================================================================

@@ -6,235 +6,353 @@
 
 {% block extra_css %}
 <link href="{% static 'css/expanse_space.css' %}?v=20251009-036" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251009-002">
+<link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251009-003">
 {% endblock %}
 
 {% block body_class %}bank-expanse-dashboard{% endblock %}
 
 {% block content %}
 <!-- Main Interface -->
-<div class="bank-expanse-interface">
-    <div class="bank-holo-interface">
+<div class="dashboard-space-interface" data-faction="un">
+    <div class="dashboard-holo-interface">
         
-        <!-- Holographic scan line effect -->
-        <div class="expanse-scan-line"></div>
-
         <!-- Command Header -->
-        <header class="expanse-command-header">
-            <div class="expanse-title-row">
-                <div class="expanse-designation">
-                    <div class="expanse-designation-icon">
-                        <i class="bi bi-bank"></i>
-                    </div>
-                    <div class="expanse-designation-text">
-                        <h1 class="expanse-page-title">FINANCIAL COMMAND</h1>
-                        <p class="expanse-subtitle">Tactical overview • Real-time financial monitoring • {{ sidebar_week_label }}</p>
-                    </div>
+        <div class="dashboard-command-header">
+            <div class="dashboard-designation">
+                <div class="dashboard-designation-icon">
+                    💰
                 </div>
+                <div class="dashboard-designation-text">
+                    <h1>FINANCIAL COMMAND</h1>
+                    <p>TACTICAL OVERVIEW // BANK MODULE</p>
+                </div>
+            </div>
+            
+            <div class="dashboard-header-controls">
+                <a href="{% url 'accounts:dashboard' %}" class="dashboard-nav-btn" title="Main Dashboard">
+                    <i class="bi bi-house"></i>
+                </a>
                 
-                <div class="expanse-header-controls">
-                    <a href="{% url 'accounts:dashboard' %}" class="expanse-nav-btn" title="Main Dashboard">
-                        <i class="bi bi-house"></i>
-                    </a>
-                    <div class="expanse-status-indicator">
-                        <span class="expanse-status-dot"></span>
-                        <span>System Operational</span>
+                <div class="dashboard-status-group">
+                    <span class="dashboard-status-label">SYSTEM STATUS</span>
+                    <div class="dashboard-status-indicator">
+                        <span class="dashboard-status-dot"></span>
+                        <span>OPERATIONAL</span>
                     </div>
                 </div>
             </div>
-        </header>
-
-        <!-- Tactical Grid Layout -->
-        <div class="expanse-tactical-grid">
             
-            <!-- Left Column: Financial Status Module -->
-            <div class="expanse-status-module">
-                <header class="expanse-module-header">
-                    <h2 class="expanse-module-title">
-                        <i class="bi bi-bar-chart-line"></i>
-                        Financial Overview
-                    </h2>
-                    <span class="expanse-module-badge">Live</span>
-                </header>
-                <div class="expanse-module-body">
-                    <!-- Main Balance Display -->
-                    <div class="expanse-balance-display">
-                        <div class="expanse-balance-item">
-                            <span class="expanse-balance-label">
-                                <i class="bi bi-wallet2"></i> Total Balance
-                            </span>
-                            <div class="expanse-balance-value {% if current_balance >= 0 %}positive{% elif current_balance < 0 %}negative{% else %}neutral{% endif %}">
-                                {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2|intcomma }}
+            <select class="dashboard-faction-selector" id="factionSelector" onchange="changeFaction(this.value)">
+                <option value="un">UN NAVY</option>
+                <option value="belter">BELTER OPA</option>
+                <option value="proto">PROTOMOLECULE</option>
+            </select>
+        </div>
+        
+        <!-- Tactical Grid with 3 Columns -->
+        <div class="dashboard-tactical-grid">
+            
+            <!-- Left Sidebar Panel -->
+            <div class="dashboard-sidebar-panel">
+                <div class="dashboard-panel-header">
+                    <div class="dashboard-panel-icon">📊</div>
+                    <h2 class="dashboard-panel-title">Financial Status</h2>
+                </div>
+                <div class="dashboard-panel-content">
+                    
+                    <!-- Main Balance Card -->
+                    <div class="dashboard-balance-card primary">
+                        <div class="balance-card-label">TOTAL BALANCE</div>
+                        <div class="balance-card-value {% if current_balance >= 0 %}positive{% else %}negative{% endif %}">
+                            {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2|intcomma }}
+                        </div>
+                        <div class="balance-card-meta">All-time cumulative</div>
+                    </div>
+                    
+                    <!-- Weekly Net Card -->
+                    <div class="dashboard-balance-card">
+                        <div class="balance-card-label">WEEKLY NET</div>
+                        <div class="balance-card-value {% if weekly_balance >= 0 %}positive{% else %}negative{% endif %}">
+                            {% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}
+                        </div>
+                        <div class="balance-card-meta">{{ sidebar_week_label }}</div>
+                    </div>
+                    
+                    <!-- Weekly Breakdown -->
+                    <div class="dashboard-stats-grid">
+                        <div class="dashboard-stat-item income">
+                            <div class="stat-icon">▲</div>
+                            <div class="stat-details">
+                                <div class="stat-label">Income</div>
+                                <div class="stat-value">+${{ weekly_income|default:0|floatformat:2|intcomma }}</div>
                             </div>
-                            <span class="expanse-balance-meta">All-time cumulative</span>
                         </div>
                         
-                        <div class="expanse-balance-item">
-                            <span class="expanse-balance-label">
-                                <i class="bi bi-activity"></i> Weekly Net
-                            </span>
-                            <div class="expanse-balance-value {% if weekly_balance >= 0 %}positive{% elif weekly_balance < 0 %}negative{% else %}neutral{% endif %}">
-                                {% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}
+                        <div class="dashboard-stat-item expense">
+                            <div class="stat-icon">▼</div>
+                            <div class="stat-details">
+                                <div class="stat-label">Expenses</div>
+                                <div class="stat-value">-${{ weekly_expenses|default:0|floatformat:2|intcomma }}</div>
                             </div>
-                            <span class="expanse-balance-meta">{{ sidebar_week_label }}</span>
                         </div>
+                    </div>
+                    
+                </div>
             </div>
             
-            <!-- Weekly Metrics -->
-            <div class="expanse-metrics-grid">
-                <div class="expanse-metric-card">
-                    <div class="expanse-metric-icon">
-                        <i class="bi bi-arrow-up-circle"></i>
+            <!-- Center Panel - Main Display -->
+            <div class="dashboard-main-display">
+                
+                <!-- Recent Activity Panel -->
+                <div class="dashboard-activity-panel">
+                    <div class="dashboard-activity-header">
+                        <h2 class="dashboard-activity-title">
+                            <i class="bi bi-clock-history"></i> RECENT ACTIVITY
+                        </h2>
+                        <a href="{% url 'bank:weekly_expanse' %}" class="dashboard-view-all-link">
+                            VIEW ALL <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
-                    <div class="expanse-metric-value income">
-                        +${{ weekly_income|default:0|floatformat:2|intcomma }}
+                    
+                    <div class="dashboard-activity-content">
+                        {% if recent_transactions %}
+                            <div class="dashboard-transaction-list">
+                                {% for transaction in recent_transactions|slice:":8" %}
+                                    <div class="dashboard-transaction-card {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                                        <div class="transaction-card-main">
+                                            <div class="transaction-card-type">
+                                                {% if transaction.type == 'income' %}
+                                                    <span class="transaction-icon income">▲</span>
+                                                {% else %}
+                                                    <span class="transaction-icon expense">▼</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="transaction-card-info">
+                                                <div class="transaction-card-payee">{{ transaction.entry.payee|default:"Unnamed" }}</div>
+                                                <div class="transaction-card-date">{{ transaction.entry.date|date:"D, j M Y" }}</div>
+                                            </div>
+                                            <div class="transaction-card-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                                                {% if transaction.type == 'income' %}+{% else %}-{% endif %}${{ transaction.entry.amount|floatformat:2|intcomma }}
+                                            </div>
+                                        </div>
+                                        {% if transaction.entry.notes %}
+                                            <div class="transaction-card-notes">{{ transaction.entry.notes|truncatewords:15 }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="dashboard-empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="bi bi-inbox"></i>
+                                </div>
+                                <h3 class="empty-state-title">No Transaction Data</h3>
+                                <p class="empty-state-text">
+                                    No recent transactions detected. Begin logging income and expenses to populate the financial command interface.
+                                </p>
+                                <a href="{% url 'bank:weekly_expanse' %}" class="empty-state-action">
+                                    <i class="bi bi-plus-circle"></i> Add Transaction
+                                </a>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="expanse-metric-label">Income</div>
                 </div>
                 
-                <div class="expanse-metric-card">
-                    <div class="expanse-metric-icon">
-                        <i class="bi bi-arrow-down-circle"></i>
-                    </div>
-                    <div class="expanse-metric-value expense">
-                        -${{ weekly_expenses|default:0|floatformat:2|intcomma }}
-                    </div>
-                    <div class="expanse-metric-label">Expenses</div>
-                </div>
-                
-                <div class="expanse-metric-card">
-                    <div class="expanse-metric-icon">
-                        <i class="bi bi-graph-up-arrow"></i>
-                    </div>
-                    <div class="expanse-metric-value balance">
-                        {% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}
-                    </div>
-                    <div class="expanse-metric-label">Balance</div>
-                </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Right Column: Action Panel -->
-    <div class="expanse-action-panel">
-        
-        <!-- Quick Actions Card -->
-        <div class="expanse-action-card">
-            <div class="expanse-action-header">
-                <h3 class="expanse-action-title">
-                    <i class="bi bi-lightning-charge"></i> Quick Actions
-                </h3>
-            </div>
-            <div class="expanse-action-body">
-                <div class="expanse-quick-actions">
-                    <a href="{% url 'bank:weekly_expanse' %}" class="expanse-action-btn primary">
-                        <i class="bi bi-calendar-week"></i>
-                        <span>Weekly View</span>
-                    </a>
-                    <a href="{% url 'bank:transactions' %}" class="expanse-action-btn">
-                        <i class="bi bi-list-ul"></i>
-                        <span>All Transactions</span>
-                    </a>
-                    <a href="{% url 'bank:payee_list' %}" class="expanse-action-btn">
-                        <i class="bi bi-people"></i>
-                        <span>Manage Payees</span>
-                    </a>
-                    <a href="{% url 'bank:category_list' %}" class="expanse-action-btn">
-                        <i class="bi bi-tags"></i>
-                        <span>Categories</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- System Status Card -->
-        <div class="expanse-action-card">
-            <div class="expanse-action-header">
-                <h3 class="expanse-action-title">
-                    <i class="bi bi-info-circle"></i> System Status
-                </h3>
-            </div>
-            <div class="expanse-action-body">
-                <div class="expanse-info-cards">
-                    <div class="expanse-info-card">
-                        <div class="expanse-info-row">
-                            <span class="expanse-info-label">Current Period</span>
-                            <span class="expanse-info-value">{{ sidebar_week_label }}</span>
-                        </div>
-                        <div class="expanse-info-row">
-                            <span class="expanse-info-label">Active Payees</span>
-                            <span class="expanse-info-value">{{ payee_count|default:"0" }}</span>
-                        </div>
-                        <div class="expanse-info-row">
-                            <span class="expanse-info-label">Categories</span>
-                            <span class="expanse-info-value">{{ category_count|default:"0" }}</span>
-                        </div>
-                        <div class="expanse-info-row">
-                            <span class="expanse-info-label">This Week</span>
-                            <span class="expanse-info-value">{{ transaction_count|default:"0" }} transactions</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
             
-        </div>
-        
-    </div>
-    
-</div><!-- .expanse-tactical-grid -->
-
-<!-- Recent Transactions Section -->
-<section class="expanse-transaction-grid">
-    <div class="expanse-status-module">
-        <header class="expanse-grid-header">
-            <h2 class="expanse-grid-title">
-                <i class="bi bi-clock-history"></i> Recent Activity
-            </h2>
-            <a href="{% url 'bank:weekly_expanse' %}" class="expanse-grid-link">
-                <i class="bi bi-arrow-right"></i> View All
-            </a>
-        </header>
-        <div class="expanse-module-body">
-            {% if recent_transactions %}
-                <div class="expanse-activity-feed">
-                    {% for transaction in recent_transactions|slice:":10" %}
-                        <div class="expanse-activity-item {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
-                            <div class="expanse-activity-header">
-                                <span class="expanse-activity-payee">
-                                    {{ transaction.entry.payee|default:"Unnamed" }}
-                                </span>
-                                <span class="expanse-activity-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
-                                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}${{ transaction.entry.amount|floatformat:2|intcomma }}
-                                </span>
+            <!-- Right Sidebar Panel -->
+            <div class="dashboard-sidebar-panel">
+                <div class="dashboard-panel-header">
+                    <div class="dashboard-panel-icon">⚡</div>
+                    <h2 class="dashboard-panel-title">Quick Access</h2>
+                </div>
+                <div class="dashboard-panel-content">
+                    
+                    <!-- Action Buttons -->
+                    <div class="dashboard-action-buttons">
+                        <a href="{% url 'bank:weekly_expanse' %}" class="dashboard-action-btn primary">
+                            <i class="bi bi-calendar-week"></i>
+                            <span>Weekly View</span>
+                        </a>
+                        <a href="{% url 'bank:transactions' %}" class="dashboard-action-btn">
+                            <i class="bi bi-list-ul"></i>
+                            <span>All Transactions</span>
+                        </a>
+                        <a href="{% url 'bank:payee_list' %}" class="dashboard-action-btn">
+                            <i class="bi bi-people"></i>
+                            <span>Manage Payees</span>
+                        </a>
+                        <a href="{% url 'bank:category_list' %}" class="dashboard-action-btn">
+                            <i class="bi bi-tags"></i>
+                            <span>Categories</span>
+                        </a>
+                    </div>
+                    
+                    <!-- System Info Card -->
+                    <div class="dashboard-info-card">
+                        <div class="info-card-header">
+                            <i class="bi bi-info-circle"></i> SYSTEM INFO
+                        </div>
+                        <div class="info-card-body">
+                            <div class="info-row">
+                                <span class="info-label">Current Period</span>
+                                <span class="info-value">{{ sidebar_week_label }}</span>
                             </div>
-                            <div class="expanse-activity-meta">
-                                <span class="expanse-activity-date">
-                                    {{ transaction.entry.date|date:"D, j M Y" }}
-                                </span>
-                                {% if transaction.entry.notes %}
-                                    <span> • {{ transaction.entry.notes|truncatewords:10 }}</span>
-                                {% endif %}
+                            <div class="info-row">
+                                <span class="info-label">Active Payees</span>
+                                <span class="info-value">{{ payee_count|default:"0" }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Categories</span>
+                                <span class="info-value">{{ category_count|default:"0" }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Week Transactions</span>
+                                <span class="info-value">{{ transaction_count|default:"0" }}</span>
                             </div>
                         </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="expanse-empty-state">
-                    <div class="expanse-empty-icon">
-                        <i class="bi bi-inbox"></i>
                     </div>
-                    <h3 class="expanse-empty-title">No Recent Activity</h3>
-                    <p class="expanse-empty-text">
-                        No transactions detected. Begin logging income and expenses to populate your financial command center.
-                    </p>
+                    
                 </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
+            </div>
+            
+        </div><!-- End Right Sidebar -->
+        
+        <!-- Bottom Analytics Panel -->
+        <div class="dashboard-analytics-panel">
+            
+            <!-- Top Payees Card -->
+            <div class="dashboard-analytics-card">
+                <div class="analytics-card-header">
+                    <h3 class="analytics-card-title">
+                        <i class="bi bi-people"></i> TOP PAYEES
+                    </h3>
+                    <span class="analytics-card-badge">ACTIVE</span>
+                </div>
+                <div class="analytics-card-body">
+                    {% if top_payees %}
+                        {% for payee in top_payees %}
+                            <div class="analytics-chart-bar">
+                                <span class="analytics-bar-label">{{ payee.name|truncatechars:10 }}</span>
+                                <div class="analytics-bar-container">
+                                    <div class="analytics-bar-fill" style="width: {% widthratio payee.total_count top_payees.0.total_count 100 %}%;"></div>
+                                </div>
+                                <span class="analytics-bar-value">{{ payee.total_count }} txn</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="analytics-metric-row">
+                            <span class="analytics-metric-label">No payee data available</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Top Categories Card -->
+            <div class="dashboard-analytics-card">
+                <div class="analytics-card-header">
+                    <h3 class="analytics-card-title">
+                        <i class="bi bi-tags"></i> TOP CATEGORIES
+                    </h3>
+                    <span class="analytics-card-badge">EXPENSE</span>
+                </div>
+                <div class="analytics-card-body">
+                    {% if top_categories %}
+                        {% for category in top_categories %}
+                            <div class="analytics-chart-bar">
+                                <span class="analytics-bar-label">{{ category.name|truncatechars:10 }}</span>
+                                <div class="analytics-bar-container">
+                                    <div class="analytics-bar-fill" style="width: {% widthratio category.transaction_count top_categories.0.transaction_count 100 %}%;"></div>
+                                </div>
+                                <span class="analytics-bar-value">{{ category.transaction_count }} txn</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="analytics-metric-row">
+                            <span class="analytics-metric-label">No category data available</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Monthly Metrics Card -->
+            <div class="dashboard-analytics-card">
+                <div class="analytics-card-header">
+                    <h3 class="analytics-card-title">
+                        <i class="bi bi-calendar-month"></i> MONTHLY METRICS
+                    </h3>
+                    <span class="analytics-card-badge">CURRENT</span>
+                </div>
+                <div class="analytics-card-body">
+                    <div class="analytics-metric-row">
+                        <span class="analytics-metric-label">Income</span>
+                        <span class="analytics-metric-value" style="color: var(--income-color);">+${{ monthly_income|default:0|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div class="analytics-metric-row">
+                        <span class="analytics-metric-label">Expenses</span>
+                        <span class="analytics-metric-value" style="color: var(--expense-color);">-${{ monthly_expenses|default:0|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div class="analytics-metric-row">
+                        <span class="analytics-metric-label">Net Balance</span>
+                        <span class="analytics-metric-value">{% if monthly_balance >= 0 %}+{% endif %}${{ monthly_balance|floatformat:2|intcomma }}</span>
+                    </div>
+                    <div class="analytics-trend-indicator {% if monthly_balance >= 0 %}positive{% else %}negative{% endif %}">
+                        <span class="analytics-trend-icon">{% if monthly_balance >= 0 %}▲{% else %}▼{% endif %}</span>
+                        <span class="analytics-trend-text">{% if monthly_balance >= 0 %}SURPLUS{% else %}DEFICIT{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transaction Velocity Card -->
+            <div class="dashboard-analytics-card">
+                <div class="analytics-card-header">
+                    <h3 class="analytics-card-title">
+                        <i class="bi bi-speedometer2"></i> ACTIVITY RATE
+                    </h3>
+                    <span class="analytics-card-badge">AVG</span>
+                </div>
+                <div class="analytics-card-body">
+                    <div class="analytics-metric-row">
+                        <span class="analytics-metric-label">Avg per Week</span>
+                        <span class="analytics-metric-value">{{ avg_transactions_per_week|floatformat:1 }}</span>
+                    </div>
+                    <div class="analytics-metric-row">
+                        <span class="analytics-metric-label">Total Payees</span>
+                        <span class="analytics-metric-value">{{ payee_count|default:"0" }}</span>
+                    </div>
+                    <div class="analytics-metric-row">
+                        <span class="analytics-metric-label">Total Categories</span>
+                        <span class="analytics-metric-value">{{ category_count|default:"0" }}</span>
+                    </div>
+                    <div class="analytics-trend-indicator positive">
+                        <span class="analytics-trend-icon">●</span>
+                        <span class="analytics-trend-text">SYSTEM ACTIVE</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div><!-- End Analytics Panel -->
+        
+        </div><!-- .dashboard-tactical-grid -->
+        
+    </div><!-- .dashboard-holo-interface -->
+</div><!-- .dashboard-space-interface -->
 
-    </div><!-- .bank-holo-interface -->
-</div><!-- .bank-expanse-interface -->
+<script>
+// Faction theme switcher
+function changeFaction(faction) {
+    const spaceInterface = document.querySelector('.dashboard-space-interface');
+    spaceInterface.setAttribute('data-faction', faction);
+    localStorage.setItem('dashboardFaction', faction);
+}
+
+// Load saved faction on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedFaction = localStorage.getItem('dashboardFaction') || 'un';
+    const spaceInterface = document.querySelector('.dashboard-space-interface');
+    spaceInterface.setAttribute('data-faction', savedFaction);
+    document.getElementById('factionSelector').value = savedFaction;
+});
+</script>
 
 {% endblock %}

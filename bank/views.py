@@ -240,9 +240,64 @@ def dashboard(request):
     
     # Count active payees, categories, and transactions
     from .models import Payee, Category
+    from django.db.models import Count, Sum, F
+    
     payee_count = Payee.objects.filter(user=request.user).count()
     category_count = Category.objects.filter(user=request.user).count()
     transaction_count = recent_income.count() + recent_expenses.count()
+    
+    # Top payees by transaction count
+    top_payees = (
+        Payee.objects.filter(user=request.user)
+        .annotate(
+            income_count=Count('income', distinct=True),
+            expense_count=Count('expense', distinct=True)
+        )
+        .annotate(total_count=F('income_count') + F('expense_count'))
+        .filter(total_count__gt=0)
+        .order_by('-total_count')[:3]
+    )
+    
+    # Top categories by transaction count
+    top_categories = (
+        Category.objects.filter(user=request.user)
+        .annotate(transaction_count=Count('expense'))
+        .filter(transaction_count__gt=0)
+        .order_by('-transaction_count')[:3]
+    )
+    
+    # Monthly metrics
+    from django.utils import timezone
+    today = timezone.localdate()
+    monthly_income = amount_sum(
+        Income.objects.filter(user=request.user, date__year=today.year, date__month=today.month)
+    )
+    monthly_expenses = amount_sum(
+        Expense.objects.filter(user=request.user, date__year=today.year, date__month=today.month)
+    )
+    monthly_balance = monthly_income - monthly_expenses
+    
+    # Transaction velocity (transactions per week average)
+    total_transactions = Income.objects.filter(user=request.user).count() + Expense.objects.filter(user=request.user).count()
+    
+    # Get date range
+    first_income = Income.objects.filter(user=request.user).order_by('date').first()
+    first_expense = Expense.objects.filter(user=request.user).order_by('date').first()
+    
+    weeks_active = 1
+    if first_income or first_expense:
+        earliest_date = None
+        if first_income and first_expense:
+            earliest_date = min(first_income.date, first_expense.date)
+        elif first_income:
+            earliest_date = first_income.date
+        else:
+            earliest_date = first_expense.date
+        
+        days_active = (today - earliest_date).days
+        weeks_active = max(1, days_active // 7)
+    
+    avg_transactions_per_week = total_transactions / weeks_active if weeks_active > 0 else 0
 
     context = {
         'page_title': 'Budget Basic',
@@ -252,6 +307,12 @@ def dashboard(request):
         'payee_count': payee_count,
         'category_count': category_count,
         'transaction_count': transaction_count,
+        'top_payees': top_payees,
+        'top_categories': top_categories,
+        'monthly_income': monthly_income,
+        'monthly_expenses': monthly_expenses,
+        'monthly_balance': monthly_balance,
+        'avg_transactions_per_week': avg_transactions_per_week,
         **build_sidebar_summary_context(request),
     }
     return render(request, 'bank/dashboard.html', context)

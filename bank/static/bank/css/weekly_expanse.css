@@ -7,6 +7,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
 
 /* ==========================================================================
+   FULL-WIDTH OVERRIDE FOR WEEKLY INTERFACE
+   ========================================================================== */
+
+/* Override base template container constraints */
+body.weekly-expanse-interface #main-content.container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+body.weekly-expanse-interface .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+}
+
+/* Hide navigation for full immersive experience */
+body.weekly-expanse-interface nav.navbar {
+    display: none !important;
+}
+
+/* Ensure body takes full viewport */
+body.weekly-expanse-interface {
+    padding-top: 0 !important;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+    background: #000;
+}
+
+/* ==========================================================================
+   ROOT VARIABLES - FACTION COLORS
+   ========================================================================== */==================================================================
+   BANK WEEKLY - THE EXPANSE INTERFACE
+   Combining space dashboard aesthetics with transaction tracking
+   Full holographic command center for weekly financial operations
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+/* ==========================================================================
    ROOT VARIABLES - FACTION COLORS
    ========================================================================== */
 
@@ -161,17 +202,108 @@ body.weekly-expanse-interface {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.weekly-holo-interface {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+    overflow: hidden;
 }
 
 .weekly-tactical-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 280px 1fr 280px;
     gap: 1rem;
-    padding: 1rem;
-    height: 100vh;
-    max-height: 100vh;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
+}
+
+/* ==========================================================================
+   SIDEBAR PANELS
+   ========================================================================== */
+
+.weekly-sidebar-panel {
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    border: 1px solid var(--faction-color);
+    backdrop-filter: blur(15px);
+    box-shadow: 
+        0 0 20px var(--faction-glow),
+        inset 0 0 30px rgba(255, 255, 255, 0.02),
+        inset 0 0 1px var(--faction-bright);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    position: relative;
+}
+
+.weekly-sidebar-panel::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--faction-color);
+    opacity: 0.25;
+    pointer-events: none;
+    border-radius: 3px;
+    z-index: 1;
+}
+
+.weekly-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(10, 20, 35, 0.5);
+}
+
+.weekly-panel-icon {
+    font-size: 1.2rem;
+    color: var(--faction-bright);
+    filter: drop-shadow(0 0 8px var(--faction-glow));
+}
+
+.weekly-panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.weekly-panel-content {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.weekly-panel-content::-webkit-scrollbar {
+    width: 3px;
+}
+
+.weekly-panel-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.weekly-panel-content::-webkit-scrollbar-thumb {
+    background: var(--faction-color);
+    border-radius: 2px;
+}
+
+.weekly-panel-content::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright);
 }
 
 /* ==========================================================================
@@ -494,7 +626,7 @@ body.weekly-expanse-interface {
     overflow: hidden;
 }
 
-.weekly-panel-header {
+.weekly-transaction-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -503,7 +635,7 @@ body.weekly-expanse-interface {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.weekly-panel-title {
+.weekly-transaction-title {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.2rem;
     font-weight: 600;
@@ -767,7 +899,22 @@ body.weekly-expanse-interface {
    RESPONSIVE DESIGN
    ========================================================================== */
 
+@media (max-width: 1400px) {
+    .weekly-tactical-grid {
+        grid-template-columns: 240px 1fr 240px;
+    }
+}
+
 @media (max-width: 1200px) {
+    .weekly-tactical-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+    
+    .weekly-sidebar-panel {
+        display: none;
+    }
+    
     .weekly-summary-panels {
         grid-template-columns: 1fr;
         gap: 0.75rem;
@@ -788,7 +935,7 @@ body.weekly-expanse-interface {
         min-width: 240px;
     }
     
-    .weekly-panel-header {
+    .weekly-transaction-header {
         flex-direction: column;
         gap: 1rem;
     }

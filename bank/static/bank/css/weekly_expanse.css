@@ -818,46 +818,24 @@ html:has(body.weekly-expanse-interface)::-webkit-scrollbar {
     scrollbar-gutter: stable;
 }
 
-/* Custom Scrollbar - Auto-hide when not in use */
+/* Custom Scrollbar */
 .weekly-transaction-scroll::-webkit-scrollbar {
-    width: 3px !important;
+    width: 3px;
 }
 
 .weekly-transaction-scroll::-webkit-scrollbar-track {
-    background: transparent !important;
+    background: transparent;
 }
 
 .weekly-transaction-scroll::-webkit-scrollbar-thumb {
-    background: transparent !important;
+    background: var(--faction-color);
     border-radius: 2px;
-    transition: background 0.3s ease, opacity 0.3s ease;
-}
-
-/* Hide scrollbar arrows/buttons */
-.weekly-transaction-scroll::-webkit-scrollbar-button {
-    display: none !important;
-    height: 0 !important;
-    width: 0 !important;
-}
-
-/* Show scrollbar on hover or when scrolling */
-.weekly-transaction-scroll:hover::-webkit-scrollbar-thumb {
-    background: var(--faction-color) !important;
+    transition: background 0.3s ease;
 }
 
 .weekly-transaction-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--faction-bright) !important;
+    background: var(--faction-bright);
     box-shadow: 0 0 10px var(--faction-glow);
-}
-
-/* Firefox auto-hide scrollbar */
-.weekly-transaction-scroll {
-    scrollbar-width: thin !important;
-    scrollbar-color: transparent transparent;
-}
-
-.weekly-transaction-scroll:hover {
-    scrollbar-color: var(--faction-color) transparent;
 }
 
 /* Transaction Card */
@@ -1107,19 +1085,12 @@ html:has(body.weekly-expanse-interface)::-webkit-scrollbar {
 }
 
 .weekly-detail-content::-webkit-scrollbar-thumb {
-    background: transparent;
+    background: var(--faction-color);
     border-radius: 2px;
 }
 
-/* Hide scrollbar arrows in detail panel */
-.weekly-detail-content::-webkit-scrollbar-button {
-    display: none !important;
-    height: 0 !important;
-    width: 0 !important;
-}
-
-.weekly-detail-content:hover::-webkit-scrollbar-thumb {
-    background: var(--faction-color);
+.weekly-detail-content::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright);
 }
 
 .weekly-detail-section {

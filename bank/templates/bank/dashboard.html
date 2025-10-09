@@ -1,69 +1,83 @@
-{% extends 'bank/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% load humanize %}
 
+{% block title %}Financial Command - Bank - FamlyPortal{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251009-001">
+<link href="{% static 'css/expanse_space.css' %}?v=20251009-036" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251009-002">
 {% endblock %}
 
 {% block body_class %}bank-expanse-dashboard{% endblock %}
 
-{% block page_title %}Bank Command Center{% endblock %}
-
 {% block content %}
-<!-- Holographic scan line effect -->
-<div class="expanse-scan-line"></div>
+<!-- Main Interface -->
+<div class="bank-expanse-interface">
+    <div class="bank-holo-interface">
+        
+        <!-- Holographic scan line effect -->
+        <div class="expanse-scan-line"></div>
 
-<!-- Command Header -->
-<header class="expanse-command-header">
-    <div class="expanse-title-row">
-        <h1 class="expanse-page-title">
-            <i class="bi bi-bank"></i> Financial Command
-        </h1>
-        <div class="expanse-status-indicator">
-            <span class="expanse-status-dot"></span>
-            <span>System Operational</span>
-        </div>
-    </div>
-    <p class="expanse-subtitle">
-        Tactical overview • Real-time financial monitoring • {{ sidebar_week_label }}
-    </p>
-</header>
-
-<!-- Tactical Grid Layout -->
-<div class="expanse-tactical-grid">
-    
-    <!-- Left Column: Financial Status Module -->
-    <div class="expanse-status-module">
-        <header class="expanse-module-header">
-            <h2 class="expanse-module-title">
-                <i class="bi bi-bar-chart-line"></i>
-                Financial Overview
-            </h2>
-            <span class="expanse-module-badge">Live</span>
-        </header>
-        <div class="expanse-module-body">
-            <!-- Main Balance Display -->
-            <div class="expanse-balance-display">
-                <div class="expanse-balance-item">
-                    <span class="expanse-balance-label">
-                        <i class="bi bi-wallet2"></i> Total Balance
-                    </span>
-                    <div class="expanse-balance-value {% if current_balance >= 0 %}positive{% elif current_balance < 0 %}negative{% else %}neutral{% endif %}">
-                        {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2|intcomma }}
+        <!-- Command Header -->
+        <header class="expanse-command-header">
+            <div class="expanse-title-row">
+                <div class="expanse-designation">
+                    <div class="expanse-designation-icon">
+                        <i class="bi bi-bank"></i>
                     </div>
-                    <span class="expanse-balance-meta">All-time cumulative</span>
+                    <div class="expanse-designation-text">
+                        <h1 class="expanse-page-title">FINANCIAL COMMAND</h1>
+                        <p class="expanse-subtitle">Tactical overview • Real-time financial monitoring • {{ sidebar_week_label }}</p>
+                    </div>
                 </div>
                 
-                <div class="expanse-balance-item">
-                    <span class="expanse-balance-label">
-                        <i class="bi bi-activity"></i> Weekly Net
-                    </span>
-                    <div class="expanse-balance-value {% if weekly_balance >= 0 %}positive{% elif weekly_balance < 0 %}negative{% else %}neutral{% endif %}">
-                        {% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}
+                <div class="expanse-header-controls">
+                    <a href="{% url 'dashboard' %}" class="expanse-nav-btn" title="Main Dashboard">
+                        <i class="bi bi-house"></i>
+                    </a>
+                    <div class="expanse-status-indicator">
+                        <span class="expanse-status-dot"></span>
+                        <span>System Operational</span>
                     </div>
-                    <span class="expanse-balance-meta">{{ sidebar_week_label }}</span>
                 </div>
+            </div>
+        </header>
+
+        <!-- Tactical Grid Layout -->
+        <div class="expanse-tactical-grid">
+            
+            <!-- Left Column: Financial Status Module -->
+            <div class="expanse-status-module">
+                <header class="expanse-module-header">
+                    <h2 class="expanse-module-title">
+                        <i class="bi bi-bar-chart-line"></i>
+                        Financial Overview
+                    </h2>
+                    <span class="expanse-module-badge">Live</span>
+                </header>
+                <div class="expanse-module-body">
+                    <!-- Main Balance Display -->
+                    <div class="expanse-balance-display">
+                        <div class="expanse-balance-item">
+                            <span class="expanse-balance-label">
+                                <i class="bi bi-wallet2"></i> Total Balance
+                            </span>
+                            <div class="expanse-balance-value {% if current_balance >= 0 %}positive{% elif current_balance < 0 %}negative{% else %}neutral{% endif %}">
+                                {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2|intcomma }}
+                            </div>
+                            <span class="expanse-balance-meta">All-time cumulative</span>
+                        </div>
+                        
+                        <div class="expanse-balance-item">
+                            <span class="expanse-balance-label">
+                                <i class="bi bi-activity"></i> Weekly Net
+                            </span>
+                            <div class="expanse-balance-value {% if weekly_balance >= 0 %}positive{% elif weekly_balance < 0 %}negative{% else %}neutral{% endif %}">
+                                {% if weekly_balance >= 0 %}+{% endif %}${{ weekly_balance|floatformat:2|intcomma }}
+                            </div>
+                            <span class="expanse-balance-meta">{{ sidebar_week_label }}</span>
+                        </div>
             </div>
             
             <!-- Weekly Metrics -->
@@ -163,10 +177,12 @@
                 </div>
             </div>
         </div>
+            
+        </div>
         
     </div>
     
-</div>
+</div><!-- .expanse-tactical-grid -->
 
 <!-- Recent Transactions Section -->
 <section class="expanse-transaction-grid">
@@ -217,5 +233,8 @@
         </div>
     </div>
 </section>
+
+    </div><!-- .bank-holo-interface -->
+</div><!-- .bank-expanse-interface -->
 
 {% endblock %}

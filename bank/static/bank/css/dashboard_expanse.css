@@ -3,6 +3,40 @@
    Tactical financial command interface inspired by The Expanse
    ========================================================================== */
 
+/* ==========================================================================
+   FULL-WIDTH OVERRIDE FOR DASHBOARD INTERFACE
+   ========================================================================== */
+
+/* Override base template container constraints */
+body.bank-expanse-dashboard #main-content.container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+body.bank-expanse-dashboard .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+}
+
+/* Hide navigation for full immersive experience */
+body.bank-expanse-dashboard nav.navbar {
+    display: none !important;
+}
+
+/* Ensure body takes full viewport */
+body.bank-expanse-dashboard {
+    padding-top: 0 !important;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   ROOT VARIABLES - EXPANSE FACTION COLORS
+   ========================================================================== */
+
 /* Root Variables - Expanse Faction Colors */
 :root {
     --expanse-primary: #00d4ff;
@@ -23,8 +57,18 @@
     --text-muted: #7a9cac;
 }
 
-/* Dashboard Container */
-.bank-expanse-dashboard {
+/* ==========================================================================
+   DASHBOARD CONTAINER
+   ========================================================================== */
+
+/* Main interface wrappers */
+.bank-expanse-interface {
+    min-height: 100vh;
+    background: #000;
+    position: relative;
+}
+
+.bank-holo-interface {
     min-height: 100vh;
     background: 
         linear-gradient(135deg, rgba(10, 14, 26, 0.98) 0%, rgba(5, 10, 20, 0.95) 100%),
@@ -34,6 +78,18 @@
     color: var(--text-normal);
     font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
 }
+
+/* Override base container */
+.bank-expanse-dashboard #main-content,
+.bank-expanse-dashboard main {
+    padding: 0;
+    margin: 0;
+    max-width: 100%;
+}
+
+/* ==========================================================================
+   COMMAND HEADER
+   ========================================================================== */
 
 /* Command Header */
 .expanse-command-header {
@@ -46,17 +102,73 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+}
+
+/* Designation section (icon + text) */
+.expanse-designation {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.expanse-designation-icon {
+    font-size: 2.5rem;
+    color: var(--expanse-primary);
+    text-shadow: 0 0 20px var(--expanse-glow);
+}
+
+.expanse-designation-text {
+    flex: 1;
 }
 
 .expanse-page-title {
     font-size: 2rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     color: var(--expanse-primary);
     text-transform: uppercase;
-    margin: 0;
+    margin: 0 0 0.25rem 0;
     text-shadow: 0 0 20px var(--expanse-glow);
+    line-height: 1;
+}
+
+.expanse-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Header controls (back button + status) */
+.expanse-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.expanse-nav-btn {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid var(--expanse-border);
+    color: var(--expanse-primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+
+.expanse-nav-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: var(--expanse-primary);
+    box-shadow: 0 0 10px var(--expanse-glow);
+    color: var(--expanse-primary);
+    transform: translateY(-2px);
 }
 
 .expanse-status-indicator {
@@ -88,14 +200,9 @@
     }
 }
 
-.expanse-subtitle {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    letter-spacing: 0.05em;
-    margin: 0;
-}
-
-/* Tactical Grid Layout */
+/* ==========================================================================
+   TACTICAL GRID LAYOUT
+   ========================================================================== */
 .expanse-tactical-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;

@@ -95,32 +95,63 @@ class BankNavigationShell {
         const contentLoader = document.getElementById('shell-content-loader');
         
         try {
-            // Show loader, hide content
-            contentView.style.opacity = '0';
-            await this.delay(100);
-            contentView.style.display = 'none';
-            contentLoader.style.display = 'grid';
-            
-            // Fetch content (from cache or server)
+            // Check if content is cached
+            const isCached = this.viewCache.has(cacheKey);
             let content;
-            if (this.viewCache.has(cacheKey)) {
-                console.log('💾 Loading from cache');
+            
+            if (isCached) {
+                // CACHED: Direct swap with smooth slide/fade transition (no loader)
+                console.log('💾 Loading from cache - instant transition');
                 content = this.viewCache.get(cacheKey);
-                await this.delay(200); // Simulate minimal load time for smooth transition
+                
+                // Slide up and fade out current content
+                contentView.classList.add('transitioning-out');
+                await this.delay(250); // Wait for CSS transition
+                
+                // Swap content
+                contentView.innerHTML = content;
+                
+                // Prepare for slide in (start from below)
+                contentView.classList.remove('transitioning-out');
+                contentView.classList.add('transitioning-in');
+                
+                // Trigger reflow to apply transition
+                void contentView.offsetHeight;
+                
+                // Slide up and fade in new content
+                contentView.classList.remove('transitioning-in');
+                await this.delay(50);
+                
             } else {
-                console.log('🌐 Fetching from server');
+                // FRESH: Show loader while fetching from server
+                console.log('🌐 Fetching from server - showing loader');
+                
+                // Slide up and fade out, then hide
+                contentView.classList.add('transitioning-out');
+                await this.delay(250);
+                contentView.style.display = 'none';
+                contentView.classList.remove('transitioning-out');
+                contentLoader.style.display = 'grid';
+                
+                // Fetch from server
                 content = await this.fetchViewContent(viewName, queryParams);
                 this.cacheView(cacheKey, content);
+                
+                // Update content
+                contentView.innerHTML = content;
+                
+                // Hide loader, prepare content for slide in
+                contentLoader.style.display = 'none';
+                contentView.style.display = ''; // Remove inline display, let CSS take over (display: flex)
+                contentView.classList.add('transitioning-in');
+                
+                // Trigger reflow
+                void contentView.offsetHeight;
+                
+                // Slide up and fade in
+                contentView.classList.remove('transitioning-in');
+                await this.delay(50);
             }
-            
-            // Update content
-            contentView.innerHTML = content;
-            
-            // Hide loader, show content with fade in
-            contentLoader.style.display = 'none';
-            contentView.style.display = 'block';
-            await this.delay(50);
-            contentView.style.opacity = '1';
             
             // Update browser history
             if (pushState) {
@@ -288,7 +319,11 @@ class BankNavigationShell {
         const contentLoader = document.getElementById('shell-content-loader');
         
         contentLoader.style.display = 'none';
-        contentView.style.display = 'block';
+        contentView.style.display = ''; // Remove inline display, let CSS take over (display: flex)
+        
+        // Remove any transition classes
+        contentView.classList.remove('transitioning-out', 'transitioning-in');
+        
         contentView.innerHTML = `
             <div class="shell-error-panel">
                 <div class="error-icon">

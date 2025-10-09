@@ -1,0 +1,53 @@
+<!-- Categories View - Coming Soon -->
+<div class="shell-coming-soon-panel">
+    <div class="coming-soon-content">
+        <div class="coming-soon-icon">
+            <i class="bi bi-tags-fill"></i>
+        </div>
+        <h2>Categories View</h2>
+        <p class="lead">Category management integration coming soon</p>
+        <p class="text-muted mb-4">The standalone Categories page is fully functional. We're working on integrating it into the navigation shell for a seamless experience.</p>
+        <a href="{% url 'bank:category_list' %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-box-arrow-up-right me-2"></i>
+            Open Full Categories Page
+        </a>
+    </div>
+</div>
+
+<style>
+.shell-coming-soon-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 3rem;
+}
+
+.coming-soon-content {
+    text-align: center;
+    max-width: 600px;
+}
+
+.coming-soon-icon {
+    font-size: 5rem;
+    color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 1.5rem;
+}
+
+.coming-soon-content h2 {
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.coming-soon-content .lead {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.coming-soon-content .text-muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+</style>

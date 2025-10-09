@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+import logging
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -15,6 +16,7 @@ from .models import Category, Expense, Income, Payee
 
 
 ZERO_DECIMAL = Decimal("0.00")
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -1716,30 +1718,79 @@ def ajax_weekly_content(request):
 
 @login_required
 def ajax_transactions_content(request):
-    """Return transactions view content for AJAX loading (placeholder)."""
-    return JsonResponse({
-        'status': 'error',
-        'error': 'Transactions AJAX view not yet implemented',
-        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Transactions view conversion in progress</p></div>'
-    })
+    """Return transactions view content for AJAX loading."""
+    try:
+        # Simple placeholder for now - Expanse rebuild coming later
+        html = render_to_string('bank/partials/transactions_content.html', {}, request=request)
+        
+        return JsonResponse({
+            'status': 'success',
+            'html': html
+        })
+    except Exception as e:
+        logger.error(f"Error loading transactions content: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'html': '<div class="shell-error-panel"><h2>ERROR</h2><p>Failed to load transactions view</p></div>'
+        })
 
 
 @login_required
 def ajax_payees_content(request):
-    """Return payees view content for AJAX loading (placeholder)."""
-    return JsonResponse({
-        'status': 'error',
-        'error': 'Payees AJAX view not yet implemented',
-        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Payees view conversion in progress</p></div>'
-    })
+    """Return payees view content for AJAX loading."""
+    try:
+        # Reuse existing payee_list context logic
+        category_filter = request.GET.get('category_filter', 'all')
+        
+        payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
+        
+        # Apply category filtering
+        if category_filter == 'none':
+            payees = payees.filter(categories__isnull=True)
+        elif category_filter != 'all' and category_filter.isdigit():
+            payees = payees.filter(categories__id=int(category_filter))
+        
+        payees = payees.order_by('name').distinct()
+        categories = Category.objects.filter(user=request.user).order_by('name')
+        
+        context = {
+            'payees': payees,
+            'categories': categories,
+            'current_category_filter': category_filter,
+        }
+        
+        # Render the content partial
+        html = render_to_string('bank/partials/payees_content.html', context, request=request)
+        
+        return JsonResponse({
+            'status': 'success',
+            'html': html
+        })
+    except Exception as e:
+        logger.error(f"Error loading payees content: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'html': '<div class="shell-error-panel"><h2>ERROR</h2><p>Failed to load payees view</p></div>'
+        })
 
 
 @login_required
 def ajax_categories_content(request):
-    """Return categories view content for AJAX loading (placeholder)."""
-    return JsonResponse({
-        'status': 'error',
-        'error': 'Categories AJAX view not yet implemented',
-        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Categories view conversion in progress</p></div>'
-    })
-
+    """Return categories view content for AJAX loading."""
+    try:
+        # Simple placeholder for now
+        html = render_to_string('bank/partials/categories_content.html', {}, request=request)
+        
+        return JsonResponse({
+            'status': 'success',
+            'html': html
+        })
+    except Exception as e:
+        logger.error(f"Error loading categories content: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'html': '<div class="shell-error-panel"><h2>ERROR</h2><p>Failed to load categories view</p></div>'
+        })

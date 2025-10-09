@@ -104,16 +104,42 @@ html:has(.bank-expanse-shell)::-webkit-scrollbar {
 .shell-content-view {
     flex: 1;
     opacity: 1;
-    transition: opacity 0.3s ease;
-    overflow-y: auto;
-    overflow-x: hidden;
+    transform: translateY(0) scale(1);
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    overflow: hidden;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 0.75rem; /* Add gap between child elements like tactical-grid and analytics-panel */
 }
 
-/* Ensure tactical grid inside shell takes full width */
-.shell-content-view .dashboard-tactical-grid {
+/* Fade out state - used during transitions */
+.shell-content-view.transitioning-out {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+}
+
+/* Fade in state - used when content loads */
+.shell-content-view.transitioning-in {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+
+/* Weekly nav header should be fixed height */
+.shell-content-view .weekly-nav-header {
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+
+/* Ensure tactical grids inside shell take full available height */
+.shell-content-view .dashboard-tactical-grid,
+.shell-content-view .weekly-tactical-grid {
     width: 100%;
     max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* ============================================

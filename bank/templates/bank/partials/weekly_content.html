@@ -227,6 +227,32 @@
     </div>
 </div>
 
+<!-- Bottom Status Panel -->
+<div class="weekly-bottom-panel">
+    <div class="bottom-panel-content">
+        <div class="bottom-panel-section">
+            <span class="status-label">SYSTEM STATUS</span>
+            <span class="status-indicator active">OPERATIONAL</span>
+        </div>
+        <div class="bottom-panel-section">
+            <span class="status-label">WEEKLY BALANCE</span>
+            <span class="status-value {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+                {% if net_balance >= 0 %}+{% endif %}${{ net_balance|floatformat:2 }}
+            </span>
+        </div>
+        <div class="bottom-panel-section">
+            <span class="status-label">TRANSACTIONS</span>
+            <span class="status-value">{{ income_entries|length|add:expense_entries|length }} ENTRIES</span>
+        </div>
+        <div class="bottom-panel-section">
+            <span class="status-label">DATA SYNC</span>
+            <span class="status-timestamp">{{ current_date|date:"Y.m.d H:i" }}</span>
+        </div>
+    </div>
+</div>
+
+</div><!-- End weekly-tactical-grid -->
+
 <!-- Transaction Detail Panel (Sliding from right) - Will be reused from shell -->
 <!-- Modals for Add/Edit Transaction will be added to shell template once -->
 

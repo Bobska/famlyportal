@@ -1,0 +1,59 @@
+<!-- Transactions View - Coming Soon (Expanse Rebuild) -->
+<div class="shell-coming-soon-panel">
+    <div class="coming-soon-content">
+        <div class="coming-soon-icon">
+            <i class="bi bi-list-ul"></i>
+        </div>
+        <h2>Transactions View</h2>
+        <p class="lead">Expanse-style transactions interface in development</p>
+        <p class="text-muted mb-4">We're rebuilding the Transactions view with the new Expanse design system to match Dashboard and Weekly. The current page uses the older styling.</p>
+        <a href="{% url 'bank:transactions' %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-box-arrow-up-right me-2"></i>
+            Open Current Transactions Page
+        </a>
+        <div class="mt-4">
+            <small class="text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                New design coming soon: Tactical grid layout, enhanced filtering, and seamless navigation
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+.shell-coming-soon-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 3rem;
+}
+
+.coming-soon-content {
+    text-align: center;
+    max-width: 600px;
+}
+
+.coming-soon-icon {
+    font-size: 5rem;
+    color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 1.5rem;
+}
+
+.coming-soon-content h2 {
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.coming-soon-content .lead {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.coming-soon-content .text-muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+</style>

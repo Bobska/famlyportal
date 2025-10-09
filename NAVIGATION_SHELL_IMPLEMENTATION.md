@@ -2,7 +2,7 @@
 
 **Date:** October 10, 2025  
 **Branch:** feature/bank-weekly-redesign  
-**Commit:** 90ebe9e
+**Latest Commit:** f897b68 (Full-screen CSS fixes)
 
 ## 🎯 Overview
 
@@ -43,13 +43,24 @@ Successfully implemented a **seamless AJAX navigation system** for the Bank app 
 
 ### 3. **Navigation Shell CSS** (`bank/static/bank/css/navigation_shell.css`)
 **Styling Components:**
+- **Full-screen viewport layout** (100vh with proper flex column structure)
 - **Tab navigation** with hover effects, active states, and glow animations
 - **Loading skeleton** with shimmer animation and faction-themed colors
 - **View Transitions API** support for modern browsers (Chrome/Edge)
 - **Error panel** styling with pulsing icon animation
-- **Status footer** with connection/view/time indicators
+- **Status footer** with connection/view/time indicators (flex-shrink:0)
 - **Responsive design** (mobile-friendly with hidden labels on small screens)
 - **Faction-themed scrollbars** and color schemes
+
+**Full-Screen Layout Structure:**
+```css
+/* Ensures shell fills entire viewport like other Expanse pages */
+.bank-expanse-shell { height: 100vh; overflow: hidden; }
+#bankShellInterface { height: 100vh; overflow: hidden; }
+.dashboard-holo-interface { height: 100%; display: flex; flex-direction: column; }
+.shell-content-container { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.shell-content-view { flex: 1; overflow-y: auto; }
+```
 
 ### 4. **Content Partial Templates**
 Created reusable partial templates for AJAX loading:
@@ -340,6 +351,8 @@ Total:                    1,781 lines
 - [x] Accounts AJAX endpoint returns JSON
 - [x] URL routes resolve correctly
 - [x] Git commit successful
+- [x] Full-screen viewport CSS applied (commit f897b68)
+- [x] Shell fills 100vh like dashboard/accounts pages
 
 ### 📋 Manual Testing Required
 - [ ] Navigate Dashboard → Accounts (smooth transition?)
@@ -486,7 +499,9 @@ if (document.readyState === 'loading') {
 
 ## 📊 Commit Details
 
-**Branch:** `feature/bank-weekly-redesign`  
+**Branch:** `feature/bank-weekly-redesign`
+
+### Initial Implementation
 **Commit Hash:** `90ebe9e`  
 **Commit Message:**
 ```
@@ -508,6 +523,30 @@ feat(bank): implement seamless navigation shell with AJAX content loading
 
 **Files Changed:** 7 files, 1,809 insertions (+)
 
+### Full-Screen CSS Fix
+**Commit Hash:** `f897b68`  
+**Commit Message:**
+```
+fix(bank): add full-screen viewport CSS to navigation shell
+
+Makes navigation shell fill 100vh viewport like dashboard/accounts pages.
+
+Changes:
+- Added .bank-expanse-shell height:100vh and overflow:hidden
+- Made #bankShellInterface take full viewport height
+- Set .dashboard-holo-interface to flex column layout
+- Made .shell-content-container flex:1 to take remaining space
+- Set .shell-content-view to flex:1 with scrollable overflow
+- Updated loading skeleton with proper overflow handling
+- Added flex-shrink:0 to status footer to prevent compression
+
+This ensures the shell interface fills the entire screen with proper
+vertical layout distribution, matching the Expanse theme design used
+by other Bank pages.
+```
+
+**Files Changed:** 1 file, 41 insertions (+), 1 deletion (-)
+
 ---
 
 ## 🎉 Success Metrics
@@ -520,9 +559,10 @@ feat(bank): implement seamless navigation shell with AJAX content loading
 | Navigation transition | Instant + flicker | 300ms smooth | Immersive |
 | Cached view load | N/A | ~200ms | Fast |
 | Browser back/forward | Reloads page | Cached instant | Perfect |
+| Viewport height | Partial | 100vh full-screen | Fixed |
 
 ---
 
-**Status:** ✅ **Phase 1 Complete - Dashboard & Accounts fully integrated**
+**Status:** ✅ **Phase 1 Complete - Dashboard & Accounts fully integrated with full-screen viewport**
 
 **Next Action:** Convert Weekly view to complete the core navigation trio, then tackle Transactions, Payees, and Categories.

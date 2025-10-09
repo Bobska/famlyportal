@@ -16,6 +16,15 @@
     padding: 0;
 }
 
+/* Hide old navigation for full immersive experience */
+.bank-expanse-shell nav.navbar {
+    display: none !important;
+}
+
+.bank-expanse-shell .navbar {
+    display: none !important;
+}
+
 /* Override base template container constraints for shell */
 .bank-expanse-shell #main-content.container {
     max-width: 100% !important;

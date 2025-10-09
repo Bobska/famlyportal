@@ -30,6 +30,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lamb
 
 # Application definition
 DJANGO_APPS = [
+    'daphne',  # WebSocket support - must be FIRST before staticfiles
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,6 +41,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    'channels',  # WebSocket channels
     'crispy_forms',
     'crispy_bootstrap5',
     'widget_tweaks',
@@ -92,6 +94,26 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'famlyportal.wsgi.application'
+ASGI_APPLICATION = 'famlyportal.asgi.application'
+
+# Channel Layers - WebSocket connections
+# Use in-memory for development (single-process only)
+# For production or multi-process, install Redis and use RedisChannelLayer
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+# To use Redis (recommended for production):
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

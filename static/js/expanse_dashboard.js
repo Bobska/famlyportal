@@ -20,7 +20,7 @@
      */
     function initializeTheme() {
         const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME;
-        const themeSelector = document.getElementById('themeSelector');
+        const themeSelector = document.getElementById('expanseThemeSelect');
         
         if (themeSelector) {
             // Set the selector to saved theme
@@ -186,7 +186,7 @@
 
                 if (theme) {
                     e.preventDefault();
-                    const themeSelector = document.getElementById('themeSelector');
+                    const themeSelector = document.getElementById('expanseThemeSelect');
                     if (themeSelector) {
                         themeSelector.value = theme;
                         applyTheme(theme);

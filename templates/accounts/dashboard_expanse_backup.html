@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+{% load family_tags %}
+{% load static %}
+
+{% block title %}Dashboard - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/expanse_dashboard.css' %}?v=20251009-001" rel="stylesheet">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/expanse_dashboard.js' %}?v=20251009-001" defer></script>
+{% endblock %}
+
+{% block body_class %}expanse-shell expanse-earth{% endblock %}
+
+{% block content %}
+{% if primary_family %}
+<div class="expanse-viewport" data-expanse-theme="earth">
+    <!-- Command Header -->
+    <header class="expanse-command-bar">
+        <div class="command-bar__left">
+            <div class="command-bar__logo">
+                <div class="logo-hexagon"></div>
+                <span class="logo-text">FAMLYPORTAL</span>
+                <span class="logo-designation">COMMAND DECK</span>
+            </div>
+        </div>
+        <div class="command-bar__center">
+            <div class="mission-time" data-expanse-clock>
+                <span class="mission-time__label">MISSION TIME</span>
+                <span class="mission-time__value">{% now "H:i:s" %}</span>
+            </div>
+        </div>
+        <div class="command-bar__right">
+            <div class="user-profile-deck">
+                <div class="user-avatar">{{ user.username|first|upper }}</div>
+                <div class="user-info">
+                    <span class="user-name">{{ user.get_full_name|default:user.username|upper }}</span>
+                    <span class="user-designation">COMMANDER</span>
+                </div>
+            </div>
+            <div class="theme-selector">
+                <label for="expanseThemeSelect" class="theme-selector__label">FACTION</label>
+                <select id="expanseThemeSelect" class="theme-selector__control">
+                    <option value="earth">EARTH DEFENSE</option>
+                    <option value="mars">MARS CONGRESS</option>
+                    <option value="opa">BELT UNION</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status Grid -->
+    <section class="status-panels">
+        <div class="status-panel status-panel--primary">
+            <div class="panel-header">
+                <span class="panel-designation">SYSTEM</span>
+                <span class="panel-title">OPERATIONAL STATUS</span>
+            </div>
+            <div class="panel-body">
+                <div class="status-readout">
+                    <div class="readout-item">
+                        <span class="readout-label">FAMILY NETWORK</span>
+                        <span class="readout-value readout-value--active">ACTIVE</span>
+                    </div>
+                    <div class="readout-item">
+                        <span class="readout-label">CONNECTED SYSTEMS</span>
+                        <span class="readout-value">{% if app_count %}{{ app_count }}{% else %}INITIALIZING{% endif %}</span>
+                    </div>
+                    <div class="readout-item">
+                        <span class="readout-label">USER DESIGNATION</span>
+                        <span class="readout-value">{{ user.username|upper }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-panel status-panel--weather">
+            <div class="panel-header">
+                <span class="panel-designation">ENV</span>
+                <span class="panel-title">ATMOSPHERIC DATA</span>
+            </div>
+            <div class="panel-body">
+                <div id="weatherReadout" class="status-readout">
+                    <div class="readout-item">
+                        <span class="readout-label">LOCATION</span>
+                        <span class="readout-value" id="weatherLocation">SCANNING...</span>
+                    </div>
+                    <div class="readout-item">
+                        <span class="readout-label">TEMPERATURE</span>
+                        <span class="readout-value" id="weatherTemp">--°C</span>
+                    </div>
+                    <div class="readout-item">
+                        <span class="readout-label">CONDITIONS</span>
+                        <span class="readout-value" id="weatherConditions">ACQUIRING DATA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-panel status-panel--family">
+            <div class="panel-header">
+                <span class="panel-designation">NET</span>
+                <span class="panel-title">FAMILY NETWORK</span>
+            </div>
+            <div class="panel-body">
+                <div class="status-readout">
+                    <div class="readout-item">
+                        <span class="readout-label">PRIMARY</span>
+                        <span class="readout-value">{{ primary_family.name|upper }}</span>
+                    </div>
+                    <div class="readout-item">
+                        <span class="readout-label">MEMBERS</span>
+                        <span class="readout-value">{{ primary_family.members.count }} CONNECTED</span>
+                    </div>
+                    <div class="readout-item">
+                        <span class="readout-label">CLEARANCE</span>
+                        <span class="readout-value readout-value--active">{{ user_role|upper }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission Briefing -->
+    <section class="mission-brief">
+        <div class="brief-header">
+            <div class="brief-title">
+                <span class="brief-designation">MISSION BRIEF</span>
+                <h1 class="brief-heading">AVAILABLE OPERATIONS</h1>
+            </div>
+            <div class="brief-meta">
+                <span class="brief-stardate">STARDATE: {% now "Y.m.d" %}</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Operations Grid (App Cards) -->
+    <section class="operations-grid">
+        {% has_app_permission 'budget_basic' as can_budget_basic %}
+        {% if can_budget_basic %}
+        <a href="{% url 'budget_basic:dashboard' %}" class="operation-card operation-card--active">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--active"></span>
+                <span class="status-text">ACTIVE</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-calculator"></i>
+            </div>
+            <h3 class="operation-title">BUDGET BASIC</h3>
+            <p class="operation-desc">FINANCIAL TRACKING SYSTEM - INCOME AND EXPENSE MONITORING</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: ECONOMICS</span>
+                <span class="meta-item">STATUS: OPERATIONAL</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'timesheet' as can_timesheet %}
+        {% if can_timesheet %}
+        <a href="{% url 'timesheet:dashboard' %}" class="operation-card operation-card--dev">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--dev"></span>
+                <span class="status-text">IN DEVELOPMENT</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-clock"></i>
+            </div>
+            <h3 class="operation-title">TIME TRACKING</h3>
+            <p class="operation-desc">LABOR HOURS MONITORING - MULTI-PROJECT COORDINATION</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: WORKFORCE</span>
+                <span class="meta-item">STATUS: BETA TESTING</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'budget_allocation' as can_budget_allocation %}
+        {% if can_budget_allocation %}
+        <a href="{% url 'budget_allocation:dashboard' %}" class="operation-card operation-card--dev">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--dev"></span>
+                <span class="status-text">IN DEVELOPMENT</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-pie-chart"></i>
+            </div>
+            <h3 class="operation-title">BUDGET ALLOCATION</h3>
+            <p class="operation-desc">RESOURCE DISTRIBUTION - WEEKLY PLANNING PROTOCOL</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: ECONOMICS</span>
+                <span class="meta-item">STATUS: CALIBRATING</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'household_budget' as can_budget %}
+        {% if can_budget %}
+        <a href="{% url 'household_budget:dashboard' %}" class="operation-card operation-card--dev">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--dev"></span>
+                <span class="status-text">IN DEVELOPMENT</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-piggy-bank"></i>
+            </div>
+            <h3 class="operation-title">FAMILY BUDGET</h3>
+            <p class="operation-desc">COMPREHENSIVE FINANCIAL PLANNING - EXPENSE MANAGEMENT</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: ECONOMICS</span>
+                <span class="meta-item">STATUS: TESTING</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'daycare_invoices' as can_daycare %}
+        {% if can_daycare %}
+        <a href="{% url 'daycare_invoices:dashboard' %}" class="operation-card operation-card--dev">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--dev"></span>
+                <span class="status-text">IN DEVELOPMENT</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <h3 class="operation-title">DAYCARE INVOICES</h3>
+            <p class="operation-desc">CHILDCARE BILLING - PAYMENT TRACKING SYSTEM</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: LOGISTICS</span>
+                <span class="meta-item">STATUS: BETA</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'subscription_tracker' as can_subscriptions %}
+        {% if can_subscriptions %}
+        <a href="{% url 'subscription_tracker:dashboard' %}" class="operation-card operation-card--dev">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--dev"></span>
+                <span class="status-text">IN DEVELOPMENT</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+            <h3 class="operation-title">SUBSCRIPTION TRACKER</h3>
+            <p class="operation-desc">RECURRING SERVICES - COST MONITORING PROTOCOL</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: ECONOMICS</span>
+                <span class="meta-item">STATUS: CALIBRATING</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'gmail_integration' as can_gmail %}
+        {% if can_gmail %}
+        <a href="{% url 'gmail_integration:account_list' %}" class="operation-card operation-card--active">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--active"></span>
+                <span class="status-text">ACTIVE</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-envelope"></i>
+            </div>
+            <h3 class="operation-title">GMAIL INTEGRATION</h3>
+            <p class="operation-desc">COMMUNICATION SYNC - EMAIL ACCOUNT COORDINATION</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: COMMS</span>
+                <span class="meta-item">STATUS: OPERATIONAL</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'ai' as can_ai %}
+        {% if can_ai %}
+        <a href="{% url 'ai:email_review' %}" class="operation-card operation-card--active">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--active"></span>
+                <span class="status-text">ACTIVE</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-robot"></i>
+            </div>
+            <h3 class="operation-title">AI CLASSIFIER</h3>
+            <p class="operation-desc">MACHINE LEARNING - AUTOMATED EMAIL ANALYSIS</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: AI CORE</span>
+                <span class="meta-item">STATUS: OPERATIONAL</span>
+            </div>
+        </a>
+        {% endif %}
+
+        {% has_app_permission 'employment_history' as can_employment %}
+        {% if can_employment %}
+        <div class="operation-card operation-card--offline">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--offline"></span>
+                <span class="status-text">COMING SOON</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-briefcase"></i>
+            </div>
+            <h3 class="operation-title">EMPLOYMENT HISTORY</h3>
+            <p class="operation-desc">CAREER TRACKING - PROFESSIONAL PROGRESSION LOG</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: PERSONNEL</span>
+                <span class="meta-item">STATUS: PENDING</span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% has_app_permission 'upcoming_payments' as can_payments %}
+        {% if can_payments %}
+        <div class="operation-card operation-card--offline">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--offline"></span>
+                <span class="status-text">COMING SOON</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <h3 class="operation-title">PAYMENT REMINDERS</h3>
+            <p class="operation-desc">SCHEDULED ALERTS - FINANCIAL OBLIGATIONS TRACKING</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: ALERTS</span>
+                <span class="meta-item">STATUS: PENDING</span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% has_app_permission 'credit_cards' as can_credit %}
+        {% if can_credit %}
+        <div class="operation-card operation-card--offline">
+            <div class="operation-status">
+                <span class="status-indicator status-indicator--offline"></span>
+                <span class="status-text">COMING SOON</span>
+            </div>
+            <div class="operation-icon">
+                <i class="bi bi-credit-card"></i>
+            </div>
+            <h3 class="operation-title">CREDIT CARDS</h3>
+            <p class="operation-desc">CREDIT MONITORING - SPENDING ANALYSIS SYSTEM</p>
+            <div class="operation-meta">
+                <span class="meta-item">SYSTEM: ECONOMICS</span>
+                <span class="meta-item">STATUS: PENDING</span>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Location Modal -->
+    {% include 'partials/location_modal.html' %}
+</div>
+{% else %}
+<!-- No Family State -->
+<div class="expanse-viewport expanse-offline" data-expanse-theme="earth">
+    <div class="offline-terminal">
+        <div class="terminal-header">
+            <span class="terminal-designation">SYSTEM ALERT</span>
+        </div>
+        <div class="terminal-body">
+            <div class="terminal-icon">
+                <i class="bi bi-house-heart"></i>
+            </div>
+            <h1 class="terminal-message">FAMILY NETWORK NOT CONFIGURED</h1>
+            <p class="terminal-desc">
+                Initialize family network connection to access command systems
+            </p>
+            <div class="terminal-actions">
+                <a href="{% url 'accounts:create_family' %}" class="terminal-btn terminal-btn--primary">
+                    <i class="bi bi-plus-circle"></i>
+                    INITIALIZE FAMILY
+                </a>
+                <a href="{% url 'accounts:join_family' %}" class="terminal-btn terminal-btn--secondary">
+                    <i class="bi bi-people"></i>
+                    JOIN EXISTING
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

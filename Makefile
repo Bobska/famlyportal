@@ -3,6 +3,10 @@
 
 .PHONY: help setup install migrate run test clean reset dev prod check lint format
 
+# Python executable from virtual environment
+PYTHON := .venv/Scripts/python.exe
+PIP := .venv/Scripts/pip.exe
+
 # Default target
 help:
 	@echo "FamlyPortal Development Commands:"
@@ -16,6 +20,7 @@ help:
 	@echo "Development:"
 	@echo "  dev       - Start development server with auto-reload"
 	@echo "  run       - Start development server"
+	@echo "  ws        - Start development server with WebSocket support (Daphne)"
 	@echo "  test      - Run all tests"
 	@echo "  check     - Run Django system checks"
 	@echo ""
@@ -36,18 +41,18 @@ setup: install migrate superuser
 # Install all dependencies
 install:
 	@echo "📦 Installing dependencies..."
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 
 # Database operations
 migrate:
 	@echo "🗄️  Running migrations..."
-	python manage.py makemigrations
-	python manage.py migrate
+	$(PYTHON) manage.py makemigrations
+	$(PYTHON) manage.py migrate
 
 # Create superuser interactively
 superuser:
 	@echo "👤 Creating superuser..."
-	python manage.py createsuperuser
+	$(PYTHON) manage.py createsuperuser
 
 # Reset database (dangerous!)
 reset:
@@ -62,21 +67,28 @@ reset:
 # Development server
 dev:
 	@echo "🚀 Starting development server with auto-reload..."
-	python manage.py runserver 8000
+	$(PYTHON) manage.py runserver 8000
 
 run:
 	@echo "🚀 Starting development server..."
-	python manage.py runserver
+	$(PYTHON) manage.py runserver
+
+# Development server with WebSocket support (Daphne)
+ws:
+	@echo "🚀 Starting development server with WebSocket support..."
+	@echo "📡 Server will be available at: http://127.0.0.1:8000"
+	$(PYTHON) manage.py collectstatic --noinput
+	$(PYTHON) -m daphne -b 127.0.0.1 -p 8000 famlyportal.asgi:application
 
 # Testing
 test:
 	@echo "🧪 Running tests..."
-	python manage.py test
+	$(PYTHON) manage.py test
 
 # Django system checks
 check:
 	@echo "🔍 Running Django system checks..."
-	python manage.py check
+	$(PYTHON) manage.py check
 
 # Code quality
 lint:
@@ -99,7 +111,7 @@ clean:
 # Production
 collect:
 	@echo "📦 Collecting static files..."
-	python manage.py collectstatic --noinput
+	$(PYTHON) manage.py collectstatic --noinput
 
 prod: collect
 	@echo "🌟 Starting production server..."
@@ -114,7 +126,7 @@ refresh: clean reset setup
 # Show current environment info
 info:
 	@echo "FamlyPortal Environment Info:"
-	@echo "Python: $(shell python --version)"
-	@echo "Django: $(shell python -c 'import django; print(django.get_version())')"
+	@echo "Python: $(shell $(PYTHON) --version)"
+	@echo "Django: $(shell $(PYTHON) -c 'import django; print(django.get_version())')"
 	@echo "Database: PostgreSQL (check .env file)"
 	@echo "Apps: accounts, timesheet, daycare_invoices, employment_history, upcoming_payments, credit_cards, household_budget, autocraftcv, subscription_tracker, core"

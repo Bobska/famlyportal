@@ -5,22 +5,18 @@
 {% block title %}Command Interface - FamlyPortal{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/expanse_space.css' %}?v=20251009-021" rel="stylesheet">
-<link href="{% static 'css/expanse_boot.css' %}?v=20251009-021" rel="stylesheet">
+<link href="{% static 'css/expanse_space.css' %}?v=20251009-003" rel="stylesheet">
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/expanse_audio.js' %}?v=20251009-021"></script>
-<script src="{% static 'js/expanse_boot.js' %}?v=20251009-021"></script>
-<script src="{% static 'js/expanse_space.js' %}?v=20251009-021" defer></script>
-<script src="{% static 'js/expanse_presence.js' %}?v=20251009-021" defer></script>
+<script src="{% static 'js/expanse_space.js' %}?v=20251009-003" defer></script>
 {% endblock %}
 
 {% block body_class %}expanse-interface{% endblock %}
 
 {% block content %}
 {% if primary_family %}
-<div id="spaceInterface" class="space-interface" data-faction="un" data-user-id="{{ user.id }}">
+<div id="spaceInterface" class="space-interface" data-faction="un">
     
     <!-- Deep Space Background -->
     <div class="space-background">
@@ -31,6 +27,16 @@
 
     <!-- Holographic Scan Lines -->
     <div class="holo-scanlines"></div>
+    
+    <!-- Interface Selector -->
+    <div class="faction-selector">
+        <div class="selector-label">INTERFACE MODE</div>
+        <select id="factionSelect" class="faction-control">
+            <option value="un">UN Navy Bridge</option>
+            <option value="belter">Belter Engineering</option>
+            <option value="proto">Protomolecule Interface</option>
+        </select>
+    </div>
 
     <!-- Main Holographic Interface Panel -->
     <div class="holo-interface">
@@ -46,27 +52,14 @@
                     <span class="status-indicator online"></span>
                     <span class="status-text">ALL SYSTEMS NOMINAL</span>
                 </div>
-                <div class="audio-status" id="audioStatus">
-                    <span class="audio-indicator suspended" id="audioIndicator"></span>
-                    <span class="audio-text" id="audioStatusText">AUDIO SUSPENDED</span>
-                </div>
-                <div class="audio-control" id="audioControl">
-                    <button id="audioToggle" class="audio-toggle-integrated" title="Toggle Audio">
-                        <i class="bi bi-volume-mute-fill" id="audioIcon"></i>
-                    </button>
-                    <div class="audio-label">AUDIO CONTROL</div>
-                </div>
             </div>
             <div class="header-center">
                 <div class="mission-clock">
                     <div class="clock-label">MISSION TIME</div>
-                    <div class="clock-display" id="missionClock">00:00:00</div>
+                    <div class="clock-display" id="missionTime">00:00:00</div>
                 </div>
             </div>
             <div class="header-right">
-                <!-- WebSocket Connection Status -->
-                <div class="connection-status disconnected">CONNECTING</div>
-                
                 <div class="crew-profile">
                     <div class="crew-avatar">{{ user.first_name|first|default:user.username|first|upper }}</div>
                     <div class="crew-info">
@@ -110,13 +103,15 @@
                         </div>
                     </div>
                     
-                    <!-- Mini Crew List with Real-Time Presence -->
+                    <!-- Mini Crew List -->
                     <div class="crew-list">
                         <div class="crew-list-header">ACTIVE CREW</div>
-                        <!-- Crew members will be populated by WebSocket -->
-                        <div class="crew-loading" style="padding: 1rem; text-align: center; color: var(--faction-color, rgba(59, 130, 246, 0.6)); font-size: 0.75rem;">
-                            <i class="bi bi-hourglass-split"></i> CONNECTING...
+                        {% for member in primary_family.members.all|slice:":5" %}
+                        <div class="crew-member">
+                            <div class="member-status"></div>
+                            <div class="member-name">{{ member.user.username|upper }}</div>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -246,22 +241,6 @@
                     <div class="panel-title">DIAGNOSTICS</div>
                 </div>
                 <div class="panel-content">
-                    <!-- Interface Settings -->
-                    <div class="diagnostic-section">
-                        <div class="diagnostic-header">INTERFACE CONFIG</div>
-                        <div class="interface-settings">
-                            <div class="setting-label">DISPLAY MODE</div>
-                            <select id="factionSelector" class="faction-selector-integrated">
-                                <option value="un">UN Navy Bridge</option>
-                                <option value="belter">Belter Engineering</option>
-                                <option value="proto">Protomolecule Interface</option>
-                            </select>
-                            <div class="setting-description">
-                                Select your preferred tactical display theme
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Weather / Environmental -->
                     <div class="diagnostic-section">
                         <div class="diagnostic-header">ENVIRONMENTAL</div>
@@ -351,4 +330,5 @@
 </div>
 {% endif %}
 
+{% include 'partials/location_modal.html' %}
 {% endblock %}

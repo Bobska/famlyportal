@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+{% load family_tags %}
+{% load static %}
+
+{% block title %}Dashboard - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/multi_dashboard.css' %}?v=20251009-002" rel="stylesheet">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/multi_dashboard.js' %}?v=20251009-002" defer></script>
+{% endblock %}
+
+{% block body_class %}multi-dashboard{% endblock %}
+
+{% block content %}
+{% if primary_family %}
+<div id="dashboardContainer" class="dashboard-container" data-style="quantum">
+    
+    <!-- Style Selector (Fixed Position) -->
+    <div class="style-selector-fixed">
+        <label for="styleSelect" class="style-label">DASHBOARD STYLE</label>
+        <select id="styleSelect" class="style-control">
+            <option value="quantum">Quantum Glass</option>
+            <option value="terminal">Terminal Matrix</option>
+            <option value="neon">Neon Synthwave</option>
+        </select>
+    </div>
+
+    <!-- ========================================
+         STYLE 1: QUANTUM GLASS (Modern Glassmorphism)
+         ======================================== -->
+    <div class="layout layout-quantum active">
+        <div class="quantum-bg-effects"></div>
+        
+        <!-- Floating Header Card -->
+        <div class="quantum-header glass-card">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="quantum-logo">
+                        <span class="logo-icon">◊</span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>FamlyPortal</h1>
+                        <p>{{ primary_family.name }}</p>
+                    </div>
+                </div>
+                <div class="user-section">
+                    <div class="user-avatar glass-circle">
+                        {{ user.first_name|first|default:user.username|first }}
+                    </div>
+                    <div class="user-info">
+                        <strong>{{ user.first_name|default:user.username }}</strong>
+                        <span>{{ primary_family.location|default:"Location Not Set" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards Row -->
+        <div class="quantum-stats">
+            <div class="stat-card glass-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3>{{ primary_family.members.count }}</h3>
+                    <p>Family Members</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card">
+                <div class="stat-icon">🌤️</div>
+                <div class="stat-content">
+                    <h3 id="quantumTemp">--°</h3>
+                    <p id="quantumWeather">Weather</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3>Active</h3>
+                    <p>System Status</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Apps Grid - Floating Cards -->
+        <div class="quantum-apps-grid">
+            {% if has_app_permission user 'timesheet' %}
+            <a href="{% url 'timesheet:dashboard' %}" class="app-card-quantum glass-card">
+                <div class="card-glow"></div>
+                <div class="app-icon">⏱️</div>
+                <h3>Timesheet</h3>
+                <p>Track your work hours</p>
+                <span class="status-badge active">Active</span>
+            </a>
+            {% endif %}
+
+            {% if has_app_permission user 'daycare_invoices' %}
+            <a href="{% url 'daycare_invoices:invoice_list' %}" class="app-card-quantum glass-card">
+                <div class="card-glow"></div>
+                <div class="app-icon">🧾</div>
+                <h3>Daycare Invoices</h3>
+                <p>Manage daycare billing</p>
+                <span class="status-badge active">Active</span>
+            </a>
+            {% endif %}
+
+            {% if has_app_permission user 'household_budget' %}
+            <a href="{% url 'household_budget:dashboard' %}" class="app-card-quantum glass-card">
+                <div class="card-glow"></div>
+                <div class="app-icon">💰</div>
+                <h3>Household Budget</h3>
+                <p>Track expenses & income</p>
+                <span class="status-badge active">Active</span>
+            </a>
+            {% endif %}
+
+            {% if has_app_permission user 'budget_allocation' %}
+            <a href="{% url 'budget_allocation:dashboard' %}" class="app-card-quantum glass-card">
+                <div class="card-glow"></div>
+                <div class="app-icon">📈</div>
+                <h3>Budget Allocation</h3>
+                <p>Plan your finances</p>
+                <span class="status-badge active">Active</span>
+            </a>
+            {% endif %}
+
+            <div class="app-card-quantum glass-card disabled">
+                <div class="app-icon">💳</div>
+                <h3>Credit Cards</h3>
+                <p>Coming soon</p>
+                <span class="status-badge dev">Development</span>
+            </div>
+
+            <div class="app-card-quantum glass-card disabled">
+                <div class="app-icon">📅</div>
+                <h3>Payments</h3>
+                <p>Coming soon</p>
+                <span class="status-badge dev">Development</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================
+         STYLE 2: TERMINAL MATRIX (Hacker/Terminal)
+         ======================================== -->
+    <div class="layout layout-terminal">
+        <div class="terminal-scanlines"></div>
+        <div class="terminal-screen">
+            <!-- Terminal Header -->
+            <div class="terminal-header">
+                <div class="terminal-title">
+                    <span class="cursor-blink">█</span> FAMLYPORTAL SYSTEM v2.0.1 <span class="cursor-blink">█</span>
+                </div>
+                <div class="terminal-time" id="terminalClock">00:00:00</div>
+            </div>
+
+            <!-- Terminal Content -->
+            <div class="terminal-output">
+                <pre class="terminal-art">
+╔═══════════════════════════════════════════════════════╗
+║   ███████╗ █████╗ ███╗   ███╗██╗  ██╗   ██╗          ║
+║   ██╔════╝██╔══██╗████╗ ████║██║  ╚██╗ ██╔╝          ║
+║   █████╗  ███████║██╔████╔██║██║   ╚████╔╝           ║
+║   ██╔══╝  ██╔══██║██║╚██╔╝██║██║    ╚██╔╝            ║
+║   ██║     ██║  ██║██║ ╚═╝ ██║███████╗██║             ║
+║   ╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚═╝             ║
+╚═══════════════════════════════════════════════════════╝
+                </pre>
+
+                <div class="terminal-line">
+                    <span class="prompt">root@famlyportal:~$</span> login {{ user.username }}
+                </div>
+                <div class="terminal-line">
+                    <span class="success">[OK]</span> User authenticated successfully
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt">root@famlyportal:~$</span> family status
+                </div>
+                <div class="terminal-line">
+                    <span class="info">[INFO]</span> Family: {{ primary_family.name }}
+                </div>
+                <div class="terminal-line">
+                    <span class="info">[INFO]</span> Members: {{ primary_family.members.count }} active
+                </div>
+                <div class="terminal-line">
+                    <span class="info">[INFO]</span> Location: {{ primary_family.location|default:"Not configured" }}
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt">root@famlyportal:~$</span> list --apps
+                </div>
+
+                <!-- Apps List in Terminal Style -->
+                <div class="terminal-apps">
+                    {% if has_app_permission user 'timesheet' %}
+                    <a href="{% url 'timesheet:dashboard' %}" class="terminal-app-link">
+                        <span class="app-num">[01]</span> TIMESHEET ................... <span class="status-on">[ONLINE]</span>
+                    </a>
+                    {% endif %}
+
+                    {% if has_app_permission user 'daycare_invoices' %}
+                    <a href="{% url 'daycare_invoices:invoice_list' %}" class="terminal-app-link">
+                        <span class="app-num">[02]</span> DAYCARE_INVOICES ............ <span class="status-on">[ONLINE]</span>
+                    </a>
+                    {% endif %}
+
+                    {% if has_app_permission user 'household_budget' %}
+                    <a href="{% url 'household_budget:dashboard' %}" class="terminal-app-link">
+                        <span class="app-num">[03]</span> HOUSEHOLD_BUDGET ............ <span class="status-on">[ONLINE]</span>
+                    </a>
+                    {% endif %}
+
+                    {% if has_app_permission user 'budget_allocation' %}
+                    <a href="{% url 'budget_allocation:dashboard' %}" class="terminal-app-link">
+                        <span class="app-num">[04]</span> BUDGET_ALLOCATION ........... <span class="status-on">[ONLINE]</span>
+                    </a>
+                    {% endif %}
+
+                    <div class="terminal-app-link disabled">
+                        <span class="app-num">[05]</span> CREDIT_CARDS ................ <span class="status-dev">[DEV MODE]</span>
+                    </div>
+
+                    <div class="terminal-app-link disabled">
+                        <span class="app-num">[06]</span> UPCOMING_PAYMENTS ........... <span class="status-dev">[DEV MODE]</span>
+                    </div>
+                </div>
+
+                <div class="terminal-line">
+                    <span class="prompt">root@famlyportal:~$</span> <span class="cursor-blink">█</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================
+         STYLE 3: NEON SYNTHWAVE (80s Cyberpunk)
+         ======================================== -->
+    <div class="layout layout-neon">
+        <div class="neon-grid-bg"></div>
+        <div class="neon-sun"></div>
+        
+        <!-- Neon Header -->
+        <div class="neon-header">
+            <div class="neon-logo">
+                <h1 class="neon-text" data-text="FAMLYPORTAL">FAMLYPORTAL</h1>
+                <div class="neon-underline"></div>
+            </div>
+            <div class="neon-user-badge">
+                <div class="neon-avatar">{{ user.first_name|first|default:user.username|first }}</div>
+                <div class="neon-user-info">
+                    <strong>{{ user.first_name|default:user.username }}</strong>
+                    <span>{{ primary_family.name }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Neon Stats Bar -->
+        <div class="neon-stats-bar">
+            <div class="neon-stat">
+                <span class="stat-label">FAMILY</span>
+                <span class="stat-value neon-glow-pink">{{ primary_family.members.count }}</span>
+            </div>
+            <div class="neon-stat">
+                <span class="stat-label">STATUS</span>
+                <span class="stat-value neon-glow-cyan">ACTIVE</span>
+            </div>
+            <div class="neon-stat">
+                <span class="stat-label">LOCATION</span>
+                <span class="stat-value neon-glow-yellow">{{ primary_family.location|default:"N/A"|upper }}</span>
+            </div>
+        </div>
+
+        <!-- Neon Apps Grid -->
+        <div class="neon-apps-container">
+            <h2 class="neon-section-title">
+                <span class="neon-bracket">[</span>
+                APPLICATIONS
+                <span class="neon-bracket">]</span>
+            </h2>
+
+            <div class="neon-apps-grid">
+                {% if has_app_permission user 'timesheet' %}
+                <a href="{% url 'timesheet:dashboard' %}" class="neon-app-card">
+                    <div class="neon-card-border"></div>
+                    <div class="neon-app-icon">⏱</div>
+                    <h3 class="neon-app-title">TIMESHEET</h3>
+                    <p>Track work hours</p>
+                    <div class="neon-status active">● ACTIVE</div>
+                </a>
+                {% endif %}
+
+                {% if has_app_permission user 'daycare_invoices' %}
+                <a href="{% url 'daycare_invoices:invoice_list' %}" class="neon-app-card">
+                    <div class="neon-card-border"></div>
+                    <div class="neon-app-icon">🧾</div>
+                    <h3 class="neon-app-title">DAYCARE</h3>
+                    <p>Invoice management</p>
+                    <div class="neon-status active">● ACTIVE</div>
+                </a>
+                {% endif %}
+
+                {% if has_app_permission user 'household_budget' %}
+                <a href="{% url 'household_budget:dashboard' %}" class="neon-app-card">
+                    <div class="neon-card-border"></div>
+                    <div class="neon-app-icon">💰</div>
+                    <h3 class="neon-app-title">BUDGET</h3>
+                    <p>Household finances</p>
+                    <div class="neon-status active">● ACTIVE</div>
+                </a>
+                {% endif %}
+
+                {% if has_app_permission user 'budget_allocation' %}
+                <a href="{% url 'budget_allocation:dashboard' %}" class="neon-app-card">
+                    <div class="neon-card-border"></div>
+                    <div class="neon-app-icon">📊</div>
+                    <h3 class="neon-app-title">ALLOCATION</h3>
+                    <p>Financial planning</p>
+                    <div class="neon-status active">● ACTIVE</div>
+                </a>
+                {% endif %}
+
+                <div class="neon-app-card disabled">
+                    <div class="neon-card-border"></div>
+                    <div class="neon-app-icon">💳</div>
+                    <h3 class="neon-app-title">CARDS</h3>
+                    <p>Coming soon</p>
+                    <div class="neon-status dev">◐ DEV</div>
+                </div>
+
+                <div class="neon-app-card disabled">
+                    <div class="neon-card-border"></div>
+                    <div class="neon-app-icon">📅</div>
+                    <h3 class="neon-app-title">PAYMENTS</h3>
+                    <p>Coming soon</p>
+                    <div class="neon-status dev">◐ DEV</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% else %}
+<!-- No Family State -->
+<div class="no-family-container">
+    <div class="no-family-message">
+        <i class="bi bi-house-x-fill" style="font-size: 4rem; color: #6c757d;"></i>
+        <h2>No Family Portal Access</h2>
+        <p>You need to be part of a family to access the dashboard.</p>
+        <a href="{% url 'accounts:family_create' %}" class="btn btn-primary">Create Family</a>
+        <a href="{% url 'accounts:family_join' %}" class="btn btn-outline-secondary">Join Family</a>
+    </div>
+</div>
+{% endif %}
+
+{% include 'accounts/partials/location_modal.html' %}
+{% endblock %}

@@ -171,3 +171,94 @@ class FamilyMember(models.Model):
     def can_manage_family(self):
         """Check if this member can manage family settings"""
         return self.role == 'admin'
+
+
+class UserPresence(models.Model):
+    """
+    Track real-time presence status for users.
+    Used for online/offline indicators and last seen timestamps.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='presence',
+        help_text="User whose presence is being tracked"
+    )
+    is_online = models.BooleanField(
+        default=False,
+        help_text="Whether the user is currently online"
+    )
+    last_seen = models.DateTimeField(
+        auto_now=True,
+        help_text="Last time the user was active"
+    )
+    last_heartbeat = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last heartbeat timestamp from WebSocket connection"
+    )
+    current_page = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Current page/module the user is viewing"
+    )
+    channel_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="WebSocket channel name for active connection"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "user presences"
+        ordering = ['-last_seen']
+
+    def __str__(self):
+        status = "Online" if self.is_online else "Offline"
+        return f"{self.user.username} - {status}"
+
+    def mark_online(self, channel_name=None, current_page=None):
+        """Mark user as online"""
+        self.is_online = True
+        self.last_heartbeat = timezone.now()
+        if channel_name:
+            self.channel_name = channel_name
+        if current_page:
+            self.current_page = current_page
+        self.save(update_fields=['is_online', 'last_heartbeat', 'channel_name', 'current_page', 'updated_at'])
+
+    def mark_offline(self):
+        """Mark user as offline"""
+        self.is_online = False
+        self.channel_name = None
+        self.save(update_fields=['is_online', 'channel_name', 'updated_at'])
+
+    def update_heartbeat(self, current_page=None):
+        """Update last heartbeat timestamp"""
+        self.last_heartbeat = timezone.now()
+        if current_page:
+            self.current_page = current_page
+        self.save(update_fields=['last_heartbeat', 'current_page', 'updated_at'])
+
+    @property
+    def time_since_last_seen(self):
+        """Get human-readable time since last seen"""
+        if self.is_online:
+            return "Online now"
+        
+        delta = timezone.now() - self.last_seen
+        if delta.seconds < 60:
+            return "Just now"
+        elif delta.seconds < 3600:
+            minutes = delta.seconds // 60
+            return f"{minutes}m ago"
+        elif delta.seconds < 86400:
+            hours = delta.seconds // 3600
+            return f"{hours}h ago"
+        else:
+            days = delta.days
+            return f"{days}d ago"
+

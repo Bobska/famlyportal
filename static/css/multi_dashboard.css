@@ -1,0 +1,997 @@
+/* ==========================================================================
+   MULTI-STYLE DASHBOARD - Three Completely Different Layouts
+   Style 1: Quantum Glass (Modern Glassmorphism)
+   Style 2: Terminal Matrix (Hacker/Terminal)
+   Style 3: Neon Synthwave (80s Cyberpunk)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap');
+
+/* ==========================================================================
+   BASE & COMMON STYLES
+   ========================================================================== */
+
+body.multi-dashboard {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    font-family: 'Inter', sans-serif;
+}
+
+.dashboard-container {
+    min-height: 100vh;
+    position: relative;
+    transition: background 0.6s ease;
+}
+
+/* Style Selector - Fixed Position */
+.style-selector-fixed {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.style-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    margin: 0;
+}
+
+.style-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.style-control:hover,
+.style-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    outline: none;
+}
+
+/* Layout Containers */
+.layout {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.layout.active {
+    display: block;
+    opacity: 1;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   STYLE 1: QUANTUM GLASS (Modern Glassmorphism)
+   ========================================================================== */
+
+.layout-quantum {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animated Background Effects */
+.quantum-bg-effects {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.quantum-bg-effects::before,
+.quantum-bg-effects::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.3;
+    animation: float 20s ease-in-out infinite;
+}
+
+.quantum-bg-effects::before {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, #f093fb 0%, #f5576c 100%);
+    top: -200px;
+    left: -200px;
+    animation-delay: 0s;
+}
+
+.quantum-bg-effects::after {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, #4facfe 0%, #00f2fe 100%);
+    bottom: -150px;
+    right: -150px;
+    animation-delay: -10s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(100px, -100px) scale(1.1); }
+    66% { transform: translate(-100px, 100px) scale(0.9); }
+}
+
+.layout-quantum > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Glass Card Effect */
+.glass-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Quantum Header */
+.quantum-header {
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.quantum-logo {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    font-size: 2.5rem;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.logo-text h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.logo-text p {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0.25rem 0 0;
+}
+
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.glass-circle {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.user-info strong {
+    display: block;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.user-info span {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+/* Quantum Stats */
+.quantum-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-content h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 0.25rem;
+}
+
+.stat-content p {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+/* Quantum Apps Grid */
+.quantum-apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.app-card-quantum {
+    padding: 2rem;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.app-card-quantum::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.app-card-quantum:hover::before {
+    opacity: 1;
+}
+
+.card-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+                                rgba(255, 255, 255, 0.2) 0%, 
+                                transparent 50%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.app-card-quantum:hover .card-glow {
+    opacity: 1;
+}
+
+.app-icon {
+    font-size: 3rem;
+}
+
+.app-card-quantum h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.app-card-quantum p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    flex-grow: 1;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+.status-badge.dev {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.app-card-quantum.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   STYLE 2: TERMINAL MATRIX (Hacker/Terminal)
+   ========================================================================== */
+
+.layout-terminal {
+    background: #000;
+    min-height: 100vh;
+    padding: 2rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: #00ff00;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Scanlines Effect */
+.terminal-scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 0, 0.03) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0, 255, 0, 0.03) 3px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: scanline 10s linear infinite;
+}
+
+@keyframes scanline {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(20px); }
+}
+
+.terminal-screen {
+    position: relative;
+    z-index: 2;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(0, 20, 0, 0.9);
+    border: 2px solid #00ff00;
+    border-radius: 0;
+    padding: 2rem;
+    box-shadow: 0 0 50px rgba(0, 255, 0, 0.3),
+                inset 0 0 50px rgba(0, 255, 0, 0.05);
+}
+
+/* Terminal Header */
+.terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #00ff00;
+}
+
+.terminal-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+.terminal-time {
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+.cursor-blink {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Terminal Output */
+.terminal-output {
+    line-height: 1.6;
+}
+
+.terminal-art {
+    color: #00ff00;
+    font-size: 0.7rem;
+    margin: 1.5rem 0;
+    text-shadow: 0 0 5px #00ff00;
+    overflow-x: auto;
+}
+
+.terminal-line {
+    margin: 0.75rem 0;
+    font-size: 0.95rem;
+}
+
+.prompt {
+    color: #00cc00;
+    font-weight: bold;
+    text-shadow: 0 0 8px #00ff00;
+}
+
+.success {
+    color: #00ff00;
+    font-weight: bold;
+}
+
+.info {
+    color: #00ccff;
+}
+
+/* Terminal Apps List */
+.terminal-apps {
+    margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.terminal-app-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 255, 0, 0.05);
+    border-left: 3px solid #00ff00;
+    text-decoration: none;
+    color: #00ff00;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    letter-spacing: 0.05em;
+}
+
+.terminal-app-link:hover {
+    background: rgba(0, 255, 0, 0.15);
+    padding-left: 1.5rem;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.terminal-app-link.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.app-num {
+    color: #ffff00;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.status-on {
+    color: #00ff00;
+    font-weight: bold;
+    text-shadow: 0 0 10px #00ff00;
+}
+
+.status-dev {
+    color: #ffaa00;
+    font-weight: bold;
+    text-shadow: 0 0 10px #ffaa00;
+}
+
+/* ==========================================================================
+   STYLE 3: NEON SYNTHWAVE (80s Cyberpunk)
+   ========================================================================== */
+
+.layout-neon {
+    background: #0a0a1a;
+    min-height: 100vh;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Neon Grid Background */
+.neon-grid-bg {
+    position: fixed;
+    inset: 0;
+    background: 
+        linear-gradient(0deg, #0a0a1a 0%, transparent 100%),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 49px,
+            rgba(255, 0, 255, 0.15) 49px,
+            rgba(255, 0, 255, 0.15) 50px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 49px,
+            rgba(0, 255, 255, 0.15) 49px,
+            rgba(0, 255, 255, 0.15) 50px
+        );
+    background-size: 100% 100%, 50px 50px, 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+    perspective: 1000px;
+    transform: rotateX(60deg) translateZ(-300px);
+}
+
+/* Neon Sun */
+.neon-sun {
+    position: fixed;
+    width: 400px;
+    height: 400px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -150%);
+    background: radial-gradient(circle, 
+                                #ff00ff 0%, 
+                                #ff1493 30%, 
+                                transparent 70%);
+    border-radius: 50%;
+    opacity: 0.6;
+    z-index: 0;
+    filter: blur(40px);
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: translate(-50%, -150%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%, -150%) scale(1.1); opacity: 0.8; }
+}
+
+.layout-neon > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Neon Header */
+.neon-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid #ff00ff;
+    box-shadow: 0 2px 20px rgba(255, 0, 255, 0.5);
+}
+
+.neon-logo {
+    text-align: center;
+}
+
+.neon-text {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #00ffff;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0;
+    position: relative;
+    text-shadow: 
+        0 0 10px #00ffff,
+        0 0 20px #00ffff,
+        0 0 30px #00ffff,
+        0 0 40px #ff00ff,
+        0 0 70px #ff00ff;
+    animation: neon-flicker 3s ease-in-out infinite alternate;
+}
+
+@keyframes neon-flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow: 
+            0 0 10px #00ffff,
+            0 0 20px #00ffff,
+            0 0 30px #00ffff,
+            0 0 40px #ff00ff,
+            0 0 70px #ff00ff;
+    }
+    20%, 24%, 55% {
+        text-shadow: none;
+    }
+}
+
+.neon-text::before {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #ff00ff;
+    z-index: -1;
+    filter: blur(20px);
+    opacity: 0.8;
+}
+
+.neon-underline {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #ff00ff, #00ffff, transparent);
+    margin-top: 1rem;
+    box-shadow: 0 0 20px #ff00ff;
+}
+
+.neon-user-badge {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 0, 255, 0.1);
+    padding: 1rem 1.5rem;
+    border: 2px solid #ff00ff;
+    border-radius: 0;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+.neon-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #ff00ff, #00ffff);
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #0a0a1a;
+    border: 2px solid #00ffff;
+    box-shadow: 0 0 20px #00ffff;
+}
+
+.neon-user-info strong {
+    display: block;
+    color: #00ffff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+.neon-user-info span {
+    display: block;
+    color: #ff00ff;
+    font-size: 0.85rem;
+    text-shadow: 0 0 10px #ff00ff;
+}
+
+/* Neon Stats Bar */
+.neon-stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    margin-bottom: 3rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid #00ffff;
+    border-left: none;
+    border-right: none;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+}
+
+.neon-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+}
+
+.neon-glow-pink {
+    color: #ff00ff;
+    text-shadow: 0 0 20px #ff00ff;
+}
+
+.neon-glow-cyan {
+    color: #00ffff;
+    text-shadow: 0 0 20px #00ffff;
+}
+
+.neon-glow-yellow {
+    color: #ffff00;
+    text-shadow: 0 0 20px #ffff00;
+}
+
+/* Neon Apps Container */
+.neon-apps-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.neon-section-title {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #ff00ff;
+    text-align: center;
+    letter-spacing: 0.2em;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 20px #ff00ff;
+}
+
+.neon-bracket {
+    color: #00ffff;
+    text-shadow: 0 0 20px #00ffff;
+}
+
+/* Neon Apps Grid */
+.neon-apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.neon-app-card {
+    background: rgba(10, 10, 26, 0.8);
+    border: 2px solid #ff00ff;
+    padding: 2rem;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.neon-app-card::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.4s ease;
+}
+
+.neon-app-card:hover::before {
+    opacity: 1;
+}
+
+.neon-app-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 40px rgba(255, 0, 255, 0.6),
+                0 10px 40px rgba(0, 255, 255, 0.4);
+}
+
+.neon-card-border {
+    position: absolute;
+    inset: 0;
+    border: 2px solid transparent;
+    background: linear-gradient(45deg, #ff00ff, #00ffff) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.neon-app-card:hover .neon-card-border {
+    opacity: 1;
+}
+
+.neon-app-icon {
+    font-size: 3rem;
+}
+
+.neon-app-title {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #00ffff;
+    margin: 0;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+.neon-app-card p {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+}
+
+.neon-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 0.5rem 1rem;
+    border-radius: 0;
+    text-transform: uppercase;
+}
+
+.neon-status.active {
+    color: #00ff00;
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #00ff00;
+    text-shadow: 0 0 10px #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.neon-status.dev {
+    color: #ffaa00;
+    background: rgba(255, 170, 0, 0.1);
+    border: 1px solid #ffaa00;
+    text-shadow: 0 0 10px #ffaa00;
+    box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
+}
+
+.neon-app-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   NO FAMILY STATE
+   ========================================================================== */
+
+.no-family-container {
+    min-height: 80vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+}
+
+.no-family-message {
+    text-align: center;
+    max-width: 500px;
+}
+
+.no-family-message h2 {
+    font-size: 2rem;
+    margin: 1.5rem 0 1rem;
+    color: #333;
+}
+
+.no-family-message p {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.no-family-message .btn {
+    margin: 0.5rem;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+    .layout-quantum,
+    .layout-terminal,
+    .layout-neon {
+        padding: 1.5rem;
+    }
+
+    .style-selector-fixed {
+        top: 10px;
+        right: 10px;
+        padding: 0.75rem 1rem;
+    }
+
+    .neon-text {
+        font-size: 2rem;
+    }
+
+    .neon-stats-bar {
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .logo-section {
+        flex-direction: column;
+    }
+
+    .quantum-stats,
+    .quantum-apps-grid,
+    .neon-apps-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .neon-header {
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .neon-stats-bar {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .terminal-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .neon-text {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .style-selector-fixed {
+        position: static;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+    }
+
+    .layout-quantum,
+    .layout-terminal,
+    .layout-neon {
+        padding: 1rem;
+    }
+
+    .quantum-header {
+        padding: 1.5rem;
+    }
+
+    .logo-text h1 {
+        font-size: 1.5rem;
+    }
+
+    .neon-text {
+        font-size: 1.2rem;
+    }
+}

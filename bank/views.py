@@ -1720,8 +1720,24 @@ def ajax_weekly_content(request):
 def ajax_transactions_content(request):
     """Return transactions view content for AJAX loading."""
     try:
-        # Simple placeholder for now - Expanse rebuild coming later
-        html = render_to_string('bank/partials/transactions_content.html', {}, request=request)
+        # Use build_all_transactions_context for full transaction data
+        context = build_all_transactions_context(request)
+        
+        # Calculate totals for display
+        total_income = sum(entry.amount for entry in context['income_entries'])
+        total_expenses = sum(entry.amount for entry in context['expense_entries'])
+        net_balance = total_income - total_expenses
+        
+        # Add counts for filter buttons
+        context.update({
+            'net_balance': net_balance,
+            'total_income': total_income,
+            'total_expenses': total_expenses,
+            'income_count': len(context['income_entries']),
+            'expense_count': len(context['expense_entries']),
+        })
+        
+        html = render_to_string('bank/partials/transactions_content.html', context, request=request)
         
         return JsonResponse({
             'status': 'success',

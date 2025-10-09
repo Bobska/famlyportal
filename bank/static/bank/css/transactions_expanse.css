@@ -1,0 +1,434 @@
+/* ================================================
+   TRANSACTIONS EXPANSE THEME
+   Tactical grid layout matching Dashboard/Weekly
+   ================================================ */
+
+/* Transactions Tactical Grid - 3 Column Layout */
+.transactions-tactical-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 320px;
+    gap: 1rem;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Sidebar Panels */
+.transactions-sidebar-panel,
+.transactions-detail-panel {
+    background: rgba(10, 15, 35, 0.6);
+    border: 1px solid rgba(100, 255, 218, 0.15);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Main Panel */
+.transactions-main-panel {
+    background: rgba(10, 15, 35, 0.6);
+    border: 1px solid rgba(100, 255, 218, 0.15);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Transaction Controls */
+.transactions-controls {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Search Input */
+.transactions-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.transactions-search i {
+    position: absolute;
+    left: 12px;
+    color: rgba(100, 255, 218, 0.4);
+    font-size: 0.9rem;
+}
+
+.transactions-search input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(100, 255, 218, 0.2);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    font-family: 'Courier New', monospace;
+    transition: all 0.2s ease;
+}
+
+.transactions-search input:focus {
+    outline: none;
+    border-color: rgba(100, 255, 218, 0.5);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 12px rgba(100, 255, 218, 0.15);
+}
+
+.transactions-search input::placeholder {
+    color: rgba(100, 255, 218, 0.3);
+}
+
+/* Filter Buttons */
+.transactions-filter-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-btn {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(100, 255, 218, 0.2);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.filter-btn:hover {
+    background: rgba(100, 255, 218, 0.1);
+    border-color: rgba(100, 255, 218, 0.4);
+}
+
+.filter-btn.active {
+    background: rgba(100, 255, 218, 0.15);
+    border-color: rgba(100, 255, 218, 0.5);
+    color: rgba(100, 255, 218, 1);
+    box-shadow: 0 0 12px rgba(100, 255, 218, 0.2);
+}
+
+.filter-btn.income.active {
+    background: rgba(72, 187, 120, 0.15);
+    border-color: rgba(72, 187, 120, 0.5);
+    color: rgba(72, 187, 120, 1);
+    box-shadow: 0 0 12px rgba(72, 187, 120, 0.2);
+}
+
+.filter-btn.expense.active {
+    background: rgba(245, 101, 101, 0.15);
+    border-color: rgba(245, 101, 101, 0.5);
+    color: rgba(245, 101, 101, 1);
+    box-shadow: 0 0 12px rgba(245, 101, 101, 0.2);
+}
+
+.filter-count {
+    padding: 0.125rem 0.5rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Transactions List */
+.transactions-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem;
+    min-height: 0;
+}
+
+/* Transaction Item */
+.transaction-item {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 1rem;
+    padding: 0.875rem;
+    margin-bottom: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(100, 255, 218, 0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.transaction-item:hover {
+    background: rgba(100, 255, 218, 0.05);
+    border-color: rgba(100, 255, 218, 0.3);
+    transform: translateX(2px);
+}
+
+.transaction-item.selected {
+    background: rgba(100, 255, 218, 0.1);
+    border-color: rgba(100, 255, 218, 0.5);
+    box-shadow: 0 0 16px rgba(100, 255, 218, 0.2);
+}
+
+/* Transaction Date */
+.transaction-date {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.date-day {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Courier New', monospace;
+}
+
+.date-month {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(100, 255, 218, 0.6);
+    margin-top: 0.25rem;
+}
+
+/* Transaction Info */
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.transaction-payee {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.transaction-category {
+    font-size: 0.8125rem;
+    color: rgba(100, 255, 218, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.transaction-category i {
+    font-size: 0.75rem;
+}
+
+/* Transaction Amount */
+.transaction-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.amount-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    line-height: 1;
+}
+
+.transaction-amount.income .amount-value {
+    color: rgba(72, 187, 120, 1);
+}
+
+.transaction-amount.expense .amount-value {
+    color: rgba(245, 101, 101, 1);
+}
+
+.amount-type {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.25rem;
+    opacity: 0.6;
+}
+
+/* Empty State */
+.transactions-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.transactions-empty .empty-icon {
+    font-size: 4rem;
+    color: rgba(100, 255, 218, 0.2);
+    margin-bottom: 1.5rem;
+}
+
+.transactions-empty .empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.5rem;
+}
+
+.transactions-empty .empty-message {
+    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Detail Panel */
+.detail-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.detail-empty-state .empty-icon {
+    font-size: 3rem;
+    color: rgba(100, 255, 218, 0.2);
+    margin-bottom: 1rem;
+}
+
+.detail-empty-state .empty-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.5rem;
+}
+
+.detail-empty-state .empty-message {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Transaction Detail Content */
+.transaction-detail-content {
+    padding: 1rem;
+}
+
+.detail-type-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
+.detail-type-badge.income {
+    background: rgba(72, 187, 120, 0.2);
+    color: rgba(72, 187, 120, 1);
+    border: 1px solid rgba(72, 187, 120, 0.4);
+}
+
+.detail-type-badge.expense {
+    background: rgba(245, 101, 101, 0.2);
+    color: rgba(245, 101, 101, 1);
+    border: 1px solid rgba(245, 101, 101, 0.4);
+}
+
+.detail-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 1.5rem;
+    line-height: 1;
+}
+
+.detail-amount.income {
+    color: rgba(72, 187, 120, 1);
+}
+
+.detail-amount.expense {
+    color: rgba(245, 101, 101, 1);
+}
+
+.detail-section {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+}
+
+.detail-section:last-of-type {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(100, 255, 218, 0.6);
+    margin-bottom: 0.5rem;
+}
+
+.detail-value {
+    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+}
+
+.detail-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+/* Scrollbar Styling */
+.transactions-list-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.transactions-list-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.transactions-list-scroll::-webkit-scrollbar-thumb {
+    background: rgba(100, 255, 218, 0.3);
+    border-radius: 4px;
+}
+
+.transactions-list-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 255, 218, 0.5);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .transactions-tactical-grid {
+        grid-template-columns: 280px 1fr 280px;
+    }
+}
+
+@media (max-width: 992px) {
+    .transactions-tactical-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+    }
+    
+    .transactions-sidebar-panel,
+    .transactions-detail-panel {
+        max-height: 300px;
+    }
+}

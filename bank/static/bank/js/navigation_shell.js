@@ -111,6 +111,9 @@ class BankNavigationShell {
                 // Swap content
                 contentView.innerHTML = content;
                 
+                // Execute scripts in the loaded content
+                this.executeScripts(contentView);
+                
                 // Prepare for slide in (start from below)
                 contentView.classList.remove('transitioning-out');
                 contentView.classList.add('transitioning-in');
@@ -139,6 +142,9 @@ class BankNavigationShell {
                 
                 // Update content
                 contentView.innerHTML = content;
+                
+                // Execute scripts in the loaded content
+                this.executeScripts(contentView);
                 
                 // Hide loader, prepare content for slide in
                 contentLoader.style.display = 'none';
@@ -244,6 +250,25 @@ class BankNavigationShell {
             const isActive = tab.dataset.view === viewName;
             tab.classList.toggle('active', isActive);
             tab.setAttribute('aria-current', isActive ? 'page' : 'false');
+        });
+    }
+    
+    executeScripts(container) {
+        // Execute script tags from AJAX-loaded content
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            
+            // Copy attributes
+            Array.from(oldScript.attributes).forEach(attr => {
+                newScript.setAttribute(attr.name, attr.value);
+            });
+            
+            // Copy content
+            newScript.textContent = oldScript.textContent;
+            
+            // Replace old script with new one to trigger execution
+            oldScript.parentNode.replaceChild(newScript, oldScript);
         });
     }
     

@@ -275,30 +275,31 @@ window.initWeeklyView = function() {
 };
 
 // Week navigation functions that reload via AJAX
-function weeklyPreviousWeek() {
+// Attach to window for global access when loaded via AJAX
+window.weeklyPreviousWeek = function() {
     if (window.bankShell) {
         const newOffset = window.currentWeekOffset - 1;
         window.bankShell.loadView('weekly', { week_offset: newOffset });
     }
 }
 
-function weeklyNextWeek() {
+window.weeklyNextWeek = function() {
     if (window.bankShell) {
         const newOffset = window.currentWeekOffset + 1;
         window.bankShell.loadView('weekly', { week_offset: newOffset });
     }
 }
 
-function weeklyChangeToCurrentWeek() {
+window.weeklyChangeToCurrentWeek = function() {
     if (window.bankShell) {
         window.bankShell.loadView('weekly', { week_offset: 0 });
     }
 }
 
 // Transaction search functionality
-let weeklyCurrentFilter = 'all';
+window.weeklyCurrentFilter = 'all';
 
-function weeklySearchTransactions(searchTerm) {
+window.weeklySearchTransactions = function(searchTerm) {
     searchTerm = searchTerm.toLowerCase();
     const cards = document.querySelectorAll('.weekly-transaction-card');
     
@@ -307,7 +308,7 @@ function weeklySearchTransactions(searchTerm) {
         const notes = card.getAttribute('data-transaction-notes').toLowerCase();
         
         if (payee.includes(searchTerm) || notes.includes(searchTerm)) {
-            if (weeklyCurrentFilter === 'all' || card.getAttribute('data-transaction-type') === weeklyCurrentFilter) {
+            if (window.weeklyCurrentFilter === 'all' || card.getAttribute('data-transaction-type') === window.weeklyCurrentFilter) {
                 card.style.display = 'grid';
             }
         } else {
@@ -317,8 +318,8 @@ function weeklySearchTransactions(searchTerm) {
 }
 
 // Transaction filtering
-function weeklyFilterTransactions(filterType) {
-    weeklyCurrentFilter = filterType;
+window.weeklyFilterTransactions = function(filterType) {
+    window.weeklyCurrentFilter = filterType;
     const cards = document.querySelectorAll('.weekly-transaction-card');
     const filterLabel = document.getElementById('filterLabel');
     const filterItems = document.querySelectorAll('.filter-dropdown-item');
@@ -352,29 +353,29 @@ function weeklyFilterTransactions(filterType) {
 }
 
 // Transaction selection and detail panel
-let weeklySelectedCard = null;
-let weeklySelectedTransactionId = null;
-let weeklySelectedTransactionType = null;
+window.weeklySelectedCard = null;
+window.weeklySelectedTransactionId = null;
+window.weeklySelectedTransactionType = null;
 
-function weeklySelectTransaction(card) {
-    if (weeklySelectedCard) {
-        weeklySelectedCard.classList.remove('selected');
+window.weeklySelectTransaction = function(card) {
+    if (window.weeklySelectedCard) {
+        window.weeklySelectedCard.classList.remove('selected');
     }
     card.classList.add('selected');
-    weeklySelectedCard = card;
+    window.weeklySelectedCard = card;
     
     // Extract transaction data
-    weeklySelectedTransactionId = card.getAttribute('data-transaction-id');
-    weeklySelectedTransactionType = card.getAttribute('data-transaction-type');
+    window.weeklySelectedTransactionId = card.getAttribute('data-transaction-id');
+    window.weeklySelectedTransactionType = card.getAttribute('data-transaction-type');
     const amount = card.getAttribute('data-transaction-amount');
     const payee = card.getAttribute('data-transaction-payee');
     const date = card.getAttribute('data-transaction-date');
     const notes = card.getAttribute('data-transaction-notes') || 'No notes';
     
     // Open detail panel
-    weeklyOpenDetailPanel({
-        id: weeklySelectedTransactionId,
-        type: weeklySelectedTransactionType,
+    window.weeklyOpenDetailPanel({
+        id: window.weeklySelectedTransactionId,
+        type: window.weeklySelectedTransactionType,
         amount: amount,
         payee: payee,
         date: date,
@@ -383,7 +384,7 @@ function weeklySelectTransaction(card) {
 }
 
 // Detail panel functions
-function weeklyOpenDetailPanel(transaction) {
+window.weeklyOpenDetailPanel = function(transaction) {
     const panel = document.getElementById('weeklyDetailPanel');
     const backdrop = document.getElementById('weeklyDetailBackdrop');
     const content = document.getElementById('weeklyDetailContent');
@@ -458,7 +459,7 @@ function weeklyOpenDetailPanel(transaction) {
     backdrop.classList.add('active');
 }
 
-function weeklyCloseDetailPanel() {
+window.weeklyCloseDetailPanel = function() {
     const panel = document.getElementById('weeklyDetailPanel');
     const backdrop = document.getElementById('weeklyDetailBackdrop');
     
@@ -467,14 +468,14 @@ function weeklyCloseDetailPanel() {
         backdrop.classList.remove('active');
     }
     
-    if (weeklySelectedCard) {
-        weeklySelectedCard.classList.remove('selected');
-        weeklySelectedCard = null;
+    if (window.weeklySelectedCard) {
+        window.weeklySelectedCard.classList.remove('selected');
+        window.weeklySelectedCard = null;
     }
 }
 
 // Placeholder for Add Transaction Modal (will be handled globally)
-function weeklyShowAddTransactionModal() {
+window.weeklyShowAddTransactionModal = function() {
     console.log('Opening add transaction modal...');
     // This will trigger the global modal in the shell template
     if (typeof showAddTransactionModal === 'function') {

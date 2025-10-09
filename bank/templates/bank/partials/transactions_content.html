@@ -1,59 +1,372 @@
-<!-- Transactions View - Coming Soon (Expanse Rebuild) -->
-<div class="shell-coming-soon-panel">
-    <div class="coming-soon-content">
-        <div class="coming-soon-icon">
-            <i class="bi bi-list-ul"></i>
+{% load static %}
+{% load humanize %}
+
+<!-- Tactical Grid with 3 Columns -->
+<div class="transactions-tactical-grid">
+    
+    <!-- Left Sidebar Panel - Financial Summary -->
+    <div class="transactions-sidebar-panel">
+        <div class="dashboard-panel-header">
+            <div class="dashboard-panel-icon">💳</div>
+            <h2 class="dashboard-panel-title">Financial Overview</h2>
         </div>
-        <h2>Transactions View</h2>
-        <p class="lead">Expanse-style transactions interface in development</p>
-        <p class="text-muted mb-4">We're rebuilding the Transactions view with the new Expanse design system to match Dashboard and Weekly. The current page uses the older styling.</p>
-        <a href="{% url 'bank:transactions' %}" class="btn btn-primary btn-lg">
-            <i class="bi bi-box-arrow-up-right me-2"></i>
-            Open Current Transactions Page
-        </a>
-        <div class="mt-4">
-            <small class="text-muted">
-                <i class="bi bi-info-circle me-1"></i>
-                New design coming soon: Tactical grid layout, enhanced filtering, and seamless navigation
-            </small>
+        <div class="dashboard-panel-content">
+            
+            <!-- Net Balance Card -->
+            <div class="dashboard-balance-card primary">
+                <div class="balance-card-label">NET BALANCE</div>
+                <div class="balance-card-value {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if net_balance >= 0 %}+{% endif %}${{ net_balance|floatformat:2|intcomma }}
+                </div>
+                <div class="balance-card-meta">All-time cumulative</div>
+            </div>
+            
+            <!-- Income/Expense Breakdown -->
+            <div class="dashboard-stats-grid">
+                <div class="dashboard-stat-item income">
+                    <div class="stat-icon">▲</div>
+                    <div class="stat-details">
+                        <div class="stat-label">Total Income</div>
+                        <div class="stat-value">+${{ total_income|default:0|floatformat:2|intcomma }}</div>
+                        <div class="stat-meta">{{ income_entries|length }} entr{{ income_entries|length|pluralize:'y,ies' }}</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-stat-item expense">
+                    <div class="stat-icon">▼</div>
+                    <div class="stat-details">
+                        <div class="stat-label">Total Expenses</div>
+                        <div class="stat-value">-${{ total_expenses|default:0|floatformat:2|intcomma }}</div>
+                        <div class="stat-meta">{{ expense_entries|length }} record{{ expense_entries|length|pluralize }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="dashboard-info-panel">
+                <div class="info-row">
+                    <span class="info-label">Total Transactions</span>
+                    <span class="info-value">{{ income_entries|length|add:expense_entries|length }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Transaction Period</span>
+                    <span class="info-value">All Time</span>
+                </div>
+            </div>
         </div>
     </div>
+    
+    <!-- Center Panel - Transactions List -->
+    <div class="transactions-main-panel">
+        <div class="dashboard-panel-header">
+            <div class="dashboard-panel-icon">📋</div>
+            <h2 class="dashboard-panel-title">Transaction Ledger</h2>
+        </div>
+        
+        <!-- Search and Filter Controls -->
+        <div class="transactions-controls">
+            <div class="transactions-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="transaction-search" placeholder="Search transactions..." oninput="filterTransactionsList()">
+            </div>
+            <div class="transactions-filter-group">
+                <button class="filter-btn active" data-filter="all" onclick="setTransactionFilter('all')">
+                    <span>All</span>
+                    <span class="filter-count">{{ income_entries|length|add:expense_entries|length }}</span>
+                </button>
+                <button class="filter-btn income" data-filter="income" onclick="setTransactionFilter('income')">
+                    <span>Income</span>
+                    <span class="filter-count">{{ income_entries|length }}</span>
+                </button>
+                <button class="filter-btn expense" data-filter="expense" onclick="setTransactionFilter('expense')">
+                    <span>Expenses</span>
+                    <span class="filter-count">{{ expense_entries|length }}</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Transactions List -->
+        <div class="transactions-list-scroll">
+            {% if income_entries or expense_entries %}
+                <!-- Income transactions -->
+                {% for entry in income_entries %}
+                <div class="transaction-item income-item" 
+                     data-type="income" 
+                     data-id="{{ entry.id }}"
+                     data-date="{{ entry.date|date:'Y-m-d' }}"
+                     data-amount="{{ entry.amount }}"
+                     data-payee="{{ entry.payee|default:''|escapejs }}"
+                     data-category="{{ entry.category.name|default:''|escapejs }}"
+                     data-notes="{{ entry.notes|default:''|escapejs }}"
+                     onclick="selectTransaction(this)">
+                    <div class="transaction-date">
+                        <div class="date-day">{{ entry.date|date:"d" }}</div>
+                        <div class="date-month">{{ entry.date|date:"M" }}</div>
+                    </div>
+                    <div class="transaction-info">
+                        <div class="transaction-payee">{{ entry.payee|default:"No payee" }}</div>
+                        <div class="transaction-category">
+                            {% if entry.category %}
+                                <i class="bi bi-tag-fill"></i> {{ entry.category.name }}
+                            {% else %}
+                                <span class="text-muted">Uncategorized</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="transaction-amount income">
+                        <div class="amount-value">+${{ entry.amount|floatformat:2|intcomma }}</div>
+                        <div class="amount-type">Income</div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Expense transactions -->
+                {% for entry in expense_entries %}
+                <div class="transaction-item expense-item" 
+                     data-type="expense" 
+                     data-id="{{ entry.id }}"
+                     data-date="{{ entry.date|date:'Y-m-d' }}"
+                     data-amount="{{ entry.amount }}"
+                     data-payee="{{ entry.payee|default:''|escapejs }}"
+                     data-category="{{ entry.category.name|default:''|escapejs }}"
+                     data-notes="{{ entry.notes|default:''|escapejs }}"
+                     onclick="selectTransaction(this)">
+                    <div class="transaction-date">
+                        <div class="date-day">{{ entry.date|date:"d" }}</div>
+                        <div class="date-month">{{ entry.date|date:"M" }}</div>
+                    </div>
+                    <div class="transaction-info">
+                        <div class="transaction-payee">{{ entry.payee|default:"No payee" }}</div>
+                        <div class="transaction-category">
+                            {% if entry.category %}
+                                <i class="bi bi-tag-fill"></i> {{ entry.category.name }}
+                            {% else %}
+                                <span class="text-muted">Uncategorized</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="transaction-amount expense">
+                        <div class="amount-value">-${{ entry.amount|floatformat:2|intcomma }}</div>
+                        <div class="amount-type">Expense</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="transactions-empty">
+                    <div class="empty-icon">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <div class="empty-title">No Transactions</div>
+                    <div class="empty-message">Start tracking your finances by adding income or expenses</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Right Sidebar - Transaction Details -->
+    <div class="transactions-detail-panel">
+        <div class="dashboard-panel-header">
+            <div class="dashboard-panel-icon">🔍</div>
+            <h2 class="dashboard-panel-title">Details</h2>
+        </div>
+        <div class="dashboard-panel-content">
+            
+            <!-- Empty State -->
+            <div id="transaction-detail-empty" class="detail-empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <div class="empty-title">Select Transaction</div>
+                <div class="empty-message">Click on a transaction to view details</div>
+            </div>
+            
+            <!-- Detail Content (hidden by default) -->
+            <div id="transaction-detail-content" class="transaction-detail-content" hidden>
+                <div class="detail-type-badge" id="detail-type-badge"></div>
+                
+                <div class="detail-amount" id="detail-amount"></div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Date</div>
+                    <div class="detail-value" id="detail-date"></div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Payee</div>
+                    <div class="detail-value" id="detail-payee"></div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Category</div>
+                    <div class="detail-value" id="detail-category"></div>
+                </div>
+                
+                <div class="detail-section" id="detail-notes-section">
+                    <div class="detail-label">Notes</div>
+                    <div class="detail-value" id="detail-notes"></div>
+                </div>
+                
+                <div class="detail-actions">
+                    <button class="dashboard-action-btn" onclick="editTransaction()">
+                        <i class="bi bi-pencil"></i>
+                        <span>Edit</span>
+                    </button>
+                    <button class="dashboard-action-btn danger" onclick="deleteTransaction()">
+                        <i class="bi bi-trash"></i>
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
 </div>
 
-<style>
-.shell-coming-soon-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    padding: 3rem;
+<!-- JavaScript for transaction interactions -->
+<script>
+// Attach to window for global access when loaded via AJAX
+window.transactionsSelectedTransaction = null;
+
+window.selectTransaction = function(element) {
+    // Remove previous selection
+    document.querySelectorAll('.transaction-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Add selection to clicked item
+    element.classList.add('selected');
+    window.transactionsSelectedTransaction = element;
+    
+    // Show detail panel
+    const emptyState = document.getElementById('transaction-detail-empty');
+    const detailContent = document.getElementById('transaction-detail-content');
+    
+    emptyState.hidden = true;
+    detailContent.hidden = false;
+    
+    // Populate details
+    const type = element.dataset.type;
+    const amount = element.dataset.amount;
+    const date = element.dataset.date;
+    const payee = element.dataset.payee || 'No payee';
+    const category = element.dataset.category || 'Uncategorized';
+    const notes = element.dataset.notes || '';
+    
+    // Type badge
+    const typeBadge = document.getElementById('detail-type-badge');
+    typeBadge.textContent = type === 'income' ? 'INCOME' : 'EXPENSE';
+    typeBadge.className = 'detail-type-badge ' + type;
+    
+    // Amount
+    const detailAmount = document.getElementById('detail-amount');
+    const prefix = type === 'income' ? '+' : '-';
+    detailAmount.textContent = prefix + '$' + parseFloat(amount).toFixed(2);
+    detailAmount.className = 'detail-amount ' + type;
+    
+    // Date
+    const dateObj = new Date(date);
+    document.getElementById('detail-date').textContent = dateObj.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    // Payee
+    document.getElementById('detail-payee').textContent = payee;
+    
+    // Category
+    document.getElementById('detail-category').textContent = category;
+    
+    // Notes
+    const notesSection = document.getElementById('detail-notes-section');
+    const notesValue = document.getElementById('detail-notes');
+    if (notes) {
+        notesSection.hidden = false;
+        notesValue.textContent = notes;
+    } else {
+        notesSection.hidden = true;
+    }
 }
 
-.coming-soon-content {
-    text-align: center;
-    max-width: 600px;
+window.setTransactionFilter = function(filter) {
+    // Update active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.closest('.filter-btn').classList.add('active');
+    
+    // Filter transactions
+    const items = document.querySelectorAll('.transaction-item');
+    items.forEach(item => {
+        if (filter === 'all') {
+            item.style.display = '';
+        } else {
+            item.style.display = item.dataset.type === filter ? '' : 'none';
+        }
+    });
 }
 
-.coming-soon-icon {
-    font-size: 5rem;
-    color: rgba(255, 255, 255, 0.2);
-    margin-bottom: 1.5rem;
+window.filterTransactionsList = function() {
+    const searchTerm = document.getElementById('transaction-search').value.toLowerCase();
+    const items = document.querySelectorAll('.transaction-item');
+    
+    items.forEach(item => {
+        const payee = item.dataset.payee.toLowerCase();
+        const category = item.dataset.category.toLowerCase();
+        const notes = item.dataset.notes.toLowerCase();
+        const amount = item.dataset.amount;
+        
+        const matches = payee.includes(searchTerm) || 
+                       category.includes(searchTerm) || 
+                       notes.includes(searchTerm) ||
+                       amount.includes(searchTerm);
+        
+        // Only hide if doesn't match AND passes current filter
+        const currentFilter = document.querySelector('.filter-btn.active').dataset.filter;
+        const passesFilter = currentFilter === 'all' || item.dataset.type === currentFilter;
+        
+        item.style.display = (matches && passesFilter) ? '' : 'none';
+    });
 }
 
-.coming-soon-content h2 {
-    font-size: 2rem;
-    font-weight: 300;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.9);
+window.editTransaction = function() {
+    if (!window.transactionsSelectedTransaction) return;
+    
+    const type = window.transactionsSelectedTransaction.dataset.type;
+    const id = window.transactionsSelectedTransaction.dataset.id;
+    
+    // Navigate to edit page (you can implement modal instead)
+    window.location.href = `/budget-basic/${type}/${id}/update/`;
 }
 
-.coming-soon-content .lead {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.7);
+window.deleteTransaction = function() {
+    if (!window.transactionsSelectedTransaction) return;
+    
+    const type = window.transactionsSelectedTransaction.dataset.type;
+    const id = window.transactionsSelectedTransaction.dataset.id;
+    
+    if (confirm('Are you sure you want to delete this transaction?')) {
+        // Implement delete logic here
+        console.log('Delete transaction:', type, id);
+    }
 }
 
-.coming-soon-content .text-muted {
-    color: rgba(255, 255, 255, 0.5) !important;
-}
-</style>
+// Initialize - sort transactions by date on load
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.querySelector('.transactions-list-scroll');
+    if (container) {
+        const items = Array.from(container.querySelectorAll('.transaction-item'));
+        items.sort((a, b) => {
+            const dateA = new Date(a.dataset.date);
+            const dateB = new Date(b.dataset.date);
+            return dateB - dateA; // Newest first
+        });
+        
+        // Re-append in sorted order
+        items.forEach(item => container.appendChild(item));
+    }
+    
+    console.log('✅ Transactions Expanse view initialized');
+});
+</script>

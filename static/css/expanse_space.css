@@ -104,7 +104,7 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     position: fixed;
     inset: 0;
     z-index: 0;
-    background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+    background: radial-gradient(ellipse at bottom, #2a3f5f 0%, #131820 100%);
 }
 
 /* Animated Stars */
@@ -112,15 +112,15 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     position: absolute;
     inset: 0;
     background-image: 
-        radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+        radial-gradient(2px 2px at 20px 30px, #fff, transparent),
         radial-gradient(2px 2px at 60px 70px, #fff, transparent),
-        radial-gradient(1px 1px at 50px 50px, #ddd, transparent),
+        radial-gradient(1px 1px at 50px 50px, #eee, transparent),
         radial-gradient(1px 1px at 130px 80px, #fff, transparent),
         radial-gradient(2px 2px at 90px 10px, #fff, transparent);
     background-repeat: repeat;
     background-size: 200px 200px;
     animation: stars 200s linear infinite;
-    opacity: 0.5;
+    opacity: 0.7;
 }
 
 @keyframes stars {
@@ -133,15 +133,15 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     position: absolute;
     inset: 0;
     background: 
-        radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.15), transparent 40%),
-        radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.1), transparent 40%);
-    opacity: 0.6;
+        radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.2), transparent 40%),
+        radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.15), transparent 40%);
+    opacity: 0.7;
     animation: nebulaPulse 20s ease-in-out infinite;
 }
 
 @keyframes nebulaPulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.7; }
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.8; }
 }
 
 /* Planet View */
@@ -151,10 +151,10 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     right: -200px;
     width: 700px;
     height: 700px;
-    background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.1) 40%, transparent 70%);
+    background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.4), rgba(37, 99, 235, 0.15) 40%, transparent 70%);
     border-radius: 50%;
     filter: blur(40px);
-    opacity: 0.4;
+    opacity: 0.5;
 }
 
 /* Holographic Scanlines */
@@ -166,8 +166,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
         0deg,
         transparent,
         transparent 2px,
-        rgba(255, 255, 255, 0.03) 2px,
-        rgba(255, 255, 255, 0.03) 4px
+        rgba(255, 255, 255, 0.04) 2px,
+        rgba(255, 255, 255, 0.04) 4px
     );
     pointer-events: none;
     animation: scanlines 10s linear infinite;
@@ -302,11 +302,11 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     grid-template-columns: 1fr auto 1fr;
     gap: 1.5rem;
     padding: 1rem 1.5rem;
-    background: rgba(0, 0, 0, 0.7);
-    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
-    border-left: 3px solid var(--faction-color, rgba(59, 130, 246, 0.8));
-    box-shadow: 0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.2)),
-                inset 0 0 30px rgba(0, 0, 0, 0.5);
+    background: rgba(15, 25, 40, 0.85);
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.5));
+    border-left: 3px solid var(--faction-color, rgba(59, 130, 246, 0.9));
+    box-shadow: 0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.25)),
+                inset 0 0 30px rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(15px);
     clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
 }
@@ -534,11 +534,11 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
    ========================================================================== */
 
 .sidebar-panel {
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    background: rgba(15, 25, 40, 0.75);
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
     backdrop-filter: blur(10px);
-    box-shadow: 0 0 20px var(--faction-glow, rgba(59, 130, 246, 0.15)),
-                inset 0 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 20px var(--faction-glow, rgba(59, 130, 246, 0.2)),
+                inset 0 0 30px rgba(255, 255, 255, 0.02);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -558,8 +558,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 1.5rem;
-    background: rgba(0, 0, 0, 0.5);
-    border-bottom: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    background: rgba(10, 20, 35, 0.6);
+    border-bottom: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
 }
 
 .panel-icon {
@@ -664,8 +664,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
 
 /* Crew List */
 .crew-list {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(10, 20, 35, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem;
 }
 
@@ -845,8 +845,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
 
 /* Diagnostic Sections */
 .diagnostic-section {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(10, 20, 35, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem;
 }
 
@@ -876,8 +876,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
 .faction-selector-integrated {
     width: 100%;
     padding: 0.75rem 1rem;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
-    border: 2px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.8), rgba(10, 20, 35, 0.7));
+    border: 2px solid var(--faction-color, rgba(59, 130, 246, 0.4));
     color: #fff;
     font-size: 0.85rem;
     font-weight: 600;
@@ -893,7 +893,7 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
 }
 
 .faction-selector-integrated:hover {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+    background: linear-gradient(135deg, rgba(20, 30, 50, 0.9), rgba(15, 25, 40, 0.8));
     border-color: var(--faction-bright, rgba(59, 130, 246, 0.6));
     box-shadow: 0 0 15px var(--faction-glow, rgba(59, 130, 246, 0.3));
 }
@@ -1041,11 +1041,11 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
    ========================================================================== */
 
 .main-display {
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    background: rgba(15, 25, 40, 0.65);
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
     backdrop-filter: blur(10px);
-    box-shadow: 0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.2)),
-                inset 0 0 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.25)),
+                inset 0 0 40px rgba(255, 255, 255, 0.02);
     padding: 1.5rem;
     clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 calc(100% - 15px), 0 15px);
     display: flex;
@@ -1133,8 +1133,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
 
 .holo-module {
     position: relative;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
-    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
     padding: 1.25rem;
     text-decoration: none;
     color: inherit;
@@ -1184,7 +1184,7 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     bottom: -10px;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.95);
+    background: rgba(10, 20, 35, 0.98);
     border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.5));
     border-top: none;
     padding: 1rem;
@@ -1302,10 +1302,10 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
 .holo-module:hover {
     transform: translateY(-8px) scale(1.02);
     border-color: var(--faction-bright, rgba(59, 130, 246, 0.8));
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
     box-shadow: 0 15px 50px var(--faction-glow, rgba(59, 130, 246, 0.4)),
                 0 0 30px var(--faction-glow, rgba(59, 130, 246, 0.2)),
-                inset 0 0 30px rgba(0, 0, 0, 0.5);
+                inset 0 0 30px rgba(255, 255, 255, 0.03);
 }
 
 .holo-module:hover .module-border {
@@ -1460,8 +1460,8 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1.5rem;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.3));
+    background: rgba(15, 25, 40, 0.85);
+    border: 1px solid var(--faction-color, rgba(59, 130, 246, 0.4));
     border-top: 2px solid var(--faction-color, rgba(59, 130, 246, 0.5));
     backdrop-filter: blur(10px);
     flex-shrink: 0;
@@ -1570,10 +1570,10 @@ html:has(body.expanse-interface)::-webkit-scrollbar {
     z-index: 10;
     max-width: 600px;
     padding: 3rem;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(20, 15, 15, 0.85);
     border: 2px solid rgba(239, 68, 68, 0.5);
     box-shadow: 0 0 40px rgba(239, 68, 68, 0.3),
-                inset 0 0 40px rgba(0, 0, 0, 0.5);
+                inset 0 0 40px rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(15px);
     text-align: center;
     clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);

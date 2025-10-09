@@ -112,30 +112,11 @@ html {
 .dashboard-space-interface {
     position: relative;
     width: 100vw;
-    min-height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     font-family: 'Rajdhani', sans-serif;
-}
-
-/* Custom scrollbar for main interface */
-.dashboard-space-interface::-webkit-scrollbar {
-    width: 8px;
-}
-
-.dashboard-space-interface::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.dashboard-space-interface::-webkit-scrollbar-thumb {
-    background: var(--faction-color);
-    border-radius: 4px;
-}
-
-.dashboard-space-interface::-webkit-scrollbar-thumb:hover {
-    background: var(--faction-bright);
 }
 
 .dashboard-holo-interface {
@@ -146,7 +127,7 @@ html {
     flex-direction: column;
     padding: 1rem;
     gap: 1rem;
-    overflow: visible;
+    overflow: hidden;
 }
 
 /* ==========================================================================
@@ -510,6 +491,11 @@ html {
     padding: 1.25rem;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+/* For main panel with transactions, disable panel-level scroll */
+.dashboard-main-panel .dashboard-panel-content {
+    overflow: visible;
 }
 
 /* Custom Scrollbar */
@@ -1480,6 +1466,28 @@ html {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for transactions table */
+.transactions-table::-webkit-scrollbar {
+    width: 6px;
+}
+
+.transactions-table::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.transactions-table::-webkit-scrollbar-thumb {
+    background: var(--faction-color);
+    border-radius: 3px;
+}
+
+.transactions-table::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright);
 }
 
 .transaction-row {

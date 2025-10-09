@@ -5,6 +5,7 @@ app_name = 'bank'
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
+    path('accounts/', views.accounts, name='accounts'),
     path('transactions/', views.transactions, name='transactions'),
     path('weekly/', views.weekly, name='weekly'),
     path('weekly-expanse/', views.weekly_expanse, name='weekly_expanse'),

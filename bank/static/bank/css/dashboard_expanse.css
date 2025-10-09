@@ -63,6 +63,7 @@ html {
 :root {
     /* UN Navy (Default) - BRIGHTENED */
     --faction-color: rgba(59, 130, 246, 0.85);
+    --faction-color-rgb: 59, 130, 246;
     --faction-bright: #60a5fa;
     --faction-glow: rgba(59, 130, 246, 0.5);
     
@@ -85,6 +86,7 @@ html {
 /* Belter Faction - BRIGHTENED */
 .dashboard-space-interface[data-faction="belter"] {
     --faction-color: rgba(251, 146, 60, 0.85);
+    --faction-color-rgb: 251, 146, 60;
     --faction-bright: #fdba74;
     --faction-glow: rgba(251, 146, 60, 0.5);
     --text-primary: rgba(253, 186, 116, 0.95);
@@ -95,6 +97,7 @@ html {
 /* Protomolecule Faction - BRIGHTENED */
 .dashboard-space-interface[data-faction="proto"] {
     --faction-color: rgba(6, 182, 212, 0.85);
+    --faction-color-rgb: 6, 182, 212;
     --faction-bright: #22d3ee;
     --faction-glow: rgba(6, 182, 212, 0.5);
     --text-primary: rgba(34, 211, 238, 0.95);
@@ -109,11 +112,30 @@ html {
 .dashboard-space-interface {
     position: relative;
     width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     font-family: 'Rajdhani', sans-serif;
+}
+
+/* Custom scrollbar for main interface */
+.dashboard-space-interface::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-space-interface::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.dashboard-space-interface::-webkit-scrollbar-thumb {
+    background: var(--faction-color);
+    border-radius: 4px;
+}
+
+.dashboard-space-interface::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright);
 }
 
 .dashboard-holo-interface {
@@ -124,7 +146,7 @@ html {
     flex-direction: column;
     padding: 1rem;
     gap: 1rem;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* ==========================================================================
@@ -373,6 +395,42 @@ html {
     color: var(--text-primary);
 }
 
+/* Faction Button Group (for accounts page) */
+.dashboard-faction-selector {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dashboard-faction-btn {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--faction-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    font-family: 'Rajdhani', sans-serif;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.dashboard-faction-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: var(--faction-bright);
+    color: var(--faction-bright);
+    box-shadow: 0 0 10px var(--faction-glow);
+}
+
+.dashboard-faction-btn.active {
+    background: rgba(var(--faction-color-rgb), 0.2);
+    border-color: var(--faction-bright);
+    color: var(--faction-bright);
+    box-shadow: 0 0 15px var(--faction-glow),
+                inset 0 0 20px rgba(var(--faction-color-rgb), 0.2);
+}
+
 /* ==========================================================================
    TACTICAL GRID - THREE COLUMNS
    ========================================================================== */
@@ -392,7 +450,8 @@ html {
    SIDEBAR PANELS (LEFT & RIGHT)
    ========================================================================== */
 
-.dashboard-sidebar-panel {
+.dashboard-sidebar-panel,
+.dashboard-main-panel {
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 30, 50, 0.85));
@@ -407,7 +466,8 @@ html {
     position: relative;
 }
 
-.dashboard-sidebar-panel::before {
+.dashboard-sidebar-panel::before,
+.dashboard-main-panel::before {
     content: '';
     position: absolute;
     inset: -2px;
@@ -518,6 +578,37 @@ html {
     font-size: 0.7rem;
     color: var(--text-muted);
     letter-spacing: 0.05em;
+}
+
+/* Balance Card Hover Effects */
+.dashboard-balance-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.dashboard-balance-card:hover {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(10, 20, 40, 0.5));
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 15px var(--faction-glow);
+    transform: translateY(-2px);
+}
+
+/* Account Card Hover Effects */
+.account-card-total,
+.account-card-checking,
+.account-card-savings,
+.account-card-investment {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.account-card-total:hover,
+.account-card-checking:hover,
+.account-card-savings:hover,
+.account-card-investment:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px var(--faction-glow),
+                inset 0 0 40px rgba(255, 255, 255, 0.06);
 }
 
 /* ==========================================================================
@@ -1056,7 +1147,24 @@ html {
     flex-direction: column;
 }
 
-.dashboard-analytics-card::before {
+/* Alias for accounts page */
+.analytics-card {
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 30, 50, 0.85));
+    border: 2px solid var(--faction-bright);
+    backdrop-filter: blur(15px);
+    box-shadow: 
+        0 0 15px var(--faction-glow),
+        inset 0 0 30px rgba(255, 255, 255, 0.04),
+        inset 0 0 2px var(--faction-bright);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-analytics-card::before,
+.analytics-card::before {
     content: '';
     position: absolute;
     inset: -2px;
@@ -1075,6 +1183,31 @@ html {
     justify-content: space-between;
 }
 
+.analytics-header {
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid var(--faction-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.analytics-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--faction-bright);
+    text-shadow: 0 0 10px var(--faction-glow);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.analytics-icon {
+    color: var(--faction-color);
+    opacity: 0.7;
+}
+
 .analytics-card-title {
     font-family: 'Orbitron', sans-serif;
     font-size: 0.75rem;
@@ -1086,6 +1219,14 @@ html {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+}
+
+.analytics-stats {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .analytics-card-badge {
@@ -1262,3 +1403,411 @@ html {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================================================
+   ACCOUNTS PAGE SPECIFIC STYLES
+   ========================================================================== */
+
+/* Account Card Enhancements */
+.account-card-total {
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 20px var(--faction-glow);
+}
+
+.account-card-total .balance-amount {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Balance Card Components */
+.balance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.balance-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.balance-icon {
+    color: var(--faction-color);
+    opacity: 0.7;
+}
+
+.balance-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 0.5rem;
+}
+
+.balance-footer {
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(var(--faction-color-rgb), 0.2);
+}
+
+.balance-trend {
+    font-size: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 500;
+}
+
+.balance-trend.positive {
+    color: #10b981;
+}
+
+.balance-trend.negative {
+    color: #ef4444;
+}
+
+.account-number {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    letter-spacing: 0.1em;
+}
+
+/* Transaction Table/List */
+.transactions-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.transaction-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--faction-color-rgb), 0.3);
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.transaction-row:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: rgba(var(--faction-color-rgb), 0.6);
+    box-shadow: inset 0 0 20px rgba(var(--faction-color-rgb), 0.1),
+                0 0 10px rgba(var(--faction-color-rgb), 0.3);
+}
+
+.transaction-income {
+    border-left-color: #10b981;
+}
+
+.transaction-expense {
+    border-left-color: #ef4444;
+}
+
+.transaction-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--faction-color);
+    box-shadow: 0 0 10px var(--faction-glow);
+}
+
+.transaction-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.transaction-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.transaction-payee {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.transaction-category-badge {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    background: rgba(var(--faction-color-rgb), 0.2);
+    border: 1px solid rgba(var(--faction-color-rgb), 0.4);
+    border-radius: 3px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.transaction-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.transaction-amount {
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: 'Share Tech Mono', monospace;
+    white-space: nowrap;
+}
+
+.amount-positive {
+    color: #10b981;
+}
+
+.amount-negative {
+    color: #ef4444;
+}
+
+/* Quick Transfer Card & Action Cards */
+.action-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--faction-color);
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.quick-transfer-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--faction-color);
+    border-radius: 6px;
+    padding: 1rem;
+    box-shadow: 0 0 15px rgba(var(--faction-color-rgb), 0.3);
+}
+
+.action-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--faction-bright);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.transfer-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.form-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.expanse-select,
+.expanse-input {
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(var(--faction-color-rgb), 0.4);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: 'Rajdhani', sans-serif;
+    transition: all 0.3s ease;
+}
+
+.expanse-select:hover,
+.expanse-input:hover {
+    border-color: rgba(var(--faction-color-rgb), 0.7);
+    box-shadow: 0 0 10px rgba(var(--faction-color-rgb), 0.2);
+}
+
+.expanse-select:focus,
+.expanse-input:focus {
+    outline: none;
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 15px rgba(var(--faction-color-rgb), 0.4);
+}
+
+.expanse-select option {
+    background: #000;
+    color: var(--text-primary);
+}
+
+/* Action Links */
+.action-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.action-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--faction-color-rgb), 0.3);
+    border-radius: 4px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.action-link:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: var(--faction-color);
+    color: var(--faction-bright);
+    box-shadow: 0 0 10px rgba(var(--faction-color-rgb), 0.3);
+}
+
+.action-link svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.action-link:hover svg {
+    opacity: 1;
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+.empty-icon {
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+.empty-message {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Primary Action Button */
+.primary-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--faction-color);
+    border: 2px solid var(--faction-bright);
+    border-radius: 4px;
+    color: #000;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.primary-action-btn:hover {
+    background: var(--faction-bright);
+    box-shadow: 0 0 20px var(--faction-glow);
+    transform: translateY(-1px);
+}
+
+.primary-action-btn svg {
+    transition: transform 0.3s ease;
+}
+
+.primary-action-btn:hover svg {
+    transform: translateX(3px);
+}
+
+/* Analytics Stats Enhancement for Accounts Page */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(var(--faction-color-rgb), 0.2);
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-row-total {
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+    border-top: 2px solid rgba(var(--faction-color-rgb), 0.4);
+    font-weight: 600;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-primary);
+}
+
+.stat-value.positive {
+    color: #10b981;
+}
+
+.stat-value.negative {
+    color: #ef4444;
+}
+
+/* Header Stats Badges */
+.dashboard-header-stats {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.dashboard-stat-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(var(--faction-color-rgb), 0.2);
+    border: 1px solid rgba(var(--faction-color-rgb), 0.4);
+    border-radius: 3px;
+    color: var(--faction-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+/* Account Card Specific Variations */
+.account-card-checking {
+    border-left: 3px solid #3b82f6;
+}
+
+.account-card-savings {
+    border-left: 3px solid #10b981;
+}
+
+.account-card-investment {
+    border-left: 3px solid #8b5cf6;
+}
+
+.balance-trend {
+    font-size: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+}
+

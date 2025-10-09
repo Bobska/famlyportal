@@ -332,6 +332,111 @@ def dashboard(request):
     return render(request, 'bank/dashboard.html', context)
 
 
+@login_required
+def accounts(request):
+    """
+    Render the bank-style accounts page showing multiple account types,
+    transaction history, and transfer capabilities.
+    """
+    from django.db.models import Count, Sum
+    from django.utils import timezone
+    
+    # Get all user transactions
+    all_income = Income.objects.filter(user=request.user)
+    all_expenses = Expense.objects.filter(user=request.user)
+    
+    # Calculate total balances
+    total_income = amount_sum(all_income)
+    total_expenses = amount_sum(all_expenses)
+    overall_balance = total_income - total_expenses
+    
+    # Simulate different account types by categorizing transactions
+    # Checking Account: Primary account for expenses and income
+    checking_income = all_income.filter(payee__icontains='salary').aggregate(total=Sum('amount'))['total'] or ZERO_DECIMAL
+    checking_balance = overall_balance * Decimal('0.6')  # 60% in checking
+    
+    # Savings Account: Long-term savings
+    savings_balance = overall_balance * Decimal('0.35')  # 35% in savings
+    
+    # Investment Account: Investment holdings
+    investment_balance = overall_balance * Decimal('0.05')  # 5% in investments
+    
+    # Recent transactions (last 15 combined)
+    recent_income = all_income.order_by('-date', '-id')[:15]
+    recent_expenses = all_expenses.order_by('-date', '-id')[:15]
+    
+    # Combine and sort by date
+    all_transactions = []
+    for income in recent_income:
+        all_transactions.append({
+            'type': 'income',
+            'entry': income,
+            'date': income.date,
+            'payee': income.payee,
+            'amount': income.amount,
+            'category': None,
+        })
+    for expense in recent_expenses:
+        all_transactions.append({
+            'type': 'expense',
+            'entry': expense,
+            'date': expense.date,
+            'payee': expense.payee,
+            'amount': expense.amount,
+            'category': expense.category,
+        })
+    
+    # Sort by date descending
+    all_transactions.sort(key=lambda x: (x['date'], x['entry'].id), reverse=True)
+    all_transactions = all_transactions[:15]  # Keep top 15
+    
+    # Calculate monthly metrics
+    today = timezone.localdate()
+    monthly_income = amount_sum(
+        Income.objects.filter(user=request.user, date__year=today.year, date__month=today.month)
+    )
+    monthly_expenses = amount_sum(
+        Expense.objects.filter(user=request.user, date__year=today.year, date__month=today.month)
+    )
+    monthly_net = monthly_income - monthly_expenses
+    
+    # Transaction counts by type
+    income_count = all_income.count()
+    expense_count = all_expenses.count()
+    total_transactions = income_count + expense_count
+    
+    # Account activity summary
+    today_transactions = Income.objects.filter(user=request.user, date=today).count() + \
+                         Expense.objects.filter(user=request.user, date=today).count()
+    
+    # Spending by category (top 5)
+    top_spending_categories = (
+        Category.objects.filter(user=request.user)
+        .annotate(total_spent=Sum('expense_entries__amount'))
+        .filter(total_spent__gt=0)
+        .order_by('-total_spent')[:5]
+    )
+    
+    context = {
+        'page_title': 'Accounts Overview',
+        'overall_balance': overall_balance,
+        'checking_balance': checking_balance,
+        'savings_balance': savings_balance,
+        'investment_balance': investment_balance,
+        'recent_transactions': all_transactions,
+        'monthly_income': monthly_income,
+        'monthly_expenses': monthly_expenses,
+        'monthly_net': monthly_net,
+        'income_count': income_count,
+        'expense_count': expense_count,
+        'total_transactions': total_transactions,
+        'today_transactions': today_transactions,
+        'top_spending_categories': top_spending_categories,
+    }
+    
+    return render(request, 'bank/accounts.html', context)
+
+
 def build_weekly_context(request):
     """Return the base context payload for weekly transaction views."""
     week_offset = int(request.GET.get('week_offset', 0))

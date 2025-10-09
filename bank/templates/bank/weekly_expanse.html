@@ -14,19 +14,19 @@
 {% block extra_js %}
 <script src="{% static 'bank/js/week_navigation.js' %}?v=20250930"></script>
 <script>
-    // Week navigation functions
+    // Week navigation functions - Updated to use weekly_expanse URL
     function previousWeek() {
         const currentOffset = {{ week_offset }};
-        window.location.href = '{% url "bank:weekly" %}?week_offset=' + (currentOffset - 1);
+        window.location.href = '{% url "bank:weekly_expanse" %}?week_offset=' + (currentOffset - 1);
     }
     
     function nextWeek() {
         const currentOffset = {{ week_offset }};
-        window.location.href = '{% url "bank:weekly" %}?week_offset=' + (currentOffset + 1);
+        window.location.href = '{% url "bank:weekly_expanse" %}?week_offset=' + (currentOffset + 1);
     }
     
     function changeToCurrentWeek() {
-        window.location.href = '{% url "bank:weekly" %}';
+        window.location.href = '{% url "bank:weekly_expanse" %}';
     }
     
     // Faction theme switcher
@@ -42,6 +42,73 @@
         const spaceInterface = document.querySelector('.weekly-space-interface');
         spaceInterface.setAttribute('data-faction', savedFaction);
         document.getElementById('factionSelector').value = savedFaction;
+        
+        // Set default transaction date to target Monday
+        const dateInput = document.getElementById('transactionDate');
+        if (dateInput) {
+            dateInput.value = '{{ target_monday|date:"Y-m-d" }}';
+        }
+    });
+    
+    // Add Transaction Modal
+    function showAddTransactionModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addTransactionModal'));
+        modal.show();
+    }
+    
+    // Handle Add Transaction Form Submit
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('addTransactionForm');
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const transactionType = formData.get('transaction_type');
+                const alertDiv = document.getElementById('transactionAlert');
+                
+                // Determine the correct endpoint
+                const url = transactionType === 'income' 
+                    ? '{% url "bank:add_income" %}' 
+                    : '{% url "bank:add_expense" %}';
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Show success message
+                        alertDiv.className = 'alert alert-success';
+                        alertDiv.style.display = 'block';
+                        alertDiv.textContent = data.message || 'Transaction added successfully!';
+                        
+                        // Reset form
+                        form.reset();
+                        
+                        // Reload page after a short delay to show the new transaction
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        // Show error message
+                        alertDiv.className = 'alert alert-danger';
+                        alertDiv.style.display = 'block';
+                        alertDiv.textContent = data.error || 'Failed to add transaction';
+                    }
+                } catch (error) {
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.style.display = 'block';
+                    alertDiv.textContent = 'Network error: ' + error.message;
+                }
+            });
+        }
     });
     
     // Transaction filtering
@@ -248,7 +315,7 @@
                                 </ul>
                             </div>
                             
-                            <button class="weekly-action-btn" onclick="window.location.href='{% url 'bank:dashboard' %}'">
+                            <button class="weekly-action-btn" onclick="showAddTransactionModal()">
                                 <i class="bi bi-plus-circle"></i>
                                 Add Transaction
                             </button>
@@ -392,6 +459,78 @@
                     <span class="status-timestamp">{{ current_date|date:"Y.m.d H:i" }}</span>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1" aria-labelledby="addTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: linear-gradient(135deg, rgba(25, 40, 60, 0.95), rgba(20, 30, 50, 0.90)); border: 1px solid var(--faction-color); backdrop-filter: blur(15px);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--faction-color);">
+                <h5 class="modal-title" id="addTransactionModalLabel" style="color: var(--faction-bright); font-weight: 700; letter-spacing: 0.1em;">
+                    <i class="bi bi-plus-circle"></i> ADD TRANSACTION
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addTransactionForm">
+                {% csrf_token %}
+                <div class="modal-body" style="color: var(--text-primary);">
+                    <!-- Transaction Type -->
+                    <div class="mb-3">
+                        <label class="form-label" style="color: var(--faction-color); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 600;">TRANSACTION TYPE</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="transaction_type" id="typeIncome" value="income" checked>
+                            <label class="btn btn-outline-success" for="typeIncome" style="font-weight: 600;">
+                                <i class="bi bi-plus-circle"></i> Income
+                            </label>
+                            <input type="radio" class="btn-check" name="transaction_type" id="typeExpense" value="expense">
+                            <label class="btn btn-outline-danger" for="typeExpense" style="font-weight: 600;">
+                                <i class="bi bi-dash-circle"></i> Expense
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Date -->
+                    <div class="mb-3">
+                        <label for="transactionDate" class="form-label" style="color: var(--faction-color); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 600;">DATE</label>
+                        <input type="date" class="form-control" id="transactionDate" name="date" required 
+                               style="background: rgba(20, 35, 55, 0.7); border: 1px solid var(--faction-color); color: var(--text-primary);">
+                    </div>
+
+                    <!-- Payee -->
+                    <div class="mb-3">
+                        <label for="transactionPayee" class="form-label" style="color: var(--faction-color); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 600;">PAYEE / MERCHANT</label>
+                        <input type="text" class="form-control" id="transactionPayee" name="payee" required placeholder="Enter payee name..."
+                               style="background: rgba(20, 35, 55, 0.7); border: 1px solid var(--faction-color); color: var(--text-primary);">
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="mb-3">
+                        <label for="transactionAmount" class="form-label" style="color: var(--faction-color); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 600;">AMOUNT</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: rgba(20, 35, 55, 0.7); border: 1px solid var(--faction-color); color: var(--faction-bright);">$</span>
+                            <input type="number" class="form-control" id="transactionAmount" name="amount" required placeholder="0.00" step="0.01" min="0"
+                                   style="background: rgba(20, 35, 55, 0.7); border: 1px solid var(--faction-color); color: var(--text-primary);">
+                        </div>
+                    </div>
+
+                    <!-- Notes (Optional) -->
+                    <div class="mb-3">
+                        <label for="transactionNotes" class="form-label" style="color: var(--faction-color); font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 600;">NOTES (OPTIONAL)</label>
+                        <textarea class="form-control" id="transactionNotes" name="notes" rows="2" placeholder="Additional details..."
+                                  style="background: rgba(20, 35, 55, 0.7); border: 1px solid var(--faction-color); color: var(--text-primary);"></textarea>
+                    </div>
+
+                    <div id="transactionAlert" class="alert" role="alert" style="display: none;"></div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--faction-color);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-weight: 600;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background: var(--faction-bright); border-color: var(--faction-bright); font-weight: 600;">
+                        <i class="bi bi-check-circle"></i> Save Transaction
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -7,13 +7,40 @@
    Full Screen Layout
    ============================================ */
 
-/* Ensure shell takes full viewport height */
+/* Ensure shell takes full viewport height with space background */
 .bank-expanse-shell {
     height: 100vh;
     overflow: hidden;
     padding-top: 0 !important;
     margin: 0;
     padding: 0;
+    background: #000 !important;
+    font-family: 'Rajdhani', sans-serif;
+    color: #fff;
+}
+
+/* Hide scrollbars */
+.bank-expanse-shell::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.bank-expanse-shell {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html:has(.bank-expanse-shell) {
+    overflow: hidden;
+    scrollbar-width: none;
+    background: #000;
+}
+
+html:has(.bank-expanse-shell)::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 /* Hide old navigation for full immersive experience */

@@ -1,8 +1,8 @@
-{% extends 'budget_basic/base.html' %}
+{% extends 'bank/base.html' %}
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+<link rel="stylesheet" href="{% static 'bank/css/panel_layout.css' %}">
 {% endblock %}
 
 {% block body_class %}payees-page{% endblock %}
@@ -316,7 +316,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
+<script src="{% static 'bank/js/panel_header_labels.js' %}"></script>
 <script>
 // Global variables
 let currentEditPayeeId = null;
@@ -552,7 +552,7 @@ function submitAddPayee(event) {
     
     const formData = new FormData(document.getElementById('addPayeeForm'));
     
-    fetch('{% url "budget_basic:payee_create" %}', {
+    fetch('{% url "bank:payee_create" %}', {
         method: 'POST',
         body: formData,
         headers: {

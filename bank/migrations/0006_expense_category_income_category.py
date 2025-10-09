@@ -7,18 +7,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('budget_basic', '0005_payee_categories'),
+        ('bank', '0005_payee_categories'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='expense',
             name='category',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='expense_entries', to='budget_basic.category'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='expense_entries', to='bank.category'),
         ),
         migrations.AddField(
             model_name='income',
             name='category',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='income_entries', to='budget_basic.category'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='income_entries', to='bank.category'),
         ),
     ]

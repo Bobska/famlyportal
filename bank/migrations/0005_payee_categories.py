@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('budget_basic', '0004_category'),
+        ('bank', '0004_category'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='payee',
             name='categories',
-            field=models.ManyToManyField(blank=True, help_text='Categories that this payee/merchant is associated with', related_name='payees', to='budget_basic.category'),
+            field=models.ManyToManyField(blank=True, help_text='Categories that this payee/merchant is associated with', related_name='payees', to='bank.category'),
         ),
     ]

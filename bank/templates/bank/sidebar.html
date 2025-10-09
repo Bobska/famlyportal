@@ -14,28 +14,28 @@
         <nav class="bb-sidebar__nav" aria-label="Budget sections">
             {% with url_name=request.resolver_match.url_name %}
                 <a class="bb-sidebar__nav-link {% if url_name == 'weekly' %}is-active{% endif %}"
-                   href="{% url 'budget_basic:weekly' %}"
+                   href="{% url 'bank:weekly' %}"
                    title="Weekly Overview"
                    {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
                     <i class="fas fa-calendar-week"></i>
                     <span class="bb-sidebar__nav-label">Weekly</span>
                 </a>
                 <a class="bb-sidebar__nav-link {% if url_name == 'transactions' %}is-active{% endif %}"
-                   href="{% url 'budget_basic:transactions' %}"
+                   href="{% url 'bank:transactions' %}"
                    title="Transactions"
                    {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
                     <i class="fas fa-list"></i>
                     <span class="bb-sidebar__nav-label">Transactions</span>
                 </a>
                 <a class="bb-sidebar__nav-link {% if url_name == 'payee_list' %}is-active{% endif %}"
-                   href="{% url 'budget_basic:payee_list' %}"
+                   href="{% url 'bank:payee_list' %}"
                    title="Manage Payees"
                    {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
                     <i class="fas fa-users"></i>
                     <span class="bb-sidebar__nav-label">Payees</span>
                 </a>
                 <a class="bb-sidebar__nav-link {% if url_name == 'category_list' %}is-active{% endif %}"
-                   href="{% url 'budget_basic:category_list' %}"
+                   href="{% url 'bank:category_list' %}"
                    title="Categories"
                    {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
                     <i class="fas fa-tags"></i>

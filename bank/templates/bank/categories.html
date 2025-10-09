@@ -1,8 +1,8 @@
-{% extends 'budget_basic/base.html' %}
+{% extends 'bank/base.html' %}
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'budget_basic/css/panel_layout.css' %}">
+<link rel="stylesheet" href="{% static 'bank/css/panel_layout.css' %}">
 {% endblock %}
 
 {% block body_class %}payees-page categories-page{% endblock %}
@@ -130,11 +130,11 @@
                         <div class="panel-subtitle" id="payees-subtitle">Select a category</div>
                     </div>
                     <div class="panel-header-actions">
-                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" data-target-url="{% url 'budget_basic:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" data-target-url="{% url 'bank:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-people me-1"></i>
                             <span>Manage Payees</span>
                         </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-target-url="{% url 'budget_basic:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm action-btn d-lg-none" data-target-url="{% url 'bank:payee_list' %}" onclick="window.location.href=this.dataset.targetUrl" title="Open Payee Manager" data-bs-toggle="tooltip" data-bs-placement="top">
                             <i class="bi bi-people"></i>
                         </button>
                     </div>
@@ -252,7 +252,7 @@
                 <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addCategoryForm" method="post" action="{% url 'budget_basic:category_create' %}">
+            <form id="addCategoryForm" method="post" action="{% url 'bank:category_create' %}">
                 <div class="modal-body">
                     {% csrf_token %}
                     <div class="mb-3">
@@ -371,7 +371,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
+<script src="{% static 'bank/js/panel_header_labels.js' %}"></script>
 <script>
 // Category management JavaScript - matches transactions/payees pattern
 let selectedCategoryCard = null;
@@ -1144,7 +1144,7 @@ async function handleEditCategoryForm(event) {
     
     try {
         const formData = new FormData(form);
-        const response = await fetch(`{% url 'budget_basic:category_update' 0 %}`.replace('0', categoryId), {
+        const response = await fetch(`{% url 'bank:category_update' 0 %}`.replace('0', categoryId), {
             method: 'POST',
             body: formData,
             headers: {
@@ -1218,7 +1218,7 @@ function deleteSelectedCategory() {
         const formData = new FormData();
         formData.append('category_id', data.id);
 
-        fetch(`{% url 'budget_basic:category_delete' 0 %}`.replace('0', data.id), {
+        fetch(`{% url 'bank:category_delete' 0 %}`.replace('0', data.id), {
             method: 'POST',
             body: formData,
             headers: {

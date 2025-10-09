@@ -2,7 +2,7 @@
 <nav class="bb-top-nav navbar navbar-expand-lg navbar-light">
     <div class="bb-top-nav__container container-fluid">
         <div class="bb-top-nav__brand-group">
-            <a class="bb-top-nav__brand" href="{% url 'budget_basic:dashboard' %}">
+            <a class="bb-top-nav__brand" href="{% url 'bank:dashboard' %}">
                 <img src="{% static 'images/favicon.svg' %}" alt="FamlyPortal" width="28" height="28" class="bb-top-nav__brand-icon">
                 <span class="bb-top-nav__brand-text">Budget Basic</span>
             </a>
@@ -15,31 +15,31 @@
             <ul class="navbar-nav bb-top-nav__links">
                 {% with url_name=request.resolver_match.url_name %}
                     <li class="nav-item">
-                        <a class="nav-link bb-top-nav__link {% if url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'budget_basic:dashboard' %}" {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'bank:dashboard' %}" {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>
                             <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link bb-top-nav__link {% if url_name == 'weekly' %}is-active{% endif %}" href="{% url 'budget_basic:weekly' %}" {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'weekly' %}is-active{% endif %}" href="{% url 'bank:weekly' %}" {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
                             <i class="fas fa-calendar-week"></i>
                             <span>Weekly</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link bb-top-nav__link {% if url_name == 'transactions' %}is-active{% endif %}" href="{% url 'budget_basic:transactions' %}" {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'transactions' %}is-active{% endif %}" href="{% url 'bank:transactions' %}" {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
                             <i class="fas fa-list"></i>
                             <span>Transactions</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link bb-top-nav__link {% if url_name == 'payee_list' %}is-active{% endif %}" href="{% url 'budget_basic:payee_list' %}" {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'payee_list' %}is-active{% endif %}" href="{% url 'bank:payee_list' %}" {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
                             <i class="fas fa-users"></i>
                             <span>Payees</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link bb-top-nav__link {% if url_name == 'category_list' %}is-active{% endif %}" href="{% url 'budget_basic:category_list' %}" {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
+                        <a class="nav-link bb-top-nav__link {% if url_name == 'category_list' %}is-active{% endif %}" href="{% url 'bank:category_list' %}" {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
                             <i class="fas fa-tags"></i>
                             <span>Categories</span>
                         </a>

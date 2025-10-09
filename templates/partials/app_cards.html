@@ -109,15 +109,15 @@
             </div>
             {% endif %}
             
-            <!-- Budget Basic App - New -->
-            {% has_app_permission 'budget_basic' as can_budget_basic %}
-            {% if can_budget_basic %}
+            <!-- Bank App -->
+            {% has_app_permission 'bank' as can_bank %}
+            {% if can_bank %}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <a href="{% url 'budget_basic:dashboard' %}" class="app-card new">
+                <a href="{% url 'bank:dashboard' %}" class="app-card new">
                     <span class="status-badge new">New</span>
-                    <i class="bi bi-calculator app-icon"></i>
-                    <h5 class="app-title">Budget Basic</h5>
-                    <p class="app-description">Simple income and expense tracking for easy budgeting</p>
+                    <i class="bi bi-bank app-icon"></i>
+                    <h5 class="app-title">Bank</h5>
+                    <p class="app-description">Account and transaction tracking system</p>
                 </a>
             </div>
             {% endif %}

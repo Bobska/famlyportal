@@ -58,7 +58,7 @@ LOCAL_APPS = [
     'household_budget',
     'subscription_tracker',
     'budget_allocation',
-    'budget_basic',
+    'bank',
     'gmail_integration',
     'ai',  # AI/ML Hub
 ]

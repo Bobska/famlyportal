@@ -40,7 +40,7 @@ urlpatterns = [
     path('household-budget/', include('household_budget.urls')),
     path('subscription-tracker/', include('subscription_tracker.urls')),
     path('budget-allocation/', include('budget_allocation.urls')),
-    path('budget-basic/', include('budget_basic.urls')),
+    path('bank/', include('bank.urls')),
     path('gmail/', include('gmail_integration.urls')),
     path('ai/', include('ai.urls')),  # AI/ML Hub
 ]

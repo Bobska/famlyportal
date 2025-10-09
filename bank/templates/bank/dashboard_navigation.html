@@ -2,7 +2,7 @@
 <header class="dashboard-nav" aria-label="Budget Basic command navigation">
     <div class="dashboard-nav__band">
         <div class="dashboard-nav__brand">
-            <a href="{% url 'budget_basic:dashboard' %}" class="dashboard-nav__brand-link">
+            <a href="{% url 'bank:dashboard' %}" class="dashboard-nav__brand-link">
                 <span class="dashboard-nav__glyph" aria-hidden="true">
                     <span class="dashboard-nav__glyph-core"></span>
                 </span>
@@ -15,23 +15,23 @@
 
         <nav class="dashboard-nav__links" aria-label="Primary">
             {% with url_name=request.resolver_match.url_name %}
-                <a class="dashboard-nav__link {% if url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'budget_basic:dashboard' %}" {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>
+                <a class="dashboard-nav__link {% if url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'bank:dashboard' %}" {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>
                     <span class="dashboard-nav__link-label">Dashboard</span>
                     <span class="dashboard-nav__link-meta">Telemetry</span>
                 </a>
-                <a class="dashboard-nav__link {% if url_name == 'weekly' %}is-active{% endif %}" href="{% url 'budget_basic:weekly' %}" {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
+                <a class="dashboard-nav__link {% if url_name == 'weekly' %}is-active{% endif %}" href="{% url 'bank:weekly' %}" {% if url_name == 'weekly' %}aria-current="page"{% endif %}>
                     <span class="dashboard-nav__link-label">Weekly</span>
                     <span class="dashboard-nav__link-meta">Ops Log</span>
                 </a>
-                <a class="dashboard-nav__link {% if url_name == 'transactions' %}is-active{% endif %}" href="{% url 'budget_basic:transactions' %}" {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
+                <a class="dashboard-nav__link {% if url_name == 'transactions' %}is-active{% endif %}" href="{% url 'bank:transactions' %}" {% if url_name == 'transactions' %}aria-current="page"{% endif %}>
                     <span class="dashboard-nav__link-label">Transactions</span>
                     <span class="dashboard-nav__link-meta">Ledger</span>
                 </a>
-                <a class="dashboard-nav__link {% if url_name == 'payee_list' %}is-active{% endif %}" href="{% url 'budget_basic:payee_list' %}" {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
+                <a class="dashboard-nav__link {% if url_name == 'payee_list' %}is-active{% endif %}" href="{% url 'bank:payee_list' %}" {% if url_name == 'payee_list' %}aria-current="page"{% endif %}>
                     <span class="dashboard-nav__link-label">Payees</span>
                     <span class="dashboard-nav__link-meta">Contacts</span>
                 </a>
-                <a class="dashboard-nav__link {% if url_name == 'category_list' %}is-active{% endif %}" href="{% url 'budget_basic:category_list' %}" {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
+                <a class="dashboard-nav__link {% if url_name == 'category_list' %}is-active{% endif %}" href="{% url 'bank:category_list' %}" {% if url_name == 'category_list' %}aria-current="page"{% endif %}>
                     <span class="dashboard-nav__link-label">Categories</span>
                     <span class="dashboard-nav__link-meta">Tags</span>
                 </a>

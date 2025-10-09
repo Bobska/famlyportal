@@ -279,17 +279,17 @@
                     </a>
                     {% endif %}
 
-                    {% has_app_permission 'budget_basic' as can_budget_basic %}
-                    {% if can_budget_basic %}
-                    <a href="{% url 'budget_basic:dashboard' %}" class="holo-module">
+                    {% has_app_permission 'bank' as can_bank %}
+                    {% if can_bank %}
+                    <a href="{% url 'bank:dashboard' %}" class="holo-module">
                         <div class="module-border"></div>
                         <div class="module-glow"></div>
                         <div class="module-header">
-                            <div class="module-icon">�</div>
-                            <div class="module-code">BB-09</div>
+                            <div class="module-icon">💳</div>
+                            <div class="module-code">BK-09</div>
                         </div>
-                        <div class="module-title">BUDGET BASIC</div>
-                        <div class="module-desc">Simple budget tracking</div>
+                        <div class="module-title">BANK</div>
+                        <div class="module-desc">Account & transaction tracking</div>
                         <div class="module-status operational">
                             <span class="status-dot"></span>
                             OPERATIONAL

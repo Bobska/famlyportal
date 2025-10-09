@@ -10,12 +10,12 @@
     
     <!-- Custom Stylesheets -->
     <link href="{% static 'css/base.css' %}" rel="stylesheet">
-    <link href="{% static 'budget_basic/css/budget_basic.css' %}?v={{ timestamp|default:'20250921' }}" rel="stylesheet">
-    <link href="{% static 'budget_basic/css/navigation.css' %}?v={{ timestamp|default:'20250921' }}" rel="stylesheet">
-    <link href="{% static 'budget_basic/css/sidebar.css' %}?v={{ timestamp|default:'20250921' }}" rel="stylesheet">
+    <link href="{% static 'bank/css/bank.css' %}?v={{ timestamp|default:'20250921' }}" rel="stylesheet">
+    <link href="{% static 'bank/css/navigation.css' %}?v={{ timestamp|default:'20250921' }}" rel="stylesheet">
+    <link href="{% static 'bank/css/sidebar.css' %}?v={{ timestamp|default:'20250921' }}" rel="stylesheet">
     
-    <title>{% block title %}Budget Basic - FamlyPortal{% endblock %}</title>
-    <meta name="description" content="{% block description %}Budget Basic - Simple budget management for families{% endblock %}">
+    <title>{% block title %}Bank - FamlyPortal{% endblock %}</title>
+    <meta name="description" content="{% block description %}Bank - Account and transaction tracking for families{% endblock %}">
     
     <!-- Page-Specific CSS -->
     {% block extra_css %}{% endblock %}
@@ -30,13 +30,13 @@
     <div class="bb-app-shell">
         <!-- Budget Basic Navigation -->
         {% block top_navigation %}
-            {% include 'budget_basic/navigation.html' %}
+            {% include 'bank/navigation.html' %}
         {% endblock %}
 
         <div class="bb-app-stage">
             <!-- Sidebar Navigation -->
             {% block sidebar %}
-                {% include 'budget_basic/sidebar.html' %}
+                {% include 'bank/sidebar.html' %}
             {% endblock %}
 
             <!-- Main Content Container -->
@@ -59,23 +59,23 @@
     </div>
 
     <!-- Modals -->
-    {% include 'budget_basic/modals/coming_soon.html' %}
-    {% include 'budget_basic/modals/add_transaction.html' %}
-    {% include 'budget_basic/modals/add_income.html' %}
-    {% include 'budget_basic/modals/edit_income.html' %}
-    {% include 'budget_basic/modals/delete_income.html' %}
-    {% include 'budget_basic/modals/add_expense.html' %}
-    {% include 'budget_basic/modals/edit_expense.html' %}
-    {% include 'budget_basic/modals/delete_expense.html' %}
-    {% include 'budget_basic/modals/add_payee.html' %}
-    {% include 'budget_basic/modals/add_category.html' %}
-    {% include 'budget_basic/modals/link_category_to_payee.html' %}
-    {% include 'budget_basic/modals/success.html' %}
+    {% include 'bank/modals/coming_soon.html' %}
+    {% include 'bank/modals/add_transaction.html' %}
+    {% include 'bank/modals/add_income.html' %}
+    {% include 'bank/modals/edit_income.html' %}
+    {% include 'bank/modals/delete_income.html' %}
+    {% include 'bank/modals/add_expense.html' %}
+    {% include 'bank/modals/edit_expense.html' %}
+    {% include 'bank/modals/delete_expense.html' %}
+    {% include 'bank/modals/add_payee.html' %}
+    {% include 'bank/modals/add_category.html' %}
+    {% include 'bank/modals/link_category_to_payee.html' %}
+    {% include 'bank/modals/success.html' %}
 
     <!-- Core JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'budget_basic/js/budget_basic.js' %}"></script>
-    <script src="{% static 'budget_basic/js/week_navigation.js' %}?v=20250930"></script>
+    <script src="{% static 'bank/js/bank.js' %}"></script>
+    <script src="{% static 'bank/js/week_navigation.js' %}?v=20250930"></script>
     
     <!-- Page-Specific JavaScript -->
     {% block extra_js %}{% endblock %}

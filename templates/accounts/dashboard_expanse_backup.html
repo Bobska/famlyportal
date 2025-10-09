@@ -138,18 +138,18 @@
 
     <!-- Operations Grid (App Cards) -->
     <section class="operations-grid">
-        {% has_app_permission 'budget_basic' as can_budget_basic %}
-        {% if can_budget_basic %}
-        <a href="{% url 'budget_basic:dashboard' %}" class="operation-card operation-card--active">
+        {% has_app_permission 'bank' as can_bank %}
+        {% if can_bank %}
+        <a href="{% url 'bank:dashboard' %}" class="operation-card operation-card--active">
             <div class="operation-status">
                 <span class="status-indicator status-indicator--active"></span>
                 <span class="status-text">ACTIVE</span>
             </div>
             <div class="operation-icon">
-                <i class="bi bi-calculator"></i>
+                <i class="bi bi-bank"></i>
             </div>
-            <h3 class="operation-title">BUDGET BASIC</h3>
-            <p class="operation-desc">FINANCIAL TRACKING SYSTEM - INCOME AND EXPENSE MONITORING</p>
+            <h3 class="operation-title">BANK</h3>
+            <p class="operation-desc">ACCOUNT & TRANSACTION TRACKING - FINANCIAL MANAGEMENT</p>
             <div class="operation-meta">
                 <span class="meta-item">SYSTEM: ECONOMICS</span>
                 <span class="meta-item">STATUS: OPERATIONAL</span>

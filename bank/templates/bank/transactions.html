@@ -1,10 +1,10 @@
-{% extends 'budget_basic/base.html' %}
+{% extends 'bank/base.html' %}
 
 {% load static %}
 {% load humanize %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'budget_basic/css/transactions_futuristic.css' %}?v=20251008-012">
+<link rel="stylesheet" href="{% static 'bank/css/transactions_futuristic.css' %}?v=20251008-012">
 {% endblock %}
 
 {% block body_class %}transactions-panel-page payees-page{% endblock %}
@@ -233,7 +233,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'budget_basic/js/panel_header_labels.js' %}"></script>
+<script src="{% static 'bank/js/panel_header_labels.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof PanelHeaderLabelManager !== 'undefined') {

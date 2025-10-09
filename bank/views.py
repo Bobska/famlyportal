@@ -230,7 +230,7 @@ def dashboard(request):
         'current_balance': current_balance,
         **build_sidebar_summary_context(request),
     }
-    return render(request, 'budget_basic/dashboard.html', context)
+    return render(request, 'bank/dashboard.html', context)
 
 
 def build_weekly_context(request):
@@ -330,7 +330,7 @@ def weekly(request):
         'app_name': 'budget_basic',
         **build_weekly_context(request),
     }
-    return render(request, 'budget_basic/weekly.html', context)
+    return render(request, 'bank/weekly.html', context)
 
 
 @login_required
@@ -342,7 +342,7 @@ def transactions(request):
         **build_all_transactions_context(request),
         **build_sidebar_summary_context(request),
     }
-    return render(request, 'budget_basic/transactions.html', context)
+    return render(request, 'bank/transactions.html', context)
 
 
 @login_required
@@ -782,7 +782,7 @@ def payee_list(request):
         'current_category_filter': category_filter,
         **build_sidebar_summary_context(request),
     }
-    return render(request, 'budget_basic/payees.html', context)
+    return render(request, 'bank/payees.html', context)
 
 
 @login_required
@@ -1026,7 +1026,7 @@ def category_list(request):
         'categories': categories,
         **build_sidebar_summary_context(request),
     }
-    return render(request, 'budget_basic/categories.html', context)
+    return render(request, 'bank/categories.html', context)
 
 
 @login_required  

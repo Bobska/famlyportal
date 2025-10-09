@@ -1,14 +1,14 @@
-{% extends 'budget_basic/base.html' %}
+{% extends 'bank/base.html' %}
 {% load static %}
 {% load humanize %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'budget_basic/css/dashboard_futuristic.css' %}?v=20251008-002">
+<link rel="stylesheet" href="{% static 'bank/css/dashboard_futuristic.css' %}?v=20251008-002">
 {% endblock %}
 
 {% block extra_js %}
 {{ block.super }}
-<script src="{% static 'budget_basic/js/dashboard_themes.js' %}?v=20251008-001" defer></script>
+<script src="{% static 'bank/js/dashboard_themes.js' %}?v=20251008-001" defer></script>
 {% endblock %}
 
 {% block body_class %}dashboard-page dashboard-shell{% endblock %}
@@ -22,11 +22,11 @@
 {% block page_header %}{% endblock %}
 
 {% block top_navigation %}
-    {% include 'budget_basic/dashboard_navigation.html' %}
+    {% include 'bank/dashboard_navigation.html' %}
 {% endblock %}
 
 {% block sidebar %}
-    {% include 'budget_basic/dashboard_sidebar.html' %}
+    {% include 'bank/dashboard_sidebar.html' %}
 {% endblock %}
 
 {% block content %}
@@ -101,7 +101,7 @@
                     <span class="signal-panel__kicker">Ledger Feed</span>
                     <h2 class="signal-panel__title" id="recent-transactions-heading">Recent Transactions</h2>
                 </div>
-                <a href="{% url 'budget_basic:transactions' %}" class="signal-panel__cta">View All</a>
+                <a href="{% url 'bank:transactions' %}" class="signal-panel__cta">View All</a>
             </header>
             <div class="signal-panel__body">
                 <div class="signal-panel__empty">

@@ -240,28 +240,42 @@ def dashboard(request):
     
     # Count active payees, categories, and transactions
     from .models import Payee, Category
-    from django.db.models import Count, Sum, F
+    from django.db.models import Count, Sum, F, Q
     
     payee_count = Payee.objects.filter(user=request.user).count()
     category_count = Category.objects.filter(user=request.user).count()
     transaction_count = recent_income.count() + recent_expenses.count()
     
-    # Top payees by transaction count
-    top_payees = (
-        Payee.objects.filter(user=request.user)
-        .annotate(
-            income_count=Count('income', distinct=True),
-            expense_count=Count('expense', distinct=True)
-        )
-        .annotate(total_count=F('income_count') + F('expense_count'))
-        .filter(total_count__gt=0)
-        .order_by('-total_count')[:3]
+    # Top payees by transaction count (based on payee CharField in Income/Expense)
+    # Get all income transactions grouped by payee
+    income_payees = (
+        Income.objects.filter(user=request.user)
+        .values('payee')
+        .annotate(count=Count('id'))
     )
+    
+    # Get all expense transactions grouped by payee
+    expense_payees = (
+        Expense.objects.filter(user=request.user)
+        .values('payee')
+        .annotate(count=Count('id'))
+    )
+    
+    # Combine and aggregate
+    payee_totals = {}
+    for item in income_payees:
+        payee_totals[item['payee']] = payee_totals.get(item['payee'], 0) + item['count']
+    for item in expense_payees:
+        payee_totals[item['payee']] = payee_totals.get(item['payee'], 0) + item['count']
+    
+    # Sort and get top 3
+    top_payees = sorted(payee_totals.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_payees = [{'name': name, 'total_count': count} for name, count in top_payees]
     
     # Top categories by transaction count
     top_categories = (
         Category.objects.filter(user=request.user)
-        .annotate(transaction_count=Count('expense'))
+        .annotate(transaction_count=Count('expense_entries'))
         .filter(transaction_count__gt=0)
         .order_by('-transaction_count')[:3]
     )

@@ -347,8 +347,8 @@
         
         // Determine the correct URL based on transaction type
         const url = transactionType === 'income' 
-            ? `/bank/edit-income/${transactionId}/`
-            : `/bank/edit-expense/${transactionId}/`;
+            ? `/bank/income/${transactionId}/edit/`
+            : `/bank/expense/${transactionId}/edit/`;
         
         fetch(url, {
             method: 'POST',
@@ -400,8 +400,8 @@
         
         if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
             const url = selectedTransactionType === 'income'
-                ? `/bank/delete-income/${selectedTransactionId}/`
-                : `/bank/delete-expense/${selectedTransactionId}/`;
+                ? `/bank/income/${selectedTransactionId}/delete/`
+                : `/bank/expense/${selectedTransactionId}/delete/`;
             
             fetch(url, {
                 method: 'POST',

@@ -257,6 +257,91 @@ html {
     }
 }
 
+/* Audio Controls */
+.dashboard-audio-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.dashboard-audio-status.running {
+    border-color: var(--income-color);
+}
+
+.dashboard-audio-status.disabled {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dashboard-audio-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.dashboard-audio-indicator.running {
+    background: var(--income-color);
+    box-shadow: 0 0 8px var(--income-glow);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.dashboard-audio-indicator.suspended {
+    background: rgba(251, 146, 60, 0.6);
+    box-shadow: 0 0 4px rgba(251, 146, 60, 0.4);
+}
+
+.dashboard-audio-indicator.disabled {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+}
+
+.dashboard-audio-text {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.dashboard-audio-status.running .dashboard-audio-text {
+    color: var(--income-color);
+}
+
+.dashboard-audio-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dashboard-audio-toggle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--faction-color);
+    border-radius: 2px;
+    color: var(--faction-bright);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+}
+
+.dashboard-audio-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 12px var(--faction-glow);
+    transform: translateY(-2px);
+}
+
+.dashboard-audio-toggle:active {
+    transform: translateY(0);
+}
+
 .dashboard-faction-selector {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--faction-color);

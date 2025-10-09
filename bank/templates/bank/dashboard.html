@@ -9,6 +9,10 @@
 <link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251009-003">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'js/expanse_audio.js' %}?v=20251009-021"></script>
+{% endblock %}
+
 {% block body_class %}bank-expanse-dashboard{% endblock %}
 
 {% block content %}
@@ -39,6 +43,17 @@
                         <span class="dashboard-status-dot"></span>
                         <span>OPERATIONAL</span>
                     </div>
+                </div>
+                
+                <div class="dashboard-audio-status" id="audioStatus">
+                    <span class="dashboard-audio-indicator suspended" id="audioIndicator"></span>
+                    <span class="dashboard-audio-text" id="audioStatusText">AUDIO SUSPENDED</span>
+                </div>
+                
+                <div class="dashboard-audio-control" id="audioControl">
+                    <button id="audioToggle" class="dashboard-audio-toggle" title="Toggle Audio">
+                        <i class="bi bi-volume-mute-fill" id="audioIcon"></i>
+                    </button>
                 </div>
             </div>
             
@@ -344,6 +359,11 @@ function changeFaction(faction) {
     const spaceInterface = document.querySelector('.dashboard-space-interface');
     spaceInterface.setAttribute('data-faction', faction);
     localStorage.setItem('dashboardFaction', faction);
+    
+    // Play faction change sound
+    if (window.ExpanseAudio) {
+        window.ExpanseAudio.play('factionChange');
+    }
 }
 
 // Load saved faction on page load
@@ -352,6 +372,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const spaceInterface = document.querySelector('.dashboard-space-interface');
     spaceInterface.setAttribute('data-faction', savedFaction);
     document.getElementById('factionSelector').value = savedFaction;
+    
+    // Initialize audio system
+    if (window.ExpanseAudio) {
+        window.ExpanseAudio.reinit();
+    }
+    
+    // Audio toggle button
+    const audioToggle = document.getElementById('audioToggle');
+    const audioIcon = document.getElementById('audioIcon');
+    
+    if (audioToggle && audioIcon) {
+        audioToggle.addEventListener('click', function() {
+            if (window.ExpanseAudio) {
+                const enabled = window.ExpanseAudio.toggle();
+                
+                // Update icon
+                if (enabled) {
+                    audioIcon.classList.remove('bi-volume-mute-fill');
+                    audioIcon.classList.add('bi-volume-up-fill');
+                } else {
+                    audioIcon.classList.remove('bi-volume-up-fill');
+                    audioIcon.classList.add('bi-volume-mute-fill');
+                }
+            }
+        });
+        
+        // Set initial icon state
+        if (window.ExpanseAudio && window.ExpanseAudio.isEnabled()) {
+            audioIcon.classList.remove('bi-volume-mute-fill');
+            audioIcon.classList.add('bi-volume-up-fill');
+        }
+    }
+    
+    // Add click sounds to navigation elements
+    document.querySelectorAll('.dashboard-nav-btn, .dashboard-action-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (window.ExpanseAudio) {
+                window.ExpanseAudio.play('click');
+            }
+        });
+    });
+    
+    // Add hover sounds to transaction cards
+    document.querySelectorAll('.dashboard-transaction-card').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            if (window.ExpanseAudio) {
+                window.ExpanseAudio.play('hover');
+            }
+        });
+    });
 });
 </script>
 

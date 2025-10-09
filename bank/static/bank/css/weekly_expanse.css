@@ -833,6 +833,13 @@ html:has(body.weekly-expanse-interface)::-webkit-scrollbar {
     transition: background 0.3s ease, opacity 0.3s ease;
 }
 
+/* Hide scrollbar arrows/buttons */
+.weekly-transaction-scroll::-webkit-scrollbar-button {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+}
+
 /* Show scrollbar on hover or when scrolling */
 .weekly-transaction-scroll:hover::-webkit-scrollbar-thumb {
     background: var(--faction-color) !important;
@@ -1102,6 +1109,13 @@ html:has(body.weekly-expanse-interface)::-webkit-scrollbar {
 .weekly-detail-content::-webkit-scrollbar-thumb {
     background: transparent;
     border-radius: 2px;
+}
+
+/* Hide scrollbar arrows in detail panel */
+.weekly-detail-content::-webkit-scrollbar-button {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
 }
 
 .weekly-detail-content:hover::-webkit-scrollbar-thumb {

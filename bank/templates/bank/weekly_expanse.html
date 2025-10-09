@@ -580,9 +580,9 @@
                                 <div class="weekly-transaction-card" 
                                      data-transaction-id="{{ transaction.entry.id }}" 
                                      data-transaction-type="income"
-                                     data-transaction-payee="{{ transaction.entry.payee|default_if_none:''|escapejs }}"
+                                     data-transaction-payee="{{ transaction.entry.payee|default_if_none:'' }}"
                                      data-transaction-date="{{ transaction.entry.date|date:'Y-m-d' }}"
-                                     data-transaction-notes="{{ transaction.entry.notes|default_if_none:''|escapejs }}"
+                                     data-transaction-notes="{{ transaction.entry.notes|default_if_none:'' }}"
                                      data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
                                      onclick="selectTransaction(this)">
                                     <div class="transaction-date">
@@ -606,9 +606,9 @@
                                 <div class="weekly-transaction-card" 
                                      data-transaction-id="{{ transaction.entry.id }}" 
                                      data-transaction-type="expense"
-                                     data-transaction-payee="{{ transaction.entry.payee|default_if_none:''|escapejs }}"
+                                     data-transaction-payee="{{ transaction.entry.payee|default_if_none:'' }}"
                                      data-transaction-date="{{ transaction.entry.date|date:'Y-m-d' }}"
-                                     data-transaction-notes="{{ transaction.entry.notes|default_if_none:''|escapejs }}"
+                                     data-transaction-notes="{{ transaction.entry.notes|default_if_none:'' }}"
                                      data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
                                      onclick="selectTransaction(this)">
                                     <div class="transaction-date">

@@ -331,7 +331,9 @@ html {
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--faction-color);
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    position: relative;
+    z-index: 1;
 }
 
 .dashboard-panel-icon {
@@ -721,12 +723,13 @@ html {
 
 .dashboard-transaction-card {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(10, 20, 30, 0.3));
-    border: 1px solid var(--faction-color);
+    border: 1px solid rgba(59, 130, 246, 0.15);
     border-radius: 2px;
     padding: 1rem;
     transition: all 0.3s ease;
     position: relative;
     box-shadow: 0 0 3px rgba(59, 130, 246, 0.1);
+    overflow: hidden;
 }
 
 .dashboard-transaction-card::before {
@@ -749,11 +752,64 @@ html {
     box-shadow: 0 0 10px var(--expense-glow);
 }
 
+.dashboard-transaction-card:hover::before {
+    opacity: 0;
+}
+
 .dashboard-transaction-card:hover {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(10, 20, 35, 0.4));
     border-color: var(--faction-bright);
-    box-shadow: 0 0 15px var(--faction-glow);
+    box-shadow: 
+        0 0 20px var(--faction-glow),
+        inset 0 0 20px rgba(59, 130, 246, 0.1);
     transform: translateX(3px);
+}
+
+/* Double border with inner glow */
+.dashboard-transaction-card::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 2px solid var(--faction-bright);
+    border-radius: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 
+        0 0 20px var(--faction-glow),
+        0 0 10px var(--faction-bright),
+        inset 0 0 25px rgba(59, 130, 246, 0.3);
+    filter: brightness(1.2);
+}
+
+.dashboard-transaction-card:hover::after {
+    opacity: 1;
+}
+
+@keyframes holo-flicker {
+    0%, 100% {
+        box-shadow: 0 0 15px var(--faction-glow);
+    }
+    50% {
+        box-shadow: 
+            0 0 20px var(--faction-glow),
+            0 0 5px var(--faction-bright);
+    }
+}
+
+@keyframes holo-border-flicker {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    25% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 0.4;
+    }
+    75% {
+        opacity: 0.9;
+    }
 }
 
 .transaction-card-main {

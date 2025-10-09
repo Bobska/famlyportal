@@ -1537,6 +1537,16 @@ let currentBaseModal = null; // Track which modal opened the payee modal
 
 // Load payees from server
 async function loadPayees() {
+    // Only load payees if we're on a page that needs them (has payee-related elements)
+    const needsPayees = document.querySelector('#id_payee_choice') || 
+                       document.querySelector('.payee-list-panel') ||
+                       document.querySelector('[data-needs-payees="true"]');
+    
+    if (!needsPayees) {
+        // Not on a page that needs payees - skip loading
+        return;
+    }
+    
     try {
         const response = await fetch('/budget-basic/payees/');
         const data = await response.json();
@@ -3510,9 +3520,13 @@ function initializePanelResizer() {
     const resizer = document.getElementById('panel-resizer');
     
     if (!resizer) {
-        // Not a warning on categories page since it uses different resizers
-        if (!document.querySelector('.categories-page')) {
-            console.warn('Panel resizer element not found');
+        // Not a warning on pages that don't need the resizer
+        const needsResizer = document.querySelector('.transaction-cards-container') || 
+                           document.querySelector('.payee-list-panel') ||
+                           document.querySelector('.categories-page');
+        
+        if (needsResizer) {
+            console.warn('Panel resizer element not found on page that may need it');
         }
         return;
     }
@@ -3537,7 +3551,13 @@ function initializeTransactionSelection() {
         const transactionCardsContainer = document.querySelector('.transaction-cards-container') || document.querySelector('.payee-list-panel');
         
         if (!transactionCardsContainer) {
-            console.warn('Transaction cards container not found - selection system not initialized');
+            // Only warn if we're on a page that should have transaction selection
+            const needsSelection = document.querySelector('[data-needs-selection="true"]') ||
+                                 document.querySelector('.transaction-card-data');
+            
+            if (needsSelection) {
+                console.warn('Transaction cards container not found - selection system not initialized');
+            }
             return;
         }
         

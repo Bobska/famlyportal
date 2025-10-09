@@ -1,0 +1,650 @@
+/* ==========================================================================
+   BANK DASHBOARD - THE EXPANSE THEME
+   Tactical financial command interface inspired by The Expanse
+   ========================================================================== */
+
+/* Root Variables - Expanse Faction Colors */
+:root {
+    --expanse-primary: #00d4ff;
+    --expanse-secondary: #0099cc;
+    --expanse-accent: #00ffaa;
+    --expanse-warning: #ff9500;
+    --expanse-danger: #ff3b30;
+    --expanse-success: #00ff88;
+    
+    --expanse-bg-dark: #0a0e1a;
+    --expanse-bg-panel: rgba(15, 25, 40, 0.95);
+    --expanse-bg-card: rgba(20, 35, 55, 0.9);
+    --expanse-border: rgba(0, 212, 255, 0.3);
+    --expanse-glow: rgba(0, 212, 255, 0.4);
+    
+    --text-bright: #e8f4f8;
+    --text-normal: #b8d4e0;
+    --text-muted: #7a9cac;
+}
+
+/* Dashboard Container */
+.bank-expanse-dashboard {
+    min-height: 100vh;
+    background: 
+        linear-gradient(135deg, rgba(10, 14, 26, 0.98) 0%, rgba(5, 10, 20, 0.95) 100%),
+        url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(0,212,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+    background-attachment: fixed;
+    padding: 2rem;
+    color: var(--text-normal);
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+}
+
+/* Command Header */
+.expanse-command-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--expanse-border);
+    padding-bottom: 1.5rem;
+}
+
+.expanse-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.expanse-page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--expanse-primary);
+    text-transform: uppercase;
+    margin: 0;
+    text-shadow: 0 0 20px var(--expanse-glow);
+}
+
+.expanse-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--expanse-accent);
+}
+
+.expanse-status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--expanse-accent);
+    border-radius: 50%;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { 
+        box-shadow: 0 0 5px var(--expanse-accent), 0 0 10px var(--expanse-accent);
+        opacity: 1;
+    }
+    50% { 
+        box-shadow: 0 0 10px var(--expanse-accent), 0 0 20px var(--expanse-accent);
+        opacity: 0.7;
+    }
+}
+
+.expanse-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+/* Tactical Grid Layout */
+.expanse-tactical-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Financial Status Module */
+.expanse-status-module {
+    background: var(--expanse-bg-panel);
+    border: 1px solid var(--expanse-border);
+    border-radius: 4px;
+    backdrop-filter: blur(20px);
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(0, 212, 255, 0.1);
+}
+
+.expanse-module-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--expanse-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.expanse-module-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--expanse-primary);
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.expanse-module-badge {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    padding: 0.25rem 0.75rem;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid var(--expanse-border);
+    border-radius: 2px;
+    color: var(--expanse-primary);
+}
+
+.expanse-module-body {
+    padding: 1.5rem;
+}
+
+/* Balance Display */
+.expanse-balance-display {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.expanse-balance-item {
+    background: rgba(10, 20, 35, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-left: 3px solid var(--expanse-primary);
+    padding: 1.25rem;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.expanse-balance-item:hover {
+    background: rgba(15, 30, 50, 0.7);
+    border-left-color: var(--expanse-accent);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.expanse-balance-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.expanse-balance-value {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 0.25rem;
+}
+
+.expanse-balance-value.positive {
+    color: var(--expanse-success);
+    text-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+.expanse-balance-value.negative {
+    color: var(--expanse-danger);
+    text-shadow: 0 0 15px rgba(255, 59, 48, 0.3);
+}
+
+.expanse-balance-value.neutral {
+    color: var(--expanse-primary);
+    text-shadow: 0 0 15px var(--expanse-glow);
+}
+
+.expanse-balance-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Weekly Metrics Grid */
+.expanse-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.expanse-metric-card {
+    background: rgba(10, 20, 35, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 1rem;
+    border-radius: 2px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.expanse-metric-card:hover {
+    background: rgba(15, 30, 50, 0.7);
+    border-color: var(--expanse-primary);
+}
+
+.expanse-metric-icon {
+    font-size: 1.5rem;
+    color: var(--expanse-primary);
+    margin-bottom: 0.5rem;
+}
+
+.expanse-metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 0.25rem;
+}
+
+.expanse-metric-value.income {
+    color: var(--expanse-success);
+}
+
+.expanse-metric-value.expense {
+    color: var(--expanse-danger);
+}
+
+.expanse-metric-value.balance {
+    color: var(--expanse-primary);
+}
+
+.expanse-metric-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Action Panel (Right Sidebar) */
+.expanse-action-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.expanse-action-card {
+    background: var(--expanse-bg-panel);
+    border: 1px solid var(--expanse-border);
+    border-radius: 4px;
+    backdrop-filter: blur(20px);
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(0, 212, 255, 0.1);
+}
+
+.expanse-action-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--expanse-border);
+}
+
+.expanse-action-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--expanse-primary);
+    font-weight: 600;
+    margin: 0;
+}
+
+.expanse-action-body {
+    padding: 1.25rem;
+}
+
+/* Quick Actions Buttons */
+.expanse-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.expanse-action-btn {
+    padding: 0.875rem 1.25rem;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 153, 204, 0.1));
+    border: 1px solid var(--expanse-border);
+    color: var(--text-bright);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.expanse-action-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 153, 204, 0.2));
+    border-color: var(--expanse-primary);
+    box-shadow: 0 0 20px var(--expanse-glow);
+    transform: translateX(3px);
+}
+
+.expanse-action-btn i {
+    font-size: 1.1rem;
+    color: var(--expanse-primary);
+}
+
+.expanse-action-btn.primary {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 100, 0.1));
+    border-color: rgba(0, 255, 136, 0.3);
+}
+
+.expanse-action-btn.primary:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.25), rgba(0, 212, 100, 0.2));
+    border-color: var(--expanse-success);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.expanse-action-btn.primary i {
+    color: var(--expanse-success);
+}
+
+.expanse-action-btn.danger {
+    background: linear-gradient(135deg, rgba(255, 59, 48, 0.15), rgba(220, 38, 38, 0.1));
+    border-color: rgba(255, 59, 48, 0.3);
+}
+
+.expanse-action-btn.danger:hover {
+    background: linear-gradient(135deg, rgba(255, 59, 48, 0.25), rgba(220, 38, 38, 0.2));
+    border-color: var(--expanse-danger);
+    box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+}
+
+.expanse-action-btn.danger i {
+    color: var(--expanse-danger);
+}
+
+/* Navigation Links */
+.expanse-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.expanse-nav-item {
+    margin: 0;
+}
+
+.expanse-nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(10, 20, 35, 0.3);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-left: 2px solid transparent;
+    color: var(--text-normal);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.expanse-nav-link:hover {
+    background: rgba(15, 30, 50, 0.5);
+    border-left-color: var(--expanse-primary);
+    border-color: var(--expanse-border);
+    color: var(--text-bright);
+    transform: translateX(3px);
+}
+
+.expanse-nav-link i {
+    color: var(--expanse-primary);
+    font-size: 1rem;
+}
+
+/* Recent Activity Feed */
+.expanse-activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.expanse-activity-feed::-webkit-scrollbar {
+    width: 3px;
+}
+
+.expanse-activity-feed::-webkit-scrollbar-thumb {
+    background: var(--expanse-primary);
+    border-radius: 2px;
+}
+
+.expanse-activity-feed::-webkit-scrollbar-thumb:hover {
+    background: var(--expanse-accent);
+}
+
+.expanse-activity-item {
+    background: rgba(10, 20, 35, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-left: 3px solid var(--expanse-primary);
+    padding: 1rem;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.expanse-activity-item:hover {
+    background: rgba(15, 30, 50, 0.7);
+    border-left-width: 4px;
+}
+
+.expanse-activity-item.income {
+    border-left-color: var(--expanse-success);
+}
+
+.expanse-activity-item.expense {
+    border-left-color: var(--expanse-danger);
+}
+
+.expanse-activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 0.5rem;
+}
+
+.expanse-activity-payee {
+    font-weight: 600;
+    color: var(--text-bright);
+    font-size: 0.9rem;
+}
+
+.expanse-activity-amount {
+    font-weight: 700;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.expanse-activity-amount.income {
+    color: var(--expanse-success);
+}
+
+.expanse-activity-amount.expense {
+    color: var(--expanse-danger);
+}
+
+.expanse-activity-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.expanse-activity-date {
+    font-style: italic;
+}
+
+/* Empty State */
+.expanse-empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-muted);
+}
+
+.expanse-empty-icon {
+    font-size: 4rem;
+    color: var(--expanse-border);
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.expanse-empty-title {
+    font-size: 1.1rem;
+    color: var(--text-normal);
+    margin-bottom: 0.5rem;
+}
+
+.expanse-empty-text {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Info Cards */
+.expanse-info-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.expanse-info-card {
+    background: rgba(10, 20, 35, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 1rem;
+    border-radius: 2px;
+}
+
+.expanse-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.expanse-info-row:last-child {
+    border-bottom: none;
+}
+
+.expanse-info-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.expanse-info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Transaction Grid (Bottom Section) */
+.expanse-transaction-grid {
+    margin-top: 2rem;
+}
+
+.expanse-grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--expanse-border);
+}
+
+.expanse-grid-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--expanse-primary);
+    margin: 0;
+}
+
+.expanse-grid-link {
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--expanse-accent);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(0, 255, 170, 0.3);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.expanse-grid-link:hover {
+    background: rgba(0, 255, 170, 0.1);
+    border-color: var(--expanse-accent);
+    box-shadow: 0 0 15px rgba(0, 255, 170, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .expanse-tactical-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .expanse-balance-display {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .bank-expanse-dashboard {
+        padding: 1rem;
+    }
+    
+    .expanse-page-title {
+        font-size: 1.5rem;
+    }
+    
+    .expanse-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .expanse-title-row {
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+    }
+}
+
+/* Holographic Scan Line Effect */
+@keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+}
+
+.expanse-scan-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--expanse-primary), 
+        transparent
+    );
+    opacity: 0.1;
+    animation: scan-line 8s linear infinite;
+    pointer-events: none;
+    z-index: 1000;
+}

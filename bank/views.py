@@ -224,10 +224,34 @@ def dashboard(request):
     total_expenses = amount_sum(Expense.objects.filter(user=request.user))
     current_balance = total_income - total_expenses
 
+    # Get recent transactions (last 10 of each type)
+    recent_income = Income.objects.filter(user=request.user).order_by('-date', '-id')[:10]
+    recent_expenses = Expense.objects.filter(user=request.user).order_by('-date', '-id')[:10]
+    
+    # Combine and sort by date
+    recent_transactions = []
+    for income in recent_income:
+        recent_transactions.append({'type': 'income', 'entry': income})
+    for expense in recent_expenses:
+        recent_transactions.append({'type': 'expense', 'entry': expense})
+    
+    # Sort by date descending
+    recent_transactions.sort(key=lambda x: (x['entry'].date, x['entry'].id), reverse=True)
+    
+    # Count active payees, categories, and transactions
+    from .models import Payee, Category
+    payee_count = Payee.objects.filter(user=request.user).count()
+    category_count = Category.objects.filter(user=request.user).count()
+    transaction_count = recent_income.count() + recent_expenses.count()
+
     context = {
         'page_title': 'Budget Basic',
         'app_name': 'budget_basic',
         'current_balance': current_balance,
+        'recent_transactions': recent_transactions[:10],  # Limit to 10 most recent
+        'payee_count': payee_count,
+        'category_count': category_count,
+        'transaction_count': transaction_count,
         **build_sidebar_summary_context(request),
     }
     return render(request, 'bank/dashboard.html', context)

@@ -161,6 +161,7 @@ html {
 .dashboard-designation-icon {
     font-size: 2rem;
     line-height: 1;
+    color: var(--faction-bright);
     filter: drop-shadow(0 0 10px var(--faction-glow));
 }
 
@@ -438,7 +439,7 @@ html {
 
 .dashboard-stat-item {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(10, 20, 30, 0.3));
-    border: 1px solid var(--faction-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 2px;
     padding: 0.75rem;
     display: flex;
@@ -447,11 +448,11 @@ html {
 }
 
 .dashboard-stat-item.income {
-    border-left: 2px solid var(--income-color);
+    border-left: 3px solid var(--income-color);
 }
 
 .dashboard-stat-item.expense {
-    border-left: 2px solid var(--expense-color);
+    border-left: 3px solid var(--expense-color);
 }
 
 .stat-icon {
@@ -485,10 +486,12 @@ html {
 
 .stat-value {
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-primary);
-    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ==========================================================================
@@ -586,7 +589,7 @@ html {
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--faction-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .info-row:last-child {
@@ -718,7 +721,7 @@ html {
 
 .dashboard-transaction-card {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(10, 20, 30, 0.3));
-    border: 1px solid var(--faction-color);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 2px;
     padding: 1rem;
     transition: all 0.3s ease;
@@ -747,7 +750,7 @@ html {
 
 .dashboard-transaction-card:hover {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(10, 20, 35, 0.4));
-    border-color: var(--faction-color);
+    border-color: rgba(255, 255, 255, 0.1);
     transform: translateX(3px);
 }
 
@@ -809,7 +812,7 @@ html {
 .transaction-card-notes {
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid var(--faction-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 0.75rem;
     color: var(--text-muted);
     line-height: 1.4;
@@ -958,7 +961,7 @@ html {
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--faction-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .analytics-metric-row:last-child {

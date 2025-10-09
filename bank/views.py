@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Max, Sum, Q
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 

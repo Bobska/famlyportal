@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link href="{% static 'css/expanse_space.css' %}?v=20251010-001" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'bank/css/dashboard_expanse.css' %}?v=20251010-001">
+<link rel="stylesheet" href="{% static 'bank/css/weekly_expanse.css' %}?v=20251010-001">
 <link rel="stylesheet" href="{% static 'bank/css/navigation_shell.css' %}?v=20251010-001">
 {% endblock %}
 
@@ -17,6 +18,13 @@
 {% block body_class %}bank-expanse-shell{% endblock %}
 
 {% block content %}
+<!-- Space Background -->
+<div class="dashboard-space-background">
+    <div class="dashboard-stars-layer"></div>
+    <div class="dashboard-nebula-layer"></div>
+    <div class="dashboard-holo-scanlines"></div>
+</div>
+
 <!-- Main Interface -->
 <div class="dashboard-space-interface" data-faction="un" id="bankShellInterface">
     <div class="dashboard-holo-interface">

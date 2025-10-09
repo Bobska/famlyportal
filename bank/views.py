@@ -334,6 +334,27 @@ def weekly(request):
 
 
 @login_required
+def weekly_expanse(request):
+    """Weekly transactions overview with Expanse theme."""
+    weekly_context = build_weekly_context(request)
+    
+    # Calculate totals for summary panels
+    total_income = weekly_context.get('weekly_income', 0)
+    total_expenses = weekly_context.get('weekly_expenses', 0)
+    net_balance = total_income - total_expenses
+    
+    context = {
+        'page_title': 'Weekly Operations',
+        'app_name': 'bank',
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': net_balance,
+        **weekly_context,
+    }
+    return render(request, 'bank/weekly_expanse.html', context)
+
+
+@login_required
 def transactions(request):
     """All transactions view without weekly navigation."""
     context = {

@@ -1,0 +1,649 @@
+/* ==========================================================================
+   BANK WEEKLY - THE EXPANSE INTERFACE
+   Combining space dashboard aesthetics with transaction tracking
+   Full holographic command center for weekly financial operations
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+/* ==========================================================================
+   ROOT VARIABLES - FACTION COLORS
+   ========================================================================== */
+
+:root {
+    /* UN Navy (Default) */
+    --faction-color: rgba(59, 130, 246, 0.7);
+    --faction-bright: #3b82f6;
+    --faction-glow: rgba(59, 130, 246, 0.4);
+    
+    /* Base colors */
+    --space-black: #000000;
+    --space-dark: #0a0f1a;
+    --panel-bg: rgba(15, 25, 40, 0.75);
+    --panel-border: rgba(59, 130, 246, 0.3);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    
+    /* Transaction colors */
+    --income-color: #22c55e;
+    --income-glow: rgba(34, 197, 94, 0.4);
+    --expense-color: #ef4444;
+    --expense-glow: rgba(239, 68, 68, 0.4);
+}
+
+/* Belter Faction */
+.space-interface[data-faction="belter"] {
+    --faction-color: rgba(251, 146, 60, 0.7);
+    --faction-bright: #fb923c;
+    --faction-glow: rgba(251, 146, 60, 0.4);
+}
+
+/* Protomolecule Faction */
+.space-interface[data-faction="proto"] {
+    --faction-color: rgba(6, 182, 212, 0.7);
+    --faction-bright: #06b6d4;
+    --faction-glow: rgba(6, 182, 212, 0.4);
+}
+
+/* ==========================================================================
+   BODY & BASE SETUP
+   ========================================================================== */
+
+body.weekly-expanse-interface {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+    background: var(--space-black);
+    color: var(--text-primary);
+    height: 100vh;
+}
+
+/* Hide scrollbars on body */
+body.weekly-expanse-interface::-webkit-scrollbar {
+    display: none;
+}
+
+body.weekly-expanse-interface {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* ==========================================================================
+   SPACE BACKGROUND (From Dashboard)
+   ========================================================================== */
+
+.weekly-space-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background: linear-gradient(180deg, #2a3f5f 0%, #131820 100%);
+}
+
+/* Animated Stars Layer */
+.weekly-stars-layer {
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+        radial-gradient(2px 2px at 60% 70%, #fff, transparent),
+        radial-gradient(1px 1px at 50% 50%, #fff, transparent),
+        radial-gradient(1px 1px at 80% 10%, #fff, transparent),
+        radial-gradient(2px 2px at 90% 60%, #fff, transparent),
+        radial-gradient(1px 1px at 33% 80%, #fff, transparent),
+        radial-gradient(1px 1px at 15% 50%, #fff, transparent);
+    background-size: 200% 200%, 150% 150%, 300% 300%, 250% 250%, 180% 180%, 220% 220%, 280% 280%;
+    background-position: 0% 0%, 50% 50%, 100% 0%, 0% 100%, 25% 75%, 75% 25%, 40% 60%;
+    opacity: 0.7;
+    animation: twinkleStars 120s linear infinite;
+}
+
+@keyframes twinkleStars {
+    0%, 100% {
+        opacity: 0.7;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-20px);
+    }
+}
+
+/* Nebula Layer */
+.weekly-nebula-layer {
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.2), transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.15), transparent 50%);
+    opacity: 0.7;
+    filter: blur(80px);
+    animation: nebulaFloat 25s ease-in-out infinite;
+}
+
+@keyframes nebulaFloat {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
+/* Holographic Scan Lines */
+.weekly-holo-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(255, 255, 255, 0.04) 3px
+    );
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.3;
+}
+
+/* ==========================================================================
+   MAIN INTERFACE CONTAINER
+   ========================================================================== */
+
+.weekly-space-interface {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.weekly-tactical-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   COMMAND HEADER (Top Panel)
+   ========================================================================== */
+
+.weekly-command-header {
+    background: rgba(15, 25, 40, 0.85);
+    border: 1px solid var(--faction-color);
+    border-left: 3px solid var(--faction-bright);
+    backdrop-filter: blur(10px);
+    box-shadow: 
+        0 0 30px var(--faction-glow),
+        inset 0 0 30px rgba(255, 255, 255, 0.02);
+    padding: 1rem 1.5rem;
+    clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.weekly-designation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.weekly-designation-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--faction-color), transparent);
+    border: 2px solid var(--faction-bright);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 0 20px var(--faction-glow);
+}
+
+.weekly-designation-text h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    margin: 0;
+    color: var(--text-primary);
+    text-shadow: 0 0 15px var(--faction-glow);
+}
+
+.weekly-designation-text p {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    margin: 0;
+    color: var(--faction-color);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+/* Week Navigation Controls */
+.weekly-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.weekly-nav-btn {
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.8), rgba(10, 20, 35, 0.7));
+    border: 2px solid var(--faction-color);
+    color: var(--text-primary);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+    font-size: 1.2rem;
+}
+
+.weekly-nav-btn:hover {
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 20px var(--faction-glow);
+    transform: scale(1.05);
+}
+
+.weekly-nav-display {
+    background: rgba(10, 20, 35, 0.6);
+    border: 1px solid var(--faction-color);
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+    min-width: 280px;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+}
+
+.weekly-nav-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--faction-bright);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.weekly-nav-dates {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+}
+
+/* Faction Selector */
+.weekly-faction-selector {
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.8), rgba(10, 20, 35, 0.7));
+    border: 2px solid var(--faction-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+}
+
+.weekly-faction-selector:hover {
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 15px var(--faction-glow);
+}
+
+/* ==========================================================================
+   MAIN DISPLAY AREA
+   ========================================================================== */
+
+.weekly-main-display {
+    background: rgba(15, 25, 40, 0.65);
+    border: 1px solid var(--faction-color);
+    backdrop-filter: blur(10px);
+    box-shadow: 
+        0 0 30px var(--faction-glow),
+        inset 0 0 40px rgba(255, 255, 255, 0.02);
+    clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 calc(100% - 15px), 0 15px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 100%;
+}
+
+/* Summary Panels */
+.weekly-summary-panels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.weekly-summary-card {
+    background: linear-gradient(135deg, rgba(10, 20, 35, 0.8), rgba(5, 15, 30, 0.6));
+    border: 1px solid var(--panel-border);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%, 0 10px);
+    transition: all 0.3s ease;
+}
+
+.weekly-summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 10px;
+    width: 2px;
+    height: 15px;
+    background: linear-gradient(180deg, var(--faction-bright), transparent);
+    opacity: 0.6;
+}
+
+.weekly-summary-card:hover {
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 20px var(--faction-glow);
+    transform: translateY(-2px);
+}
+
+.summary-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--faction-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.summary-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.summary-value.income {
+    color: var(--income-color);
+    text-shadow: 0 0 15px var(--income-glow);
+}
+
+.summary-value.expense {
+    color: var(--expense-color);
+    text-shadow: 0 0 15px var(--expense-glow);
+}
+
+.summary-value.net {
+    color: var(--text-primary);
+    text-shadow: 0 0 15px var(--faction-glow);
+}
+
+/* Transaction List Panel */
+.weekly-transaction-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.weekly-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.weekly-panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.weekly-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Search Input */
+.weekly-search-input {
+    background: rgba(10, 20, 35, 0.6);
+    border: 1px solid var(--faction-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    width: 220px;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+    transition: all 0.3s ease;
+}
+
+.weekly-search-input:focus {
+    outline: none;
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 15px var(--faction-glow);
+}
+
+.weekly-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Action Buttons */
+.weekly-action-btn {
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.8), rgba(10, 20, 35, 0.7));
+    border: 2px solid var(--faction-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.weekly-action-btn:hover {
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 15px var(--faction-glow);
+}
+
+/* Transaction List Scroll */
+.weekly-transaction-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+    scrollbar-gutter: stable;
+}
+
+/* Custom Scrollbar */
+.weekly-transaction-scroll::-webkit-scrollbar {
+    width: 3px;
+}
+
+.weekly-transaction-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.weekly-transaction-scroll::-webkit-scrollbar-thumb {
+    background: var(--faction-color);
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+.weekly-transaction-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-bright);
+    box-shadow: 0 0 10px var(--faction-glow);
+}
+
+/* Transaction Card */
+.weekly-transaction-card {
+    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    border: 1px solid var(--panel-border);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    position: relative;
+}
+
+.weekly-transaction-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 8px;
+    width: 1px;
+    height: 12px;
+    background: linear-gradient(180deg, var(--faction-bright), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.weekly-transaction-card:hover {
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
+    border-color: var(--faction-bright);
+    box-shadow: 0 0 20px var(--faction-glow);
+    transform: translateX(4px);
+}
+
+.weekly-transaction-card:hover::before {
+    opacity: 1;
+}
+
+.transaction-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.transaction-payee {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+}
+
+.transaction-note {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.transaction-amount {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.transaction-amount.income {
+    color: var(--income-color);
+    text-shadow: 0 0 10px var(--income-glow);
+}
+
+.transaction-amount.expense {
+    color: var(--expense-color);
+    text-shadow: 0 0 10px var(--expense-glow);
+}
+
+/* Empty State */
+.weekly-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.weekly-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.weekly-empty-text {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.weekly-empty-subtext {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    .weekly-summary-panels {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .weekly-transaction-card {
+        grid-template-columns: 100px 1fr auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .weekly-command-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .weekly-nav-display {
+        min-width: 240px;
+    }
+    
+    .weekly-panel-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .weekly-panel-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    
+    .weekly-search-input {
+        width: 100%;
+    }
+}

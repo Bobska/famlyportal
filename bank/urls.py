@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('transactions/', views.transactions, name='transactions'),
     path('weekly/', views.weekly, name='weekly'),
+    path('weekly-expanse/', views.weekly_expanse, name='weekly_expanse'),
     path('week-data/', views.get_week_data, name='get_week_data'),
     # Payee URLs (existing)
     path('payees/', views.get_payees, name='get_payees'),

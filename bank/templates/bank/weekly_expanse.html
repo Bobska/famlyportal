@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Weekly Operations - Bank - FamlyPortal{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/expanse_space.css' %}?v=20251009-036" rel="stylesheet">
+<link href="{% static 'bank/css/weekly_expanse.css' %}?v=20251009-001" rel="stylesheet">
+{% endblock %}
+
+{% block body_class %}weekly-expanse-interface{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'bank/js/week_navigation.js' %}?v=20250930"></script>
+<script>
+    // Week navigation functions
+    function previousWeek() {
+        const currentOffset = {{ week_offset }};
+        window.location.href = '{% url "bank:weekly" %}?week_offset=' + (currentOffset - 1);
+    }
+    
+    function nextWeek() {
+        const currentOffset = {{ week_offset }};
+        window.location.href = '{% url "bank:weekly" %}?week_offset=' + (currentOffset + 1);
+    }
+    
+    function changeToCurrentWeek() {
+        window.location.href = '{% url "bank:weekly" %}';
+    }
+    
+    // Faction theme switcher
+    function changeFaction(faction) {
+        const spaceInterface = document.querySelector('.weekly-space-interface');
+        spaceInterface.setAttribute('data-faction', faction);
+        localStorage.setItem('weeklyFaction', faction);
+    }
+    
+    // Load saved faction on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedFaction = localStorage.getItem('weeklyFaction') || 'un';
+        const spaceInterface = document.querySelector('.weekly-space-interface');
+        spaceInterface.setAttribute('data-faction', savedFaction);
+        document.getElementById('factionSelector').value = savedFaction;
+    });
+    
+    // Transaction filtering
+    let currentFilter = 'all';
+    
+    function filterTransactions(type) {
+        currentFilter = type;
+        const cards = document.querySelectorAll('.weekly-transaction-card');
+        
+        cards.forEach(card => {
+            const transactionType = card.getAttribute('data-transaction-type');
+            
+            if (type === 'all') {
+                card.style.display = 'grid';
+            } else if (transactionType === type) {
+                card.style.display = 'grid';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Update filter label
+        const filterLabel = document.getElementById('filterLabel');
+        if (type === 'all') filterLabel.textContent = 'All';
+        else if (type === 'income') filterLabel.textContent = 'Income';
+        else filterLabel.textContent = 'Expenses';
+        
+        // Update active dropdown item
+        document.querySelectorAll('.filter-dropdown-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+    
+    // Transaction search
+    function searchTransactions(query) {
+        const cards = document.querySelectorAll('.weekly-transaction-card');
+        const searchTerm = query.toLowerCase();
+        
+        cards.forEach(card => {
+            const payee = card.getAttribute('data-transaction-payee').toLowerCase();
+            const notes = card.getAttribute('data-transaction-notes').toLowerCase();
+            
+            if (payee.includes(searchTerm) || notes.includes(searchTerm)) {
+                if (currentFilter === 'all' || card.getAttribute('data-transaction-type') === currentFilter) {
+                    card.style.display = 'grid';
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    // Transaction selection
+    let selectedCard = null;
+    
+    function selectTransaction(card) {
+        if (selectedCard) {
+            selectedCard.classList.remove('selected');
+        }
+        card.classList.add('selected');
+        selectedCard = card;
+        
+        // Could open edit modal here
+        console.log('Selected transaction:', {
+            id: card.getAttribute('data-transaction-id'),
+            type: card.getAttribute('data-transaction-type'),
+            amount: card.getAttribute('data-transaction-amount')
+        });
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Space Background -->
+<div class="weekly-space-background">
+    <div class="weekly-stars-layer"></div>
+    <div class="weekly-nebula-layer"></div>
+    <div class="weekly-holo-scanlines"></div>
+</div>
+
+<!-- Main Interface -->
+<div class="weekly-space-interface" data-faction="un">
+    <div class="weekly-tactical-grid">
+        
+        <!-- Command Header -->
+        <div class="weekly-command-header">
+            <div class="weekly-designation">
+                <div class="weekly-designation-icon">
+                    💰
+                </div>
+                <div class="weekly-designation-text">
+                    <h1>WEEKLY OPERATIONS</h1>
+                    <p>FINANCIAL COMMAND CENTER // BANK MODULE</p>
+                </div>
+            </div>
+            
+            <div class="weekly-nav-controls">
+                <button class="weekly-nav-btn" onclick="previousWeek()" title="Previous Week">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                
+                <div class="weekly-nav-display">
+                    <span class="weekly-nav-label">
+                        {% if week_offset == 0 %}
+                            CURRENT WEEK
+                        {% elif week_offset == -1 %}
+                            LAST WEEK
+                        {% elif week_offset == 1 %}
+                            NEXT WEEK
+                        {% elif week_offset < 0 %}
+                            {{ week_offset|add:"0"|stringformat:"d" }} WEEKS AGO
+                        {% else %}
+                            IN {{ week_offset }} WEEKS
+                        {% endif %}
+                    </span>
+                    <span class="weekly-nav-dates">
+                        {{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}
+                    </span>
+                </div>
+                
+                <button class="weekly-nav-btn" onclick="nextWeek()" title="Next Week">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                
+                {% if week_offset != 0 %}
+                <button class="weekly-nav-btn" onclick="changeToCurrentWeek()" title="Current Week">
+                    <i class="bi bi-bullseye"></i>
+                </button>
+                {% endif %}
+            </div>
+            
+            <select class="weekly-faction-selector" id="factionSelector" onchange="changeFaction(this.value)">
+                <option value="un">UN NAVY</option>
+                <option value="belter">BELTER OPA</option>
+                <option value="proto">PROTOMOLECULE</option>
+            </select>
+        </div>
+        
+        <!-- Main Display Area -->
+        <div class="weekly-main-display">
+            
+            <!-- Summary Panels -->
+            <div class="weekly-summary-panels">
+                <div class="weekly-summary-card">
+                    <div class="summary-label">INCOME TOTAL</div>
+                    <div class="summary-value income">
+                        +${{ total_income|floatformat:2|intcomma }}
+                    </div>
+                </div>
+                
+                <div class="weekly-summary-card">
+                    <div class="summary-label">EXPENSE TOTAL</div>
+                    <div class="summary-value expense">
+                        -${{ total_expenses|floatformat:2|intcomma }}
+                    </div>
+                </div>
+                
+                <div class="weekly-summary-card">
+                    <div class="summary-label">NET BALANCE</div>
+                    <div class="summary-value net {% if net_balance >= 0 %}income{% else %}expense{% endif %}">
+                        {% if net_balance >= 0 %}
+                            +${{ net_balance|floatformat:2|intcomma }}
+                        {% else %}
+                            ${{ net_balance|floatformat:2|intcomma }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transaction List Panel -->
+            <div class="weekly-transaction-panel">
+                <div class="weekly-panel-header">
+                    <h2 class="weekly-panel-title">TRANSACTION LOG</h2>
+                    
+                    <div class="weekly-panel-actions">
+                        <input 
+                            type="text" 
+                            class="weekly-search-input" 
+                            placeholder="🔍 Search transactions..." 
+                            oninput="searchTransactions(this.value)"
+                        />
+                        
+                        <div class="dropdown">
+                            <button class="weekly-action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-funnel"></i>
+                                <span id="filterLabel">All</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li><a class="dropdown-item filter-dropdown-item active" href="#" onclick="filterTransactions('all')">Show All</a></li>
+                                <li><a class="dropdown-item filter-dropdown-item" href="#" onclick="filterTransactions('income')">Income Only</a></li>
+                                <li><a class="dropdown-item filter-dropdown-item" href="#" onclick="filterTransactions('expense')">Expenses Only</a></li>
+                            </ul>
+                        </div>
+                        
+                        <button class="weekly-action-btn" onclick="window.location.href='{% url 'bank:dashboard' %}'">
+                            <i class="bi bi-plus-circle"></i>
+                            Add Transaction
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="weekly-transaction-scroll">
+                    {% if income_entries or expense_entries %}
+                        <!-- Combine and sort all transactions by date -->
+                        {% load bank_tags %}
+                        {% get_all_transactions income_entries expense_entries as all_transactions %}
+                        
+                        {% for transaction in all_transactions %}
+                            {% if transaction.type == 'income' %}
+                                <div class="weekly-transaction-card" 
+                                     data-transaction-id="{{ transaction.entry.id }}" 
+                                     data-transaction-type="income"
+                                     data-transaction-payee="{{ transaction.entry.payee|default_if_none:''|escapejs }}"
+                                     data-transaction-notes="{{ transaction.entry.notes|default_if_none:''|escapejs }}"
+                                     data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
+                                     onclick="selectTransaction(this)">
+                                    <div class="transaction-date">
+                                        {{ transaction.entry.date|date:"D, j M" }}
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-payee">
+                                            {{ transaction.entry.payee|default:'Unnamed Income' }}
+                                        </div>
+                                        {% if transaction.entry.notes %}
+                                            <div class="transaction-note">
+                                                {{ transaction.entry.notes|truncatewords:15 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="transaction-amount income">
+                                        +${{ transaction.entry.amount|floatformat:2|intcomma }}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="weekly-transaction-card" 
+                                     data-transaction-id="{{ transaction.entry.id }}" 
+                                     data-transaction-type="expense"
+                                     data-transaction-payee="{{ transaction.entry.payee|default_if_none:''|escapejs }}"
+                                     data-transaction-notes="{{ transaction.entry.notes|default_if_none:''|escapejs }}"
+                                     data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
+                                     onclick="selectTransaction(this)">
+                                    <div class="transaction-date">
+                                        {{ transaction.entry.date|date:"D, j M" }}
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-payee">
+                                            {{ transaction.entry.payee|default:'Unnamed Expense' }}
+                                        </div>
+                                        {% if transaction.entry.notes %}
+                                            <div class="transaction-note">
+                                                {{ transaction.entry.notes|truncatewords:15 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="transaction-amount expense">
+                                        -${{ transaction.entry.amount|floatformat:2|intcomma }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="weekly-empty-state">
+                            <div class="weekly-empty-icon">📊</div>
+                            <div class="weekly-empty-text">NO TRANSACTIONS DETECTED</div>
+                            <div class="weekly-empty-subtext">Add your first income or expense to begin tracking</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+</div>
+
+<!-- Include Bootstrap JS for dropdowns -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

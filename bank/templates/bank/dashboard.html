@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add click sounds to navigation elements
-    document.querySelectorAll('.dashboard-nav-btn, .dashboard-action-btn').forEach(btn => {
+    document.querySelectorAll('.dashboard-nav-btn, .dashboard-action-btn, .dashboard-audio-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
             if (window.ExpanseAudio) {
                 window.ExpanseAudio.play('click');
@@ -414,14 +414,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Add hover sounds to transaction cards
-    document.querySelectorAll('.dashboard-transaction-card').forEach(card => {
-        card.addEventListener('mouseenter', () => {
+    // Add hover sounds to interactive elements
+    document.querySelectorAll('.dashboard-transaction-card, .dashboard-balance-card, .dashboard-stat-item, .dashboard-action-btn, .dashboard-nav-btn').forEach(element => {
+        element.addEventListener('mouseenter', () => {
             if (window.ExpanseAudio) {
                 window.ExpanseAudio.play('hover');
             }
         });
     });
+    
+    // Add hover sound to faction selector
+    const factionSelector = document.getElementById('factionSelector');
+    if (factionSelector) {
+        factionSelector.addEventListener('mouseenter', () => {
+            if (window.ExpanseAudio) {
+                window.ExpanseAudio.play('hover');
+            }
+        });
+    }
 });
 </script>
 

@@ -4,8 +4,6 @@
    Full holographic command center for weekly financial operations
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
-
 /* ==========================================================================
    FULL-WIDTH OVERRIDE FOR WEEKLY INTERFACE
    ========================================================================== */
@@ -39,52 +37,42 @@ body.weekly-expanse-interface {
 
 /* ==========================================================================
    ROOT VARIABLES - FACTION COLORS
-   ========================================================================== */==================================================================
-   BANK WEEKLY - THE EXPANSE INTERFACE
-   Combining space dashboard aesthetics with transaction tracking
-   Full holographic command center for weekly financial operations
-   ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
-
-/* ==========================================================================
-   ROOT VARIABLES - FACTION COLORS
    ========================================================================== */
 
 :root {
-    /* UN Navy (Default) */
-    --faction-color: rgba(59, 130, 246, 0.7);
-    --faction-bright: #3b82f6;
-    --faction-glow: rgba(59, 130, 246, 0.4);
+    /* UN Navy (Default) - BRIGHTENED */
+    --faction-color: rgba(59, 130, 246, 0.85);
+    --faction-bright: #60a5fa;
+    --faction-glow: rgba(59, 130, 246, 0.5);
     
-    /* Base colors */
+    /* Base colors - BRIGHTENED */
     --space-black: #000000;
     --space-dark: #0a0f1a;
-    --panel-bg: rgba(15, 25, 40, 0.75);
-    --panel-border: rgba(59, 130, 246, 0.3);
+    --panel-bg: rgba(20, 35, 55, 0.85);
+    --panel-border: rgba(59, 130, 246, 0.4);
     --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-secondary: rgba(255, 255, 255, 0.85);
+    --text-muted: rgba(255, 255, 255, 0.65);
     
-    /* Transaction colors */
-    --income-color: #22c55e;
-    --income-glow: rgba(34, 197, 94, 0.4);
-    --expense-color: #ef4444;
-    --expense-glow: rgba(239, 68, 68, 0.4);
+    /* Transaction colors - BRIGHTENED */
+    --income-color: #34d399;
+    --income-glow: rgba(52, 211, 153, 0.5);
+    --expense-color: #f87171;
+    --expense-glow: rgba(248, 113, 113, 0.5);
 }
 
-/* Belter Faction */
-.space-interface[data-faction="belter"] {
-    --faction-color: rgba(251, 146, 60, 0.7);
-    --faction-bright: #fb923c;
-    --faction-glow: rgba(251, 146, 60, 0.4);
+/* Belter Faction - BRIGHTENED */
+.weekly-space-interface[data-faction="belter"] {
+    --faction-color: rgba(251, 146, 60, 0.85);
+    --faction-bright: #fdba74;
+    --faction-glow: rgba(251, 146, 60, 0.5);
 }
 
-/* Protomolecule Faction */
-.space-interface[data-faction="proto"] {
-    --faction-color: rgba(6, 182, 212, 0.7);
-    --faction-bright: #06b6d4;
-    --faction-glow: rgba(6, 182, 212, 0.4);
+/* Protomolecule Faction - BRIGHTENED */
+.weekly-space-interface[data-faction="proto"] {
+    --faction-color: rgba(6, 182, 212, 0.85);
+    --faction-bright: #22d3ee;
+    --faction-glow: rgba(6, 182, 212, 0.5);
 }
 
 /* ==========================================================================
@@ -95,7 +83,7 @@ body.weekly-expanse-interface {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    font-family: 'Rajdhani', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     background: var(--space-black);
     color: var(--text-primary);
     height: 100vh;
@@ -122,7 +110,7 @@ body.weekly-expanse-interface {
     width: 100%;
     height: 100%;
     z-index: -1;
-    background: linear-gradient(180deg, #2a3f5f 0%, #131820 100%);
+    background: linear-gradient(180deg, #3a4f6f 0%, #1a2535 100%);
 }
 
 /* Animated Stars Layer */
@@ -139,13 +127,13 @@ body.weekly-expanse-interface {
         radial-gradient(1px 1px at 15% 50%, #fff, transparent);
     background-size: 200% 200%, 150% 150%, 300% 300%, 250% 250%, 180% 180%, 220% 220%, 280% 280%;
     background-position: 0% 0%, 50% 50%, 100% 0%, 0% 100%, 25% 75%, 75% 25%, 40% 60%;
-    opacity: 0.7;
+    opacity: 0.85;
     animation: twinkleStars 120s linear infinite;
 }
 
 @keyframes twinkleStars {
     0%, 100% {
-        opacity: 0.7;
+        opacity: 0.75;
         transform: translateY(0);
     }
     50% {
@@ -159,20 +147,20 @@ body.weekly-expanse-interface {
     position: absolute;
     inset: 0;
     background: 
-        radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.2), transparent 50%),
-        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.15), transparent 50%);
-    opacity: 0.7;
+        radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.25), transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.20), transparent 50%);
+    opacity: 0.85;
     filter: blur(80px);
     animation: nebulaFloat 25s ease-in-out infinite;
 }
 
 @keyframes nebulaFloat {
     0%, 100% {
-        opacity: 0.5;
+        opacity: 0.7;
         transform: scale(1) rotate(0deg);
     }
     50% {
-        opacity: 0.8;
+        opacity: 1;
         transform: scale(1.1) rotate(5deg);
     }
 }
@@ -183,14 +171,14 @@ body.weekly-expanse-interface {
     inset: 0;
     background: repeating-linear-gradient(
         0deg,
-        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.05) 0px,
         transparent 1px,
         transparent 2px,
-        rgba(255, 255, 255, 0.04) 3px
+        rgba(255, 255, 255, 0.05) 3px
     );
     pointer-events: none;
     z-index: 10;
-    opacity: 0.3;
+    opacity: 0.4;
 }
 
 /* ==========================================================================
@@ -220,10 +208,94 @@ body.weekly-expanse-interface {
 .weekly-tactical-grid {
     display: grid;
     grid-template-columns: 280px 1fr 280px;
+    grid-template-rows: 1fr auto;
     gap: 1rem;
     flex: 1;
     min-height: 0;
     overflow: hidden;
+}
+
+/* Bottom panel spans all 3 columns */
+.weekly-bottom-panel {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 30, 50, 0.85));
+    border: 1px solid var(--faction-color);
+    backdrop-filter: blur(15px);
+    box-shadow: 
+        0 0 25px var(--faction-glow),
+        inset 0 0 30px rgba(255, 255, 255, 0.04),
+        inset 0 0 1px var(--faction-bright);
+    border-radius: 3px;
+    padding: 1rem 1.5rem;
+    position: relative;
+}
+
+.weekly-bottom-panel::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--faction-color);
+    opacity: 0.25;
+    pointer-events: none;
+    border-radius: 3px;
+}
+
+.bottom-panel-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.bottom-panel-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.status-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--faction-color);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-indicator {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 2px;
+    border: 1px solid var(--faction-color);
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+
+.status-indicator.active {
+    color: var(--income-color);
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(34, 197, 94, 0.10));
+    border-color: var(--income-color);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+}
+
+.status-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.status-value.positive {
+    color: var(--income-color);
+}
+
+.status-value.negative {
+    color: var(--expense-color);
+}
+
+.status-timestamp {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
 }
 
 /* ==========================================================================
@@ -231,12 +303,12 @@ body.weekly-expanse-interface {
    ========================================================================== */
 
 .weekly-sidebar-panel {
-    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 30, 50, 0.85));
     border: 1px solid var(--faction-color);
     backdrop-filter: blur(15px);
     box-shadow: 
-        0 0 20px var(--faction-glow),
-        inset 0 0 30px rgba(255, 255, 255, 0.02),
+        0 0 25px var(--faction-glow),
+        inset 0 0 30px rgba(255, 255, 255, 0.04),
         inset 0 0 1px var(--faction-bright);
     border-radius: 3px;
     overflow: hidden;
@@ -273,9 +345,9 @@ body.weekly-expanse-interface {
 }
 
 .weekly-panel-title {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.15em;
     color: var(--text-primary);
     text-transform: uppercase;
@@ -311,13 +383,13 @@ body.weekly-expanse-interface {
    ========================================================================== */
 
 .weekly-command-header {
-    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 30, 50, 0.85));
     border: 1px solid var(--faction-color);
     border-left: 3px solid var(--faction-bright);
     backdrop-filter: blur(15px);
     box-shadow: 
         0 0 30px var(--faction-glow),
-        inset 0 0 30px rgba(255, 255, 255, 0.02),
+        inset 0 0 30px rgba(255, 255, 255, 0.04),
         inset 0 0 1px var(--faction-bright);
     padding: 1rem 1.5rem;
     border-radius: 3px;
@@ -358,7 +430,7 @@ body.weekly-expanse-interface {
 }
 
 .weekly-designation-text h1 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.15em;
@@ -372,7 +444,7 @@ body.weekly-expanse-interface {
     letter-spacing: 0.1em;
     margin: 0;
     color: var(--faction-color);
-    font-family: 'Share Tech Mono', monospace;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Week Navigation Controls */
@@ -383,7 +455,7 @@ body.weekly-expanse-interface {
 }
 
 .weekly-nav-btn {
-    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 35, 55, 0.85));
     border: 1px solid var(--faction-color);
     color: var(--text-primary);
     width: 40px;
@@ -411,20 +483,20 @@ body.weekly-expanse-interface {
 }
 
 .weekly-nav-btn:hover {
-    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
+    background: linear-gradient(135deg, rgba(30, 50, 75, 1.0), rgba(25, 40, 60, 0.95));
     border-color: var(--faction-bright);
     box-shadow: 
-        0 0 20px var(--faction-glow),
-        inset 0 0 1px var(--faction-bright);
+        0 0 25px var(--faction-glow),
+        inset 0 0 2px var(--faction-bright);
     transform: scale(1.05);
 }
 
 .weekly-nav-btn:hover::before {
-    opacity: 0.6;
+    opacity: 0.7;
 }
 
 .weekly-nav-display {
-    background: linear-gradient(135deg, rgba(10, 20, 35, 0.7), rgba(15, 25, 40, 0.6));
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.85), rgba(25, 40, 60, 0.75));
     border: 1px solid var(--faction-color);
     padding: 0.75rem 1.5rem;
     text-align: center;
@@ -439,15 +511,15 @@ body.weekly-expanse-interface {
     position: absolute;
     inset: -1px;
     border: 1px solid var(--faction-color);
-    opacity: 0.2;
+    opacity: 0.3;
     pointer-events: none;
     border-radius: 3px;
 }
 
 .weekly-nav-label {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.1em;
     color: var(--faction-bright);
     display: block;
@@ -455,7 +527,7 @@ body.weekly-expanse-interface {
 }
 
 .weekly-nav-dates {
-    font-family: 'Share Tech Mono', monospace;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 0.85rem;
     color: var(--text-secondary);
     letter-spacing: 0.05em;
@@ -467,7 +539,7 @@ body.weekly-expanse-interface {
     border: 1px solid var(--faction-color);
     color: var(--text-primary);
     padding: 0.5rem 1rem;
-    font-family: 'Rajdhani', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-weight: 600;
     letter-spacing: 0.1em;
     cursor: pointer;
@@ -504,12 +576,12 @@ body.weekly-expanse-interface {
    ========================================================================== */
 
 .weekly-main-display {
-    background: linear-gradient(135deg, rgba(15, 25, 40, 0.75), rgba(10, 20, 35, 0.65));
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.85), rgba(20, 30, 50, 0.75));
     border: 1px solid var(--faction-color);
     backdrop-filter: blur(15px);
     box-shadow: 
         0 0 30px var(--faction-glow),
-        inset 0 0 40px rgba(255, 255, 255, 0.02),
+        inset 0 0 40px rgba(255, 255, 255, 0.04),
         inset 0 0 1px var(--faction-bright);
     border-radius: 3px;
     display: flex;
@@ -540,7 +612,7 @@ body.weekly-expanse-interface {
 }
 
 .weekly-summary-card {
-    background: linear-gradient(135deg, rgba(10, 20, 35, 0.85), rgba(5, 15, 30, 0.75));
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.90), rgba(15, 25, 45, 0.85));
     border: 1px solid var(--faction-color);
     padding: 1.25rem;
     position: relative;
@@ -569,19 +641,19 @@ body.weekly-expanse-interface {
     width: 30px;
     height: 30px;
     background: radial-gradient(circle at top right, var(--faction-glow), transparent 70%);
-    opacity: 0.3;
+    opacity: 0.4;
 }
 
 .weekly-summary-card:hover {
     border-color: var(--faction-bright);
     box-shadow: 
-        0 0 20px var(--faction-glow),
-        inset 0 0 1px var(--faction-bright);
+        0 0 30px var(--faction-glow),
+        inset 0 0 2px var(--faction-bright);
     transform: translateY(-2px);
 }
 
 .weekly-summary-card:hover::before {
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .summary-label {
@@ -591,11 +663,11 @@ body.weekly-expanse-interface {
     font-weight: 600;
     margin-bottom: 0.5rem;
     text-transform: uppercase;
-    font-family: 'Share Tech Mono', monospace;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 .summary-value {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 1.8rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -636,9 +708,9 @@ body.weekly-expanse-interface {
 }
 
 .weekly-transaction-title {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 1.2rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.1em;
     color: var(--text-primary);
     margin: 0;
@@ -652,11 +724,11 @@ body.weekly-expanse-interface {
 
 /* Search Input */
 .weekly-search-input {
-    background: linear-gradient(135deg, rgba(10, 20, 35, 0.7), rgba(15, 25, 40, 0.6));
+    background: linear-gradient(135deg, rgba(20, 35, 55, 0.85), rgba(25, 40, 60, 0.75));
     border: 1px solid var(--faction-color);
     color: var(--text-primary);
     padding: 0.5rem 1rem;
-    font-family: 'Rajdhani', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     width: 220px;
     border-radius: 3px;
     transition: all 0.3s ease;
@@ -668,8 +740,8 @@ body.weekly-expanse-interface {
     outline: none;
     border-color: var(--faction-bright);
     box-shadow: 
-        0 0 15px var(--faction-glow),
-        inset 0 0 1px var(--faction-bright);
+        0 0 20px var(--faction-glow),
+        inset 0 0 2px var(--faction-bright);
 }
 
 .weekly-search-input::placeholder {
@@ -678,11 +750,11 @@ body.weekly-expanse-interface {
 
 /* Action Buttons */
 .weekly-action-btn {
-    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 35, 55, 0.85));
     border: 1px solid var(--faction-color);
     color: var(--text-primary);
     padding: 0.5rem 1rem;
-    font-family: 'Rajdhani', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-weight: 600;
     letter-spacing: 0.05em;
     cursor: pointer;
@@ -707,11 +779,11 @@ body.weekly-expanse-interface {
 }
 
 .weekly-action-btn:hover {
-    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
+    background: linear-gradient(135deg, rgba(30, 50, 75, 1.0), rgba(25, 40, 60, 0.95));
     border-color: var(--faction-bright);
     box-shadow: 
-        0 0 15px var(--faction-glow),
-        inset 0 0 1px var(--faction-bright);
+        0 0 20px var(--faction-glow),
+        inset 0 0 2px var(--faction-bright);
 }
 
 .weekly-action-btn:hover::before {
@@ -749,7 +821,7 @@ body.weekly-expanse-interface {
 
 /* Transaction Card */
 .weekly-transaction-card {
-    background: linear-gradient(135deg, rgba(15, 25, 40, 0.85), rgba(10, 20, 35, 0.75));
+    background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 35, 55, 0.85));
     border: 1px solid var(--faction-color);
     border-left: 2px solid var(--faction-color);
     padding: 1rem;
@@ -785,22 +857,22 @@ body.weekly-expanse-interface {
     width: 2px;
     height: 0;
     background: var(--faction-bright);
-    box-shadow: 0 0 10px var(--faction-glow);
+    box-shadow: 0 0 15px var(--faction-glow);
     transition: height 0.3s ease;
 }
 
 .weekly-transaction-card:hover {
-    background: linear-gradient(135deg, rgba(20, 35, 55, 0.95), rgba(15, 25, 40, 0.85));
+    background: linear-gradient(135deg, rgba(30, 50, 75, 1.0), rgba(25, 40, 60, 0.95));
     border-color: var(--faction-bright);
     border-left-color: var(--faction-bright);
     box-shadow: 
-        0 0 20px var(--faction-glow),
-        inset 0 0 1px var(--faction-bright);
+        0 0 30px var(--faction-glow),
+        inset 0 0 2px var(--faction-bright);
     transform: translateX(4px);
 }
 
 .weekly-transaction-card:hover::before {
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .weekly-transaction-card:hover::after {
@@ -808,17 +880,17 @@ body.weekly-expanse-interface {
 }
 
 .weekly-transaction-card.selected {
-    background: linear-gradient(135deg, rgba(25, 40, 65, 0.95), rgba(20, 30, 50, 0.85));
+    background: linear-gradient(135deg, rgba(35, 55, 80, 0.95), rgba(30, 45, 70, 0.90));
     border-color: var(--faction-bright);
     border-left-width: 3px;
     border-left-color: var(--faction-bright);
     box-shadow: 
-        0 0 25px var(--faction-glow),
-        inset 0 0 20px var(--faction-glow);
+        0 0 35px var(--faction-glow),
+        inset 0 0 25px var(--faction-glow);
 }
 
 .weekly-transaction-card.selected::before {
-    opacity: 0.7;
+    opacity: 0.8;
 }
 
 .weekly-transaction-card.selected::after {
@@ -826,7 +898,7 @@ body.weekly-expanse-interface {
 }
 
 .transaction-date {
-    font-family: 'Share Tech Mono', monospace;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 0.85rem;
     color: var(--text-secondary);
     letter-spacing: 0.05em;
@@ -852,7 +924,7 @@ body.weekly-expanse-interface {
 }
 
 .transaction-amount {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: 0.05em;

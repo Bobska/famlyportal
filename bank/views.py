@@ -1682,11 +1682,34 @@ def ajax_accounts_content(request):
 
 @login_required
 def ajax_weekly_content(request):
-    """Return weekly view content for AJAX loading (placeholder)."""
+    """Return weekly view content for AJAX loading."""
+    # Build the weekly context with all necessary data
+    weekly_context = build_weekly_context(request)
+    
+    # Calculate totals for summary panels
+    total_income = weekly_context.get('weekly_income', 0)
+    total_expenses = weekly_context.get('weekly_expenses', 0)
+    net_balance = total_income - total_expenses
+    weekly_net = weekly_context.get('weekly_balance', 0)
+    current_date = timezone.now()
+    
+    context = {
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': net_balance,
+        'weekly_net': weekly_net,
+        'current_date': current_date,
+        **weekly_context,
+    }
+    
+    # Render the partial template
+    html = render_to_string('bank/partials/weekly_content.html', context, request=request)
+    
     return JsonResponse({
-        'status': 'error',
-        'error': 'Weekly AJAX view not yet implemented',
-        'html': '<div class="shell-error-panel"><h2>VIEW NOT READY</h2><p>Weekly view conversion in progress</p></div>'
+        'status': 'success',
+        'html': html,
+        'view': 'weekly',
+        'week_offset': weekly_context.get('week_offset', 0)
     })
 
 

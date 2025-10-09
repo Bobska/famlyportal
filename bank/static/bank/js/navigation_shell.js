@@ -61,20 +61,25 @@ class BankNavigationShell {
         console.log('✅ Bank Navigation Shell ready');
     }
     
-    async loadView(viewName, pushState = true) {
+    async loadView(viewName, pushState = true, queryParams = {}) {
         // Prevent concurrent loads
         if (this.isLoading) {
             console.log('⏳ Load already in progress, skipping...');
             return;
         }
         
-        // Don't reload same view
-        if (viewName === this.currentView) {
+        // Create cache key including query params for views that need it
+        const cacheKey = Object.keys(queryParams).length > 0 
+            ? `${viewName}?${new URLSearchParams(queryParams).toString()}`
+            : viewName;
+        
+        // Don't reload same view with same params
+        if (cacheKey === this.currentView) {
             console.log('📍 Already on', viewName);
             return;
         }
         
-        console.log('📂 Loading view:', viewName);
+        console.log('📂 Loading view:', viewName, queryParams);
         this.isLoading = true;
         this.updateStatus(`Loading ${viewName}...`);
         
@@ -98,14 +103,14 @@ class BankNavigationShell {
             
             // Fetch content (from cache or server)
             let content;
-            if (this.viewCache.has(viewName)) {
+            if (this.viewCache.has(cacheKey)) {
                 console.log('💾 Loading from cache');
-                content = this.viewCache.get(viewName);
+                content = this.viewCache.get(cacheKey);
                 await this.delay(200); // Simulate minimal load time for smooth transition
             } else {
                 console.log('🌐 Fetching from server');
-                content = await this.fetchViewContent(viewName);
-                this.cacheView(viewName, content);
+                content = await this.fetchViewContent(viewName, queryParams);
+                this.cacheView(cacheKey, content);
             }
             
             // Update content
@@ -122,10 +127,10 @@ class BankNavigationShell {
                 const url = viewName === 'dashboard' 
                     ? '/bank/' 
                     : `/bank/${viewName}/`;
-                history.pushState({ view: viewName }, '', url);
+                history.pushState({ view: viewName, params: queryParams }, '', url);
             }
             
-            this.currentView = viewName;
+            this.currentView = cacheKey;
             this.updateStatus(`${viewName.toUpperCase()} loaded`);
             
             // Re-initialize view-specific scripts
@@ -141,14 +146,19 @@ class BankNavigationShell {
         }
     }
     
-    async fetchViewContent(viewName) {
+    async fetchViewContent(viewName, queryParams = {}) {
         const endpoint = this.viewEndpoints[viewName];
         
         if (!endpoint) {
             throw new Error(`Unknown view: ${viewName}`);
         }
         
-        const response = await fetch(endpoint, {
+        // Build URL with query parameters
+        const url = Object.keys(queryParams).length > 0
+            ? `${endpoint}?${new URLSearchParams(queryParams).toString()}`
+            : endpoint;
+        
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',

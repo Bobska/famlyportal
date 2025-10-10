@@ -2,280 +2,309 @@
 {% load humanize %}
 {% load bank_tags %}
 
-<!-- Week Navigation Controls -->
-<div class="weekly-nav-header" style="display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 0.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, rgba(25, 40, 60, 0.90), rgba(20, 30, 50, 0.85)); border: 2px solid var(--faction-bright); border-radius: 3px;">
-    <button class="weekly-nav-btn" onclick="weeklyPreviousWeek()" title="Previous Week">
-        <i class="bi bi-chevron-left"></i>
-    </button>
+<!-- Tactical Grid with 3 Columns -->
+<div class="dashboard-tactical-grid">
     
-    <div class="weekly-nav-display">
-        <span class="weekly-nav-label">
-            {% if week_offset == 0 %}
-                CURRENT WEEK
-            {% elif week_offset == -1 %}
-                LAST WEEK
-            {% elif week_offset == 1 %}
-                NEXT WEEK
-            {% elif week_offset < 0 %}
-                {{ week_offset|add:"0"|stringformat:"d" }} WEEKS AGO
-            {% else %}
-                IN {{ week_offset }} WEEKS
-            {% endif %}
-        </span>
-        <span class="weekly-nav-dates">
-            {{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}
-        </span>
-    </div>
-    
-    <button class="weekly-nav-btn" onclick="weeklyNextWeek()" title="Next Week">
-        <i class="bi bi-chevron-right"></i>
-    </button>
-    
-    {% if week_offset != 0 %}
-    <button class="weekly-nav-btn" onclick="weeklyChangeToCurrentWeek()" title="Current Week">
-        <i class="bi bi-bullseye"></i>
-    </button>
-    {% endif %}
-</div>
-
-<!-- Tactical Grid with Sidebars -->
-<div class="weekly-tactical-grid">
-    
-    <!-- Left Sidebar Panel -->
-    <div class="weekly-sidebar-panel">
-        <div class="weekly-panel-header">
-            <div class="weekly-panel-icon">📊</div>
-            <h2 class="weekly-panel-title">Week Summary</h2>
+    <!-- Left Sidebar: Week Navigation & Summary -->
+    <div class="dashboard-sidebar-panel">
+        <div class="dashboard-panel-header">
+            <div class="dashboard-panel-icon">📅</div>
+            <h2 class="dashboard-panel-title">Week Control</h2>
         </div>
-        <div class="weekly-panel-content">
-            <div class="weekly-summary-panels" style="display: flex; flex-direction: column;">
-                <div class="weekly-summary-card">
-                    <div class="summary-label">INCOME TOTAL</div>
-                    <div class="summary-value income">
-                        +${{ total_income|floatformat:2|intcomma }}
-                    </div>
-                </div>
-                
-                <div class="weekly-summary-card">
-                    <div class="summary-label">EXPENSE TOTAL</div>
-                    <div class="summary-value expense">
-                        -${{ total_expenses|floatformat:2|intcomma }}
-                    </div>
-                </div>
-                
-                <div class="weekly-summary-card">
-                    <div class="summary-label">NET BALANCE</div>
-                    <div class="summary-value net {% if net_balance >= 0 %}income{% else %}expense{% endif %}">
-                        {% if net_balance >= 0 %}
-                            +${{ net_balance|floatformat:2|intcomma }}
-                        {% else %}
-                            ${{ net_balance|floatformat:2|intcomma }}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Center Panel - Main Display Area -->
-    <div class="weekly-main-display">
         
-        <!-- Transaction List Panel -->
-        <div class="weekly-transaction-panel">
-            <div class="weekly-transaction-header">
-                <h2 class="weekly-transaction-title">TRANSACTION LOG</h2>
-                
-                <div class="weekly-panel-actions">
-                    <input 
-                        type="text" 
-                        class="weekly-search-input" 
-                        id="weeklySearchInput"
-                        placeholder="🔍 Search transactions..." 
-                        oninput="weeklySearchTransactions(this.value)"
-                    />
+        <div class="dashboard-panel-content">
+            <!-- Week Navigation -->
+            <div class="dashboard-balance-card" style="margin-bottom: 1rem; padding: 1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                    <button class="dashboard-action-btn" onclick="window.weeklyPreviousWeek()" title="Previous Week" style="padding: 0.5rem 0.75rem;">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
                     
-                    <div class="dropdown">
-                        <button class="weekly-action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-funnel"></i>
-                            <span id="filterLabel">All</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-dark">
-                            <li><a class="dropdown-item filter-dropdown-item active" href="#" onclick="weeklyFilterTransactions('all')">Show All</a></li>
-                            <li><a class="dropdown-item filter-dropdown-item" href="#" onclick="weeklyFilterTransactions('income')">Income Only</a></li>
-                            <li><a class="dropdown-item filter-dropdown-item" href="#" onclick="weeklyFilterTransactions('expense')">Expenses Only</a></li>
-                        </ul>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(100, 255, 218, 0.8); margin-bottom: 0.25rem;">
+                            {% if week_offset == 0 %}
+                                CURRENT WEEK
+                            {% elif week_offset == -1 %}
+                                LAST WEEK
+                            {% elif week_offset == 1 %}
+                                NEXT WEEK
+                            {% elif week_offset < 0 %}
+                                {{ week_offset|add:"0"|stringformat:"d" }} WEEKS AGO
+                            {% else %}
+                                IN {{ week_offset }} WEEKS
+                            {% endif %}
+                        </div>
+                        <div style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.9);">
+                            {{ target_monday|date:"j M" }} - {{ target_sunday|date:"j M, Y" }}
+                        </div>
                     </div>
                     
-                    <button class="weekly-action-btn" onclick="weeklyShowAddTransactionModal()">
-                        <i class="bi bi-plus-circle"></i>
-                        Add Transaction
+                    <button class="dashboard-action-btn" onclick="window.weeklyNextWeek()" title="Next Week" style="padding: 0.5rem 0.75rem;">
+                        <i class="bi bi-chevron-right"></i>
                     </button>
                 </div>
+                
+                {% if week_offset != 0 %}
+                <button class="dashboard-action-btn" onclick="window.weeklyChangeToCurrentWeek()" title="Jump to Current Week" style="width: 100%; justify-content: center;">
+                    <i class="bi bi-bullseye me-2"></i>
+                    Jump to Current Week
+                </button>
+                {% endif %}
             </div>
+            
+            <!-- Week Summary Balance Card -->
+            <div class="dashboard-balance-card primary">
+                <div class="balance-card-label">WEEK NET</div>
+                <div class="balance-card-value {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if net_balance >= 0 %}+{% endif %}${{ net_balance|floatformat:2|intcomma }}
+                </div>
+                <div class="balance-card-meta">{{ target_monday|date:"M j" }} - {{ target_sunday|date:"M j, Y" }}</div>
+            </div>
+            
+            <!-- Income/Expense Breakdown -->
+            <div class="dashboard-stats-grid">
+                <div class="dashboard-stat-item income">
+                    <div class="stat-icon">▲</div>
+                    <div class="stat-details">
+                        <div class="stat-label">Income</div>
+                        <div class="stat-value">+${{ total_income|floatformat:2|intcomma }}</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-stat-item expense">
+                    <div class="stat-icon">▼</div>
+                    <div class="stat-details">
+                        <div class="stat-label">Expenses</div>
+                        <div class="stat-value">-${{ total_expenses|floatformat:2|intcomma }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="dashboard-quick-stat">
+                <span class="stat-icon"><i class="bi bi-receipt"></i></span>
+                <div>
+                    <div class="stat-value">{{ income_entries|length|add:expense_entries|length }}</div>
+                    <div class="stat-label">Total Transactions</div>
+                </div>
+            </div>
+            
+            <div class="dashboard-quick-stat">
+                <span class="stat-icon"><i class="bi bi-calendar-check"></i></span>
+                <div>
+                    <div class="stat-value">{{ income_entries|length }}</div>
+                    <div class="stat-label">Income Entries</div>
+                </div>
+            </div>
+            
+            <div class="dashboard-quick-stat">
+                <span class="stat-icon"><i class="bi bi-calendar-x"></i></span>
+                <div>
+                    <div class="stat-value">{{ expense_entries|length }}</div>
+                    <div class="stat-label">Expense Entries</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Center Panel: Transaction List -->
+    <div class="dashboard-main-panel">
+        <div class="dashboard-panel-header">
+            <h2 class="dashboard-panel-title">WEEKLY TRANSACTIONS</h2>
+            <div class="dashboard-header-stats">
+                <button class="dashboard-action-btn" onclick="window.weeklyShowAddTransactionModal()">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add Transaction
+            </div>
+        </div>
         
-            <div class="weekly-transaction-scroll">
+        <div class="dashboard-panel-content" style="padding: 0; display: flex; flex-direction: column; height: calc(100% - 4rem);">
+            <!-- Search and Filter Bar -->
+            <div style="padding: 1rem; border-bottom: 1px solid rgba(100, 255, 218, 0.1); display: flex; gap: 0.75rem;">
+                <div style="position: relative; flex: 1;">
+                    <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: rgba(100, 255, 218, 0.4); font-size: 0.9rem;"></i>
+                    <input 
+                        type="text" 
+                        class="dashboard-search-input" 
+                        id="weeklySearchInput"
+                        placeholder="Search transactions..." 
+                        oninput="window.weeklySearchTransactions(this.value)"
+                        style="width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.25rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(100, 255, 218, 0.2); border-radius: 6px; color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;"
+                    />
+                </div>
+                
+                <div class="dropdown">
+                    <button class="dashboard-action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding: 0.5rem 1rem;">
+                        <i class="bi bi-funnel me-2"></i>
+                        <span id="filterLabel">All</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="#" onclick="window.weeklyFilterTransactions('all'); return false;">Show All</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="window.weeklyFilterTransactions('income'); return false;">Income Only</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="window.weeklyFilterTransactions('expense'); return false;">Expenses Only</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Transaction List -->
+            <div class="dashboard-scroll-area" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
                 {% if income_entries or expense_entries %}
-                    <!-- Combine and sort all transactions by date -->
                     {% get_all_transactions income_entries expense_entries as all_transactions %}
                     
                     {% for transaction in all_transactions %}
-                        {% if transaction.type == 'income' %}
-                            <div class="weekly-transaction-card" 
-                                 data-transaction-id="{{ transaction.entry.id }}" 
-                                 data-transaction-type="income"
-                                 data-transaction-payee="{{ transaction.entry.payee|default_if_none:'' }}"
-                                 data-transaction-date="{{ transaction.entry.date|date:'Y-m-d' }}"
-                                 data-transaction-notes="{{ transaction.entry.notes|default_if_none:'' }}"
-                                 data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
-                                 onclick="weeklySelectTransaction(this)">
-                                <div class="transaction-date">
-                                    {{ transaction.entry.date|date:"D, j M" }}
-                                </div>
-                                <div class="transaction-info">
-                                    <div class="transaction-payee">
-                                        {{ transaction.entry.payee|default:'Unnamed Income' }}
-                                    </div>
-                                    {% if transaction.entry.notes %}
-                                        <div class="transaction-note">
-                                            {{ transaction.entry.notes|truncatewords:15 }}
-                                        </div>
+                        <div class="dashboard-transaction-card {% if transaction.type == 'income' %}income{% else %}expense{% endif %} weekly-transaction-card" 
+                             data-transaction-id="{{ transaction.entry.id }}" 
+                             data-transaction-type="{{ transaction.type }}"
+                             data-transaction-payee="{{ transaction.entry.payee|default_if_none:'' }}"
+                             data-transaction-date="{{ transaction.entry.date|date:'Y-m-d' }}"
+                             data-transaction-notes="{{ transaction.entry.notes|default_if_none:'' }}"
+                             data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
+                             onclick="window.weeklySelectTransaction(this)">
+                            <div class="transaction-card-main">
+                                <div class="transaction-card-type">
+                                    {% if transaction.type == 'income' %}
+                                        <span class="transaction-icon income">▲</span>
+                                    {% else %}
+                                        <span class="transaction-icon expense">▼</span>
                                     {% endif %}
                                 </div>
-                                <div class="transaction-amount income">
-                                    +${{ transaction.entry.amount|floatformat:2|intcomma }}
+                                <div class="transaction-card-info">
+                                    <div class="transaction-card-payee">{{ transaction.entry.payee|default:"Unnamed" }}</div>
+                                    <div class="transaction-card-date">{{ transaction.entry.date|date:"D, j M Y" }}</div>
+                                </div>
+                                <div class="transaction-card-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}${{ transaction.entry.amount|floatformat:2|intcomma }}
                                 </div>
                             </div>
-                        {% else %}
-                            <div class="weekly-transaction-card" 
-                                 data-transaction-id="{{ transaction.entry.id }}" 
-                                 data-transaction-type="expense"
-                                 data-transaction-payee="{{ transaction.entry.payee|default_if_none:'' }}"
-                                 data-transaction-date="{{ transaction.entry.date|date:'Y-m-d' }}"
-                                 data-transaction-notes="{{ transaction.entry.notes|default_if_none:'' }}"
-                                 data-transaction-amount="{{ transaction.entry.amount|floatformat:'2' }}"
-                                 onclick="weeklySelectTransaction(this)">
-                                <div class="transaction-date">
-                                    {{ transaction.entry.date|date:"D, j M" }}
+                            {% if transaction.entry.notes %}
+                                <div class="transaction-card-notes">
+                                    <i class="bi bi-sticky"></i> {{ transaction.entry.notes|truncatewords:20 }}
                                 </div>
-                                <div class="transaction-info">
-                                    <div class="transaction-payee">
-                                        {{ transaction.entry.payee|default:'Unnamed Expense' }}
-                                    </div>
-                                    {% if transaction.entry.notes %}
-                                        <div class="transaction-note">
-                                            {{ transaction.entry.notes|truncatewords:15 }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                <div class="transaction-amount expense">
-                                    -${{ transaction.entry.amount|floatformat:2|intcomma }}
-                                </div>
-                            </div>
-                        {% endif %}
+                            {% endif %}
+                        </div>
                     {% endfor %}
                 {% else %}
-                    <div class="weekly-empty-state">
-                        <div class="weekly-empty-icon">📊</div>
-                        <div class="weekly-empty-text">NO TRANSACTIONS DETECTED</div>
-                        <div class="weekly-empty-subtext">Add your first income or expense to begin tracking</div>
+                    <div class="dashboard-empty-state">
+                        <div class="empty-icon"><i class="bi bi-inbox" style="font-size: 4rem; color: rgba(100, 255, 218, 0.2);"></i></div>
+                        <div class="empty-title">No Transactions</div>
+                        <div class="empty-message">Add your first income or expense to begin tracking this week</div>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
     
-    <!-- Right Sidebar Panel -->
-    <div class="weekly-sidebar-panel">
-        <div class="weekly-panel-header">
-            <div class="weekly-panel-icon">⚡</div>
-            <h2 class="weekly-panel-title">Quick Actions</h2>
+    <!-- Right Sidebar: Quick Actions & Analytics -->
+    <div class="dashboard-sidebar-panel">
+        <div class="dashboard-panel-header">
+            <div class="dashboard-panel-icon">⚡</div>
+            <h2 class="dashboard-panel-title">Quick Actions</h2>
         </div>
-        <div class="weekly-panel-content">
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <button class="weekly-action-btn" onclick="window.bankShell && window.bankShell.loadView('dashboard')" style="justify-content: center;">
-                    <i class="bi bi-grid-3x3-gap"></i>
+        
+        <div class="dashboard-panel-content">
+            <!-- Quick Action Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <button class="dashboard-action-btn" onclick="window.bankShell && window.bankShell.loadView('dashboard')" style="justify-content: center; width: 100%;">
+                    <i class="bi bi-grid-3x3-gap me-2"></i>
                     Dashboard
                 </button>
-                <button class="weekly-action-btn" onclick="window.bankShell && window.bankShell.loadView('accounts')" style="justify-content: center;">
-                    <i class="bi bi-wallet2"></i>
+                <button class="dashboard-action-btn" onclick="window.bankShell && window.bankShell.loadView('accounts')" style="justify-content: center; width: 100%;">
+                    <i class="bi bi-wallet2 me-2"></i>
                     Accounts
                 </button>
-                <button class="weekly-action-btn" onclick="window.print()">
-                    <i class="bi bi-printer"></i>
-                    Print Report
+                <button class="dashboard-action-btn" onclick="window.bankShell && window.bankShell.loadView('transactions')" style="justify-content: center; width: 100%;">
+                    <i class="bi bi-receipt me-2"></i>
+                    All Transactions
+                </button>
+                <button class="dashboard-action-btn" onclick="window.print()" style="justify-content: center; width: 100%;">
+                    <i class="bi bi-printer me-2"></i>
+                    Print Week
                 </button>
             </div>
             
-            <div style="margin-top: 2rem;">
-                <h3 style="font-size: 0.85rem; letter-spacing: 0.15em; color: var(--faction-color); margin-bottom: 1rem; font-family: 'Orbitron', sans-serif;">WEEK STATS</h3>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="padding: 0.75rem; background: rgba(10, 20, 35, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 2px;">
-                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL TRANSACTIONS</div>
-                        <div style="font-size: 1.2rem; font-weight: 600; color: var(--text-primary);">{{ income_entries|length|add:expense_entries|length }}</div>
-                    </div>
-                    <div style="padding: 0.75rem; background: rgba(10, 20, 35, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 2px;">
-                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">INCOME COUNT</div>
-                        <div style="font-size: 1.2rem; font-weight: 600; color: var(--income-color);">{{ income_entries|length }}</div>
-                    </div>
-                    <div style="padding: 0.75rem; background: rgba(10, 20, 35, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 2px;">
-                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">EXPENSE COUNT</div>
-                        <div style="font-size: 1.2rem; font-weight: 600; color: var(--expense-color);">{{ expense_entries|length }}</div>
+            <!-- Week Stats -->
+            <div style="padding-top: 1rem; border-top: 1px solid rgba(100, 255, 218, 0.1);">
+                <h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(100, 255, 218, 0.6); margin-bottom: 1rem;">Week Stats</h4>
+                
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-graph-up"></i></span>
+                    <div>
+                        <div class="stat-value">
+                            {% if income_entries %}
+                                ${{ income_entries.0.entry.amount|floatformat:2|intcomma }}
+                            {% else %}
+                                $0.00
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">Largest Income</div>
                     </div>
                 </div>
+                
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-graph-down"></i></span>
+                    <div>
+                        <div class="stat-value">
+                            {% if expense_entries %}
+                                ${{ expense_entries.0.entry.amount|floatformat:2|intcomma }}
+                            {% else %}
+                                $0.00
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">Largest Expense</div>
+                    </div>
+                </div>
+                
+                {% if income_entries or expense_entries %}
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-calculator"></i></span>
+                    <div>
+                        <div class="stat-value">
+                            ${% widthratio total_income|add:total_expenses 1 income_entries|length|add:expense_entries|length|default:1 %}
+                        </div>
+                        <div class="stat-label">Avg Per Transaction</div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Bottom Status Panel -->
-<div class="weekly-bottom-panel">
-    <div class="bottom-panel-content">
-        <div class="bottom-panel-section">
-            <span class="status-label">SYSTEM STATUS</span>
-            <span class="status-indicator active">OPERATIONAL</span>
-        </div>
-        <div class="bottom-panel-section">
-            <span class="status-label">WEEKLY BALANCE</span>
-            <span class="status-value {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
-                {% if net_balance >= 0 %}+{% endif %}${{ net_balance|floatformat:2 }}
-            </span>
-        </div>
-        <div class="bottom-panel-section">
-            <span class="status-label">TRANSACTIONS</span>
-            <span class="status-value">{{ income_entries|length|add:expense_entries|length }} ENTRIES</span>
-        </div>
-        <div class="bottom-panel-section">
-            <span class="status-label">DATA SYNC</span>
-            <span class="status-timestamp">{{ current_date|date:"Y.m.d H:i" }}</span>
-        </div>
+<!-- Transaction Detail Backdrop and Panel (Hidden by default) -->
+<div class="weekly-detail-backdrop" id="weeklyDetailBackdrop" onclick="window.weeklyCloseDetailPanel()"></div>
+<div class="weekly-detail-panel" id="weeklyDetailPanel">
+    <div class="weekly-detail-header">
+        <h3 class="weekly-detail-title">Transaction Details</h3>
+        <button class="weekly-detail-close" onclick="window.weeklyCloseDetailPanel()">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="weekly-detail-content" id="weeklyDetailContent">
+        <!-- Content will be populated by JavaScript -->
+    </div>
+    <div class="weekly-detail-actions" id="weeklyDetailActions">
+        <!-- Actions will be populated by JavaScript -->
     </div>
 </div>
 
-</div><!-- End weekly-tactical-grid -->
-
-<!-- Transaction Detail Panel (Sliding from right) - Will be reused from shell -->
-<!-- Modals for Add/Edit Transaction will be added to shell template once -->
-
 <script>
-// Weekly view-specific JavaScript initialization
-window.initWeeklyView = function() {
+// Store current week offset for navigation
+window.currentWeekOffset = {{ week_offset|default:0 }};
+
+// Initialize view
+(function() {
     console.log('Initializing Weekly View...');
     
-    // Store current week offset for navigation
-    window.currentWeekOffset = {{ week_offset|default:0 }};
-    window.targetMonday = '{{ target_monday|date:"Y-m-d" }}';
-    
-    // Set default transaction date to target Monday in modals if they exist
-    const dateInput = document.getElementById('transactionDate');
-    if (dateInput) {
-        dateInput.value = window.targetMonday;
+    // Set up any initial state
+    const searchInput = document.getElementById('weeklySearchInput');
+    if (searchInput) {
+        searchInput.value = '';
     }
     
     console.log('Weekly View initialized with offset:', window.currentWeekOffset);
-};
+})();
 
 // Week navigation functions that reload via AJAX
-// Attach to window for global access when loaded via AJAX
 window.weeklyPreviousWeek = function() {
     if (window.bankShell) {
         const newOffset = window.currentWeekOffset - 1;
@@ -301,7 +330,7 @@ window.weeklyCurrentFilter = 'all';
 
 window.weeklySearchTransactions = function(searchTerm) {
     searchTerm = searchTerm.toLowerCase();
-    const cards = document.querySelectorAll('.weekly-transaction-card');
+    const cards = document.querySelectorAll('.dashboard-transaction-card');
     
     cards.forEach(card => {
         const payee = card.getAttribute('data-transaction-payee').toLowerCase();
@@ -309,7 +338,7 @@ window.weeklySearchTransactions = function(searchTerm) {
         
         if (payee.includes(searchTerm) || notes.includes(searchTerm)) {
             if (window.weeklyCurrentFilter === 'all' || card.getAttribute('data-transaction-type') === window.weeklyCurrentFilter) {
-                card.style.display = 'grid';
+                card.style.display = '';
             }
         } else {
             card.style.display = 'none';
@@ -320,13 +349,8 @@ window.weeklySearchTransactions = function(searchTerm) {
 // Transaction filtering
 window.weeklyFilterTransactions = function(filterType) {
     window.weeklyCurrentFilter = filterType;
-    const cards = document.querySelectorAll('.weekly-transaction-card');
+    const cards = document.querySelectorAll('.dashboard-transaction-card');
     const filterLabel = document.getElementById('filterLabel');
-    const filterItems = document.querySelectorAll('.filter-dropdown-item');
-    
-    // Update active state
-    filterItems.forEach(item => item.classList.remove('active'));
-    event.target.classList.add('active');
     
     // Update label
     if (filterType === 'all') {
@@ -348,7 +372,7 @@ window.weeklyFilterTransactions = function(filterType) {
         const matchesSearch = !searchTerm || payee.includes(searchTerm) || notes.includes(searchTerm);
         const matchesFilter = filterType === 'all' || transactionType === filterType;
         
-        card.style.display = (matchesSearch && matchesFilter) ? 'grid' : 'none';
+        card.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
     });
 }
 

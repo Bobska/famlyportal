@@ -1,53 +1,269 @@
-<!-- Categories View - Coming Soon -->
-<div class="shell-coming-soon-panel">
-    <div class="coming-soon-content">
-        <div class="coming-soon-icon">
-            <i class="bi bi-tags-fill"></i>
+{% load static %}
+{% load humanize %}
+
+<!-- Categories Expanse View - Tactical Grid Layout -->
+<div class="categories-tactical-grid">
+    
+    <!-- Left Sidebar: Category Summary -->
+    <div class="categories-sidebar-panel">
+        <div class="dashboard-panel-header">
+            <h3><i class="bi bi-tags-fill me-2"></i>Category Overview</h3>
         </div>
-        <h2>Categories View</h2>
-        <p class="lead">Category management integration coming soon</p>
-        <p class="text-muted mb-4">The standalone Categories page is fully functional. We're working on integrating it into the navigation shell for a seamless experience.</p>
-        <a href="{% url 'bank:category_list' %}" class="btn btn-primary btn-lg">
-            <i class="bi bi-box-arrow-up-right me-2"></i>
-            Open Full Categories Page
-        </a>
+        
+        <div style="padding: 1rem; overflow-y: auto;">
+            <!-- Total Categories Card -->
+            <div class="dashboard-balance-card" style="margin-bottom: 1rem;">
+                <div class="balance-label">Total Categories</div>
+                <div class="balance-amount" style="font-size: 2.5rem;">{{ total_categories }}</div>
+            </div>
+            
+            <!-- Breakdown by Type -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div class="dashboard-stat-card" style="border-color: rgba(72, 187, 120, 0.3);">
+                    <div class="stat-label">Income</div>
+                    <div class="stat-value" style="color: rgba(72, 187, 120, 1);">{{ income_categories_count }}</div>
+                </div>
+                <div class="dashboard-stat-card" style="border-color: rgba(245, 101, 101, 0.3);">
+                    <div class="stat-label">Expense</div>
+                    <div class="stat-value" style="color: rgba(245, 101, 101, 1);">{{ expense_categories_count }}</div>
+                </div>
+            </div>
+            
+            <div class="dashboard-stat-card" style="border-color: rgba(100, 255, 218, 0.3); margin-bottom: 1.5rem;">
+                <div class="stat-label">Both Types</div>
+                <div class="stat-value" style="color: rgba(100, 255, 218, 1);">{{ both_categories_count }}</div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div style="padding-top: 1rem; border-top: 1px solid rgba(100, 255, 218, 0.1);">
+                <h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(100, 255, 218, 0.6); margin-bottom: 1rem;">Quick Stats</h4>
+                
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-people"></i></span>
+                    <div>
+                        <div class="stat-value">{{ total_payees }}</div>
+                        <div class="stat-label">Total Payees</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-link-45deg"></i></span>
+                    <div>
+                        <div class="stat-value">{{ avg_payees_per_category|floatformat:1 }}</div>
+                        <div class="stat-label">Avg Payees/Category</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <!-- Center Panel: Category List -->
+    <div class="categories-main-panel">
+        <div class="dashboard-panel-header">
+            <h3><i class="bi bi-list-ul me-2"></i>All Categories</h3>
+        </div>
+        
+        <!-- Search and Filter Controls -->
+        <div class="categories-controls">
+            <!-- Search -->
+            <div class="categories-search">
+                <i class="bi bi-search"></i>
+                <input type="text" 
+                       id="category-search" 
+                       placeholder="Search categories..."
+                       onkeyup="window.filterCategoriesList()">
+            </div>
+            
+            <!-- Filter Buttons -->
+            <div class="categories-filter-group">
+                <button class="filter-btn active" data-filter="all" onclick="window.setCategoryFilter('all')">
+                    All <span class="filter-count">{{ total_categories }}</span>
+                </button>
+                <button class="filter-btn income" data-filter="income" onclick="window.setCategoryFilter('income')">
+                    Income <span class="filter-count">{{ income_categories_count }}</span>
+                </button>
+                <button class="filter-btn expense" data-filter="expense" onclick="window.setCategoryFilter('expense')">
+                    Expense <span class="filter-count">{{ expense_categories_count }}</span>
+                </button>
+                <button class="filter-btn both" data-filter="both" onclick="window.setCategoryFilter('both')">
+                    Both <span class="filter-count">{{ both_categories_count }}</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Category List -->
+        <div class="categories-list-scroll">
+            {% if categories %}
+                {% for category in categories %}
+                <div class="category-item" 
+                     data-type="{{ category.category_type }}"
+                     data-id="{{ category.id }}"
+                     data-name="{{ category.name }}"
+                     data-payees="{{ category.get_payees_display }}"
+                     data-description="{{ category.description|default:'' }}"
+                     onclick="window.selectCategory(this)">
+                    
+                    <div class="category-icon">
+                        {% if category.category_type == 'income' %}
+                            <i class="bi bi-arrow-down-circle-fill" style="color: rgba(72, 187, 120, 1);"></i>
+                        {% elif category.category_type == 'expense' %}
+                            <i class="bi bi-arrow-up-circle-fill" style="color: rgba(245, 101, 101, 1);"></i>
+                        {% else %}
+                            <i class="bi bi-arrow-left-right" style="color: rgba(100, 255, 218, 1);"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="category-info">
+                        <div class="category-name">{{ category.name }}</div>
+                        <div class="category-payees">
+                            <i class="bi bi-people"></i>
+                            {% if category.payees.exists %}
+                                {{ category.payees.count }} payee{{ category.payees.count|pluralize }}
+                            {% else %}
+                                No payees
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="category-type {{ category.category_type }}">
+                        <span class="type-badge">{{ category.get_type_display_short }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="categories-empty">
+                    <div class="empty-icon">
+                        <i class="bi bi-tags"></i>
+                    </div>
+                    <div class="empty-title">No Categories Found</div>
+                    <div class="empty-message">Create a category to organize your transactions</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Right Sidebar: Category Detail Panel -->
+    <div class="categories-detail-panel">
+        <div class="dashboard-panel-header">
+            <h3><i class="bi bi-info-circle me-2"></i>Category Details</h3>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="category-detail-empty" class="detail-empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-hand-index"></i>
+            </div>
+            <div class="empty-title">Select a Category</div>
+            <div class="empty-message">Click on any category to view details and manage payees</div>
+        </div>
+        
+        <!-- Detail Content (Hidden by default) -->
+        <div id="category-detail-content" class="category-detail-content" hidden>
+            <span id="detail-type-badge" class="detail-type-badge income">INCOME</span>
+            
+            <h2 id="detail-name" class="detail-category-name">Category Name</h2>
+            
+            <div class="detail-section">
+                <div class="detail-label">Type</div>
+                <div id="detail-type" class="detail-value">Income</div>
+            </div>
+            
+            <div id="detail-description-section" class="detail-section" hidden>
+                <div class="detail-label">Description</div>
+                <div id="detail-description" class="detail-value"></div>
+            </div>
+            
+            <div class="detail-section">
+                <div class="detail-label">Associated Payees</div>
+                <div id="detail-payees" class="detail-value">No payees</div>
+            </div>
+            
+            <div class="detail-actions">
+                <button class="dashboard-action-btn" onclick="window.editCategory()">
+                    <i class="bi bi-pencil me-2"></i>Edit Category
+                </button>
+                <button class="dashboard-action-btn danger" onclick="window.deleteCategory()">
+                    <i class="bi bi-trash me-2"></i>Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    
 </div>
 
-<style>
-.shell-coming-soon-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    padding: 3rem;
+<!-- JavaScript for category interactions -->
+<script>
+window.categoriesSelectedCategory = null;
+
+window.selectCategory = function(element) {
+    document.querySelectorAll('.category-item').forEach(item => item.classList.remove('selected'));
+    element.classList.add('selected');
+    window.categoriesSelectedCategory = element;
+    
+    const emptyState = document.getElementById('category-detail-empty');
+    const detailContent = document.getElementById('category-detail-content');
+    emptyState.hidden = true;
+    detailContent.hidden = false;
+    
+    const type = element.dataset.type;
+    const name = element.dataset.name;
+    const payees = element.dataset.payees || 'No payees';
+    const description = element.dataset.description || '';
+    const id = element.dataset.id;
+    
+    document.getElementById('detail-type-badge').textContent = type === 'income' ? 'INCOME' : type === 'expense' ? 'EXPENSE' : 'BOTH';
+    document.getElementById('detail-type-badge').className = 'detail-type-badge ' + type;
+    document.getElementById('detail-name').textContent = name;
+    document.getElementById('detail-type').textContent = type === 'income' ? 'Income' : type === 'expense' ? 'Expense' : 'Both Income & Expense';
+    document.getElementById('detail-payees').textContent = payees;
+    
+    const descSection = document.getElementById('detail-description-section');
+    if (description) {
+        descSection.hidden = false;
+        document.getElementById('detail-description').textContent = description;
+    } else {
+        descSection.hidden = true;
+    }
+    
+    window.categoriesSelectedCategory.categoryId = id;
 }
 
-.coming-soon-content {
-    text-align: center;
-    max-width: 600px;
+window.setCategoryFilter = function(filter) {
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.closest('.filter-btn').classList.add('active');
+    
+    document.querySelectorAll('.category-item').forEach(item => {
+        item.style.display = (filter === 'all' || item.dataset.type === filter) ? '' : 'none';
+    });
 }
 
-.coming-soon-icon {
-    font-size: 5rem;
-    color: rgba(255, 255, 255, 0.2);
-    margin-bottom: 1.5rem;
+window.filterCategoriesList = function() {
+    const searchTerm = document.getElementById('category-search').value.toLowerCase();
+    const items = document.querySelectorAll('.category-item');
+    
+    items.forEach(item => {
+        const name = item.dataset.name.toLowerCase();
+        const payees = item.dataset.payees.toLowerCase();
+        const description = item.dataset.description.toLowerCase();
+        const matches = name.includes(searchTerm) || payees.includes(searchTerm) || description.includes(searchTerm);
+        const currentFilter = document.querySelector('.filter-btn.active').dataset.filter;
+        const passesFilter = currentFilter === 'all' || item.dataset.type === currentFilter;
+        item.style.display = (matches && passesFilter) ? '' : 'none';
+    });
 }
 
-.coming-soon-content h2 {
-    font-size: 2rem;
-    font-weight: 300;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.9);
+window.editCategory = function() {
+    if (!window.categoriesSelectedCategory || !window.categoriesSelectedCategory.categoryId) return;
+    window.location.href = `/bank/category/${window.categoriesSelectedCategory.categoryId}/update/`;
 }
 
-.coming-soon-content .lead {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.7);
+window.deleteCategory = function() {
+    if (!window.categoriesSelectedCategory || !window.categoriesSelectedCategory.categoryId) return;
+    const name = window.categoriesSelectedCategory.dataset.name;
+    if (confirm(`Are you sure you want to delete "${name}"?`)) {
+        console.log('Delete category:', window.categoriesSelectedCategory.categoryId);
+    }
 }
 
-.coming-soon-content .text-muted {
-    color: rgba(255, 255, 255, 0.5) !important;
-}
-</style>
+console.log('✅ Categories Expanse view initialized');
+</script>

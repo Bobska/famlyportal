@@ -1,53 +1,286 @@
-<!-- Payees View - Coming Soon -->
-<div class="shell-coming-soon-panel">
-    <div class="coming-soon-content">
-        <div class="coming-soon-icon">
-            <i class="bi bi-people-fill"></i>
+{% load static %}
+{% load humanize %}
+
+<!-- Payees Expanse View - Tactical Grid Layout -->
+<div class="payees-tactical-grid">
+    
+    <!-- Left Sidebar: Payee Summary -->
+    <div class="payees-sidebar-panel">
+        <div class="dashboard-panel-header">
+            <h3><i class="bi bi-people-fill me-2"></i>Payee Overview</h3>
         </div>
-        <h2>Payees View</h2>
-        <p class="lead">Payee management integration coming soon</p>
-        <p class="text-muted mb-4">The standalone Payees page is fully functional. We're working on integrating it into the navigation shell for a seamless experience.</p>
-        <a href="{% url 'bank:payee_list' %}" class="btn btn-primary btn-lg">
-            <i class="bi bi-box-arrow-up-right me-2"></i>
-            Open Full Payees Page
-        </a>
+        
+        <div style="padding: 1rem; overflow-y: auto;">
+            <!-- Total Payees Card -->
+            <div class="dashboard-balance-card" style="margin-bottom: 1rem;">
+                <div class="balance-label">Total Payees</div>
+                <div class="balance-amount" style="font-size: 2.5rem;">{{ total_payees }}</div>
+            </div>
+            
+            <!-- Breakdown by Type -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div class="dashboard-stat-card" style="border-color: rgba(72, 187, 120, 0.3);">
+                    <div class="stat-label">Income Payees</div>
+                    <div class="stat-value" style="color: rgba(72, 187, 120, 1);">{{ income_payees_count }}</div>
+                </div>
+                <div class="dashboard-stat-card" style="border-color: rgba(245, 101, 101, 0.3);">
+                    <div class="stat-label">Expense Payees</div>
+                    <div class="stat-value" style="color: rgba(245, 101, 101, 1);">{{ expense_payees_count }}</div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div style="padding-top: 1rem; border-top: 1px solid rgba(100, 255, 218, 0.1);">
+                <h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(100, 255, 218, 0.6); margin-bottom: 1rem;">Quick Stats</h4>
+                
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-tags"></i></span>
+                    <div>
+                        <div class="stat-value">{{ total_categories }}</div>
+                        <div class="stat-label">Total Categories</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-quick-stat">
+                    <span class="stat-icon"><i class="bi bi-link-45deg"></i></span>
+                    <div>
+                        <div class="stat-value">{{ avg_categories_per_payee|floatformat:1 }}</div>
+                        <div class="stat-label">Avg Categories/Payee</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <!-- Center Panel: Payee List -->
+    <div class="payees-main-panel">
+        <div class="dashboard-panel-header">
+            <h3><i class="bi bi-list-ul me-2"></i>All Payees</h3>
+        </div>
+        
+        <!-- Search and Filter Controls -->
+        <div class="payees-controls">
+            <!-- Search -->
+            <div class="payees-search">
+                <i class="bi bi-search"></i>
+                <input type="text" 
+                       id="payee-search" 
+                       placeholder="Search payees..."
+                       onkeyup="window.filterPayeesList()">
+            </div>
+            
+            <!-- Filter Buttons -->
+            <div class="payees-filter-group">
+                <button class="filter-btn active" data-filter="all" onclick="window.setPayeeFilter('all')">
+                    All <span class="filter-count">{{ total_payees }}</span>
+                </button>
+                <button class="filter-btn income" data-filter="income" onclick="window.setPayeeFilter('income')">
+                    Income <span class="filter-count">{{ income_payees_count }}</span>
+                </button>
+                <button class="filter-btn expense" data-filter="expense" onclick="window.setPayeeFilter('expense')">
+                    Expense <span class="filter-count">{{ expense_payees_count }}</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Payee List -->
+        <div class="payees-list-scroll">
+            {% if payees %}
+                {% for payee in payees %}
+                <div class="payee-item" 
+                     data-type="{{ payee.transaction_type }}"
+                     data-id="{{ payee.id }}"
+                     data-name="{{ payee.name }}"
+                     data-categories="{{ payee.get_categories_display }}"
+                     onclick="window.selectPayee(this)">
+                    
+                    <div class="payee-icon">
+                        {% if payee.transaction_type == 'income' %}
+                            <i class="bi bi-arrow-down-circle-fill" style="color: rgba(72, 187, 120, 1);"></i>
+                        {% else %}
+                            <i class="bi bi-arrow-up-circle-fill" style="color: rgba(245, 101, 101, 1);"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="payee-info">
+                        <div class="payee-name">{{ payee.name }}</div>
+                        <div class="payee-categories">
+                            <i class="bi bi-tags"></i>
+                            {% if payee.categories.exists %}
+                                {{ payee.categories.count }} categor{{ payee.categories.count|pluralize:"y,ies" }}
+                            {% else %}
+                                No categories
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="payee-type {{ payee.transaction_type }}">
+                        <span class="type-badge">{{ payee.get_transaction_type_display }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="payees-empty">
+                    <div class="empty-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="empty-title">No Payees Found</div>
+                    <div class="empty-message">Create a payee to track your income sources and expenses</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Right Sidebar: Payee Detail Panel -->
+    <div class="payees-detail-panel">
+        <div class="dashboard-panel-header">
+            <h3><i class="bi bi-info-circle me-2"></i>Payee Details</h3>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="payee-detail-empty" class="detail-empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-hand-index"></i>
+            </div>
+            <div class="empty-title">Select a Payee</div>
+            <div class="empty-message">Click on any payee to view details and manage categories</div>
+        </div>
+        
+        <!-- Detail Content (Hidden by default) -->
+        <div id="payee-detail-content" class="payee-detail-content" hidden>
+            <span id="detail-type-badge" class="detail-type-badge income">INCOME</span>
+            
+            <h2 id="detail-name" class="detail-payee-name">Payee Name</h2>
+            
+            <div class="detail-section">
+                <div class="detail-label">Type</div>
+                <div id="detail-type" class="detail-value">Income</div>
+            </div>
+            
+            <div class="detail-section">
+                <div class="detail-label">Associated Categories</div>
+                <div id="detail-categories" class="detail-value">No categories</div>
+            </div>
+            
+            <div id="detail-categories-list" class="detail-section" hidden>
+                <div class="detail-label">Category List</div>
+                <div id="detail-categories-items" class="category-tags"></div>
+            </div>
+            
+            <div class="detail-actions">
+                <button class="dashboard-action-btn" onclick="window.editPayee()">
+                    <i class="bi bi-pencil me-2"></i>Edit Payee
+                </button>
+                <button class="dashboard-action-btn danger" onclick="window.deletePayee()">
+                    <i class="bi bi-trash me-2"></i>Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    
 </div>
 
-<style>
-.shell-coming-soon-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    padding: 3rem;
+<!-- JavaScript for payee interactions -->
+<script>
+// Attach to window for global access when loaded via AJAX
+window.payeesSelectedPayee = null;
+
+window.selectPayee = function(element) {
+    // Remove previous selection
+    document.querySelectorAll('.payee-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Add selection to clicked item
+    element.classList.add('selected');
+    window.payeesSelectedPayee = element;
+    
+    // Show detail panel
+    const emptyState = document.getElementById('payee-detail-empty');
+    const detailContent = document.getElementById('payee-detail-content');
+    
+    emptyState.hidden = true;
+    detailContent.hidden = false;
+    
+    // Populate details
+    const type = element.dataset.type;
+    const name = element.dataset.name;
+    const categories = element.dataset.categories || 'No categories';
+    const id = element.dataset.id;
+    
+    // Type badge
+    const typeBadge = document.getElementById('detail-type-badge');
+    typeBadge.textContent = type === 'income' ? 'INCOME' : 'EXPENSE';
+    typeBadge.className = 'detail-type-badge ' + type;
+    
+    // Name
+    document.getElementById('detail-name').textContent = name;
+    
+    // Type
+    document.getElementById('detail-type').textContent = type === 'income' ? 'Income' : 'Expense';
+    
+    // Categories
+    document.getElementById('detail-categories').textContent = categories;
+    
+    // Store ID for edit/delete
+    window.payeesSelectedPayee.payeeId = id;
 }
 
-.coming-soon-content {
-    text-align: center;
-    max-width: 600px;
+window.setPayeeFilter = function(filter) {
+    // Update active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.closest('.filter-btn').classList.add('active');
+    
+    // Filter payees
+    const items = document.querySelectorAll('.payee-item');
+    items.forEach(item => {
+        if (filter === 'all') {
+            item.style.display = '';
+        } else {
+            item.style.display = item.dataset.type === filter ? '' : 'none';
+        }
+    });
 }
 
-.coming-soon-icon {
-    font-size: 5rem;
-    color: rgba(255, 255, 255, 0.2);
-    margin-bottom: 1.5rem;
+window.filterPayeesList = function() {
+    const searchTerm = document.getElementById('payee-search').value.toLowerCase();
+    const items = document.querySelectorAll('.payee-item');
+    
+    items.forEach(item => {
+        const name = item.dataset.name.toLowerCase();
+        const categories = item.dataset.categories.toLowerCase();
+        
+        const matches = name.includes(searchTerm) || categories.includes(searchTerm);
+        
+        // Only hide if doesn't match AND passes current filter
+        const currentFilter = document.querySelector('.filter-btn.active').dataset.filter;
+        const passesFilter = currentFilter === 'all' || item.dataset.type === currentFilter;
+        
+        item.style.display = (matches && passesFilter) ? '' : 'none';
+    });
 }
 
-.coming-soon-content h2 {
-    font-size: 2rem;
-    font-weight: 300;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.9);
+window.editPayee = function() {
+    if (!window.payeesSelectedPayee || !window.payeesSelectedPayee.payeeId) return;
+    
+    const id = window.payeesSelectedPayee.payeeId;
+    // Navigate to edit page
+    window.location.href = `/bank/payee/${id}/update/`;
 }
 
-.coming-soon-content .lead {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.7);
+window.deletePayee = function() {
+    if (!window.payeesSelectedPayee || !window.payeesSelectedPayee.payeeId) return;
+    
+    const id = window.payeesSelectedPayee.payeeId;
+    const name = window.payeesSelectedPayee.dataset.name;
+    
+    if (confirm(`Are you sure you want to delete "${name}"?`)) {
+        // Implement delete logic here
+        console.log('Delete payee:', id);
+    }
 }
 
-.coming-soon-content .text-muted {
-    color: rgba(255, 255, 255, 0.5) !important;
-}
-</style>
+console.log('✅ Payees Expanse view initialized');
+</script>

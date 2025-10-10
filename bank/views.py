@@ -1756,24 +1756,29 @@ def ajax_transactions_content(request):
 def ajax_payees_content(request):
     """Return payees view content for AJAX loading."""
     try:
-        # Reuse existing payee_list context logic
-        category_filter = request.GET.get('category_filter', 'all')
-        
-        payees = Payee.objects.filter(user=request.user).prefetch_related('categories')
-        
-        # Apply category filtering
-        if category_filter == 'none':
-            payees = payees.filter(categories__isnull=True)
-        elif category_filter != 'all' and category_filter.isdigit():
-            payees = payees.filter(categories__id=int(category_filter))
-        
-        payees = payees.order_by('name').distinct()
+        # Fetch payees with related categories
+        payees = Payee.objects.filter(user=request.user).prefetch_related('categories').order_by('name')
         categories = Category.objects.filter(user=request.user).order_by('name')
+        
+        # Calculate summary stats
+        total_payees = payees.count()
+        income_payees = payees.filter(transaction_type='income')
+        expense_payees = payees.filter(transaction_type='expense')
+        income_payees_count = income_payees.count()
+        expense_payees_count = expense_payees.count()
+        
+        # Calculate average categories per payee
+        total_categories_count = sum(p.categories.count() for p in payees)
+        avg_categories_per_payee = total_categories_count / total_payees if total_payees > 0 else 0
         
         context = {
             'payees': payees,
             'categories': categories,
-            'current_category_filter': category_filter,
+            'total_payees': total_payees,
+            'income_payees_count': income_payees_count,
+            'expense_payees_count': expense_payees_count,
+            'total_categories': categories.count(),
+            'avg_categories_per_payee': avg_categories_per_payee,
         }
         
         # Render the content partial
@@ -1796,8 +1801,37 @@ def ajax_payees_content(request):
 def ajax_categories_content(request):
     """Return categories view content for AJAX loading."""
     try:
-        # Simple placeholder for now
-        html = render_to_string('bank/partials/categories_content.html', {}, request=request)
+        # Fetch categories with related payees
+        categories = Category.objects.filter(user=request.user).prefetch_related('payees').order_by('name')
+        payees = Payee.objects.filter(user=request.user).order_by('name')
+        
+        # Calculate summary stats
+        total_categories = categories.count()
+        income_categories = categories.filter(transaction_type='income')
+        expense_categories = categories.filter(transaction_type='expense')
+        both_categories = categories.filter(transaction_type='both')
+        
+        income_categories_count = income_categories.count()
+        expense_categories_count = expense_categories.count()
+        both_categories_count = both_categories.count()
+        
+        # Calculate average payees per category
+        total_payees_count = sum(c.payees.count() for c in categories)
+        avg_payees_per_category = total_payees_count / total_categories if total_categories > 0 else 0
+        
+        context = {
+            'categories': categories,
+            'payees': payees,
+            'total_categories': total_categories,
+            'income_categories_count': income_categories_count,
+            'expense_categories_count': expense_categories_count,
+            'both_categories_count': both_categories_count,
+            'total_payees': payees.count(),
+            'avg_payees_per_category': avg_payees_per_category,
+        }
+        
+        # Render the content partial
+        html = render_to_string('bank/partials/categories_content.html', context, request=request)
         
         return JsonResponse({
             'status': 'success',

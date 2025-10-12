@@ -12,17 +12,32 @@
         }
 
         body {
-            font-family: 'Courier New', 'Consolas', monospace;
-            background: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0d1b2a 100%);
-            color: rgba(255, 255, 255, 0.9);
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0d15 0%, #1a1d2e 50%, #0f1419 100%);
+            color: #00d9ff;
             min-height: 100vh;
             overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .dashboard-container {
-            padding: 40px 60px;
+            padding: 40px 60px 100px 60px;
             max-width: 1800px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
 
         /* Header */
@@ -440,6 +455,62 @@
                 grid-column: 1;
             }
         }
+
+        /* Bottom Info Bar */
+        .dashboard-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 13, 21, 0.95);
+            border-top: 1px solid rgba(0, 217, 255, 0.2);
+            padding: 15px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            letter-spacing: 1px;
+            color: rgba(0, 217, 255, 0.6);
+            text-transform: uppercase;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .footer-left,
+        .footer-right {
+            display: flex;
+            gap: 30px;
+        }
+
+        .footer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-status-dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(0, 217, 255, 0.8);
+            border-radius: 50%;
+            animation: statusBlink 2s ease-in-out infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-footer {
+                padding: 15px 30px;
+            }
+
+            .footer-left,
+            .footer-right {
+                gap: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -603,6 +674,30 @@
                 {% endif %}
             </div>
             
+        </div>
+    </div>
+
+    <!-- Bottom Info Bar -->
+    <div class="dashboard-footer">
+        <div class="footer-left">
+            <div class="footer-item">
+                <div class="footer-status-dot"></div>
+                <span>System Status: Operational</span>
+            </div>
+            <div class="footer-item">
+                <span>Version 1.0.0</span>
+            </div>
+        </div>
+        <div class="footer-right">
+            <div class="footer-item">
+                <span>User: {{ request.user.username }}</span>
+            </div>
+            <div class="footer-item">
+                <span>Auth Level: {% if request.user.familymember_set.first %}{{ request.user.familymember_set.first.get_role_display }}{% else %}Member{% endif %}</span>
+            </div>
+            <div class="footer-item">
+                <span>Node: Primary</span>
+            </div>
         </div>
     </div>
 </body>

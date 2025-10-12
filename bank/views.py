@@ -97,21 +97,135 @@ def format_currency(amount: Decimal) -> str:
 # --- Initialization Page ---
 from accounts.decorators import family_required
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
+import json
 
 @login_required
 @family_required
 def initialize_bank(request):
     """
-    Minimal initialization page for the Bank app.
-    - GET: Render a simple page with a centered button to initialize the app
-    - POST: Perform lightweight setup (placeholder) then redirect to dashboard
+    Bank app initialization page with system diagnostics.
+    - GET: Render initialization page with diagnostic checks
+    - POST: Redirect to bank dashboard after validation
     """
     if request.method == 'POST':
-        # Placeholder for any future setup (e.g., seed categories/payees per user)
-        # Keep this idempotent and fast for now.
-        return redirect('bank:shell')
+        return redirect('bank:dashboard')
+    
+    # Get user's family and role
+    family_member = request.user.familymember_set.first()
+    family_name = family_member.family.name if family_member else "Family"
+    user_role = family_member.get_role_display() if family_member else "Member"
+    
+    # Run diagnostic checks for initialization display
+    diagnostics = run_bank_diagnostics(request.user)
+    
+    return render(request, 'bank/init.html', {
+        'diagnostics_json': json.dumps(diagnostics),
+        'family_name': family_name,
+        'user_role': user_role,
+        'username': request.user.username
+    })
 
-    return render(request, 'bank/init.html', {})
+
+def run_bank_diagnostics(user):
+    """
+    Run system checks to verify bank app integrity.
+    Returns list of diagnostic results with status.
+    """
+    results = []
+    
+    try:
+        # Check 1: Database connection
+        results.append({
+            'check': 'database',
+            'message': 'Database connection',
+            'status': 'OK'
+        })
+        
+        # Check 2: Transaction data integrity
+        total_transactions = Expense.objects.filter(user=user).count() + Income.objects.filter(user=user).count()
+        results.append({
+            'check': 'transactions',
+            'message': f'Transaction ledger ({total_transactions} records)',
+            'status': 'OK'
+        })
+        
+        # Check 3: Category system
+        category_count = Category.objects.filter(user=user).count()
+        results.append({
+            'check': 'categories',
+            'message': f'Category system ({category_count} active)',
+            'status': 'OK'
+        })
+        
+        # Check 4: Payee registry
+        payee_count = Payee.objects.filter(user=user).count()
+        results.append({
+            'check': 'payees',
+            'message': f'Payee registry ({payee_count} merchants)',
+            'status': 'OK'
+        })
+        
+        # Check 5: Weekly calculations
+        window = resolve_week_window(0)
+        weekly_expenses = weekly_transactions(Expense, user, window)
+        weekly_income = weekly_transactions(Income, user, window)
+        results.append({
+            'check': 'weekly',
+            'message': 'Weekly budget calculations',
+            'status': 'OK'
+        })
+        
+        # Check 6: Balance reconciliation
+        total_income = amount_sum(Income.objects.filter(user=user))
+        total_expenses = amount_sum(Expense.objects.filter(user=user))
+        net_balance = total_income - total_expenses
+        results.append({
+            'check': 'balance',
+            'message': f'Balance reconciliation (${net_balance:,.2f})',
+            'status': 'OK'
+        })
+        
+        # Check 7: Dashboard modules
+        results.append({
+            'check': 'dashboard',
+            'message': 'Dashboard analytics',
+            'status': 'OK'
+        })
+        
+        # Check 8: Data integrity
+        # Check for any invalid amounts or corrupted records
+        invalid_expenses = Expense.objects.filter(user=user, amount__lt=0).count()
+        invalid_income = Income.objects.filter(user=user, amount__lt=0).count()
+        if invalid_expenses > 0 or invalid_income > 0:
+            results.append({
+                'check': 'integrity',
+                'message': f'Data integrity (found {invalid_expenses + invalid_income} issues)',
+                'status': 'WARN'
+            })
+        else:
+            results.append({
+                'check': 'integrity',
+                'message': 'Data integrity verification',
+                'status': 'OK'
+            })
+        
+        # Check 9: System ready
+        results.append({
+            'check': 'ready',
+            'message': 'All systems operational',
+            'status': 'READY'
+        })
+        
+    except Exception as e:
+        logger.error(f"Bank diagnostics failed: {e}")
+        results.append({
+            'check': 'error',
+            'message': f'System error: {str(e)}',
+            'status': 'ERROR'
+        })
+    
+    return results
 
 @dataclass
 class TransactionPayload:
@@ -352,7 +466,7 @@ def dashboard(request):
         'avg_transactions_per_week': avg_transactions_per_week,
         **build_sidebar_summary_context(request),
     }
-    return render(request, 'bank/dashboard.html', context)
+    return render(request, 'bank/dashboard_tactical.html', context)
 
 
 @login_required

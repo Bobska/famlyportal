@@ -18,6 +18,8 @@ from .decorators import (
 )
 
 
+# PERF TEST: harmless comment to measure save/analysis speed; safe to remove
+
 def user_register(request):
     """User registration view with family creation/joining"""
     if request.user.is_authenticated:

@@ -557,6 +557,9 @@
             opacity: 0;
             transform: translateX(-20px);
             text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .status-line.active {
@@ -570,8 +573,69 @@
             }
         }
 
+        .status-left {
+            display: flex;
+            align-items: center;
+            flex: 0 0 auto;
+        }
+
+        .status-connector {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, 
+                rgba(0, 217, 255, 0) 0%, 
+                rgba(0, 217, 255, 0.15) 50%, 
+                rgba(0, 217, 255, 0) 100%
+            );
+            margin: 0 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-connector::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, 
+                transparent 0%, 
+                rgba(0, 217, 255, 0.6) 50%, 
+                transparent 100%
+            );
+            animation: connectorSweep 0.8s ease-out forwards;
+        }
+
+        @keyframes connectorSweep {
+            to {
+                left: 100%;
+            }
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .status-dots {
+            color: rgba(0, 217, 255, 0.3);
+            margin-right: 8px;
+            transition: opacity 0.3s ease-out;
+            letter-spacing: 2px;
+        }
+
         .status-ok {
             color: #00ff88;
+            font-weight: 500;
+        }
+
+        .status-ok.info-value {
+            color: #00d9ff;
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
         }
 
         .status-prefix {
@@ -582,10 +646,11 @@
         .progress-container {
             margin-bottom: 40px;
             opacity: 0;
+            transform: scale(0.95) translateY(10px);
         }
 
         .boot-view.active .progress-container {
-            animation: progressFadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 2.8s forwards;
+            animation: progressFadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 2.0s forwards;
         }
 
         @keyframes progressFadeIn {
@@ -622,7 +687,7 @@
             width: 0%;
             box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
             position: relative;
-            transition: width 0.1s linear;
+            transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .progress-bar.active::after {
@@ -656,17 +721,15 @@
             letter-spacing: 4px;
             position: relative;
             opacity: 0;
-            transition: all 0.3s ease;
-            display: none;
+            transition: opacity 0.5s ease;
+            display: inline-block;
+            visibility: hidden;
+            min-height: 54px;
         }
 
         .init-button.visible {
-            display: inline-block;
-            animation: fadeInButton 0.5s ease-out forwards;
-        }
-
-        @keyframes fadeInButton {
-            to { opacity: 1; }
+            opacity: 1;
+            visibility: visible;
         }
 
         .init-button:hover {
@@ -756,6 +819,89 @@
                 text-align: center;
             }
         }
+
+        /* Reverse exit animations */
+        .boot-view.exiting .init-button {
+            animation: buttonFadeOut 0.4s ease-out forwards;
+        }
+
+        @keyframes buttonFadeOut {
+        /* Reverse exit animations - higher specificity to override .active */
+        .boot-view.active.exiting .init-button {
+            animation: buttonFadeOut 0.4s ease-out forwards !important;
+            pointer-events: none;
+        }
+
+        @keyframes buttonFadeOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+
+        .boot-view.active.exiting .system-info {
+            animation: infoFadeOut 0.4s ease-out forwards !important;
+        }
+
+        @keyframes infoFadeOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+
+        .boot-view.active.exiting .progress-container {
+            animation: progressFadeOut 0.5s ease-out 0.2s forwards !important;
+        }
+
+        @keyframes progressFadeOut {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+        }
+
+        .boot-view.active.exiting .status-display {
+            animation: displayCollapse 0.8s ease-out 0.4s forwards !important;
+        }
+
+        @keyframes displayCollapse {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.85);
+            }
+        }
+
+        .boot-view.active.exiting .logo {
+            animation: logoFadeOut 0.6s ease-out 0.8s forwards !important;
+        }
+
+        @keyframes logoFadeOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -781,7 +927,7 @@
         <div class="boot-view" id="bootView">
             <div class="logo">
                 <div class="logo-text">BANK</div>
-                <div class="logo-subtitle">Financial Command System</div>
+                <div class="logo-subtitle">{{ family_name }} Financial System</div>
             </div>
 
             <div class="status-display">
@@ -790,45 +936,104 @@
                 <div class="status-corner bl"></div>
                 <div class="status-corner br"></div>
 
-                <div class="status-line">
-                    <span class="status-prefix">[01]</span>
-                    <span>Initializing core systems...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="database">
+                    <div class="status-left">
+                        <span class="status-prefix">[01]</span>
+                        <span class="status-text">Secure database connection</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[02]</span>
-                    <span>Loading navigation protocols...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="transactions">
+                    <div class="status-left">
+                        <span class="status-prefix">[02]</span>
+                        <span class="status-text">Transaction ledger</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[03]</span>
-                    <span>Establishing secure channels...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="categories">
+                    <div class="status-left">
+                        <span class="status-prefix">[03]</span>
+                        <span class="status-text">Category classification</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[04]</span>
-                    <span>Verifying authorization codes...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="payees">
+                    <div class="status-left">
+                        <span class="status-prefix">[04]</span>
+                        <span class="status-text">Payee registry</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[05]</span>
-                    <span>Synchronizing financial systems...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="weekly">
+                    <div class="status-left">
+                        <span class="status-prefix">[05]</span>
+                        <span class="status-text">Weekly calculations</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[06]</span>
-                    <span>Calibrating transaction arrays...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="balance">
+                    <div class="status-left">
+                        <span class="status-prefix">[06]</span>
+                        <span class="status-text">Balance reconciliation</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[07]</span>
-                    <span>Running diagnostic checks...</span>
-                    <span class="status-ok">OK</span>
+                <div class="status-line" data-check="dashboard">
+                    <div class="status-left">
+                        <span class="status-prefix">[07]</span>
+                        <span class="status-text">Dashboard analytics</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
-                <div class="status-line">
-                    <span class="status-prefix">[08]</span>
-                    <span>System ready for deployment</span>
-                    <span class="status-ok">COMPLETE</span>
+                <div class="status-line" data-check="integrity">
+                    <div class="status-left">
+                        <span class="status-prefix">[08]</span>
+                        <span class="status-text">Data integrity check</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
+                </div>
+                <div class="status-line" data-check="ready">
+                    <div class="status-left">
+                        <span class="status-prefix">[09]</span>
+                        <span class="status-text">All systems operational</span>
+                    </div>
+                    <div class="status-connector"></div>
+                    <div class="status-right">
+                        <span class="status-dots">...</span>
+                        <span class="status-ok">...</span>
+                    </div>
                 </div>
             </div>
 
@@ -842,7 +1047,7 @@
 
             <form method="post" id="initForm" style="display: inline;">
                 {% csrf_token %}
-                <button type="submit" class="init-button" id="proceedBtn">
+                <button type="button" class="init-button" id="proceedBtn" onclick="proceedToSystem()">
                     Proceed to System
                 </button>
             </form>
@@ -853,16 +1058,19 @@
                     <span>Version 1.0.0</span>
                 </div>
                 <div class="info-block">
-                    <span>Auth Level: Command</span>
+                    <span>User: {{ username }}</span>
                 </div>
                 <div class="info-block">
-                    <span>Node: Primary</span>
+                    <span>Auth Level: {{ user_role }}</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Diagnostic data from server
+        const diagnostics = JSON.parse('{{ diagnostics_json|escapejs }}');
+        
         let stage1Timer;
         let currentStage = 0;
         let buttonWrapper;
@@ -994,31 +1202,159 @@
                         const percentageText = document.querySelector('.progress-percentage');
                         const proceedBtn = document.getElementById('proceedBtn');
                         
+                        // Activate progress bar immediately
+                        progressBar.classList.add('active');
+                        progressBar.style.width = '0%';
+                        percentageText.textContent = '0% Complete';
+                        
+                        const totalLines = statusLines.length;
+                        const progressPerLine = 100 / totalLines;
+                        
+                        // Show each status line with real diagnostic results
                         statusLines.forEach((line, index) => {
                             setTimeout(() => {
                                 line.classList.add('active');
-                            }, index * 200 + 2800);
-                        });
-                        
-                        setTimeout(() => {
-                            progressBar.classList.add('active');
-                            let progress = 0;
-                            const interval = setInterval(() => {
-                                progress += 1;
-                                if (progress <= 100) {
-                                    progressBar.style.width = `${progress}%`;
-                                    percentageText.textContent = `${progress}% Complete`;
-                                } else {
-                                    clearInterval(interval);
+                                
+                                // Get diagnostic result for this check
+                                const checkName = line.getAttribute('data-check');
+                                const diagnostic = diagnostics.find(d => d.check === checkName);
+                                
+                                if (diagnostic) {
+                                    // Hide dots and show status after a brief delay
+                                    setTimeout(() => {
+                                        const statusDotsEl = line.querySelector('.status-dots');
+                                        const statusOkEl = line.querySelector('.status-ok');
+                                        
+                                        statusDotsEl.style.opacity = '0';
+                                        
+                                        // If message has useful info, show that instead of just status
+                                        // Extract key info from message (like numbers, amounts)
+                                        const hasInfo = diagnostic.message.match(/\d+|\$[\d,.]+/);
+                                        
+                                        if (hasInfo && diagnostic.status === 'OK') {
+                                            // Show the info part (e.g., "$1,798.81" or "42 transactions")
+                                            statusOkEl.textContent = hasInfo[0];
+                                            statusOkEl.classList.add('info-value'); // Add class for cyan glow
+                                            statusOkEl.style.color = '#00d9ff'; // Cyan for data values
+                                        } else if (diagnostic.status === 'ERROR') {
+                                            statusOkEl.textContent = 'ERROR';
+                                            statusOkEl.style.color = '#ff4444';
+                                        } else if (diagnostic.status === 'WARN') {
+                                            statusOkEl.textContent = 'WARN';
+                                            statusOkEl.style.color = '#ffaa00';
+                                        } else if (diagnostic.status === 'READY') {
+                                            statusOkEl.textContent = 'READY';
+                                            statusOkEl.style.color = '#00ff88'; // Green for status
+                                        } else {
+                                            statusOkEl.textContent = 'OK';
+                                            statusOkEl.style.color = '#00ff88'; // Green for status
+                                        }
+                                    }, 200); // Brief delay after line appears
+                                }
+                                
+                                // Update progress bar for this line (with smooth animation)
+                                setTimeout(() => {
+                                    const currentProgress = Math.round((index + 1) * progressPerLine);
+                                    progressBar.style.width = `${currentProgress}%`;
+                                    percentageText.textContent = `${currentProgress}% Complete`;
+                                }, 150);
+                                
+                                // Show proceed button after last line
+                                if (index === totalLines - 1) {
                                     setTimeout(() => {
                                         proceedBtn.classList.add('visible');
-                                    }, 300);
+                                    }, 800);
                                 }
-                            }, 24);
-                        }, 2800);
+                            }, index * 350 + 2800);
+                        });
                     }, exitDuration);
                 }, clickDuration);
             }, delayBeforeClick);
+        }
+
+        function proceedToSystem() {
+            const bootView = document.getElementById('bootView');
+            const proceedBtn = document.getElementById('proceedBtn');
+            const initForm = document.getElementById('initForm');
+            const logo = bootView.querySelector('.logo');
+            const statusDisplay = bootView.querySelector('.status-display');
+            const progressContainer = bootView.querySelector('.progress-container');
+            const systemInfo = bootView.querySelector('.system-info');
+            
+            // CRITICAL: Disable CSS animations and set initial states
+            logo.style.animation = 'none';
+            statusDisplay.style.animation = 'none';
+            progressContainer.style.animation = 'none';
+            systemInfo.style.animation = 'none';
+            
+            // Force initial states to current visible state
+            logo.style.opacity = '1';
+            logo.style.transform = 'translateY(0)';
+            statusDisplay.style.opacity = '1';
+            statusDisplay.style.transform = 'scale(1)';
+            progressContainer.style.opacity = '1';
+            progressContainer.style.transform = 'scale(1) translateY(0)';
+            systemInfo.style.opacity = '1';
+            systemInfo.style.transform = 'translateY(0)';
+            
+            // Force reflow to apply initial states
+            void logo.offsetHeight;
+            void statusDisplay.offsetHeight;
+            void progressContainer.offsetHeight;
+            void systemInfo.offsetHeight;
+            
+            // Disable button to prevent multiple clicks
+            proceedBtn.disabled = true;
+            proceedBtn.style.cursor = 'not-allowed';
+            
+            // REVERSE ANIMATIONS: Exit reverses the entry sequence
+            
+            // 1. Button and System Info fade/drop first (0ms delay)
+            proceedBtn.style.transition = 'all 0.4s ease-out';
+            proceedBtn.style.opacity = '0';
+            proceedBtn.style.transform = 'translateY(10px)';
+            
+            systemInfo.style.transition = 'all 0.4s ease-out';
+            systemInfo.style.opacity = '0';
+            systemInfo.style.transform = 'translateY(10px)';
+            
+            // 2. Progress Container reverses (entered: scale 0.95→1, translateY 10px→0)
+            setTimeout(() => {
+                progressContainer.style.transition = 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                progressContainer.style.opacity = '0';
+                progressContainer.style.transform = 'scale(0.95) translateY(10px)';
+            }, 100);
+            
+            // 3. Status Display reverses (entered: scale 0→1, border fade in)
+            setTimeout(() => {
+                statusDisplay.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                statusDisplay.style.opacity = '0';
+                statusDisplay.style.transform = 'scale(0)';
+                
+                // Also fade out the corner borders
+                const corners = statusDisplay.querySelectorAll('.status-corner');
+                corners.forEach(corner => {
+                    corner.style.transition = 'border-color 0.5s ease-out';
+                    corner.style.borderColor = 'rgba(0, 217, 255, 0)';
+                });
+            }, 300);
+            
+            // 4. Logo reverses last (entered: translateY -10px→0)
+            setTimeout(() => {
+                logo.style.transition = 'all 0.6s ease-out';
+                logo.style.opacity = '0';
+                logo.style.transform = 'translateY(-10px)';
+            }, 600);
+            
+            // Navigate to shell after all animations complete
+            setTimeout(() => {
+                initForm.submit();
+            }, 1400);
+            
+            // PRODUCTION MODE: Uncomment to enable form submission
+            // setTimeout(() => {
+            //     initForm.submit();
+            // }, 1600);
         }
     </script>
 </body>

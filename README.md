@@ -1,4 +1,5 @@
 # FamlyPortal - Family Management Platform
+<!-- COPILOT SPEED TEST - TEMPORARY COMMENT -->
 
 ## Project Overview
 FamlyPortal is a comprehensive family management platform built with Django. It integrates multiple applications to help families manage various aspects of their household, finances, and personal information with a focus on budget allocation and financial planning.

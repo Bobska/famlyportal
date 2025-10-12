@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Command - Bank Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'Consolas', monospace;
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0d1b2a 100%);
+            color: rgba(255, 255, 255, 0.9);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            padding: 40px 60px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-logo {
+            font-size: 36px;
+            font-weight: 700;
+            color: #00d9ff;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+            letter-spacing: 4px;
+        }
+
+        .header-subtitle {
+            font-size: 11px;
+            color: rgba(0, 217, 255, 0.6);
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .header-stat {
+            text-align: right;
+        }
+
+        .header-stat-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .header-stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #00ff88;
+        }
+
+        .header-stat-value.negative {
+            color: #ff4444;
+        }
+
+        .tactical-btn {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+            padding: 10px 20px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .tactical-btn:hover {
+            background: rgba(0, 217, 255, 0.2);
+            border-color: rgba(0, 217, 255, 0.6);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+        }
+
+        /* Main Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        /* Panel Styles */
+        .tactical-panel {
+            background: rgba(10, 25, 41, 0.6);
+            border: 1px solid rgba(0, 217, 255, 0.25);
+            position: relative;
+            padding: 25px;
+        }
+
+        /* Tactical Corners */
+        .tactical-panel::before,
+        .tactical-panel::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: rgba(0, 217, 255, 0.5);
+        }
+
+        .tactical-panel::before {
+            top: -1px;
+            left: -1px;
+            border-top: 2px solid;
+            border-left: 2px solid;
+        }
+
+        .tactical-panel::after {
+            top: -1px;
+            right: -1px;
+            border-top: 2px solid;
+            border-right: 2px solid;
+        }
+
+        .tactical-panel .corner-bl,
+        .tactical-panel .corner-br {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: rgba(0, 217, 255, 0.5);
+        }
+
+        .corner-bl {
+            bottom: -1px;
+            left: -1px;
+            border-bottom: 2px solid;
+            border-left: 2px solid;
+        }
+
+        .corner-br {
+            bottom: -1px;
+            right: -1px;
+            border-bottom: 2px solid;
+            border-right: 2px solid;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+        }
+
+        .panel-icon {
+            font-size: 20px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #00d9ff;
+            text-transform: uppercase;
+        }
+
+        /* Balance Cards */
+        .balance-display {
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            padding: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .balance-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .balance-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00ff88;
+            text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .balance-value.negative {
+            color: #ff4444;
+            text-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+        }
+
+        .balance-meta {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(0, 217, 255, 0.05);
+            border-left: 3px solid;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-item.income {
+            border-left-color: #00ff88;
+        }
+
+        .stat-item.expense {
+            border-left-color: #ff4444;
+        }
+
+        .stat-item.neutral {
+            border-left-color: #00d9ff;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-item.income .stat-value {
+            color: #00ff88;
+        }
+
+        .stat-item.expense .stat-value {
+            color: #ff4444;
+        }
+
+        .stat-item.neutral .stat-value {
+            color: #00d9ff;
+        }
+
+        /* Transaction List */
+        .transaction-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .transaction-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .transaction-list::-webkit-scrollbar-track {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .transaction-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 217, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .transaction-item {
+            background: rgba(0, 217, 255, 0.03);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .transaction-item:hover {
+            background: rgba(0, 217, 255, 0.08);
+            border-color: rgba(0, 217, 255, 0.3);
+        }
+
+        .transaction-icon {
+            font-size: 16px;
+            margin-right: 12px;
+        }
+
+        .transaction-icon.income {
+            color: #00ff88;
+        }
+
+        .transaction-icon.expense {
+            color: #ff4444;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-payee {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 3px;
+        }
+
+        .transaction-date {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1px;
+        }
+
+        .transaction-amount {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .transaction-amount.income {
+            color: #00ff88;
+        }
+
+        .transaction-amount.expense {
+            color: #ff4444;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-btn {
+            background: rgba(0, 217, 255, 0.08);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+            padding: 15px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 217, 255, 0.15);
+            border-color: rgba(0, 217, 255, 0.6);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .action-btn.primary {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: rgba(0, 255, 136, 0.4);
+            color: #00ff88;
+        }
+
+        .action-btn.primary:hover {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.7);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            color: rgba(0, 217, 255, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .empty-state-text {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.6;
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+
+        /* Center Panel Styling */
+        .center-panel {
+            grid-column: 2;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .dashboard-grid {
+                grid-template-columns: 300px 1fr 300px;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .center-panel {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="header-left">
+                <div>
+                    <div class="header-logo">FINANCIAL COMMAND</div>
+                    <div class="header-subtitle">TACTICAL OVERVIEW // BANK MODULE</div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="header-stat">
+                    <div class="header-stat-label">TOTAL BALANCE</div>
+                    <div class="header-stat-value {% if current_balance >= 0 %}positive{% else %}negative{% endif %}">
+                        {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2 }}
+                    </div>
+                </div>
+                
+                <div class="header-stat">
+                    <div class="header-stat-label">MONTHLY NET</div>
+                    <div class="header-stat-value {% if monthly_balance >= 0 %}positive{% else %}negative{% endif %}">
+                        {% if monthly_balance >= 0 %}+{% endif %}${{ monthly_balance|floatformat:2 }}
+                    </div>
+                </div>
+                
+                <a href="{% url 'bank:initialize' %}" class="tactical-btn">⚙ SYSTEM INIT</a>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Panel: Financial Status -->
+            <div class="tactical-panel">
+                <div class="corner-bl"></div>
+                <div class="corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-icon">📊</div>
+                    <div class="panel-title">Financial Status</div>
+                </div>
+                
+                <div class="balance-display">
+                    <div class="balance-label">CURRENT BALANCE</div>
+                    <div class="balance-value {% if current_balance >= 0 %}positive{% else %}negative{% endif %}">
+                        {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2 }}
+                    </div>
+                    <div class="balance-meta">All-time cumulative</div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item income">
+                        <span class="stat-label">MONTHLY INCOME</span>
+                        <span class="stat-value">+${{ monthly_income|floatformat:2 }}</span>
+                    </div>
+                    
+                    <div class="stat-item expense">
+                        <span class="stat-label">MONTHLY EXPENSES</span>
+                        <span class="stat-value">-${{ monthly_expenses|floatformat:2 }}</span>
+                    </div>
+                    
+                    <div class="stat-item neutral">
+                        <span class="stat-label">TRANSACTIONS</span>
+                        <span class="stat-value">{{ transaction_count }}</span>
+                    </div>
+                    
+                    <div class="stat-item neutral">
+                        <span class="stat-label">ACTIVE PAYEES</span>
+                        <span class="stat-value">{{ payee_count }}</span>
+                    </div>
+                    
+                    <div class="stat-item neutral">
+                        <span class="stat-label">CATEGORIES</span>
+                        <span class="stat-value">{{ category_count }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Center Panel: Recent Activity -->
+            <div class="tactical-panel center-panel">
+                <div class="corner-bl"></div>
+                <div class="corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-icon">📋</div>
+                    <div class="panel-title">Recent Activity</div>
+                </div>
+                
+                {% if recent_transactions %}
+                    <div class="transaction-list">
+                        {% for transaction in recent_transactions|slice:":10" %}
+                            <div class="transaction-item">
+                                <span class="transaction-icon {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                                    {% if transaction.type == 'income' %}▲{% else %}▼{% endif %}
+                                </span>
+                                <div class="transaction-info">
+                                    <div class="transaction-payee">{{ transaction.entry.payee|default:"Unnamed" }}</div>
+                                    <div class="transaction-date">{{ transaction.entry.date|date:"D, j M Y" }}</div>
+                                </div>
+                                <div class="transaction-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}${{ transaction.entry.amount|floatformat:2 }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-title">NO TRANSACTION DATA</div>
+                        <div class="empty-state-text">
+                            No recent transactions detected. Begin logging income and expenses to populate the financial command interface.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right Panel: Quick Access -->
+            <div class="tactical-panel">
+                <div class="corner-bl"></div>
+                <div class="corner-br"></div>
+                
+                <div class="panel-header">
+                    <div class="panel-icon">⚡</div>
+                    <div class="panel-title">Quick Access</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{% url 'bank:weekly_expanse' %}" class="action-btn primary">
+                        📅 WEEKLY VIEW
+                    </a>
+                    <a href="{% url 'bank:transactions' %}" class="action-btn">
+                        📊 ALL TRANSACTIONS
+                    </a>
+                    <a href="{% url 'bank:payee_list' %}" class="action-btn">
+                        👥 MANAGE PAYEES
+                    </a>
+                    <a href="{% url 'bank:category_list' %}" class="action-btn">
+                        🏷️ CATEGORIES
+                    </a>
+                    <a href="{% url 'accounts:dashboard' %}" class="action-btn">
+                        🏠 MAIN DASHBOARD
+                    </a>
+                </div>
+                
+                {% if top_payees %}
+                <div class="panel-header" style="margin-top: 30px;">
+                    <div class="panel-icon">🎯</div>
+                    <div class="panel-title" style="font-size: 12px;">Top Payees</div>
+                </div>
+                <div class="stats-grid">
+                    {% for payee in top_payees %}
+                        <div class="stat-item neutral">
+                            <span class="stat-label">{{ payee.name|truncatechars:15 }}</span>
+                            <span class="stat-value">{{ payee.total_count }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+        </div>
+    </div>
+</body>
+</html>

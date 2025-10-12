@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+# COPILOT SPEED TEST - TEMPORARY COMMENT
 import os
 import sys
 

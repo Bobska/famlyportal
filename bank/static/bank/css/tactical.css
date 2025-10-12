@@ -1,0 +1,1072 @@
+/*
+ * FamlyPortal - Tactical Theme Stylesheet
+ * ===========================================
+ * The Expanse/MCRN-inspired tactical military aesthetic
+ * 
+ * Color Palette:
+ *   - Primary: #00d9ff (Cyan)
+ *   - Success/Income: #00ff88 (Green)
+ *   - Danger/Expense: #ff4444 (Red)
+ *   - Background: Dark gradients with grid overlay
+ * 
+ * Typography:
+ *   - Primary: Rajdhani (tactical military sans-serif)
+ *   - Fallbacks: Orbitron, Exo 2, system fonts
+ * 
+ * Usage:
+ *   Include in templates: <link rel="stylesheet" href="{% static 'bank/css/tactical.css' %}">
+ *   Google Fonts must be loaded separately in <head>
+ * 
+ * Version: 1.0.0
+ * Last Updated: October 13, 2025
+ */
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Rajdhani', 'Orbitron', 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #0a0d15 0%, #1a1d2e 50%, #0f1419 100%);
+    color: #00d9ff;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tactical grid overlay */
+body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* =============================================================================
+   CONTAINER LAYOUT
+   ============================================================================= */
+
+.dashboard-container {
+    padding: 15px 20px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    width: 100%;
+    padding-bottom: 50px;
+}
+
+/* =============================================================================
+   HEADER STYLES
+   ============================================================================= */
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0);
+    flex-shrink: 0;
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.dashboard-header.animate {
+    animation: headerSlideDown 0.8s ease-out forwards,
+               headerBorderGrow 0.5s ease-out 0.6s forwards;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    opacity: 0;
+}
+
+.header-right {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    opacity: 0;
+}
+
+.header-left.animate,
+.header-right.animate {
+    animation: contentFadeIn 0.6s ease-out forwards;
+}
+
+.header-logo {
+    font-size: 28px;
+    font-weight: 700;
+    color: #00d9ff;
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+    letter-spacing: 4px;
+}
+
+.header-subtitle {
+    font-size: 9px;
+    color: rgba(0, 217, 255, 0.6);
+    letter-spacing: 2px;
+    margin-top: 3px;
+}
+
+.header-stat {
+    text-align: right;
+}
+
+.header-stat-label {
+    font-size: 10px;
+    color: rgba(0, 217, 255, 0.7);
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+}
+
+.header-stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00ff88;
+}
+
+.header-stat-value.negative {
+    color: #ff4444;
+}
+
+.header-stat-value.positive {
+    color: #00ff88;
+}
+
+/* =============================================================================
+   TACTICAL BUTTONS
+   ============================================================================= */
+
+.tactical-btn {
+    background: rgba(0, 217, 255, 0.1);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: #00d9ff;
+    padding: 10px 20px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.tactical-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+    border-color: rgba(0, 217, 255, 0.6);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+}
+
+/* =============================================================================
+   GRID LAYOUTS
+   ============================================================================= */
+
+/* Main Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    gap: 15px;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ADAPTIVE TRANSACTIONS GRID - 3-col normal, 4-col ultrawide */
+.transactions-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 450px;
+    gap: 15px;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Ultrawide: Add 4th column for extended stats */
+@media (min-width: 2000px) {
+    .transactions-grid {
+        grid-template-columns: 280px 600px 450px 1fr;
+    }
+    .stats-panel-extended {
+        display: flex !important; /* Show 4th panel only on ultrawide */
+    }
+}
+
+/* =============================================================================
+   TACTICAL PANELS
+   ============================================================================= */
+
+.tactical-panel {
+    background: rgba(10, 25, 41, 0.6);
+    border: 1px solid rgba(0, 217, 255, 0.25);
+    position: relative;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0);
+    transform-origin: center;
+}
+
+/* Grow-in animation for main panels */
+.tactical-panel.animate {
+    animation: panelExpand 0.8s ease-out forwards, 
+               panelBorderGrow 0.4s ease-out 0.6s forwards;
+}
+
+.tactical-panel.animate-delay-1 {
+    animation-delay: 0.15s, 0.75s;
+}
+
+.tactical-panel.animate-delay-2 {
+    animation-delay: 0.3s, 0.9s;
+}
+
+/* Tactical Corners */
+.tactical-panel::before,
+.tactical-panel::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: rgba(0, 217, 255, 0.5);
+}
+
+.tactical-panel::before {
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+}
+
+.tactical-panel::after {
+    top: -1px;
+    right: -1px;
+    border-top: 2px solid;
+    border-right: 2px solid;
+}
+
+.tactical-panel .corner-bl,
+.tactical-panel .corner-br {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: rgba(0, 217, 255, 0.5);
+}
+
+.corner-bl {
+    bottom: -1px;
+    left: -1px;
+    border-bottom: 2px solid;
+    border-left: 2px solid;
+}
+
+.corner-br {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #00d9ff;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* =============================================================================
+   BALANCE DISPLAYS
+   ============================================================================= */
+
+.balance-display {
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    padding: 15px;
+    margin-bottom: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.balance-label {
+    font-size: 9px;
+    color: rgba(0, 217, 255, 0.7);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.balance-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #00ff88;
+    text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+}
+
+.balance-value.negative {
+    color: #ff4444;
+    text-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+}
+
+.balance-meta {
+    font-size: 9px;
+    color: rgba(0, 217, 255, 0.5);
+    margin-top: 5px;
+    letter-spacing: 1px;
+}
+
+/* =============================================================================
+   STATS DISPLAYS
+   ============================================================================= */
+
+.stats-grid {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    flex-shrink: 0;
+}
+
+.stat-item {
+    background: rgba(0, 217, 255, 0.05);
+    border-left: 3px solid;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-item.income {
+    border-left-color: #00ff88;
+}
+
+.stat-item.expense {
+    border-left-color: #ff4444;
+}
+
+.stat-item.neutral {
+    border-left-color: #00d9ff;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: rgba(0, 217, 255, 0.7);
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(0, 217, 255, 0.95);
+}
+
+.stat-item.income .stat-value {
+    color: #00ff88;
+}
+
+.stat-item.expense .stat-value {
+    color: #ff4444;
+}
+
+.stat-item.neutral .stat-value {
+    color: #00d9ff;
+}
+
+/* =============================================================================
+   TRANSACTION LISTS
+   ============================================================================= */
+
+.transaction-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+    min-height: 0;
+}
+
+.transaction-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.transaction-list::-webkit-scrollbar-track {
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.transaction-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 217, 255, 0.3);
+    border-radius: 3px;
+}
+
+.transaction-item {
+    background: rgba(0, 217, 255, 0.03);
+    border: 1px solid rgba(0, 217, 255, 0.15);
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.transaction-item:hover {
+    background: rgba(0, 217, 255, 0.08);
+    border-color: rgba(0, 217, 255, 0.3);
+}
+
+.transaction-item.selected {
+    background: rgba(0, 217, 255, 0.15);
+    border-color: rgba(0, 217, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+}
+
+.transaction-icon {
+    font-size: 16px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.transaction-icon.income {
+    color: #00ff88;
+}
+
+.transaction-icon.expense {
+    color: #ff4444;
+}
+
+.transaction-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.transaction-payee {
+    font-size: 12px;
+    color: rgba(0, 217, 255, 0.9);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.transaction-date {
+    font-size: 9px;
+    color: rgba(0, 217, 255, 0.6);
+    letter-spacing: 1px;
+}
+
+.transaction-category {
+    font-size: 9px;
+    color: rgba(0, 217, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transaction-amount {
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-left: 15px;
+}
+
+.transaction-amount.income {
+    color: #00ff88;
+}
+
+.transaction-amount.expense {
+    color: #ff4444;
+}
+
+/* =============================================================================
+   ACTION BUTTONS
+   ============================================================================= */
+
+.action-buttons {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    flex-shrink: 0;
+}
+
+.action-btn {
+    background: rgba(0, 217, 255, 0.08);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: #00d9ff;
+    padding: 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+}
+
+.action-btn:hover {
+    background: rgba(0, 217, 255, 0.15);
+    border-color: rgba(0, 217, 255, 0.6);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.action-btn.primary {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: rgba(0, 255, 136, 0.4);
+    color: #00ff88;
+}
+
+.action-btn.primary:hover {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: rgba(0, 255, 136, 0.7);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
+/* =============================================================================
+   TRANSACTION MANAGEMENT
+   ============================================================================= */
+
+.view-content {
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.transactions-management {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.transaction-filters {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    background: rgba(0, 217, 255, 0.03);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-input,
+.filter-select {
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    color: rgba(0, 217, 255, 0.9);
+    padding: 6px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.filter-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-select {
+    min-width: 150px;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    border-color: rgba(0, 217, 255, 0.5);
+    background: rgba(0, 217, 255, 0.08);
+}
+
+.filter-btn {
+    background: rgba(0, 217, 255, 0.1);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: #00d9ff;
+    padding: 6px 15px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.filter-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+    border-color: rgba(0, 217, 255, 0.5);
+}
+
+.transaction-list-full {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.transaction-list-full::-webkit-scrollbar {
+    width: 8px;
+}
+
+.transaction-list-full::-webkit-scrollbar-track {
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.transaction-list-full::-webkit-scrollbar-thumb {
+    background: rgba(0, 217, 255, 0.2);
+    border-radius: 4px;
+}
+
+.transaction-list-full::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 217, 255, 0.3);
+}
+
+.transaction-list-center {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+/* =============================================================================
+   EXTENDED STATS PANEL (Ultrawide)
+   ============================================================================= */
+
+.stats-panel-extended {
+    display: none; /* Hidden until @media (min-width: 2000px) activates */
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+}
+
+.stats-panel-extended::-webkit-scrollbar {
+    width: 8px;
+}
+
+.stats-panel-extended::-webkit-scrollbar-track {
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.stats-panel-extended::-webkit-scrollbar-thumb {
+    background: rgba(0, 217, 255, 0.2);
+    border-radius: 4px;
+}
+
+.stats-panel-extended::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 217, 255, 0.3);
+}
+
+.stats-card {
+    background: rgba(0, 217, 255, 0.03);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.stats-card-title {
+    font-size: 11px;
+    color: rgba(0, 217, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.15);
+}
+
+.stats-card-value {
+    font-size: 24px;
+    color: #00d9ff;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.stats-card-label {
+    font-size: 10px;
+    color: rgba(0, 217, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-mini-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+}
+
+.stats-mini-item:last-child {
+    border-bottom: none;
+}
+
+.stats-mini-label {
+    font-size: 10px;
+    color: rgba(0, 217, 255, 0.7);
+}
+
+.stats-mini-value {
+    font-size: 11px;
+    color: #00d9ff;
+    font-weight: 600;
+}
+
+/* =============================================================================
+   EMPTY STATES
+   ============================================================================= */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: rgba(0, 217, 255, 0.3);
+    margin-bottom: 20px;
+}
+
+.empty-state-title {
+    font-size: 16px;
+    color: #00d9ff;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.empty-state-text {
+    font-size: 11px;
+    color: rgba(0, 217, 255, 0.6);
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto 20px;
+}
+
+/* =============================================================================
+   BOTTOM PANELS
+   ============================================================================= */
+
+.bottom-panels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 12px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.bottom-panel {
+    background: rgba(10, 15, 25, 0.6);
+    border: 1px solid rgba(0, 217, 255, 0);
+    padding: 12px 15px;
+    position: relative;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transform: scale(0);
+    transform-origin: center;
+    max-height: 130px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.bottom-panel.animate {
+    animation: panelExpand 0.8s ease-out forwards, 
+               panelBorderGrow 0.4s ease-out 0.6s forwards;
+    animation-delay: 0.5s, 1.1s;
+}
+
+.bottom-panel.animate-delay-1 {
+    animation-delay: 0.65s, 1.25s;
+}
+
+.bottom-panel.animate-delay-2 {
+    animation-delay: 0.8s, 1.4s;
+}
+
+.bottom-panel::before,
+.bottom-panel::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: rgba(0, 217, 255, 0.5);
+}
+
+.bottom-panel::before {
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+}
+
+.bottom-panel::after {
+    top: -1px;
+    right: -1px;
+    border-top: 2px solid;
+    border-right: 2px solid;
+}
+
+.bottom-panel .corner-bl,
+.bottom-panel .corner-br {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: rgba(0, 217, 255, 0.5);
+}
+
+.info-panel-header {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: #00d9ff;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    font-weight: 600;
+}
+
+.info-panel-content {
+    font-size: 10px;
+    line-height: 1.5;
+    color: rgba(0, 217, 255, 0.85);
+    flex: 1;
+    overflow: hidden;
+}
+
+.info-panel-stat {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+}
+
+.info-panel-stat:last-child {
+    border-bottom: none;
+}
+
+.info-panel-stat .stat-label {
+    color: rgba(0, 217, 255, 0.65);
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-panel-stat .stat-value {
+    color: #00ff88;
+    font-weight: 600;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.info-panel-label {
+    color: rgba(0, 217, 255, 0.6);
+}
+
+.info-panel-value {
+    color: #00ff88;
+    font-weight: 600;
+}
+
+/* =============================================================================
+   DASHBOARD FOOTER
+   ============================================================================= */
+
+.dashboard-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 13, 21, 0.95);
+    border-top: 1px solid rgba(0, 217, 255, 0.2);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: rgba(0, 217, 255, 0.6);
+    text-transform: uppercase;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    gap: 30px;
+}
+
+.footer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-status-dot {
+    width: 6px;
+    height: 6px;
+    background: rgba(0, 217, 255, 0.8);
+    border-radius: 50%;
+    animation: statusBlink 2s ease-in-out infinite;
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes panelExpand {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes panelBorderGrow {
+    0% {
+        border-color: rgba(0, 217, 255, 0);
+    }
+    100% {
+        border-color: rgba(0, 217, 255, 0.25);
+    }
+}
+
+@keyframes contentFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes headerSlideDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes headerBorderGrow {
+    0% {
+        border-bottom-color: rgba(0, 217, 255, 0);
+    }
+    100% {
+        border-bottom-color: rgba(0, 217, 255, 0.2);
+    }
+}
+
+@keyframes statusBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* =============================================================================
+   ANIMATION INITIAL STATES
+   ============================================================================= */
+
+/* Hide all content initially */
+.tactical-panel > *:not(.corner-bl):not(.corner-br),
+.bottom-panel > *:not(.corner-bl):not(.corner-br) {
+    opacity: 0;
+}
+
+/* Hide child items too */
+.stat-item,
+.transaction-item,
+.action-btn,
+.info-panel-stat,
+.balance-display {
+    opacity: 0;
+}
+
+/* Content reveal classes */
+.content-visible {
+    animation: contentFadeIn 0.4s ease-out forwards;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+.center-panel {
+    grid-column: 2;
+}
+
+@media (max-width: 1400px) {
+    .dashboard-grid {
+        grid-template-columns: 300px 1fr 300px;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .center-panel {
+        grid-column: 1;
+    }
+
+    .bottom-panels {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .dashboard-footer {
+        padding: 15px 30px;
+    }
+
+    .footer-left,
+    .footer-right {
+        gap: 15px;
+    }
+}

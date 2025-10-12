@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Financial Command{% endblock %} - Bank Dashboard</title>
+    
+    <!-- Google Fonts - Rajdhani (tactical military font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tactical Theme Stylesheet -->
+    <link rel="stylesheet" href="{% static 'bank/css/tactical.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        {% include 'tactical/components/header.html' %}
+
+        <!-- Main Grid -->
+        <div class="dashboard-grid">
+            {% block content %}
+            <!-- Page-specific content goes here -->
+            {% endblock %}
+        </div>
+
+        <!-- Bottom Info Panels -->
+        {% block bottom_panels %}
+            {% include 'tactical/components/bottom_panels.html' %}
+        {% endblock %}
+    </div>
+
+    <!-- Footer -->
+    {% include 'tactical/components/footer.html' %}
+
+    <!-- Tactical JavaScript - Pass Django URLs to JS via data attributes -->
+    {% block url_data %}
+    <div id="tacticalUrlData" style="display: none;"
+         data-edit-income-url="{% url 'bank:edit_income' 0 %}"
+         data-edit-expense-url="{% url 'bank:edit_expense' 0 %}"
+         data-delete-income-url="{% url 'bank:delete_income' 0 %}"
+         data-delete-expense-url="{% url 'bank:delete_expense' 0 %}"
+         data-transactions-url="{% url 'bank:transactions' %}">
+    </div>
+    {% endblock %}
+    
+    <script src="{% static 'bank/js/tactical.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

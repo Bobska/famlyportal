@@ -1,0 +1,26 @@
+{% comment %}
+Tactical Footer Component
+Displays system status and user information
+{% endcomment %}
+<div class="dashboard-footer">
+    <div class="footer-left">
+        <div class="footer-item">
+            <div class="footer-status-dot"></div>
+            <span>System Status: Operational</span>
+        </div>
+        <div class="footer-item">
+            <span>Version 1.0.0</span>
+        </div>
+    </div>
+    <div class="footer-right">
+        <div class="footer-item">
+            <span>User: {{ request.user.username }}</span>
+        </div>
+        <div class="footer-item">
+            <span>Auth Level: {% if request.user.familymember_set.first %}{{ request.user.familymember_set.first.get_role_display }}{% else %}Member{% endif %}</span>
+        </div>
+        <div class="footer-item">
+            <span>Node: Primary</span>
+        </div>
+    </div>
+</div>

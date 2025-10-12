@@ -1,0 +1,36 @@
+{% comment %}
+Transaction Filters Component
+Filter controls for transaction search, type, and category
+
+Expected context variables:
+    - categories: QuerySet of categories
+{% endcomment %}
+<div class="tactical-panel">
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+    
+    <div class="panel-header">
+        <div class="panel-title">Filters</div>
+    </div>
+    
+    <div class="transaction-filters" style="flex-direction: column; border-bottom: none;">
+        <input type="text" class="filter-input" id="txSearch" placeholder="Search payee or notes..." style="width: 100%;" />
+        
+        <select class="filter-select" id="txType" style="width: 100%;">
+            <option value="all">All Types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+        </select>
+        
+        <select class="filter-select" id="txCategory" style="width: 100%;">
+            <option value="all">All Categories</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        
+        <button class="filter-btn" onclick="applyTransactionFilters()" style="width: 100%;">FILTER</button>
+        <button class="filter-btn" onclick="clearTransactionFilters()" style="width: 100%;">RESET</button>
+        <button class="action-btn primary" onclick="showAddTransaction()" style="width: 100%; margin-top: 10px;">+ ADD</button>
+    </div>
+</div>

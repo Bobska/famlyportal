@@ -1,0 +1,122 @@
+{% extends 'tactical/tactical_base.html' %}
+
+{% block title %}Financial Command{% endblock %}
+
+{% block content %}
+    <!-- Left Panel: Financial Status -->
+    {% include 'tactical/components/panel_financial_status.html' %}
+    
+    <!-- Center Panel: Dynamic Content -->
+    <div class="tactical-panel center-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="panel-header">
+            <div class="panel-title" id="centerPanelTitle">Recent Activity</div>
+        </div>
+        
+        <!-- DASHBOARD VIEW (Recent Activity) -->
+        <div id="dashboardView" class="view-content">
+            {% include 'tactical/components/transaction_list.html' with transactions=recent_transactions|slice:":10" empty_text="No recent transactions detected. Begin logging income and expenses to populate the financial command interface." %}
+        </div>
+
+        <!-- TRANSACTIONS VIEW (Full Transaction Management) -->
+        <div id="transactionsView" class="view-content" style="display: none;">
+            <!-- ADAPTIVE 3/4-COLUMN GRID FOR TRANSACTIONS -->
+            <div class="transactions-grid">
+                
+                <!-- LEFT PANEL: Filters & Controls -->
+                {% include 'tactical/components/transaction_filters.html' %}
+
+                <!-- CENTER PANEL: Transaction List -->
+                <div class="tactical-panel">
+                    <div class="corner-bl"></div>
+                    <div class="corner-br"></div>
+                    
+                    <div class="panel-header">
+                        <div class="panel-title">All Transactions</div>
+                    </div>
+                    
+                    <div class="transaction-list-center">
+                        {% include 'tactical/components/transaction_list.html' with transactions=all_transactions list_id="allTransactionsList" list_full=True clickable=True show_category=True empty_icon="📭" empty_title="NO TRANSACTIONS" empty_text="Click 'ADD' to create your first transaction" %}
+                    </div>
+                </div>
+
+                <!-- RIGHT PANEL: Transaction Details -->
+                <div class="tactical-panel" id="transactionDetailsPanel">
+                    <div class="corner-bl"></div>
+                    <div class="corner-br"></div>
+                    
+                    <div class="panel-header">
+                        <div class="panel-title">Details</div>
+                    </div>
+                    
+                    <div class="panel-content">
+                        {% include 'tactical/components/empty_state.html' with icon="👆" title="SELECT TRANSACTION" text="Click a transaction to view details" %}
+                    </div>
+                </div>
+
+                <!-- EXTENDED STATS PANEL: Financial Intel (hidden until ultrawide) -->
+                <div class="tactical-panel stats-panel-extended">
+                    <div class="corner-bl"></div>
+                    <div class="corner-br"></div>
+                    
+                    <div class="panel-header">
+                        <div class="panel-title">Financial Intel</div>
+                    </div>
+                    
+                    <div class="panel-content" style="padding: 15px;">
+                        <!-- Summary Card -->
+                        <div class="stats-card">
+                            <div class="stats-card-title">Current Period</div>
+                            <div class="stats-card-value">${{ total_income|floatformat:0 }}</div>
+                            <div class="stats-card-label">Total Income</div>
+                            <div style="margin-top: 10px;">
+                                <div class="stats-card-value" style="color: #ff4444;">${{ total_expenses|floatformat:0 }}</div>
+                                <div class="stats-card-label">Total Expenses</div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <div class="stats-card-value" style="color: {% if net_savings >= 0 %}#00ff88{% else %}#ff4444{% endif %};">${{ net_savings|floatformat:0 }}</div>
+                                <div class="stats-card-label">Net Savings</div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Card -->
+                        <div class="stats-card">
+                            <div class="stats-card-title">Quick Stats</div>
+                            <div class="stats-mini-item">
+                                <span class="stats-mini-label">Avg Transaction</span>
+                                <span class="stats-mini-value">${{ avg_transaction|floatformat:2 }}</span>
+                            </div>
+                            <div class="stats-mini-item">
+                                <span class="stats-mini-label">Total Transactions</span>
+                                <span class="stats-mini-value">{{ all_transactions|length }}</span>
+                            </div>
+                            <div class="stats-mini-item">
+                                <span class="stats-mini-label">Savings Rate</span>
+                                <span class="stats-mini-value">{{ savings_rate|floatformat:1 }}%</span>
+                            </div>
+                        </div>
+
+                        <!-- Filtered View Stats -->
+                        <div class="stats-card">
+                            <div class="stats-card-title">Current View</div>
+                            <div class="stats-mini-item">
+                                <span class="stats-mini-label">Visible</span>
+                                <span class="stats-mini-value" id="filteredCount">{{ all_transactions|length }}</span>
+                            </div>
+                            <div class="stats-mini-item">
+                                <span class="stats-mini-label">Filtered Sum</span>
+                                <span class="stats-mini-value" id="filteredSum">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Panel: Quick Access -->
+    {% include 'tactical/components/panel_quick_access.html' %}
+{% endblock %}

@@ -1,0 +1,80 @@
+{% comment %}
+Tactical Bottom Panels Component
+Displays system metrics, activity summary, and financial status in 3 panels
+{% endcomment %}
+<div class="bottom-panels">
+    <!-- Panel 1: System Metrics -->
+    <div class="bottom-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+    
+        <div class="info-panel-header">
+            <span>SYSTEM METRICS</span>
+        </div>
+        
+        <div class="info-panel-content">
+            <div class="info-panel-stat">
+                <span class="stat-label">Database Status</span>
+                <span class="stat-value">Online</span>
+            </div>
+            <div class="info-panel-stat">
+                <span class="stat-label">Cache Performance</span>
+                <span class="stat-value">98.2%</span>
+            </div>
+            <div class="info-panel-stat">
+                <span class="stat-label">Uptime</span>
+                <span class="stat-value">{{ uptime_days|default:"N/A" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 2: Activity Summary -->
+    <div class="bottom-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="info-panel-header">
+            <span>ACTIVITY SUMMARY</span>
+        </div>
+        
+        <div class="info-panel-content">
+            <div class="info-panel-stat">
+                <span class="stat-label">Today's Transactions</span>
+                <span class="stat-value">{{ today_transaction_count|default:0 }}</span>
+            </div>
+            <div class="info-panel-stat">
+                <span class="stat-label">Week's Total</span>
+                <span class="stat-value">{{ week_transaction_count|default:0 }}</span>
+            </div>
+            <div class="info-panel-stat">
+                <span class="stat-label">Last Activity</span>
+                <span class="stat-value">{% if last_activity %}{{ last_activity|timesince }} ago{% else %}N/A{% endif %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 3: Financial Status -->
+    <div class="bottom-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="info-panel-header">
+            <span>FINANCIAL STATUS</span>
+        </div>
+        
+        <div class="info-panel-content">
+            <div class="info-panel-stat">
+                <span class="stat-label">Active Categories</span>
+                <span class="stat-value">{{ category_count|default:0 }}</span>
+            </div>
+            <div class="info-panel-stat">
+                <span class="stat-label">Balance Trend</span>
+                <span class="stat-value">{% if balance_trend > 0 %}+{% endif %}{{ balance_trend|floatformat:1 }}%</span>
+            </div>
+            <div class="info-panel-stat">
+                <span class="stat-label">Data Integrity</span>
+                <span class="stat-value">100%</span>
+            </div>
+        </div>
+    </div>
+</div>

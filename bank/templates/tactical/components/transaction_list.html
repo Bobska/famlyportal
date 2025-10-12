@@ -1,0 +1,52 @@
+{% comment %}
+Transaction List Component
+Displays a list of transactions with optional empty state
+
+Usage:
+    {% include 'tactical/components/transaction_list.html' with transactions=my_transactions show_category=True %}
+
+Parameters:
+    - transactions: QuerySet or list of transaction objects
+    - show_category: Boolean, show category field (default: False)
+    - list_id: HTML id attribute for the list container (optional)
+    - clickable: Boolean, make items clickable for selection (default: False)
+    - empty_icon: Icon emoji for empty state (default: 📭)
+    - empty_title: Title for empty state (default: "NO TRANSACTION DATA")
+    - empty_text: Text for empty state (default message)
+{% endcomment %}
+{% if transactions %}
+    <div class="transaction-list{% if list_full %} transaction-list-full{% endif %}" {% if list_id %}id="{{ list_id }}"{% endif %}>
+        {% for transaction in transactions %}
+            <div class="transaction-item"
+                 {% if clickable %}
+                 data-id="{{ transaction.id }}"
+                 data-type="{{ transaction.type }}"
+                 data-payee="{{ transaction.payee|lower }}"
+                 data-category="{{ transaction.category.id|default:'none' }}"
+                 onclick="selectTransaction(this, {{ transaction.id }}, '{{ transaction.type }}')"
+                 {% endif %}>
+                <span class="transaction-icon {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                    {% if transaction.type == 'income' %}▲{% else %}▼{% endif %}
+                </span>
+                <div class="transaction-info">
+                    <div class="transaction-payee">{{ transaction.payee|default:"Unnamed" }}</div>
+                    <div class="transaction-date">{{ transaction.date|date:"D, j M Y" }}</div>
+                    {% if show_category %}
+                    <div class="transaction-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
+                    {% endif %}
+                </div>
+                <div class="transaction-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">{{ empty_icon|default:"📭" }}</div>
+        <div class="empty-state-title">{{ empty_title|default:"NO TRANSACTION DATA" }}</div>
+        <div class="empty-state-text">
+            {{ empty_text|default:"No recent transactions detected. Begin logging income and expenses to populate the financial command interface." }}
+        </div>
+    </div>
+{% endif %}

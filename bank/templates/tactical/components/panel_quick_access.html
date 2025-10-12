@@ -1,0 +1,50 @@
+{% comment %}
+Quick Access Panel (Right Sidebar)
+Displays action buttons and top payees
+
+Expected context variables:
+    - top_payees (optional)
+{% endcomment %}
+<div class="tactical-panel">
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+    
+    <div class="panel-header">
+        <div class="panel-title">Quick Access</div>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="action-btn primary" onclick="window.location.href='{% url 'bank:dashboard' %}'">
+            DASHBOARD VIEW
+        </button>
+        <a href="{% url 'bank:transactions' %}" class="action-btn">
+            ALL TRANSACTIONS
+        </a>
+        <a href="{% url 'bank:weekly_expanse' %}" class="action-btn">
+            WEEKLY VIEW
+        </a>
+        <a href="{% url 'bank:payee_list' %}" class="action-btn">
+            MANAGE PAYEES
+        </a>
+        <a href="{% url 'bank:category_list' %}" class="action-btn">
+            CATEGORIES
+        </a>
+        <a href="{% url 'accounts:dashboard' %}" class="action-btn">
+            MAIN DASHBOARD
+        </a>
+    </div>
+    
+    {% if top_payees %}
+    <div class="panel-header" style="margin-top: 30px;">
+        <div class="panel-title" style="font-size: 12px;">Top Payees</div>
+    </div>
+    <div class="stats-grid">
+        {% for payee in top_payees %}
+            <div class="stat-item neutral">
+                <span class="stat-label">{{ payee.name|truncatechars:15 }}</span>
+                <span class="stat-value">{{ payee.total_count }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

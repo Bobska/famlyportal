@@ -1,0 +1,19 @@
+{% comment %}
+Empty State Component
+Generic empty state display with icon, title, and text
+
+Usage:
+    {% include 'tactical/components/empty_state.html' with icon="📭" title="NO DATA" text="Add items to get started" %}
+
+Parameters:
+    - icon: Emoji or icon to display (default: 📭)
+    - title: Title text (default: "NO DATA")
+    - text: Description text (optional)
+{% endcomment %}
+<div class="empty-state">
+    <div class="empty-state-icon">{{ icon|default:"📭" }}</div>
+    <div class="empty-state-title">{{ title|default:"NO DATA" }}</div>
+    {% if text %}
+    <div class="empty-state-text">{{ text }}</div>
+    {% endif %}
+</div>

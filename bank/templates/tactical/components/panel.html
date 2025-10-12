@@ -1,0 +1,28 @@
+{% comment %}
+Tactical Panel Component
+Reusable panel wrapper with corners and header
+
+Usage:
+    {% include 'tactical/components/panel.html' with panel_title="My Title" panel_class="custom-class" %}
+        ... panel content ...
+    {% endinclude %}
+
+Parameters:
+    - panel_title: Title displayed in panel header (required)
+    - panel_class: Additional CSS classes for the panel (optional)
+    - panel_id: ID attribute for the panel (optional)
+{% endcomment %}
+<div class="tactical-panel {% if panel_class %}{{ panel_class }}{% endif %}" {% if panel_id %}id="{{ panel_id }}"{% endif %}>
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+    
+    <div class="panel-header">
+        <div class="panel-title">{{ panel_title }}</div>
+    </div>
+    
+    <div class="panel-content">
+        {% block panel_content %}
+        <!-- Panel content goes here -->
+        {% endblock %}
+    </div>
+</div>

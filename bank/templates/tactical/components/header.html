@@ -1,0 +1,32 @@
+{% comment %}
+Tactical Header Component
+Displays the main header with logo, subtitle, and key stats
+{% endcomment %}
+<div class="dashboard-header">
+    <div class="header-left">
+        <div>
+            <div class="header-logo">{% block header_title %}FINANCIAL COMMAND{% endblock %}</div>
+            <div class="header-subtitle">{% block header_subtitle %}TACTICAL OVERVIEW // BANK MODULE{% endblock %}</div>
+        </div>
+    </div>
+    
+    <div class="header-right">
+        <div class="header-stat">
+            <div class="header-stat-label">TOTAL BALANCE</div>
+            <div class="header-stat-value {% if current_balance >= 0 %}positive{% else %}negative{% endif %}">
+                {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2 }}
+            </div>
+        </div>
+        
+        <div class="header-stat">
+            <div class="header-stat-label">MONTHLY NET</div>
+            <div class="header-stat-value {% if monthly_balance >= 0 %}positive{% else %}negative{% endif %}">
+                {% if monthly_balance >= 0 %}+{% endif %}${{ monthly_balance|floatformat:2 }}
+            </div>
+        </div>
+        
+        {% block header_action %}
+        <a href="{% url 'bank:initialize' %}" class="tactical-btn">⚙ SYSTEM INIT</a>
+        {% endblock %}
+    </div>
+</div>

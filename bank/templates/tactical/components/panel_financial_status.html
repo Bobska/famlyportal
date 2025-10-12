@@ -1,0 +1,55 @@
+{% comment %}
+Financial Status Panel (Left Sidebar)
+Displays current balance and financial statistics
+
+Expected context variables:
+    - current_balance
+    - monthly_income
+    - monthly_expenses
+    - transaction_count
+    - payee_count
+    - category_count
+{% endcomment %}
+<div class="tactical-panel">
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+    
+    <div class="panel-header">
+        <div class="panel-title">Financial Status</div>
+    </div>
+    
+    <div class="balance-display">
+        <div class="balance-label">CURRENT BALANCE</div>
+        <div class="balance-value {% if current_balance >= 0 %}positive{% else %}negative{% endif %}">
+            {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2 }}
+        </div>
+        <div class="balance-meta">All-time cumulative</div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-item income">
+            <span class="stat-label">MONTHLY INCOME</span>
+            <span class="stat-value">+${{ monthly_income|floatformat:2 }}</span>
+        </div>
+        
+        <div class="stat-item expense">
+            <span class="stat-label">MONTHLY EXPENSES</span>
+            <span class="stat-value">-${{ monthly_expenses|floatformat:2 }}</span>
+        </div>
+        
+        <div class="stat-item neutral">
+            <span class="stat-label">TRANSACTIONS</span>
+            <span class="stat-value">{{ transaction_count }}</span>
+        </div>
+        
+        <div class="stat-item neutral">
+            <span class="stat-label">ACTIVE PAYEES</span>
+            <span class="stat-value">{{ payee_count }}</span>
+        </div>
+        
+        <div class="stat-item neutral">
+            <span class="stat-label">CATEGORIES</span>
+            <span class="stat-value">{{ category_count }}</span>
+        </div>
+    </div>
+</div>

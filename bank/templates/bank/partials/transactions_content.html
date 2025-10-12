@@ -1,6 +1,7 @@
 {% load static %}
 {% load humanize %}
 
+<!-- PERF TEST: harmless comment to measure save/analysis speed; safe to remove -->
 <!-- Tactical Grid with 3 Columns -->
 <div class="dashboard-tactical-grid">
     
@@ -57,7 +58,7 @@
     </div>
     
     <!-- Center Panel - Transactions List -->
-    <div class="transactions-main-panel">
+    <div class="dashboard-main-panel">
         <div class="dashboard-panel-header">
             <div class="dashboard-panel-icon">📋</div>
             <h2 class="dashboard-panel-title">Transaction Ledger</h2>
@@ -164,7 +165,7 @@
     </div>
     
     <!-- Right Sidebar - Transaction Details -->
-    <div class="transactions-detail-panel">
+    <div class="dashboard-sidebar-panel">
         <div class="dashboard-panel-header">
             <div class="dashboard-panel-icon">🔍</div>
             <h2 class="dashboard-panel-title">Details</h2>
@@ -216,6 +217,36 @@
                         <span>Delete</span>
                     </button>
                 </div>
+            </div>
+            
+            <!-- Quick Actions Section -->
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(100, 255, 218, 0.1);">
+                <h3 style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(100, 255, 218, 0.6); margin-bottom: 1rem;">Quick Actions</h3>
+                
+                <button class="dashboard-action-btn" onclick="window.bankShell.loadView('dashboard')" style="width: 100%; margin-bottom: 0.5rem;">
+                    <i class="bi bi-house-door"></i>
+                    <span>Dashboard</span>
+                </button>
+                
+                <button class="dashboard-action-btn" onclick="window.bankShell.loadView('weekly')" style="width: 100%; margin-bottom: 0.5rem;">
+                    <i class="bi bi-calendar-week"></i>
+                    <span>Weekly View</span>
+                </button>
+                
+                <button class="dashboard-action-btn" onclick="window.bankShell.loadView('accounts')" style="width: 100%; margin-bottom: 0.5rem;">
+                    <i class="bi bi-wallet2"></i>
+                    <span>Accounts</span>
+                </button>
+                
+                <button class="dashboard-action-btn" onclick="window.bankShell.loadView('payees')" style="width: 100%; margin-bottom: 0.5rem;">
+                    <i class="bi bi-people"></i>
+                    <span>Manage Payees</span>
+                </button>
+                
+                <button class="dashboard-action-btn" onclick="window.bankShell.loadView('categories')" style="width: 100%; margin-bottom: 0.5rem;">
+                    <i class="bi bi-tags"></i>
+                    <span>Manage Categories</span>
+                </button>
             </div>
         </div>
     </div>

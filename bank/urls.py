@@ -7,6 +7,9 @@ urlpatterns = [
     # Navigation Shell (new unified entry point)
     path('shell/', views.shell, name='shell'),
     
+    # Initialization page
+    path('init/', views.initialize_bank, name='initialize'),
+    
     # Traditional page routes (kept for backwards compatibility)
     path('', views.dashboard, name='dashboard'),
     path('accounts/', views.accounts, name='accounts'),

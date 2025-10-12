@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Initialization - Bank - FamlyPortal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0d15 0%, #1a1d2e 50%, #0f1419 100%);
+            color: #00d9ff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        .init-container {
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .init-view {
+            text-align: center;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .init-view.hidden {
+            display: none;
+        }
+
+        .boot-view {
+            display: none;
+        }
+
+        .boot-view.active {
+            display: block;
+            text-align: center;
+        }
+
+        .button-wrapper {
+            position: relative;
+            padding: 4px;
+            display: inline-block;
+        }
+
+        .start-button {
+            background: transparent;
+            border: 1px solid rgba(0, 217, 255, 0.4);
+            color: #00d9ff;
+            padding: 18px 50px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .start-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 100%;
+            background: rgba(0, 50, 80, 0.6);
+            box-shadow: inset 0 0 30px rgba(0, 217, 255, 0.1);
+            transition: width 0.6s ease 0s;
+            z-index: -1;
+        }
+
+        .start-button::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border: 1px solid rgba(0, 217, 255, 0.6);
+            opacity: 0;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+            pointer-events: none;
+            transition: opacity 0.3s ease 0s;
+            z-index: 1;
+        }
+
+        .start-corner-bracket {
+            position: absolute;
+            border: 2px solid rgba(0, 217, 255, 0.6);
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: none;
+        }
+
+        .start-corner-bracket.tl { 
+            top: -2px; 
+            left: -2px; 
+            width: 20px; 
+            height: 20px; 
+            border-right: none; 
+            border-bottom: none; 
+        }
+
+        .start-corner-bracket.tr { 
+            top: -2px; 
+            right: -2px; 
+            width: 20px; 
+            height: 20px; 
+            border-left: none; 
+            border-bottom: none; 
+        }
+
+        .start-corner-bracket.bl { 
+            bottom: -2px; 
+            left: -2px; 
+            width: 20px; 
+            height: 20px; 
+            border-right: none; 
+            border-top: none; 
+        }
+        
+        .start-corner-bracket.br { 
+            bottom: -2px; 
+            right: -2px; 
+            width: 20px; 
+            height: 20px; 
+            border-left: none; 
+            border-top: none; 
+        }
+
+        /* Stage 1 reversal - borders collapse immediately */
+        .button-wrapper.reversing-stage-1 .start-corner-bracket {
+            width: 20px;
+            height: 20px;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .button-wrapper.reversing-stage-1 .start-button::before {
+            width: 0;
+            transition: width 0.6s ease;
+        }
+
+        .button-wrapper.reversing-stage-1 .start-button::after {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Stage 2 reversal - fill reverses first, then borders */
+        .button-wrapper.reversing-stage-2 .start-button::before {
+            width: 0;
+            transition: width 0.6s ease 0s;
+        }
+
+        .button-wrapper.reversing-stage-2 .start-button::after {
+            opacity: 0;
+            transition: opacity 0.3s ease 0s;
+        }
+
+        .button-wrapper.reversing-stage-2 .start-corner-bracket {
+            width: 20px;
+            height: 20px;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s;
+        }
+
+        .start-edge-indicator {
+            position: absolute;
+            background: rgba(0, 217, 255, 0.5);
+            opacity: 0.4;
+            animation: edgePulse 3s ease-in-out infinite;
+            transition: opacity 0.3s ease;
+        }
+
+        .start-edge-indicator.t1 { top: -2px; left: 25%; width: 15px; height: 1px; }
+        .start-edge-indicator.t2 { top: -2px; right: 25%; width: 15px; height: 1px; animation-delay: 0.5s; }
+        .start-edge-indicator.b1 { bottom: -2px; left: 30%; width: 15px; height: 1px; animation-delay: 1s; }
+        .start-edge-indicator.b2 { bottom: -2px; right: 30%; width: 15px; height: 1px; animation-delay: 1.5s; }
+
+        @keyframes edgePulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        .button-wrapper:hover .start-edge-indicator {
+            opacity: 0;
+            transition: opacity 0.3s ease 1s;
+        }
+
+        .button-wrapper.clicking .start-edge-indicator {
+            display: none;
+        }
+
+        .button-wrapper:hover .start-button {
+            border-color: rgba(0, 217, 255, 0.8);
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+        }
+
+        .button-wrapper:hover .start-button::before,
+        .button-wrapper.simulated-hover .start-button::before {
+            width: 100%;
+            transition: width 0.6s ease 1s;
+        }
+
+        .button-wrapper:hover .start-corner-bracket,
+        .button-wrapper.simulated-hover .start-corner-bracket {
+            width: calc(50% + 2px);
+            height: calc(50% + 2px);
+        }
+
+        .button-wrapper:hover .start-button::after,
+        .button-wrapper.simulated-hover .start-button::after {
+            opacity: 1;
+            transition: opacity 0.3s ease 1s;
+        }
+
+        .button-wrapper:active .start-button {
+            transform: scale(0.98);
+        }
+
+        .button-wrapper.clicking .start-button {
+            animation: buttonPulse 1.2s ease-out forwards;
+        }
+
+        @keyframes buttonPulse {
+            0% { 
+                background: transparent;
+                color: #00d9ff;
+                border-color: rgba(0, 217, 255, 0.4);
+            }
+            20% { 
+                background: rgba(0, 80, 120, 0.4);
+                color: #00d9ff;
+                border-color: rgba(0, 217, 255, 0.6);
+            }
+            40% { 
+                background: rgba(0, 100, 150, 0.7);
+                box-shadow: inset 0 0 30px rgba(0, 217, 255, 0.3);
+                color: #00d9ff;
+                border-color: rgba(0, 217, 255, 0.7);
+            }
+            60% {
+                background: rgba(0, 150, 200, 0.9);
+                box-shadow: 
+                    inset 0 0 40px rgba(0, 217, 255, 0.5),
+                    0 0 30px rgba(0, 217, 255, 0.6);
+                color: rgba(255, 255, 255, 0.8);
+                border-color: rgba(0, 217, 255, 0.9);
+            }
+            70% { 
+                background: rgba(0, 217, 255, 0.95);
+                box-shadow: 
+                    inset 0 0 50px rgba(255, 255, 255, 0.3),
+                    0 0 40px rgba(0, 217, 255, 0.8);
+                color: transparent;
+                border-color: rgba(0, 217, 255, 1);
+            }
+            85% {
+                background: rgba(0, 217, 255, 0.6);
+                box-shadow: 
+                    inset 0 0 30px rgba(255, 255, 255, 0.15),
+                    0 0 20px rgba(0, 217, 255, 0.4);
+                color: transparent;
+                border-color: rgba(0, 217, 255, 0.4);
+            }
+            100% { 
+                background: transparent;
+                box-shadow: none;
+                color: transparent;
+                border-color: transparent;
+            }
+        }
+
+        .button-wrapper.clicking .start-corner-bracket {
+            animation: bracketCollapse 1.2s ease-out forwards;
+        }
+
+        @keyframes bracketCollapse {
+            0% {
+                width: calc(50% + 2px);
+                height: calc(50% + 2px);
+                opacity: 1;
+            }
+            30% {
+                opacity: 1;
+            }
+            50% {
+                width: 8px;
+                height: 8px;
+                opacity: 0.5;
+            }
+            70% {
+                width: 0px;
+                height: 0px;
+                opacity: 0;
+            }
+            100% {
+                width: 0px;
+                height: 0px;
+                opacity: 0;
+            }
+        }
+
+        .button-wrapper.clicking .start-button::after {
+            animation: borderSweep 1.2s ease-out forwards;
+        }
+
+        @keyframes borderSweep {
+            0% {
+                opacity: 1;
+                border-color: rgba(0, 217, 255, 0.6);
+            }
+            30% {
+                opacity: 1;
+                border-color: rgba(0, 255, 136, 0.9);
+                box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+            }
+            60% {
+                opacity: 1;
+                border-color: rgba(0, 255, 200, 1);
+                box-shadow: 0 0 35px rgba(0, 255, 200, 1);
+            }
+            100% {
+                opacity: 0;
+                border-color: rgba(255, 255, 255, 0.3);
+                box-shadow: 0 0 50px rgba(255, 255, 255, 0.5);
+            }
+        }
+
+        .button-wrapper.clicking .start-edge-indicator {
+            animation: edgeActivate 1.2s ease-out forwards;
+        }
+
+        @keyframes edgeActivate {
+            0% {
+                opacity: 0.4;
+                background: rgba(0, 217, 255, 0.5);
+            }
+            30% {
+                opacity: 1;
+                background: rgba(0, 255, 136, 1);
+                box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+            }
+            60% {
+                opacity: 1;
+                background: rgba(255, 255, 255, 1);
+                box-shadow: 0 0 15px rgba(255, 255, 255, 1);
+            }
+            100% {
+                opacity: 0;
+                background: rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        /* Tactical disappearance - The Expanse style */
+        .button-wrapper.tactical-exit {
+            animation: tacticalDissolve 1.0s ease-out forwards;
+            opacity: 0 !important; /* Force opacity to stay at 0 */
+
+        }
+
+        @keyframes tacticalDissolve {
+            0% {
+                opacity: 1;
+                filter: blur(0px);
+            }
+            99%, 100% {
+                opacity: 0;
+                filter: blur(4px);
+                pointer-events: none;
+            }
+        }
+
+        .button-wrapper.tactical-exit .start-button,
+        .button-wrapper.tactical-exit .start-corner-bracket,
+        .button-wrapper.tactical-exit .start-edge-indicator {
+            pointer-events: none;
+        }
+
+        .logo {
+            margin-bottom: 60px;
+            position: relative;
+            opacity: 0;
+        }
+
+        .boot-view.active .logo {
+            animation: logoFadeIn 0.8s ease-out 0.2s forwards;
+        }
+
+        @keyframes logoFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-text {
+            font-size: 32px;
+            letter-spacing: 12px;
+            color: #00d9ff;
+            text-transform: uppercase;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .logo-subtitle {
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: rgba(0, 217, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .logo::before,
+        .logo::after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(0, 217, 255, 0.4);
+            animation: cornerPulse 3s ease-in-out infinite;
+        }
+
+        .logo::before {
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-right: none;
+            border-bottom: none;
+            margin-left: -150px;
+        }
+
+        .logo::after {
+            top: -20px;
+            right: 50%;
+            transform: translateX(50%);
+            border-left: none;
+            border-bottom: none;
+            margin-right: -150px;
+        }
+
+        @keyframes cornerPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        .status-display {
+            background: rgba(10, 15, 25, 0.6);
+            border: 1px solid rgba(0, 217, 255, 0);
+            padding: 40px;
+            margin-bottom: 40px;
+            min-height: 200px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: scale(0);
+            transform-origin: center;
+        }
+
+        .boot-view.active .status-display {
+            animation: displayExpand 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards, borderGrow 0.5s ease-out 1.8s forwards;
+        }
+
+        @keyframes displayExpand {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            30% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes borderGrow {
+            0% {
+                border-color: rgba(0, 217, 255, 0);
+            }
+            100% {
+                border-color: rgba(0, 217, 255, 0.25);
+            }
+        }
+
+        .status-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(0, 217, 255, 0.4);
+            opacity: 1;
+        }
+
+        .boot-view.active .status-corner {
+            animation: none;
+        }
+
+        .status-corner.tl {
+            top: -1px;
+            left: -1px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .status-corner.tr {
+            top: -1px;
+            right: -1px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .status-corner.bl {
+            bottom: -1px;
+            left: -1px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .status-corner.br {
+            bottom: -1px;
+            right: -1px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .status-line {
+            font-size: 12px;
+            letter-spacing: 1px;
+            margin: 8px 0;
+            opacity: 0;
+            transform: translateX(-20px);
+            text-align: left;
+        }
+
+        .status-line.active {
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .status-ok {
+            color: #00ff88;
+        }
+
+        .status-prefix {
+            color: rgba(0, 217, 255, 0.5);
+            margin-right: 10px;
+        }
+
+        .progress-container {
+            margin-bottom: 40px;
+            opacity: 0;
+        }
+
+        .boot-view.active .progress-container {
+            animation: progressFadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 2.8s forwards;
+        }
+
+        @keyframes progressFadeIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .progress-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            color: rgba(0, 217, 255, 0.7);
+        }
+
+        .progress-bar-wrapper {
+            position: relative;
+            height: 4px;
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(0, 217, 255, 0.8) 0%, 
+                rgba(0, 255, 136, 0.8) 100%);
+            width: 0%;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+            position: relative;
+            transition: width 0.1s linear;
+        }
+
+        .progress-bar.active::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -2px;
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
+        }
+
+        .progress-percentage {
+            font-size: 11px;
+            margin-top: 10px;
+            color: rgba(0, 217, 255, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .init-button {
+            background: transparent;
+            border: 1px solid rgba(0, 217, 255, 0.4);
+            color: #00d9ff;
+            padding: 18px 50px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            position: relative;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .init-button.visible {
+            display: inline-block;
+            animation: fadeInButton 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeInButton {
+            to { opacity: 1; }
+        }
+
+        .init-button:hover {
+            border-color: rgba(0, 217, 255, 0.8);
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+            box-shadow: 
+                0 0 20px rgba(0, 217, 255, 0.3),
+                inset 0 0 20px rgba(0, 217, 255, 0.05);
+        }
+
+        .init-button::before,
+        .init-button::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 217, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .init-button::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .init-button::after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .init-button:hover::before,
+        .init-button:hover::after {
+            width: calc(100% + 4px);
+            height: calc(100% + 4px);
+        }
+
+        .system-info {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            letter-spacing: 1px;
+            color: rgba(0, 217, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .info-block {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(0, 217, 255, 0.8);
+            border-radius: 50%;
+            animation: statusBlink 2s ease-in-out infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 600px) {
+            .logo-text {
+                font-size: 24px;
+                letter-spacing: 8px;
+            }
+
+            .status-display {
+                padding: 25px;
+            }
+
+            .status-line {
+                font-size: 10px;
+            }
+
+            .system-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="init-container">
+        <div class="init-view" id="initView">
+            <div class="button-wrapper">
+                <div class="start-corner-bracket tl"></div>
+                <div class="start-corner-bracket tr"></div>
+                <div class="start-corner-bracket bl"></div>
+                <div class="start-corner-bracket br"></div>
+                
+                <div class="start-edge-indicator t1"></div>
+                <div class="start-edge-indicator t2"></div>
+                <div class="start-edge-indicator b1"></div>
+                <div class="start-edge-indicator b2"></div>
+                
+                <button class="start-button" onclick="startInitialization()">
+                    Initialize System
+                </button>
+            </div>
+        </div>
+
+        <div class="boot-view" id="bootView">
+            <div class="logo">
+                <div class="logo-text">BANK</div>
+                <div class="logo-subtitle">Financial Command System</div>
+            </div>
+
+            <div class="status-display">
+                <div class="status-corner tl"></div>
+                <div class="status-corner tr"></div>
+                <div class="status-corner bl"></div>
+                <div class="status-corner br"></div>
+
+                <div class="status-line">
+                    <span class="status-prefix">[01]</span>
+                    <span>Initializing core systems...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[02]</span>
+                    <span>Loading navigation protocols...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[03]</span>
+                    <span>Establishing secure channels...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[04]</span>
+                    <span>Verifying authorization codes...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[05]</span>
+                    <span>Synchronizing financial systems...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[06]</span>
+                    <span>Calibrating transaction arrays...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[07]</span>
+                    <span>Running diagnostic checks...</span>
+                    <span class="status-ok">OK</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-prefix">[08]</span>
+                    <span>System ready for deployment</span>
+                    <span class="status-ok">COMPLETE</span>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-label">Initialization Progress</div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar"></div>
+                </div>
+                <div class="progress-percentage">0% Complete</div>
+            </div>
+
+            <form method="post" id="initForm" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="init-button" id="proceedBtn">
+                    Proceed to System
+                </button>
+            </form>
+
+            <div class="system-info">
+                <div class="info-block">
+                    <div class="status-dot"></div>
+                    <span>Version 1.0.0</span>
+                </div>
+                <div class="info-block">
+                    <span>Auth Level: Command</span>
+                </div>
+                <div class="info-block">
+                    <span>Node: Primary</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stage1Timer;
+        let currentStage = 0;
+        let buttonWrapper;
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeButtonTracking);
+        } else {
+            initializeButtonTracking();
+        }
+
+        function initializeButtonTracking() {
+            buttonWrapper = document.querySelector('.button-wrapper');
+            
+            if (!buttonWrapper) {
+                return;
+            }
+
+            buttonWrapper.addEventListener('mouseenter', function() {
+                clearTimeout(stage1Timer);
+                // Clear any existing reversal classes
+                buttonWrapper.classList.remove('reversing-stage-1', 'reversing-stage-2');
+                currentStage = 1;
+                
+                // After 1 second on hover, move to stage 2
+                stage1Timer = setTimeout(() => {
+                    currentStage = 2;
+                }, 1000);
+            });
+
+            buttonWrapper.addEventListener('mouseleave', function() {
+                clearTimeout(stage1Timer);
+                
+                // Reverse based on which stage we're in
+                if (currentStage === 1) {
+                    // We're in stage 1 (borders expanding)
+                    // Reverse immediately - borders collapse
+                    buttonWrapper.classList.add('reversing-stage-1');
+                    buttonWrapper.classList.remove('reversing-stage-2');
+                } else if (currentStage === 2) {
+                    // We're in stage 2 (fill expanding after borders)
+                    // Reverse in proper order: fill first, then borders
+                    buttonWrapper.classList.add('reversing-stage-2');
+                    buttonWrapper.classList.remove('reversing-stage-1');
+                }
+                
+                // Clean up reversal classes after animation completes
+                setTimeout(() => {
+                    currentStage = 0;
+                    buttonWrapper.classList.remove('reversing-stage-1', 'reversing-stage-2');
+                }, 1200); // Total reversal time
+            });
+        }
+
+        function startInitialization() {
+            const buttonWrapper = document.querySelector('.button-wrapper');
+            const startButton = document.querySelector('.start-button');
+            
+            // Disable button to prevent multiple clicks
+            startButton.disabled = true;
+            startButton.style.pointerEvents = 'none';
+            
+            // Clear any timers and reversal states
+            clearTimeout(stage1Timer);
+            buttonWrapper.classList.remove('reversing-stage-1', 'reversing-stage-2');
+            
+            let delayBeforeClick = 0;
+            
+            // Calculate how long to wait based on current stage
+            if (currentStage === 0) {
+                // Not hovered - need full hover sequence: borders (1000ms) + fill (600ms)
+                // Trigger hover state
+                buttonWrapper.classList.add('simulated-hover');
+                delayBeforeClick = 1600; // 1s for borders + 0.6s for fill
+                
+            } else if (currentStage === 1) {
+                // In stage 1 (borders expanding) - let borders finish, then fill
+                // Borders are expanding (started 0-1000ms ago)
+                // We need to wait for remaining border time + full fill time
+                buttonWrapper.classList.add('simulated-hover');
+                
+                // Assume worst case: borders just started, need full 1000ms + 600ms fill
+                // But since we're in stage 1, borders are 0-1000ms in
+                // For simplicity, wait the remaining max time
+                delayBeforeClick = 1600; // Let it complete naturally
+                
+            } else if (currentStage === 2) {
+                // In stage 2 (fill expanding) - just wait for fill to finish
+                // Fill takes 600ms and starts after 1s hover
+                // For simplicity, wait 600ms to ensure fill completes
+                buttonWrapper.classList.add('simulated-hover');
+                delayBeforeClick = 600;
+            }
+            
+            // After hover animations complete naturally, start click sequence
+            setTimeout(() => {
+                buttonWrapper.classList.remove('simulated-hover');
+                buttonWrapper.classList.add('clicking');
+                
+                // Wait for full click animation (1.2s) + tactical disappearance (1.0s)
+                const clickDuration = 1200; // Click animation
+                const exitDuration = 1000;  // Tactical exit animation
+                
+                // After click animation completes, start tactical exit
+                setTimeout(() => {
+                    buttonWrapper.classList.remove('clicking');
+                    buttonWrapper.classList.add('tactical-exit');
+                    
+                    // Force opacity to 0 after fade animation (prevent any reappearance)
+                    setTimeout(() => {
+                        buttonWrapper.style.opacity = '0';
+                    }, exitDuration - 50); // Slightly before animation ends
+                    
+                    // Switch views immediately when fade completes
+                    setTimeout(() => {
+                        // Hide button and init view immediately
+                        buttonWrapper.style.display = 'none';
+                        document.getElementById('initView').style.display = 'none';
+                        
+                        // Show boot view
+                        const bootView = document.getElementById('bootView');
+                        bootView.style.display = 'block';
+                        
+                        requestAnimationFrame(() => {
+                            bootView.classList.add('active');
+                        });
+                        
+                        const statusLines = document.querySelectorAll('.status-line');
+                        const progressBar = document.querySelector('.progress-bar');
+                        const percentageText = document.querySelector('.progress-percentage');
+                        const proceedBtn = document.getElementById('proceedBtn');
+                        
+                        statusLines.forEach((line, index) => {
+                            setTimeout(() => {
+                                line.classList.add('active');
+                            }, index * 200 + 2800);
+                        });
+                        
+                        setTimeout(() => {
+                            progressBar.classList.add('active');
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                                progress += 1;
+                                if (progress <= 100) {
+                                    progressBar.style.width = `${progress}%`;
+                                    percentageText.textContent = `${progress}% Complete`;
+                                } else {
+                                    clearInterval(interval);
+                                    setTimeout(() => {
+                                        proceedBtn.classList.add('visible');
+                                    }, 300);
+                                }
+                            }, 24);
+                        }, 2800);
+                    }, exitDuration);
+                }, clickDuration);
+            }, delayBeforeClick);
+        }
+    </script>
+</body>
+</html>

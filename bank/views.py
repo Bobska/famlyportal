@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Max, Sum, Q
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -92,6 +92,26 @@ def describe_week_offset(offset: int) -> str:
 def format_currency(amount: Decimal) -> str:
     """Return a currency formatted string for Decimal values."""
     return f"{amount:,.2f}"
+
+
+# --- Initialization Page ---
+from accounts.decorators import family_required
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@family_required
+def initialize_bank(request):
+    """
+    Minimal initialization page for the Bank app.
+    - GET: Render a simple page with a centered button to initialize the app
+    - POST: Perform lightweight setup (placeholder) then redirect to dashboard
+    """
+    if request.method == 'POST':
+        # Placeholder for any future setup (e.g., seed categories/payees per user)
+        # Keep this idempotent and fast for now.
+        return redirect('bank:shell')
+
+    return render(request, 'bank/init.html', {})
 
 @dataclass
 class TransactionPayload:

@@ -23,6 +23,39 @@ let allTransactions = [];
 let selectedTransaction = null;
 
 // =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+/**
+ * Formats a number as currency with thousands separator
+ * @param {number} value - The numeric value to format
+ * @param {boolean} showCents - Whether to show decimal places (default: false)
+ * @returns {string} Formatted currency string (e.g., "$1,234" or "$1,234.56")
+ */
+function formatCurrency(value, showCents = false) {
+    const num = parseFloat(value) || 0;
+    const isNegative = num < 0;
+    const absNum = Math.abs(num);
+    
+    // Format with thousands separator
+    let formatted;
+    if (showCents) {
+        formatted = absNum.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    } else {
+        formatted = absNum.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    }
+    
+    // Add dollar sign and negative if needed
+    return (isNegative ? '-' : '') + '$' + formatted;
+}
+
+// =============================================================================
 // TACTICAL BOOT SEQUENCE
 // =============================================================================
 
@@ -135,8 +168,64 @@ function revealPanelContent(panel) {
                     child.classList.add('content-visible');
                 }, childIndex * 80); // 80ms between each child item
             });
+            
+            // SPECIAL: Animate command center content if present
+            if (element.classList.contains('panel-content')) {
+                animateCommandCenter(element);
+            }
         }, index * 150); // 150ms between each main content block
     });
+}
+
+/**
+ * Animates command center home screen content
+ * @param {HTMLElement} panelContent - The panel content element
+ */
+function animateCommandCenter(panelContent) {
+    const commandCenter = panelContent.querySelector('.command-center-home');
+    if (!commandCenter) return;
+    
+    // Animate financial overview section
+    const financialSection = commandCenter.querySelector('.financial-overview-section');
+    if (financialSection) {
+        setTimeout(() => {
+            financialSection.classList.add('boot-animate');
+            
+            // Animate stream items
+            const streamItems = financialSection.querySelectorAll('.stream-item');
+            streamItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('boot-animate');
+                    
+                    // Animate progress bar fill
+                    const streamFill = item.querySelector('.stream-fill');
+                    if (streamFill) {
+                        const targetWidth = streamFill.getAttribute('data-width') || '0';
+                        streamFill.style.setProperty('--target-width', targetWidth + '%');
+                        setTimeout(() => {
+                            streamFill.classList.add('boot-animate');
+                        }, 200);
+                    }
+                }, index * 150);
+            });
+        }, 200);
+    }
+    
+    // Animate quick actions section
+    const quickActionsSection = commandCenter.querySelector('.quick-actions-section');
+    if (quickActionsSection) {
+        setTimeout(() => {
+            quickActionsSection.classList.add('boot-animate');
+            
+            // Animate action items
+            const actionItems = quickActionsSection.querySelectorAll('.action-item');
+            actionItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('boot-animate');
+                }, index * 100);
+            });
+        }, 600);
+    }
 }
 
 // =============================================================================
@@ -455,4 +544,805 @@ function formatCurrency(amount) {
  */
 function getTransactionColor(type) {
     return type === 'income' ? '#00ff88' : '#ff4444';
+}
+
+// =============================================================================
+// TRANSACTION PAGE INTERACTIONS
+// =============================================================================
+
+// Global variables for transaction view state
+let transactionView = 'week'; // 'week', 'month', 'year', 'all'
+let viewOffset = 0; // For navigating forward/back
+let selectedTransactionId = null;
+
+/**
+ * Changes the view mode (week/month/year/all)
+ * @param {string} view - The view type to switch to
+ */
+function changeView(view) {
+    transactionView = view;
+    viewOffset = 0; // Reset to current period
+    
+    // Update active tab
+    document.querySelectorAll('.view-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.view === view) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Update view period text
+    updateViewPeriodText();
+    
+    // Filter transactions based on view
+    filterTransactionsByView();
+}
+
+/**
+ * Navigates forward or backward in the current view
+ * @param {number} direction - 1 for forward, -1 for backward
+ */
+function navigateView(direction) {
+    viewOffset += direction;
+    updateViewPeriodText();
+    filterTransactionsByView();
+}
+
+/**
+ * Updates the view period text display
+ */
+function updateViewPeriodText() {
+    const viewPeriodEl = document.getElementById('viewPeriod');
+    if (!viewPeriodEl) return;
+    
+    const now = new Date();
+    let text = '';
+    
+    if (transactionView === 'all') {
+        text = 'All Transactions';
+        document.getElementById('prevBtn').disabled = true;
+        document.getElementById('nextBtn').disabled = true;
+        viewPeriodEl.textContent = text;
+        return;
+    }
+    
+    // Enable navigation buttons
+    document.getElementById('prevBtn').disabled = false;
+    document.getElementById('nextBtn').disabled = viewOffset >= 0;
+    
+    if (transactionView === 'week') {
+        const weekDate = new Date(now);
+        weekDate.setDate(weekDate.getDate() + (viewOffset * 7));
+        
+        const weekStart = new Date(weekDate);
+        weekStart.setDate(weekDate.getDate() - weekDate.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        const startStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const endStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        if (viewOffset === 0) {
+            text = `This Week (${startStr} - ${endStr})`;
+        } else if (viewOffset === -1) {
+            text = `Last Week (${startStr} - ${endStr})`;
+        } else if (viewOffset === 1) {
+            text = `Next Week (${startStr} - ${endStr})`;
+        } else {
+            text = `Week of ${startStr} - ${endStr}`;
+        }
+    } else if (transactionView === 'month') {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() + viewOffset, 1);
+        const lastDay = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+        
+        const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const startStr = monthDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const endStr = lastDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        if (viewOffset === 0) {
+            text = `This Month (${monthName})`;
+        } else if (viewOffset === -1) {
+            text = `Last Month (${monthName})`;
+        } else if (viewOffset === 1) {
+            text = `Next Month (${monthName})`;
+        } else {
+            text = `${monthName} (${startStr} - ${endStr})`;
+        }
+    } else if (transactionView === 'year') {
+        const yearDate = new Date(now.getFullYear() + viewOffset, 0, 1);
+        const yearNum = yearDate.getFullYear();
+        
+        const startStr = new Date(yearNum, 0, 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const endStr = new Date(yearNum, 11, 31).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        if (viewOffset === 0) {
+            text = `This Year (${yearNum})`;
+        } else {
+            text = `${yearNum} (${startStr} - ${endStr})`;
+        }
+    }
+    
+    viewPeriodEl.textContent = text;
+}
+
+/**
+ * Filters transactions based on current view and offset
+ */
+function filterTransactionsByView() {
+    const transactions = document.querySelectorAll('.transaction-item');
+    const now = new Date();
+    
+    // Track visible items for animation
+    let visibleIndex = 0;
+    
+    transactions.forEach(item => {
+        const dateStr = item.dataset.date; // Assumes transaction items have data-date attribute
+        if (!dateStr) {
+            item.style.display = ''; // Show if no date
+            animateTransactionItem(item, visibleIndex++);
+            return;
+        }
+        
+        const txDate = new Date(dateStr);
+        let show = false;
+        
+        if (transactionView === 'all') {
+            show = true;
+        } else if (transactionView === 'week') {
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - now.getDay() + (viewOffset * 7));
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            show = txDate >= weekStart && txDate <= weekEnd;
+        } else if (transactionView === 'month') {
+            const targetMonth = now.getMonth() + viewOffset;
+            const targetYear = now.getFullYear() + Math.floor(targetMonth / 12);
+            const monthIndex = ((targetMonth % 12) + 12) % 12;
+            
+            show = txDate.getMonth() === monthIndex && txDate.getFullYear() === targetYear;
+        } else if (transactionView === 'year') {
+            const targetYear = now.getFullYear() + viewOffset;
+            show = txDate.getFullYear() === targetYear;
+        }
+        
+        if (show) {
+            item.style.display = '';
+            animateTransactionItem(item, visibleIndex++);
+        } else {
+            item.style.display = 'none';
+            // Reset animation for hidden items
+            item.classList.remove('boot-animate');
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-15px)';
+            item.style.visibility = 'hidden';
+        }
+    });
+    
+    // Update summary counts
+    updateSummaryCounts();
+}
+
+/**
+ * Animates a transaction item sliding in
+ * @param {HTMLElement} item - Transaction item to animate
+ * @param {number} index - Index for staggered delay
+ */
+function animateTransactionItem(item, index) {
+    // Reset any existing animation
+    item.classList.remove('boot-animate');
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(-15px)';
+    item.style.visibility = 'hidden';
+    
+    // Trigger animation with delay (100ms stagger for better visibility)
+    setTimeout(() => {
+        item.style.visibility = 'visible';
+        item.classList.add('boot-animate');
+    }, index * 100);
+}
+
+/**
+ * Updates summary stats based on visible transactions
+ */
+function updateSummaryCounts() {
+    const visibleItems = document.querySelectorAll('.transaction-item[style=""], .transaction-item:not([style])');
+    let income = 0, expenses = 0, count = 0;
+    
+    visibleItems.forEach(item => {
+        const type = item.dataset.type;
+        const amount = parseFloat(item.dataset.amount) || 0;
+        
+        if (type === 'income') {
+            income += amount;
+        } else if (type === 'expense') {
+            expenses += amount;
+        }
+        count++;
+    });
+    
+    document.getElementById('summaryIncome').textContent = formatCurrency(income);
+    document.getElementById('summaryExpenses').textContent = formatCurrency(expenses);
+    document.getElementById('summaryNet').textContent = formatCurrency(income - expenses);
+    document.getElementById('summaryCount').textContent = count;
+}
+
+/**
+ * Shows the add transaction form
+ * @param {string} type - 'income' or 'expense'
+ */
+function showAddTransaction(type) {
+    // Hide empty state and details
+    document.getElementById('detailsView').style.display = 'none';
+    document.getElementById('transactionDetails').style.display = 'none';
+    
+    // Show form
+    document.getElementById('transactionForm').style.display = 'block';
+    
+    // Set form type
+    document.getElementById('formType').value = type;
+    
+    // Set today's date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('formDate').value = today;
+    
+    // Clear other fields
+    document.getElementById('formPayee').value = '';
+    document.getElementById('formAmount').value = '';
+    document.getElementById('formCategory').value = '';
+    document.getElementById('formNotes').value = '';
+    
+    // Clear selection
+    selectedTransactionId = null;
+    document.querySelectorAll('.transaction-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+}
+
+/**
+ * Selects a transaction and shows its details
+ * @param {HTMLElement} element - The clicked transaction element
+ * @param {number} id - Transaction ID
+ * @param {string} type - Transaction type
+ */
+function selectTransaction(element, id, type) {
+    selectedTransactionId = id;
+    
+    // Update selected state
+    document.querySelectorAll('.transaction-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    element.classList.add('selected');
+    
+    // Get transaction data from data attributes
+    const payee = element.dataset.payee || '-';
+    const amount = element.dataset.amount || '0';
+    const date = element.dataset.date || '-';
+    const category = element.dataset.category || 'Uncategorized';
+    const notes = element.dataset.notes || 'No additional notes';
+    
+    // Populate details
+    document.getElementById('detailType').textContent = type.toUpperCase();
+    document.getElementById('detailPayee').textContent = payee;
+    document.getElementById('detailAmount').textContent = formatCurrency(amount, true);
+    
+    // Format date nicely
+    if (date && date !== '-') {
+        const dateObj = new Date(date);
+        document.getElementById('detailDate').textContent = dateObj.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    } else {
+        document.getElementById('detailDate').textContent = '-';
+    }
+    
+    document.getElementById('detailCategory').textContent = category;
+    document.getElementById('detailNotes').textContent = notes;
+    
+    // Show details, hide others
+    document.getElementById('detailsView').style.display = 'none';
+    document.getElementById('transactionForm').style.display = 'none';
+    document.getElementById('transactionDetails').style.display = 'block';
+}
+
+/**
+ * Clears the transaction selection
+ */
+function clearSelection() {
+    selectedTransactionId = null;
+    
+    document.querySelectorAll('.transaction-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Show empty state
+    document.getElementById('detailsView').style.display = 'block';
+    document.getElementById('transactionDetails').style.display = 'none';
+    document.getElementById('transactionForm').style.display = 'none';
+}
+
+/**
+ * Edits the currently selected transaction
+ */
+function editTransaction() {
+    if (!selectedTransactionId) return;
+    
+    // Get the selected transaction element to access all data
+    const selectedElement = document.querySelector('.transaction-item.selected');
+    if (!selectedElement) return;
+    
+    const type = selectedElement.dataset.type;
+    const payee = selectedElement.dataset.payee;
+    const amount = selectedElement.dataset.amount;
+    const date = selectedElement.dataset.date;
+    const categoryId = selectedElement.dataset.categoryId;
+    const notes = selectedElement.dataset.notes;
+    
+    // Populate form with current values
+    document.getElementById('formType').value = type;
+    document.getElementById('formPayee').value = payee;
+    document.getElementById('formAmount').value = amount;
+    document.getElementById('formDate').value = date;
+    document.getElementById('formCategory').value = categoryId || '';
+    document.getElementById('formNotes').value = notes || '';
+    
+    // Transform: Hide details, show form
+    document.getElementById('transactionDetails').style.display = 'none';
+    document.getElementById('transactionForm').style.display = 'block';
+}
+
+/**
+ * Deletes the currently selected transaction
+ */
+function deleteTransaction() {
+    if (!selectedTransactionId) return;
+    
+    if (confirm('Are you sure you want to delete this transaction?')) {
+        // TODO: Implement AJAX delete
+        console.log('Delete transaction:', selectedTransactionId);
+        
+        // For now, just clear selection
+        clearSelection();
+        
+        // Remove from list (temporary until AJAX implemented)
+        const selectedItem = document.querySelector('.transaction-item.selected');
+        if (selectedItem) {
+            selectedItem.remove();
+            updateSummaryCounts();
+        }
+    }
+}
+
+/**
+ * Saves the transaction (add or edit)
+ */
+function saveTransaction() {
+    // Get form values
+    const type = document.getElementById('formType').value;
+    const payee = document.getElementById('formPayee').value.trim();
+    const amount = document.getElementById('formAmount').value;
+    const date = document.getElementById('formDate').value;
+    const category = document.getElementById('formCategory').value;
+    const notes = document.getElementById('formNotes').value.trim();
+    
+    // Validate
+    if (!payee) {
+        alert('Please enter a payee name');
+        return;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    if (!date) {
+        alert('Please select a date');
+        return;
+    }
+    
+    // TODO: Implement AJAX save
+    console.log('Save transaction:', { type, payee, amount, date, category, notes });
+    
+    // For now, just show success and clear form
+    alert('Transaction saved successfully!');
+    cancelForm();
+}
+
+/**
+ * Cancels the form and returns to appropriate view
+ */
+function cancelForm() {
+    // If we were editing a transaction, go back to details view
+    if (selectedTransactionId) {
+        const selectedElement = document.querySelector('.transaction-item.selected');
+        if (selectedElement) {
+            // Re-populate details from the selected element
+            selectTransaction(selectedElement, selectedTransactionId, selectedElement.dataset.type);
+        } else {
+            // If element not found, just clear
+            clearSelection();
+        }
+    } else {
+        // We were adding a new transaction, clear everything
+        clearSelection();
+    }
+}
+
+/**
+ * Applies filters to the transaction list
+ */
+function applyFilters() {
+    const searchText = document.getElementById('txSearch').value.toLowerCase();
+    const typeFilter = document.getElementById('txType').value;
+    const categoryFilter = document.getElementById('txCategory').value;
+    
+    const transactions = document.querySelectorAll('.transaction-item');
+    
+    transactions.forEach(item => {
+        const payee = item.querySelector('.tx-payee')?.textContent.toLowerCase() || '';
+        const type = item.dataset.type;
+        const category = item.dataset.categoryId;
+        
+        let show = true;
+        
+        // Search filter
+        if (searchText && !payee.includes(searchText)) {
+            show = false;
+        }
+        
+        // Type filter
+        if (typeFilter !== 'all' && type !== typeFilter) {
+            show = false;
+        }
+        
+        // Category filter
+        if (categoryFilter !== 'all' && category !== categoryFilter) {
+            show = false;
+        }
+        
+        // Also respect view filter
+        if (show && transactionView !== 'all') {
+            const dateStr = item.dataset.date;
+            if (dateStr) {
+                const txDate = new Date(dateStr);
+                const now = new Date();
+                
+                if (transactionView === 'week') {
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - now.getDay() + (viewOffset * 7));
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    show = txDate >= weekStart && txDate <= weekEnd;
+                } else if (transactionView === 'month') {
+                    const targetMonth = now.getMonth() + viewOffset;
+                    const targetYear = now.getFullYear() + Math.floor(targetMonth / 12);
+                    const monthIndex = ((targetMonth % 12) + 12) % 12;
+                    show = txDate.getMonth() === monthIndex && txDate.getFullYear() === targetYear;
+                } else if (transactionView === 'year') {
+                    const targetYear = now.getFullYear() + viewOffset;
+                    show = txDate.getFullYear() === targetYear;
+                }
+            }
+        }
+        
+        item.style.display = show ? '' : 'none';
+    });
+    
+    updateSummaryCounts();
+}
+
+/**
+ * Clears all filters
+ */
+function clearFilters() {
+    document.getElementById('txSearch').value = '';
+    document.getElementById('txType').value = 'all';
+    document.getElementById('txCategory').value = 'all';
+    
+    applyFilters();
+}
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
+// Initialize view period text on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('viewPeriod')) {
+        updateViewPeriodText();
+        filterTransactionsByView();
+    }
+});
+
+// =============================================================================
+// PAYEE QUICK-ADD FUNCTIONALITY
+// =============================================================================
+
+/**
+ * Shows a simple prompt to add a new payee via AJAX
+ */
+function showPayeeQuickAdd() {
+    const payeeName = prompt('Enter new payee/merchant name:');
+    
+    if (!payeeName || payeeName.trim() === '') {
+        return; // User cancelled or entered nothing
+    }
+    
+    const trimmedName = payeeName.trim();
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+    // Send AJAX request to create payee
+    fetch('/bank/payees/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `name=${encodeURIComponent(trimmedName)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add to dropdown
+            const payeeDropdown = document.getElementById('formPayee');
+            if (payeeDropdown) {
+                const option = document.createElement('option');
+                option.value = trimmedName;
+                option.textContent = trimmedName;
+                option.selected = true;
+                payeeDropdown.appendChild(option);
+            }
+            
+            alert(`Payee "${trimmedName}" created successfully!`);
+        } else {
+            alert(`Error: ${data.error || 'Failed to create payee'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error creating payee:', error);
+        alert('Failed to create payee. Please try again.');
+    });
+}
+
+/**
+ * Shows a simple prompt to add a new category via AJAX
+ */
+function showCategoryQuickAdd() {
+    const categoryName = prompt('Enter new category name:');
+    
+    if (!categoryName || categoryName.trim() === '') {
+        return; // User cancelled or entered nothing
+    }
+    
+    const trimmedName = categoryName.trim();
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+    // Send AJAX request to create category
+    fetch('/bank/category/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `name=${encodeURIComponent(trimmedName)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add to dropdown
+            const categoryDropdown = document.getElementById('formCategory');
+            if (categoryDropdown) {
+                const option = document.createElement('option');
+                option.value = data.category.id;
+                option.textContent = trimmedName;
+                option.selected = true;
+                categoryDropdown.appendChild(option);
+            }
+            
+            alert(`Category "${trimmedName}" created successfully!`);
+        } else {
+            alert(`Error: ${data.error || 'Failed to create category'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error creating category:', error);
+        alert('Failed to create category. Please try again.');
+    });
+}
+
+// =============================================================================
+// CUSTOM DROPDOWN FUNCTIONALITY
+// =============================================================================
+
+/**
+ * Initialize custom dropdowns
+ * Converts select elements with .custom-dropdown class into styled dropdowns
+ */
+function initCustomDropdowns() {
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.custom-dropdown')) {
+            document.querySelectorAll('.custom-dropdown-content.show').forEach(dropdown => {
+                dropdown.classList.remove('show');
+                const button = dropdown.previousElementSibling;
+                if (button) button.classList.remove('active');
+            });
+        }
+    });
+}
+
+/**
+ * Toggle custom dropdown visibility
+ * @param {string} dropdownId - The ID of the dropdown to toggle
+ */
+function toggleCustomDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const button = dropdown.previousElementSibling;
+    
+    // Close all other dropdowns
+    document.querySelectorAll('.custom-dropdown-content.show').forEach(dd => {
+        if (dd.id !== dropdownId) {
+            dd.classList.remove('show');
+            const btn = dd.previousElementSibling;
+            if (btn) btn.classList.remove('active');
+        }
+    });
+    
+    // Toggle this dropdown
+    dropdown.classList.toggle('show');
+    button.classList.toggle('active');
+}
+
+/**
+ * Select an item from custom dropdown
+ * @param {HTMLElement} element - The clicked link element
+ * @param {string} dropdownId - The ID of the dropdown
+ * @param {string} buttonId - The ID of the button to update
+ * @param {string} hiddenInputId - The ID of the hidden input to update (optional)
+ */
+function selectCustomDropdownItem(element, dropdownId, buttonId, hiddenInputId = null) {
+    const dropdown = document.getElementById(dropdownId);
+    const button = document.getElementById(buttonId);
+    const value = element.getAttribute('data-value');
+    const text = element.textContent;
+    
+    // Update button text
+    button.childNodes[0].textContent = text;
+    
+    // Update hidden input if provided
+    if (hiddenInputId) {
+        const hiddenInput = document.getElementById(hiddenInputId);
+        if (hiddenInput) {
+            hiddenInput.value = value;
+        }
+    }
+    
+    // Update selected state
+    dropdown.querySelectorAll('a').forEach(a => a.classList.remove('selected'));
+    element.classList.add('selected');
+    
+    // Close dropdown
+    dropdown.classList.remove('show');
+    button.classList.remove('active');
+    
+    // Prevent default link behavior
+    return false;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initCustomDropdowns();
+    convertFilterSelectsToCustomDropdowns();
+});
+
+// =============================================================================
+// AUTO-CONVERT NATIVE SELECTS TO CUSTOM DROPDOWNS
+// =============================================================================
+
+/**
+ * Automatically convert all .filter-select elements to custom tactical dropdowns
+ */
+function convertFilterSelectsToCustomDropdowns() {
+    const selects = document.querySelectorAll('.filter-select');
+    
+    selects.forEach(select => {
+        // Skip if already converted
+        if (select.dataset.customDropdownConverted) return;
+        
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'custom-dropdown';
+        
+        // Create button
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'custom-dropdown-button';
+        button.id = `${select.id}_button`;
+        
+        // Set initial text from selected option or placeholder
+        const selectedOption = select.options[select.selectedIndex];
+        button.textContent = selectedOption ? selectedOption.text : 'Select...';
+        
+        // Create dropdown content
+        const content = document.createElement('div');
+        content.className = 'custom-dropdown-content';
+        content.id = `${select.id}_dropdown`;
+        
+        // Add all options as links
+        Array.from(select.options).forEach(option => {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.textContent = option.text;
+            link.dataset.value = option.value;
+            
+            if (option.selected) {
+                link.classList.add('selected');
+            }
+            
+            if (option.disabled) {
+                link.style.opacity = '0.5';
+                link.style.pointerEvents = 'none';
+            }
+            
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Update the original select element
+                select.value = this.dataset.value;
+                
+                // Trigger change event on original select
+                const event = new Event('change', { bubbles: true });
+                select.dispatchEvent(event);
+                
+                // Update button text
+                button.childNodes[0].textContent = this.textContent;
+                
+                // Update selected state
+                content.querySelectorAll('a').forEach(a => a.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                // Close dropdown
+                content.classList.remove('show');
+                button.classList.remove('active');
+            });
+            
+            content.appendChild(link);
+        });
+        
+        // Add click handler to button
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.custom-dropdown-content.show').forEach(dd => {
+                if (dd.id !== content.id) {
+                    dd.classList.remove('show');
+                    const btn = dd.previousElementSibling;
+                    if (btn) btn.classList.remove('active');
+                }
+            });
+            
+            // Toggle this dropdown
+            content.classList.toggle('show');
+            button.classList.toggle('active');
+        });
+        
+        // Hide original select
+        select.style.display = 'none';
+        select.dataset.customDropdownConverted = 'true';
+        
+        // Insert custom dropdown
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(button);
+        wrapper.appendChild(content);
+        wrapper.appendChild(select);
+    });
 }

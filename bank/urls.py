@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_payees
 
 app_name = 'bank'
 
@@ -14,6 +15,7 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('accounts/', views.accounts, name='accounts'),
     path('transactions/', views.transactions, name='transactions'),
+    path('transactions-tactical/', views.transactions, name='transactions_tactical'),
     path('weekly/', views.weekly, name='weekly'),
     path('weekly-expanse/', views.weekly_expanse, name='weekly_expanse'),
     path('week-data/', views.get_week_data, name='get_week_data'),
@@ -30,15 +32,16 @@ urlpatterns = [
     path('payees/', views.get_payees, name='get_payees'),
     path('payee/add/', views.add_payee, name='add_payee'),
     path('payee/link-categories/', views.link_categories_to_payee, name='link_categories_to_payee'),
+    
+    # Payee Management URLs (new)
+    path('payees-manage/', views_payees.payee_list, name='payee_list'),
+    path('payee/create/', views_payees.payee_create, name='payee_create'),
+    path('payee/<int:payee_id>/update/', views_payees.payee_update, name='payee_update'),
+    path('payee/<int:payee_id>/delete/', views_payees.payee_delete, name='payee_delete'),
+    path('payee/search/', views_payees.payee_search, name='payee_search'),
+    
     # Category URLs (existing)
     path('categories-list/', views.get_categories, name='get_categories'),
-    # Payee Management URLs (new)
-    path('payees-manage/', views.payee_list, name='payee_list'),
-    path('payee/create/', views.payee_create, name='payee_create'),
-    path('payee/<int:payee_id>/update/', views.payee_update, name='payee_update'),
-    path('payee/<int:payee_id>/delete/', views.payee_delete, name='payee_delete'),
-    path('payee/search/', views.payee_search, name='payee_search'),
-    path('payee/filter/', views.payee_filter, name='payee_filter'),
     # Other URLs
     path('auto-date/', views.get_auto_date, name='get_auto_date'),
     # Income URLs
@@ -58,4 +61,7 @@ urlpatterns = [
     path('category/<int:category_id>/delete/', views.category_delete, name='category_delete'),
     path('category/search/', views.category_search, name='category_search'),
     path('category/<int:category_id>/payees/', views.category_payees, name='category_payees'),
+    
+    # Example pages
+    path('dropdown-example/', views.dropdown_example, name='dropdown_example'),
 ]

@@ -10,6 +10,28 @@ Expected context variables:
     <div class="corner-br"></div>
     
     <div class="panel-header">
+        <div class="panel-title">Quick Access</div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'bank:dashboard' %}" class="action-btn">
+            DASHBOARD
+        </a>
+        <a href="{% url 'bank:transactions' %}" class="action-btn primary">
+            TRANSACTIONS
+        </a>
+        <a href="{% url 'bank:accounts' %}" class="action-btn">
+            ACCOUNTS
+        </a>
+        <a href="{% url 'bank:payee_list' %}" class="action-btn">
+            PAYEES
+        </a>
+        <a href="{% url 'bank:category_list' %}" class="action-btn">
+            CATEGORIES
+        </a>
+    </div>
+    
+    <div class="panel-header" style="margin-top: 30px;">
         <div class="panel-title">Filters</div>
     </div>
     

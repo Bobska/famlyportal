@@ -504,6 +504,23 @@ def dashboard(request):
     avg_transaction = (monthly_income + monthly_expenses) / transaction_count if transaction_count > 0 else 0
     savings_rate = (monthly_balance / monthly_income * 100) if monthly_income > 0 else 0
 
+    # Calculate percentages for command center visualization
+    max_amount = max(monthly_income, monthly_expenses) if max(monthly_income, monthly_expenses) > 0 else 1
+    income_percentage = (monthly_income / max_amount * 100) if max_amount > 0 else 0
+    expense_percentage = (monthly_expenses / max_amount * 100) if max_amount > 0 else 0
+    
+    # Count monthly transactions
+    income_count = Income.objects.filter(
+        user=request.user, 
+        date__year=today.year, 
+        date__month=today.month
+    ).count()
+    expense_count = Expense.objects.filter(
+        user=request.user, 
+        date__year=today.year, 
+        date__month=today.month
+    ).count()
+
     context = {
         'page_title': 'Budget Basic',
         'app_name': 'budget_basic',
@@ -525,6 +542,10 @@ def dashboard(request):
         'net_savings': monthly_balance,
         'avg_transaction': avg_transaction,
         'savings_rate': savings_rate,
+        'income_percentage': income_percentage,
+        'expense_percentage': expense_percentage,
+        'income_count': income_count,
+        'expense_count': expense_count,
         **build_sidebar_summary_context(request),
     }
     return render(request, 'tactical/dashboard.html', context)
@@ -537,6 +558,12 @@ def shell(request):
     This provides seamless navigation between all bank views without page reloads.
     """
     return render(request, 'bank/shell.html', {})
+
+
+@login_required
+def dropdown_example(request):
+    """Example page showing custom tactical dropdown implementation."""
+    return render(request, 'bank/custom_dropdown_example.html', {})
 
 
 @login_required
@@ -820,6 +847,9 @@ def transactions(request):
     # Get all categories for filters
     categories = Category.objects.filter(user=request.user).order_by('name')
     
+    # Get all payees for dropdown
+    payees = Payee.objects.filter(user=request.user).order_by('name')
+    
     # Calculate current balance for header
     current_balance = total_income - total_expenses
     monthly_balance = current_balance  # Use net balance for header stat
@@ -839,6 +869,7 @@ def transactions(request):
         'earliest_date': earliest_date,
         'latest_date': latest_date,
         'categories': categories,
+        'payees': payees,
         # Required by tactical base template
         'current_balance': current_balance,
         'monthly_balance': monthly_balance,

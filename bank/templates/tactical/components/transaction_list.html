@@ -14,6 +14,7 @@ Parameters:
     - empty_title: Title for empty state (default: "NO TRANSACTION DATA")
     - empty_text: Text for empty state (default message)
 {% endcomment %}
+{% load bank_tags %}
 {% if transactions %}
     <div class="transaction-list{% if list_full %} transaction-list-full{% endif %}" {% if list_id %}id="{{ list_id }}"{% endif %}>
         {% for transaction in transactions %}
@@ -21,8 +22,12 @@ Parameters:
                  {% if clickable %}
                  data-id="{{ transaction.id }}"
                  data-type="{{ transaction.type }}"
-                 data-payee="{{ transaction.payee|lower }}"
-                 data-category="{{ transaction.category.id|default:'none' }}"
+                 data-payee="{{ transaction.payee }}"
+                 data-amount="{{ transaction.amount }}"
+                 data-date="{{ transaction.date|date:'Y-m-d' }}"
+                 data-category="{{ transaction.category.name|default:'Uncategorized' }}"
+                 data-category-id="{{ transaction.category.id|default:'' }}"
+                 data-notes="{{ transaction.notes|default:'' }}"
                  onclick="selectTransaction(this, {{ transaction.id }}, '{{ transaction.type }}')"
                  {% endif %}>
                 <span class="transaction-icon {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
@@ -36,7 +41,7 @@ Parameters:
                     {% endif %}
                 </div>
                 <div class="transaction-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
-                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}{{ transaction.amount|currency }}
                 </div>
             </div>
         {% endfor %}

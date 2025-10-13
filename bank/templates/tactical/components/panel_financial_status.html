@@ -9,7 +9,10 @@ Expected context variables:
     - transaction_count
     - payee_count
     - category_count
+    - savings_rate
+    - monthly_balance
 {% endcomment %}
+{% load bank_tags %}
 <div class="tactical-panel">
     <div class="corner-bl"></div>
     <div class="corner-br"></div>
@@ -21,20 +24,41 @@ Expected context variables:
     <div class="balance-display">
         <div class="balance-label">CURRENT BALANCE</div>
         <div class="balance-value {% if current_balance >= 0 %}positive{% else %}negative{% endif %}">
-            {% if current_balance >= 0 %}+{% endif %}${{ current_balance|floatformat:2 }}
+            {% if current_balance >= 0 %}+{% endif %}{{ current_balance|currency }}
         </div>
         <div class="balance-meta">All-time cumulative</div>
+    </div>
+    
+    <div class="panel-divider"></div>
+    
+    <div class="balance-display" style="margin-top: 20px;">
+        <div class="balance-label">MONTHLY POSITION</div>
+        <div class="balance-value {% if monthly_balance >= 0 %}positive{% else %}negative{% endif %}" style="font-size: 28px;">
+            {% if monthly_balance >= 0 %}+{% endif %}{{ monthly_balance|currency }}
+        </div>
+        <div class="balance-meta">
+            {% if monthly_balance >= 0 %}
+                Surplus this month
+            {% else %}
+                Deficit this month
+            {% endif %}
+        </div>
     </div>
     
     <div class="stats-grid">
         <div class="stat-item income">
             <span class="stat-label">MONTHLY INCOME</span>
-            <span class="stat-value">+${{ monthly_income|floatformat:2 }}</span>
+            <span class="stat-value">+{{ monthly_income|currency }}</span>
         </div>
         
         <div class="stat-item expense">
             <span class="stat-label">MONTHLY EXPENSES</span>
-            <span class="stat-value">-${{ monthly_expenses|floatformat:2 }}</span>
+            <span class="stat-value">-{{ monthly_expenses|currency }}</span>
+        </div>
+        
+        <div class="stat-item {% if savings_rate >= 20 %}income{% elif savings_rate >= 10 %}neutral{% elif savings_rate >= 0 %}neutral{% else %}expense{% endif %}">
+            <span class="stat-label">SAVINGS RATE</span>
+            <span class="stat-value">{{ savings_rate|floatformat:1 }}%</span>
         </div>
         
         <div class="stat-item neutral">

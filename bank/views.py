@@ -820,6 +820,10 @@ def transactions(request):
     # Get all categories for filters
     categories = Category.objects.filter(user=request.user).order_by('name')
     
+    # Calculate current balance for header
+    current_balance = total_income - total_expenses
+    monthly_balance = current_balance  # Use net balance for header stat
+    
     context = {
         'page_title': 'Transactions Command',
         'all_transactions': all_transactions,
@@ -835,8 +839,11 @@ def transactions(request):
         'earliest_date': earliest_date,
         'latest_date': latest_date,
         'categories': categories,
+        # Required by tactical base template
+        'current_balance': current_balance,
+        'monthly_balance': monthly_balance,
     }
-    return render(request, 'bank/transactions_tactical.html', context)
+    return render(request, 'tactical/transactions.html', context)
 
 
 @login_required

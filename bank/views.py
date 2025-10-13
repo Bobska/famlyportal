@@ -450,11 +450,51 @@ def dashboard(request):
     
     avg_transactions_per_week = total_transactions / weeks_active if weeks_active > 0 else 0
 
+    # Get all transactions for transaction management view
+    income_entries = Income.objects.filter(user=request.user).order_by('-date', '-created_at')
+    expense_entries = Expense.objects.filter(user=request.user).order_by('-date', '-created_at')
+    
+    # Combine and annotate with type
+    all_transactions = []
+    for income in income_entries:
+        all_transactions.append({
+            'id': income.id,
+            'type': 'income',
+            'date': income.date,
+            'payee': income.payee,
+            'category': income.category,
+            'amount': income.amount,
+            'notes': income.notes,
+        })
+    
+    for expense in expense_entries:
+        all_transactions.append({
+            'id': expense.id,
+            'type': 'expense',
+            'date': expense.date,
+            'payee': expense.payee,
+            'category': expense.category,
+            'amount': expense.amount,
+            'notes': expense.notes,
+        })
+    
+    # Sort by date descending
+    all_transactions.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Get all categories for filters
+    categories = Category.objects.filter(user=request.user).order_by('name')
+
+    # Calculate additional stats for extended panel
+    avg_transaction = (monthly_income + monthly_expenses) / transaction_count if transaction_count > 0 else 0
+    savings_rate = (monthly_balance / monthly_income * 100) if monthly_income > 0 else 0
+
     context = {
         'page_title': 'Budget Basic',
         'app_name': 'budget_basic',
         'current_balance': current_balance,
         'recent_transactions': recent_transactions[:10],  # Limit to 10 most recent
+        'all_transactions': all_transactions,
+        'categories': categories,
         'payee_count': payee_count,
         'category_count': category_count,
         'transaction_count': transaction_count,
@@ -464,9 +504,14 @@ def dashboard(request):
         'monthly_expenses': monthly_expenses,
         'monthly_balance': monthly_balance,
         'avg_transactions_per_week': avg_transactions_per_week,
+        'total_income': monthly_income,
+        'total_expenses': monthly_expenses,
+        'net_savings': monthly_balance,
+        'avg_transaction': avg_transaction,
+        'savings_rate': savings_rate,
         **build_sidebar_summary_context(request),
     }
-    return render(request, 'bank/dashboard_tactical.html', context)
+    return render(request, 'tactical/dashboard.html', context)
 
 
 @login_required
@@ -706,14 +751,76 @@ def weekly_expanse(request):
 
 @login_required
 def transactions(request):
-    """All transactions view without weekly navigation."""
+    """Tactical transactions management view with full CRUD operations."""
+    # Get all income and expense transactions
+    income_entries = Income.objects.filter(user=request.user).order_by('-date', '-created_at')
+    expense_entries = Expense.objects.filter(user=request.user).order_by('-date', '-created_at')
+    
+    # Combine and annotate with type
+    all_transactions = []
+    for income in income_entries:
+        all_transactions.append({
+            'id': income.id,
+            'type': 'income',
+            'date': income.date,
+            'payee': income.payee,
+            'category': income.category,
+            'amount': income.amount,
+            'notes': income.notes,
+        })
+    
+    for expense in expense_entries:
+        all_transactions.append({
+            'id': expense.id,
+            'type': 'expense',
+            'date': expense.date,
+            'payee': expense.payee,
+            'category': expense.category,
+            'amount': expense.amount,
+            'notes': expense.notes,
+        })
+    
+    # Sort by date descending
+    all_transactions.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Calculate totals
+    total_income = sum(income.amount for income in income_entries)
+    total_expenses = sum(expense.amount for expense in expense_entries)
+    net_balance = total_income - total_expenses
+    
+    # Calculate additional stats for sidebar
+    transaction_count = len(all_transactions)
+    avg_transaction = (total_income + total_expenses) / transaction_count if transaction_count > 0 else 0
+    savings_rate = (net_balance / total_income * 100) if total_income > 0 else 0
+    
+    # Get date range
+    earliest_date = None
+    latest_date = None
+    if all_transactions:
+        dates = [t['date'] for t in all_transactions]
+        earliest_date = min(dates)
+        latest_date = max(dates)
+    
+    # Get all categories for filters
+    categories = Category.objects.filter(user=request.user).order_by('name')
+    
     context = {
-        'page_title': 'Transactions',
-        'app_name': 'budget_basic',
-        **build_all_transactions_context(request),
-        **build_sidebar_summary_context(request),
+        'page_title': 'Transactions Command',
+        'all_transactions': all_transactions,
+        'total_count': len(all_transactions),
+        'income_count': income_entries.count(),
+        'expense_count': expense_entries.count(),
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': net_balance,
+        'net_savings': net_balance,
+        'avg_transaction': avg_transaction,
+        'savings_rate': savings_rate,
+        'earliest_date': earliest_date,
+        'latest_date': latest_date,
+        'categories': categories,
     }
-    return render(request, 'bank/transactions.html', context)
+    return render(request, 'bank/transactions_tactical.html', context)
 
 
 @login_required

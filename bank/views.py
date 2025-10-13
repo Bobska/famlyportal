@@ -365,15 +365,31 @@ def dashboard(request):
     recent_income = Income.objects.filter(user=request.user).order_by('-date', '-id')[:10]
     recent_expenses = Expense.objects.filter(user=request.user).order_by('-date', '-id')[:10]
     
-    # Combine and sort by date
+    # Combine and sort by date - flatten structure for consistency with component
     recent_transactions = []
     for income in recent_income:
-        recent_transactions.append({'type': 'income', 'entry': income})
+        recent_transactions.append({
+            'id': income.id,
+            'type': 'income',
+            'date': income.date,
+            'payee': income.payee,
+            'category': income.category,
+            'amount': income.amount,
+            'notes': income.notes,
+        })
     for expense in recent_expenses:
-        recent_transactions.append({'type': 'expense', 'entry': expense})
+        recent_transactions.append({
+            'id': expense.id,
+            'type': 'expense',
+            'date': expense.date,
+            'payee': expense.payee,
+            'category': expense.category,
+            'amount': expense.amount,
+            'notes': expense.notes,
+        })
     
     # Sort by date descending
-    recent_transactions.sort(key=lambda x: (x['entry'].date, x['entry'].id), reverse=True)
+    recent_transactions.sort(key=lambda x: (x['date'], x['id']), reverse=True)
     
     # Count active payees, categories, and transactions
     from .models import Payee, Category

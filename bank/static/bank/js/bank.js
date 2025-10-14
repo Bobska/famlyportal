@@ -3699,6 +3699,274 @@ function stopResize() {
     document.body.style.userSelect = '';
 }
 
+/**
+ * Handle add income form submission
+ */
+function handleAddIncomeForm() {
+    const form = document.getElementById('addIncomeForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        
+        fetch('/budget-basic/income/add/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addIncomeModal'));
+                if (modal) modal.hide();
+                
+                // Show success message
+                showSuccessModal(data.message || 'Income added successfully');
+                
+                // Reload page after short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding income');
+        });
+    });
+}
+
+/**
+ * Handle edit income form submission
+ */
+function handleEditIncomeForm() {
+    const form = document.getElementById('editIncomeForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const incomeId = document.getElementById('editIncomeId').value;
+        const formData = new FormData(form);
+        
+        fetch(`/budget-basic/income/${incomeId}/edit/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
+                if (modal) modal.hide();
+                
+                // Show success message
+                showSuccessModal(data.message || 'Income updated successfully');
+                
+                // Reload page after short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating income');
+        });
+    });
+}
+
+/**
+ * Handle delete income form submission
+ */
+function handleDeleteIncomeForm() {
+    const form = document.getElementById('deleteIncomeForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const incomeId = document.getElementById('deleteIncomeId').value;
+        const formData = new FormData(form);
+        
+        fetch(`/budget-basic/income/${incomeId}/delete/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteIncomeModal'));
+                if (modal) modal.hide();
+                
+                // Show success message
+                showSuccessModal(data.message || 'Income deleted successfully');
+                
+                // Reload page after short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting income');
+        });
+    });
+}
+
+/**
+ * Handle add expense form submission
+ */
+function handleAddExpenseForm() {
+    const form = document.getElementById('addExpenseForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        
+        fetch('/budget-basic/expense/add/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addExpenseModal'));
+                if (modal) modal.hide();
+                
+                // Show success message
+                showSuccessModal(data.message || 'Expense added successfully');
+                
+                // Reload page after short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding expense');
+        });
+    });
+}
+
+/**
+ * Handle edit expense form submission
+ */
+function handleEditExpenseForm() {
+    const form = document.getElementById('editExpenseForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const expenseId = document.getElementById('editExpenseId').value;
+        const formData = new FormData(form);
+        
+        fetch(`/budget-basic/expense/${expenseId}/edit/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
+                if (modal) modal.hide();
+                
+                // Show success message
+                showSuccessModal(data.message || 'Expense updated successfully');
+                
+                // Reload page after short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating expense');
+        });
+    });
+}
+
+/**
+ * Handle delete expense form submission
+ */
+function handleDeleteExpenseForm() {
+    const form = document.getElementById('deleteExpenseForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const expenseId = document.getElementById('deleteExpenseId').value;
+        const formData = new FormData(form);
+        
+        fetch(`/budget-basic/expense/${expenseId}/delete/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'));
+                if (modal) modal.hide();
+                
+                // Show success message
+                showSuccessModal(data.message || 'Expense deleted successfully');
+                
+                // Reload page after short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting expense');
+        });
+    });
+}
+
+/**
+ * Handle add transaction form (consolidated income/expense)
+ */
+function handleAddTransactionForm() {
+    // This function is called but may not have a form on all pages
+    const form = document.getElementById('addTransactionForm');
+    if (!form) return;
+    
+    // Implementation would go here if needed
+    console.log('Add transaction form handler initialized');
+}
+
 // Make functions available globally for onclick handlers
 window.showAddTransactionModal = showAddTransactionModal;
 window.filterTransactions = filterTransactions;

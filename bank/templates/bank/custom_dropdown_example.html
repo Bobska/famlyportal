@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Tactical Dropdown Example</title>
+    <link rel="stylesheet" href="{% static 'bank/css/tactical.css' %}">
+</head>
+<body style="background: #0f1419; padding: 50px;">
+
+<h2 style="color: #00d9ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Custom Tactical Dropdown</h2>
+<p style="color: #00d9ff; opacity: 0.7;">Click the dropdown to see the styled menu with hover and selection states.</p>
+
+<!-- Custom Dropdown Example 1: Payee Selection -->
+<div class="custom-dropdown" style="margin-bottom: 30px; max-width: 400px;">
+    <button class="custom-dropdown-button" id="payeeButton" onclick="toggleCustomDropdown('payeeDropdown')">
+        Select Payee
+    </button>
+    <div class="custom-dropdown-content" id="payeeDropdown">
+        <a href="#" data-value="1" onclick="return selectCustomDropdownItem(this, 'payeeDropdown', 'payeeButton', 'payeeInput')">Walmart</a>
+        <a href="#" data-value="2" onclick="return selectCustomDropdownItem(this, 'payeeDropdown', 'payeeButton', 'payeeInput')">Amazon</a>
+        <a href="#" data-value="3" onclick="return selectCustomDropdownItem(this, 'payeeDropdown', 'payeeButton', 'payeeInput')" class="selected">Target</a>
+        <a href="#" data-value="4" onclick="return selectCustomDropdownItem(this, 'payeeDropdown', 'payeeButton', 'payeeInput')">Gas Station</a>
+        <a href="#" data-value="5" onclick="return selectCustomDropdownItem(this, 'payeeDropdown', 'payeeButton', 'payeeInput')">Grocery Store</a>
+    </div>
+    <input type="hidden" id="payeeInput" name="payee" value="3">
+</div>
+
+<!-- Custom Dropdown Example 2: Category Selection -->
+<div class="custom-dropdown" style="margin-bottom: 30px; max-width: 400px;">
+    <button class="custom-dropdown-button" id="categoryButton" onclick="toggleCustomDropdown('categoryDropdown')">
+        Select Category
+    </button>
+    <div class="custom-dropdown-content" id="categoryDropdown">
+        <a href="#" data-value="groceries" onclick="return selectCustomDropdownItem(this, 'categoryDropdown', 'categoryButton', 'categoryInput')">Groceries</a>
+        <a href="#" data-value="utilities" onclick="return selectCustomDropdownItem(this, 'categoryDropdown', 'categoryButton', 'categoryInput')">Utilities</a>
+        <a href="#" data-value="transport" onclick="return selectCustomDropdownItem(this, 'categoryDropdown', 'categoryButton', 'categoryInput')">Transportation</a>
+        <a href="#" data-value="entertainment" onclick="return selectCustomDropdownItem(this, 'categoryDropdown', 'categoryButton', 'categoryInput')">Entertainment</a>
+        <a href="#" data-value="healthcare" onclick="return selectCustomDropdownItem(this, 'categoryDropdown', 'categoryButton', 'categoryInput')">Healthcare</a>
+        <a href="#" data-value="shopping" onclick="return selectCustomDropdownItem(this, 'categoryDropdown', 'categoryButton', 'categoryInput')">Shopping</a>
+    </div>
+    <input type="hidden" id="categoryInput" name="category" value="">
+</div>
+
+<!-- Usage Instructions -->
+<div style="margin-top: 50px; padding: 20px; background: rgba(0, 217, 255, 0.05); border: 1px solid rgba(0, 217, 255, 0.2); border-radius: 4px; max-width: 600px;">
+    <h3 style="color: #00d9ff; margin-top: 0;">Usage Instructions:</h3>
+    <pre style="color: #00d9ff; opacity: 0.8; white-space: pre-wrap; font-family: monospace; font-size: 12px;">
+&lt;div class="custom-dropdown"&gt;
+    &lt;button class="custom-dropdown-button" id="myButton" 
+            onclick="toggleCustomDropdown('myDropdown')"&gt;
+        Select Option
+    &lt;/button&gt;
+    &lt;div class="custom-dropdown-content" id="myDropdown"&gt;
+        &lt;a href="#" data-value="1" 
+           onclick="return selectCustomDropdownItem(this, 'myDropdown', 'myButton', 'myInput')"&gt;
+            Option 1
+        &lt;/a&gt;
+        &lt;a href="#" data-value="2" class="selected"
+           onclick="return selectCustomDropdownItem(this, 'myDropdown', 'myButton', 'myInput')"&gt;
+            Option 2 (Selected)
+        &lt;/a&gt;
+    &lt;/div&gt;
+    &lt;input type="hidden" id="myInput" name="field_name" value="2"&gt;
+&lt;/div&gt;
+    </pre>
+    
+    <h4 style="color: #00d9ff; margin-top: 20px;">Features:</h4>
+    <ul style="color: #00d9ff; opacity: 0.8;">
+        <li>Cyan hover state with glow effect</li>
+        <li>Green gradient for selected items</li>
+        <li>Selected item maintains green background when hovering others</li>
+        <li>Smooth animations and transitions</li>
+        <li>Custom scrollbar styling</li>
+        <li>Border glow matching The Expanse theme</li>
+    </ul>
+</div>
+
+<script src="{% static 'bank/js/tactical.js' %}"></script>
+</body>
+</html>

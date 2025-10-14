@@ -438,19 +438,33 @@ body::before {
     color: #00ff88;
 }
 
-/* Form Sections - Tactical Style */
+/* Form Sections - Tactical Style - Single Column Layout */
 .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0;
     padding: 20px;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* Responsive: Stack form fields vertically on smaller screens */
-@media (max-width: 900px) {
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
+/* Scrollbar styling for form grid */
+.form-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-grid::-webkit-scrollbar-track {
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.form-grid::-webkit-scrollbar-thumb {
+    background: rgba(0, 217, 255, 0.2);
+    border-radius: 4px;
+}
+
+.form-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 217, 255, 0.3);
 }
 
 .form-section {

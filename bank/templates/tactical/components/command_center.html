@@ -1,0 +1,79 @@
+<!-- TACTICAL COMMAND CENTER HOME SCREEN - NO SCROLL DESIGN -->
+{% load bank_tags %}
+<div class="command-center-home">
+    
+    <!-- TOP SECTION: Monthly Financial Overview -->
+    <div class="financial-overview-section">
+        <div class="overview-header">MONTHLY OPERATIONS</div>
+        
+        <div class="financial-streams">
+            <div class="stream-item income-stream">
+                <div class="stream-header">
+                    <span class="stream-label">INCOME</span>
+                    <span class="stream-amount">{{ monthly_income|currency }}</span>
+                </div>
+                <div class="stream-bar">
+                    <div class="stream-fill income-fill" data-width="{{ income_percentage|default:0 }}"></div>
+                </div>
+                <div class="stream-meta">{{ income_count|default:0 }} transactions</div>
+            </div>
+            
+            <div class="stream-item expense-stream">
+                <div class="stream-header">
+                    <span class="stream-label">EXPENSES</span>
+                    <span class="stream-amount">{{ monthly_expenses|currency }}</span>
+                </div>
+                <div class="stream-bar">
+                    <div class="stream-fill expense-fill" data-width="{{ expense_percentage|default:0 }}"></div>
+                </div>
+                <div class="stream-meta">{{ expense_count|default:0 }} transactions</div>
+            </div>
+            
+            <div class="stream-item net-stream">
+                <div class="stream-header">
+                    <span class="stream-label">NET POSITION</span>
+                    <span class="stream-amount {% if monthly_balance >= 0 %}positive{% else %}negative{% endif %}">{{ monthly_balance|currency }}</span>
+                </div>
+                <div class="stream-status">
+                    {% if monthly_balance >= 0 %}
+                        <span class="status-indicator positive">▲ SURPLUS</span>
+                    {% else %}
+                        <span class="status-indicator negative">▼ DEFICIT</span>
+                    {% endif %}
+                    <span class="status-rate">{{ savings_rate|floatformat:1 }}% rate</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MIDDLE SECTION: Quick Actions Grid -->
+    <div class="quick-actions-section">
+        <div class="actions-grid">
+            <a href="{% url 'bank:transactions' %}" class="action-item action-primary">
+                <div class="action-label">TRANSACTIONS</div>
+                <div class="action-meta">{{ transaction_count|default:0 }} records</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- BOTTOM SECTION: Intelligence Metrics -->
+    <div class="intel-metrics-section">
+        <div class="metrics-row">
+            <div class="metric-card">
+                <div class="metric-value">{{ avg_transactions_per_week|floatformat:1 }}</div>
+                <div class="metric-label">TX/WEEK</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-value {% if savings_rate >= 0 %}positive{% else %}negative{% endif %}">{{ savings_rate|floatformat:1 }}%</div>
+                <div class="metric-label">SAVINGS RATE</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-value">{{ transaction_count }}</div>
+                <div class="metric-label">TOTAL TX</div>
+            </div>
+        </div>
+    </div>
+
+</div>

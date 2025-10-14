@@ -673,12 +673,19 @@
                                      data-type="{{ transaction.type }}"
                                      data-payee="{{ transaction.payee|lower }}"
                                      data-category="{{ transaction.category.id|default:'none' }}"
+                                     data-date-full="{{ transaction.date|date:"D, j M Y" }}"
+                                     data-date-short="{{ transaction.date|date:"j M" }}"
+                                     data-date-compact="{{ transaction.date|date:"j/n" }}"
                                      onclick="selectTransaction(this, {{ transaction.id }}, '{{ transaction.type }}', '{{ transaction.payee|escapejs }}', '{{ transaction.date|date:"D, j M Y" }}', '{{ transaction.category.name|default:"Uncategorized"|escapejs }}', '{{ transaction.amount }}', '{{ transaction.notes|default:""|escapejs }}')">
                                     <span class="transaction-icon {{ transaction.type }}">
                                         {% if transaction.type == 'income' %}▲{% else %}▼{% endif %}
                                     </span>
                                     <div class="transaction-info">
-                                        <div class="transaction-date">{{ transaction.date|date:"D, j M Y" }}</div>
+                                        <div class="transaction-date" data-full="{{ transaction.date|date:"D, j M Y" }}" data-short="{{ transaction.date|date:"j M" }}" data-compact="{{ transaction.date|date:"j/n" }}">
+                                            <span class="date-full">{{ transaction.date|date:"D, j M Y" }}</span>
+                                            <span class="date-short">{{ transaction.date|date:"j M" }}</span>
+                                            <span class="date-compact">{{ transaction.date|date:"j/n" }}</span>
+                                        </div>
                                         <div class="transaction-payee">{{ transaction.payee }}</div>
                                         <div class="transaction-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
                                     </div>

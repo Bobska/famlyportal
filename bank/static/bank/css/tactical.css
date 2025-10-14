@@ -1201,19 +1201,29 @@ body::before {
     flex-shrink: 0;
     min-width: 90px;
     order: 1;
+    position: relative;
 }
 
-/* PAYEE SECOND - Main identifier */
+/* Date format spans - show full by default */
+.split-left .transaction-date .date-full {
+    display: inline;
+}
+
+.split-left .transaction-date .date-short,
+.split-left .transaction-date .date-compact {
+    display: none;
+}
+
+/* PAYEE SECOND - Main identifier (NEVER truncate) */
 .split-left .transaction-payee {
     font-size: 12px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible; /* Changed from hidden */
+    text-overflow: clip; /* No ellipsis - we compress date instead */
     flex: 1 1 auto;
-    min-width: 100px;
-    max-width: 300px;
+    min-width: 120px; /* Increased minimum to ensure readability */
     order: 2;
 }
 
@@ -2041,8 +2051,23 @@ body::before {
         font-size: 8px;
     }
     
+    /* Switch to shorter date format to give payee more space */
+    .split-left .transaction-date {
+        min-width: 70px;
+        font-size: 10px;
+    }
+    
+    .split-left .transaction-date .date-full {
+        display: none;
+    }
+    
+    .split-left .transaction-date .date-short {
+        display: inline; /* Show "14 Oct" instead of "Mon, 14 Oct 2025" */
+    }
+    
+    /* Payee gets more space - no truncation */
     .split-left .transaction-payee {
-        max-width: 250px;
+        min-width: 150px;
     }
 }
 
@@ -2053,16 +2078,26 @@ body::before {
         display: none;
     }
     
-    /* Payee can expand more */
-    .split-left .transaction-payee {
-        flex: 1 1 auto;
-        max-width: none;
-        min-width: 120px;
+    /* Switch to compact date format - even smaller */
+    .split-left .transaction-date {
+        min-width: 50px;
+        font-size: 10px;
+        letter-spacing: 0.3px;
     }
     
-    .split-left .transaction-date {
-        min-width: 80px;
-        font-size: 10px;
+    .split-left .transaction-date .date-short {
+        display: none;
+    }
+    
+    .split-left .transaction-date .date-compact {
+        display: inline; /* Show "14/10" - very compact */
+    }
+    
+    /* Payee gets maximum space - NO TRUNCATION */
+    .split-left .transaction-payee {
+        flex: 1 1 auto;
+        min-width: 140px;
+        font-size: 12px;
     }
     
     .split-left .transaction-amount {
@@ -2085,17 +2120,26 @@ body::before {
         flex: 1;
     }
     
+    /* Keep compact date format */
     .split-left .transaction-date {
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 700;
-        width: auto;
         min-width: 0;
     }
     
+    .split-left .transaction-date .date-short {
+        display: none;
+    }
+    
+    .split-left .transaction-date .date-compact {
+        display: inline; /* Still show "14/10" */
+    }
+    
+    /* Payee takes full width - NEVER truncates */
     .split-left .transaction-payee {
         font-size: 11px;
         width: 100%;
-        max-width: none;
+        min-width: 0;
         order: 2;
     }
     
@@ -2196,6 +2240,7 @@ body::before {
         flex: 1;
     }
     
+    /* Very compact date format on mobile */
     .split-left .transaction-date {
         font-size: 9px;
         font-weight: 700;
@@ -2204,6 +2249,16 @@ body::before {
         order: 1;
     }
     
+    .split-left .transaction-date .date-full,
+    .split-left .transaction-date .date-short {
+        display: none;
+    }
+    
+    .split-left .transaction-date .date-compact {
+        display: inline; /* "14/10" format on mobile */
+    }
+    
+    /* Payee full width - NEVER truncated */
     .split-left .transaction-payee {
         font-size: 11px;
         min-width: 0;

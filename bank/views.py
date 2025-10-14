@@ -566,6 +566,11 @@ def dropdown_example(request):
     return render(request, 'bank/custom_dropdown_example.html', {})
 
 
+def datepicker_example(request):
+    """Example page showing Flatpickr tactical date picker implementation."""
+    return render(request, 'bank/datepicker_example.html', {})
+
+
 @login_required
 def accounts(request):
     """

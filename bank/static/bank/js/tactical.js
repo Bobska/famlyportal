@@ -1241,6 +1241,7 @@ function selectCustomDropdownItem(element, dropdownId, buttonId, hiddenInputId =
 document.addEventListener('DOMContentLoaded', function() {
     initCustomDropdowns();
     convertFilterSelectsToCustomDropdowns();
+    initTacticalDatePickers();
 });
 
 // =============================================================================
@@ -1346,3 +1347,96 @@ function convertFilterSelectsToCustomDropdowns() {
         wrapper.appendChild(select);
     });
 }
+
+/**
+ * Initialize Flatpickr date pickers with tactical theme
+ */
+function initTacticalDatePickers() {
+    // Check if Flatpickr is loaded
+    if (typeof flatpickr === 'undefined') {
+        console.error('Flatpickr library not loaded');
+        return;
+    }
+    
+    // Find all date inputs
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    
+    console.log(`Found ${dateInputs.length} date inputs to initialize`);
+    
+    dateInputs.forEach(input => {
+        // Skip if already initialized
+        if (input._flatpickr) {
+            console.log('Date input already initialized:', input.id || input.name);
+            return;
+        }
+        
+        // Get any existing value
+        const existingValue = input.value;
+        
+        try {
+            // Initialize Flatpickr
+            const picker = flatpickr(input, {
+                dateFormat: 'Y-m-d',
+                defaultDate: existingValue || null,
+                allowInput: true,
+                clickOpens: true,
+                
+                // Prevent scroll on mobile
+                disableMobile: false,
+                
+                // Position calendar properly
+                position: 'auto',
+                
+                // Tactical theme configuration
+                prevArrow: '◄',
+                nextArrow: '►',
+                
+                // Format the display
+                altInput: false,
+                
+                // Change month/year with dropdowns
+                static: false,
+                
+                // Week numbers (optional - set to false if not needed)
+                weekNumbers: false,
+                
+                // Callbacks for tactical effects
+                onReady: function(selectedDates, dateStr, instance) {
+                    // Add tactical class to calendar
+                    if (instance.calendarContainer) {
+                        instance.calendarContainer.classList.add('tactical-calendar');
+                        console.log('Tactical calendar initialized for:', input.id || input.name);
+                    }
+                },
+                
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Trigger change event for existing listeners
+                    const event = new Event('change', { bubbles: true });
+                    input.dispatchEvent(event);
+                },
+                
+                onOpen: function(selectedDates, dateStr, instance) {
+                    console.log('Calendar opened');
+                },
+                
+                onClose: function(selectedDates, dateStr, instance) {
+                    console.log('Calendar closed');
+                }
+            });
+            
+            // Prevent default behavior on click
+            input.addEventListener('click', function(e) {
+                if (input._flatpickr) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    input._flatpickr.open();
+                }
+            });
+            
+            console.log('Flatpickr initialized successfully for:', input.id || input.name);
+        } catch (error) {
+            console.error('Error initializing Flatpickr:', error);
+        }
+    });
+}
+

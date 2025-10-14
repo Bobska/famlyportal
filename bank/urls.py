@@ -64,4 +64,5 @@ urlpatterns = [
     
     # Example pages
     path('dropdown-example/', views.dropdown_example, name='dropdown_example'),
+    path('datepicker-example/', views.datepicker_example, name='datepicker_example'),
 ]

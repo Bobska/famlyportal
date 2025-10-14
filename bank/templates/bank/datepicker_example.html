@@ -1,0 +1,87 @@
+{% extends 'tactical/tactical_base.html' %}
+
+{% block title %}Date Picker Example{% endblock %}
+
+{% block content %}
+<div class="tactical-panel center-panel" style="grid-column: 1 / -1; max-width: 1200px; margin: 40px auto;">
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+    
+    <div class="panel-header">
+        <div class="panel-title">◄ Tactical Date Picker System</div>
+    </div>
+    
+    <div class="panel-content" style="padding: 40px;">
+        <h3 style="color: #00d9ff; font-size: 18px; margin-bottom: 30px; letter-spacing: 1px;">
+            FLATPICKR CALENDAR INTEGRATION
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
+            <div>
+                <label style="color: rgba(0, 217, 255, 0.7); font-size: 12px; font-weight: 600; 
+                              text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+                    Transaction Date
+                </label>
+                <input type="date" class="filter-input" id="exampleDate1" value="2025-10-13" />
+                <div style="color: rgba(0, 217, 255, 0.5); font-size: 11px; margin-top: 8px;">
+                    ► Click the calendar icon to open the tactical date picker
+                </div>
+            </div>
+            
+            <div>
+                <label style="color: rgba(0, 217, 255, 0.7); font-size: 12px; font-weight: 600; 
+                              text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+                    Payment Due Date
+                </label>
+                <input type="date" class="filter-input" id="exampleDate2" />
+                <div style="color: rgba(0, 217, 255, 0.5); font-size: 11px; margin-top: 8px;">
+                    ► Empty date field example
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: rgba(0, 217, 255, 0.05); border: 2px solid rgba(0, 217, 255, 0.2); 
+                    padding: 24px; margin-top: 30px;">
+            <h4 style="color: #00d9ff; font-size: 14px; margin-bottom: 16px; letter-spacing: 1px; text-transform: uppercase;">
+                ► Features
+            </h4>
+            <ul style="list-style: none; padding: 0; color: rgba(0, 217, 255, 0.8); line-height: 2;">
+                <li>► Fully customizable tactical-themed calendar</li>
+                <li>► Sharp corners matching The Expanse aesthetic</li>
+                <li>► Cyan color scheme with proper hover states</li>
+                <li>► Keyboard navigation support</li>
+                <li>► Mobile responsive</li>
+                <li>► Lightweight (Flatpickr ~15KB)</li>
+            </ul>
+        </div>
+        
+        <div style="background: rgba(0, 217, 255, 0.03); border-left: 3px solid rgba(0, 217, 255, 0.5); 
+                    padding: 20px; margin-top: 30px;">
+            <h4 style="color: #66e0ff; font-size: 13px; margin-bottom: 12px; letter-spacing: 1px;">
+                TECHNICAL DETAILS
+            </h4>
+            <div style="color: rgba(0, 217, 255, 0.7); font-size: 12px; line-height: 1.8;">
+                <p style="margin: 0 0 8px 0;">
+                    <strong style="color: #00d9ff;">Library:</strong> Flatpickr (https://flatpickr.js.org/)
+                </p>
+                <p style="margin: 0 0 8px 0;">
+                    <strong style="color: #00d9ff;">Integration:</strong> Automatically converts all type="date" inputs
+                </p>
+                <p style="margin: 0;">
+                    <strong style="color: #00d9ff;">Styling:</strong> Custom tactical theme in tactical.css
+                </p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{% url 'bank:transactions' %}" 
+               style="display: inline-block; background: rgba(0, 217, 255, 0.1); 
+                      border: 2px solid rgba(0, 217, 255, 0.3); color: #00d9ff; 
+                      padding: 12px 32px; text-decoration: none; font-weight: 600; 
+                      letter-spacing: 1px; transition: all 0.2s ease;">
+                ◄ BACK TO TRANSACTIONS
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

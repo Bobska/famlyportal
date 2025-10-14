@@ -14,6 +14,9 @@
     <!-- Tactical Theme Stylesheet -->
     <link rel="stylesheet" href="{% static 'bank/css/tactical.css' %}">
     
+    <!-- Flatpickr Date Picker (Local) -->
+    <link rel="stylesheet" href="{% static 'bank/css/flatpickr.min.css' %}">
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -47,6 +50,9 @@
          data-transactions-url="{% url 'bank:transactions' %}">
     </div>
     {% endblock %}
+    
+    <!-- Flatpickr Date Picker JavaScript (Local) -->
+    <script src="{% static 'bank/js/flatpickr.min.js' %}"></script>
     
     <script src="{% static 'bank/js/tactical.js' %}"></script>
     {% block extra_js %}{% endblock %}

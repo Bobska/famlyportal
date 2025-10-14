@@ -2,6 +2,59 @@
 
 {% block title %}Date Picker Example{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Tactical Scrollbar Styling */
+    .form-example-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+        max-height: 500px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .form-example-grid::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .form-example-grid::-webkit-scrollbar-track {
+        background: rgba(0, 217, 255, 0.05);
+        border-radius: 0;
+        border-left: 1px solid rgba(0, 217, 255, 0.1);
+    }
+
+    .form-example-grid::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(0, 217, 255, 0.3) 0%, rgba(0, 217, 255, 0.2) 100%);
+        border-radius: 0;
+        border-left: 2px solid rgba(0, 217, 255, 0.4);
+        box-shadow: inset 0 0 6px rgba(0, 217, 255, 0.3);
+    }
+
+    .form-example-grid::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(0, 217, 255, 0.5) 0%, rgba(0, 217, 255, 0.3) 100%);
+        border-left-color: rgba(0, 217, 255, 0.6);
+        box-shadow: 
+            inset 0 0 8px rgba(0, 217, 255, 0.4),
+            0 0 10px rgba(0, 217, 255, 0.3);
+    }
+
+    .form-example-grid::-webkit-scrollbar-thumb:active {
+        background: linear-gradient(180deg, rgba(0, 217, 255, 0.6) 0%, rgba(0, 217, 255, 0.4) 100%);
+        box-shadow: 
+            inset 0 0 10px rgba(0, 217, 255, 0.5),
+            0 0 15px rgba(0, 217, 255, 0.4);
+    }
+
+    /* Firefox scrollbar styling */
+    .form-example-grid {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 217, 255, 0.3) rgba(0, 217, 255, 0.05);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="tactical-panel center-panel" style="grid-column: 1 / -1; max-width: 1200px; margin: 40px auto;">
     <div class="corner-bl"></div>
@@ -16,7 +69,7 @@
             FLATPICKR CALENDAR INTEGRATION
         </h3>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 40px; max-height: 500px; overflow-y: auto; padding-right: 10px;">
+        <div class="form-example-grid">
             <div>
                 <label style="color: rgba(0, 217, 255, 0.7); font-size: 12px; font-weight: 600; 
                               text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">

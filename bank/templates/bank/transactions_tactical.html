@@ -678,8 +678,8 @@
                                         {% if transaction.type == 'income' %}▲{% else %}▼{% endif %}
                                     </span>
                                     <div class="transaction-info">
-                                        <div class="transaction-payee">{{ transaction.payee }}</div>
                                         <div class="transaction-date">{{ transaction.date|date:"D, j M Y" }}</div>
+                                        <div class="transaction-payee">{{ transaction.payee }}</div>
                                         <div class="transaction-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
                                     </div>
                                     <div class="transaction-amount {{ transaction.type }}">

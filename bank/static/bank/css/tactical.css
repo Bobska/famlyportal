@@ -1830,27 +1830,256 @@ body::before {
     grid-column: 2;
 }
 
+/* =============================================================================
+   RESPONSIVE TACTICAL LAYOUT - ADAPTIVE SIDE PANELS
+   ============================================================================= */
+
+/* Tablet: Narrow side panels (1200px - 1400px) */
 @media (max-width: 1400px) {
     .dashboard-grid {
-        grid-template-columns: 300px 1fr 300px;
-        gap: 20px;
+        grid-template-columns: 250px 1fr 250px;
+        gap: 12px;
+    }
+    
+    /* Reduce padding in side panels */
+    .dashboard-grid > .tactical-panel:first-child,
+    .dashboard-grid > .tactical-panel:last-child {
+        padding: 15px 10px;
+    }
+    
+    /* Smaller fonts in sidebars */
+    .dashboard-grid > .tactical-panel:first-child .panel-title,
+    .dashboard-grid > .tactical-panel:last-child .panel-title {
+        font-size: 11px;
     }
 }
 
+/* Tablet: Collapsible side panels (900px - 1200px) */
 @media (max-width: 1200px) {
     .dashboard-grid {
         grid-template-columns: 1fr;
+        position: relative;
     }
-
+    
+    /* Side panels become overlays */
+    .dashboard-grid > .tactical-panel:first-child,
+    .dashboard-grid > .tactical-panel:last-child {
+        position: fixed;
+        top: 80px;
+        bottom: 80px;
+        width: 280px;
+        z-index: 1000;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 30px rgba(0, 217, 255, 0.5);
+        border: 2px solid #00d9ff;
+    }
+    
+    /* Left panel slides from left */
+    .dashboard-grid > .tactical-panel:first-child {
+        left: 0;
+        transform: translateX(-100%);
+    }
+    
+    .dashboard-grid > .tactical-panel:first-child.panel-visible {
+        transform: translateX(0);
+    }
+    
+    /* Right panel slides from right */
+    .dashboard-grid > .tactical-panel:last-child {
+        right: 0;
+        transform: translateX(100%);
+    }
+    
+    .dashboard-grid > .tactical-panel:last-child.panel-visible {
+        transform: translateX(0);
+    }
+    
+    /* Center panel takes full width */
     .center-panel {
         grid-column: 1;
+        width: 100%;
+    }
+    
+    /* Add toggle buttons for panels */
+    .panel-toggle {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 80px;
+        background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(0, 217, 255, 0.1));
+        border: 2px solid rgba(0, 217, 255, 0.5);
+        color: #00d9ff;
+        cursor: pointer;
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        letter-spacing: 2px;
+        padding: 10px 0;
+    }
+    
+    .panel-toggle:hover {
+        background: linear-gradient(135deg, rgba(0, 217, 255, 0.4), rgba(0, 217, 255, 0.2));
+        border-color: #00d9ff;
+        box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+        color: #ffffff;
+    }
+    
+    .panel-toggle.left {
+        left: 0;
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .panel-toggle.right {
+        right: 0;
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+    }
+    
+    /* Hide toggles when panels are open */
+    .panel-toggle.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    /* Overlay backdrop when panels are open */
+    .panel-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    
+    .panel-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .bottom-panels {
         grid-template-columns: 1fr;
         gap: 20px;
     }
+    
+    /* Split content becomes stacked */
+    .split-content {
+        flex-direction: column;
+    }
+    
+    .split-left {
+        flex: 0 0 auto;
+        max-height: 50vh;
+        border-right: none;
+        border-bottom: 2px solid rgba(0, 217, 255, 0.3);
+    }
+    
+    .split-right {
+        flex: 1;
+    }
+}
 
+/* Mobile: Fully stacked layout (<768px) */
+@media (max-width: 768px) {
+    .dashboard-header {
+        padding: 15px;
+    }
+    
+    .header-left, .header-right {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start !important;
+    }
+    
+    .header-stat {
+        font-size: 11px;
+    }
+    
+    .header-stat-value {
+        font-size: 18px;
+    }
+    
+    /* Panels move to bottom accordion style */
+    .dashboard-grid > .tactical-panel:first-child,
+    .dashboard-grid > .tactical-panel:last-child {
+        position: static;
+        width: 100%;
+        transform: none;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease, padding 0.4s ease;
+        padding: 0 20px;
+        margin-bottom: 10px;
+    }
+    
+    .dashboard-grid > .tactical-panel:first-child.panel-visible,
+    .dashboard-grid > .tactical-panel:last-child.panel-visible {
+        max-height: 600px;
+        padding: 20px;
+    }
+    
+    /* Toggle buttons become top bars */
+    .panel-toggle {
+        position: static;
+        width: 100%;
+        height: 50px;
+        writing-mode: horizontal-tb;
+        margin-bottom: 10px;
+        border-radius: 0;
+        font-size: 13px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+    
+    .panel-toggle.left,
+    .panel-toggle.right {
+        border: 2px solid rgba(0, 217, 255, 0.5);
+        border-radius: 0;
+    }
+    
+    .panel-backdrop {
+        display: none;
+    }
+    
+    /* Split content fully stacked */
+    .split-left {
+        max-height: 400px;
+    }
+    
+    .split-left .transaction-item {
+        padding: 12px 10px;
+    }
+    
+    /* Compact transaction display */
+    .transaction-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    .transaction-payee {
+        font-size: 12px;
+    }
+    
+    .transaction-amount {
+        font-size: 14px;
+    }
+}
+
+/* =============================================================================
+   END RESPONSIVE TACTICAL LAYOUT
+   ============================================================================= */
     .dashboard-footer {
         padding: 15px 30px;
     }

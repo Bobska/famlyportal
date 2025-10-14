@@ -21,6 +21,188 @@
 let currentView = 'dashboard';
 let allTransactions = [];
 let selectedTransaction = null;
+let leftPanelVisible = false;
+let rightPanelVisible = false;
+
+// =============================================================================
+// RESPONSIVE PANEL MANAGEMENT
+// =============================================================================
+
+/**
+ * Initialize responsive panel toggle system
+ */
+function initResponsivePanels() {
+    // Only initialize on page load
+    if (window.innerWidth > 1200) {
+        return; // Desktop mode - no toggles needed
+    }
+    
+    // Create toggle buttons if they don't exist
+    createPanelToggles();
+    
+    // Create backdrop
+    createPanelBackdrop();
+    
+    // Listen for window resize
+    window.addEventListener('resize', handleResponsiveResize);
+}
+
+/**
+ * Create toggle buttons for side panels
+ */
+function createPanelToggles() {
+    const dashboardGrid = document.querySelector('.dashboard-grid');
+    if (!dashboardGrid) return;
+    
+    const leftPanel = dashboardGrid.querySelector('.tactical-panel:first-child');
+    const rightPanel = dashboardGrid.querySelector('.tactical-panel:last-child');
+    
+    if (!leftPanel || !rightPanel) return;
+    
+    // Check if toggles already exist
+    if (document.querySelector('.panel-toggle.left')) return;
+    
+    // Create left toggle
+    const leftToggle = document.createElement('div');
+    leftToggle.className = 'panel-toggle left';
+    leftToggle.innerHTML = window.innerWidth <= 768 ? 'STATS ►' : '◄';
+    leftToggle.setAttribute('aria-label', 'Toggle left panel');
+    leftToggle.onclick = () => togglePanel('left');
+    
+    // Create right toggle
+    const rightToggle = document.createElement('div');
+    rightToggle.className = 'panel-toggle right';
+    rightToggle.innerHTML = window.innerWidth <= 768 ? '◄ ACTIONS' : '►';
+    rightToggle.setAttribute('aria-label', 'Toggle right panel');
+    rightToggle.onclick = () => togglePanel('right');
+    
+    // Insert toggles
+    if (window.innerWidth <= 768) {
+        // Mobile: Insert as accordion headers
+        leftPanel.parentNode.insertBefore(leftToggle, leftPanel);
+        rightPanel.parentNode.insertBefore(rightToggle, rightPanel);
+    } else {
+        // Tablet: Insert as side buttons
+        document.body.appendChild(leftToggle);
+        document.body.appendChild(rightToggle);
+    }
+}
+
+/**
+ * Create backdrop overlay for panel system
+ */
+function createPanelBackdrop() {
+    if (document.querySelector('.panel-backdrop')) return;
+    if (window.innerWidth <= 768) return; // No backdrop on mobile
+    
+    const backdrop = document.createElement('div');
+    backdrop.className = 'panel-backdrop';
+    backdrop.onclick = () => {
+        if (leftPanelVisible) togglePanel('left');
+        if (rightPanelVisible) togglePanel('right');
+    };
+    document.body.appendChild(backdrop);
+}
+
+/**
+ * Toggle side panel visibility
+ * @param {string} side - 'left' or 'right'
+ */
+function togglePanel(side) {
+    const dashboardGrid = document.querySelector('.dashboard-grid');
+    if (!dashboardGrid) return;
+    
+    const panel = side === 'left' 
+        ? dashboardGrid.querySelector('.tactical-panel:first-child')
+        : dashboardGrid.querySelector('.tactical-panel:last-child');
+    
+    const toggle = document.querySelector(`.panel-toggle.${side}`);
+    const backdrop = document.querySelector('.panel-backdrop');
+    
+    if (!panel) return;
+    
+    // Toggle visibility
+    if (side === 'left') {
+        leftPanelVisible = !leftPanelVisible;
+        panel.classList.toggle('panel-visible', leftPanelVisible);
+        if (toggle) toggle.classList.toggle('hidden', leftPanelVisible);
+        
+        // Close other panel on tablet
+        if (window.innerWidth > 768 && window.innerWidth <= 1200 && leftPanelVisible && rightPanelVisible) {
+            togglePanel('right');
+        }
+    } else {
+        rightPanelVisible = !rightPanelVisible;
+        panel.classList.toggle('panel-visible', rightPanelVisible);
+        if (toggle) toggle.classList.toggle('hidden', rightPanelVisible);
+        
+        // Close other panel on tablet
+        if (window.innerWidth > 768 && window.innerWidth <= 1200 && rightPanelVisible && leftPanelVisible) {
+            togglePanel('left');
+        }
+    }
+    
+    // Show/hide backdrop
+    if (backdrop && window.innerWidth > 768) {
+        backdrop.classList.toggle('active', leftPanelVisible || rightPanelVisible);
+    }
+    
+    // Update toggle icons on mobile
+    if (window.innerWidth <= 768 && toggle) {
+        if (side === 'left') {
+            toggle.innerHTML = leftPanelVisible ? 'STATS ▼' : 'STATS ►';
+        } else {
+            toggle.innerHTML = rightPanelVisible ? '▼ ACTIONS' : '◄ ACTIONS';
+        }
+    }
+}
+
+/**
+ * Handle window resize events
+ */
+function handleResponsiveResize() {
+    const width = window.innerWidth;
+    
+    // Desktop mode - remove toggles and show panels normally
+    if (width > 1200) {
+        removePanelToggles();
+        removePanelBackdrop();
+        
+        const dashboardGrid = document.querySelector('.dashboard-grid');
+        if (dashboardGrid) {
+            const leftPanel = dashboardGrid.querySelector('.tactical-panel:first-child');
+            const rightPanel = dashboardGrid.querySelector('.tactical-panel:last-child');
+            
+            if (leftPanel) leftPanel.classList.remove('panel-visible');
+            if (rightPanel) rightPanel.classList.remove('panel-visible');
+        }
+        
+        leftPanelVisible = false;
+        rightPanelVisible = false;
+    } 
+    // Responsive mode - ensure toggles exist
+    else {
+        createPanelToggles();
+        if (width > 768) {
+            createPanelBackdrop();
+        }
+    }
+}
+
+/**
+ * Remove panel toggle buttons
+ */
+function removePanelToggles() {
+    document.querySelectorAll('.panel-toggle').forEach(toggle => toggle.remove());
+}
+
+/**
+ * Remove panel backdrop
+ */
+function removePanelBackdrop() {
+    const backdrop = document.querySelector('.panel-backdrop');
+    if (backdrop) backdrop.remove();
+}
 
 // =============================================================================
 // UTILITY FUNCTIONS
@@ -67,6 +249,7 @@ window.addEventListener('DOMContentLoaded', function() {
     initializeTacticalBootSequence();
     initializeTransactionData();
     initializeRealTimeFiltering();
+    initResponsivePanels(); // Initialize responsive panel system
 });
 
 /**

@@ -650,8 +650,8 @@
 
                 <button class="filter-btn" onclick="applyFilters()">Apply Filters</button>
                 <button class="filter-btn" onclick="clearFilters()">Reset</button>
-                <button class="filter-btn primary" onclick="window.location.href='{% url 'bank:add_income' %}'">+ Add Income</button>
-                <button class="filter-btn primary" onclick="window.location.href='{% url 'bank:add_expense' %}'">+ Add Expense</button>
+                <button class="filter-btn primary" onclick="showAddTransaction('income')">+ Add Income</button>
+                <button class="filter-btn primary" onclick="showAddTransaction('expense')">+ Add Expense</button>
             </div>
         </div>
 
@@ -797,6 +797,38 @@
     </div>
 <!-- End main-grid -->
 
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="tactical-modal" style="display: none;">
+    <div class="tactical-modal-overlay"></div>
+    <div class="tactical-modal-content">
+        <div class="corner-tl"></div>
+        <div class="corner-tr"></div>
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="tactical-modal-header">
+            <div class="tactical-modal-title">⚠️ CONFIRM DELETE</div>
+        </div>
+        
+        <div class="tactical-modal-body">
+            <p style="color: rgba(0, 217, 255, 0.8); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                Are you sure you want to delete this transaction?
+            </p>
+            <div id="deleteTransactionInfo" style="background: rgba(0, 217, 255, 0.05); border: 1px solid rgba(0, 217, 255, 0.2); padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <!-- Transaction details will be inserted here -->
+            </div>
+            <p style="color: #ff4444; font-size: 12px; font-weight: 600;">
+                This action cannot be undone.
+            </p>
+        </div>
+        
+        <div class="tactical-modal-footer">
+            <button class="tactical-btn tactical-btn-secondary" onclick="closeDeleteModal()">CANCEL</button>
+            <button class="tactical-btn tactical-btn-danger" onclick="confirmDelete()">DELETE</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -806,6 +838,8 @@
 
     // Build transaction data array
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded fired in template');
+        
         const items = document.querySelectorAll('.transaction-item');
         items.forEach(item => {
             allTransactions.push({
@@ -870,19 +904,40 @@
     }
 
     function selectTransaction(element, id, type, payee, date, category, amount, notes) {
+        console.log('Template selectTransaction called', { id, type, payee, date, category, amount, notes });
+        
         // Remove previous selection
         if (selectedTransaction) {
             selectedTransaction.classList.remove('selected');
         }
         element.classList.add('selected');
         selectedTransaction = element;
+        
+        // Store for delete/edit functions
+        window.currentTransactionId = id;
+        window.currentTransactionType = type;
 
         // Update details panel
-        const detailsPanel = document.getElementById('detailsPanel').querySelector('.panel-content');
+        const detailsPanelElement = document.getElementById('detailsPanel');
+        console.log('Found detailsPanel:', detailsPanelElement);
+        
+        if (!detailsPanelElement) {
+            console.error('detailsPanel not found!');
+            return;
+        }
+        
+        const panelContent = detailsPanelElement.querySelector('.panel-content');
+        console.log('Found panel-content:', panelContent);
+        
+        if (!panelContent) {
+            console.error('panel-content not found!');
+            return;
+        }
+        
         const amountColor = type === 'income' ? '#00ff88' : '#ff4444';
         const amountPrefix = type === 'income' ? '+' : '-';
 
-        detailsPanel.innerHTML = `
+        panelContent.innerHTML = `
             <div class="detail-row">
                 <div class="detail-label">Type</div>
                 <div class="detail-value" style="text-transform: uppercase;">${type}</div>
@@ -916,14 +971,14 @@
             ` : ''}
 
             <div class="detail-actions">
-                <a href="${type === 'income' ? '{% url "bank:edit_income" 0 %}' : '{% url "bank:edit_expense" 0 %}'}"
-                   onclick="this.href = this.href.replace('0', ${id})"
-                   class="action-btn">Edit</a>
-                <a href="${type === 'income' ? '{% url "bank:delete_income" 0 %}' : '{% url "bank:delete_expense" 0 %}'}"
-                   onclick="this.href = this.href.replace('0', ${id}); return confirm('Delete this transaction?')"
-                   class="action-btn danger">Delete</a>
+                <button onclick="editTransaction(${id}, '${type}')" class="action-btn">Edit</button>
+                <button onclick="deleteTransaction(${id}, '${type}')" class="action-btn danger">Delete</button>
             </div>
         `;
+        
+        console.log('Details panel updated successfully');
     }
+    
+    console.log('Template selectTransaction function defined:', typeof selectTransaction);
 </script>
 {% endblock %}

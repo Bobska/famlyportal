@@ -163,7 +163,6 @@ body::before {
     padding: 10px 20px;
     font-size: 11px;
     letter-spacing: 1px;
-    cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
     display: inline-block;
@@ -710,7 +709,6 @@ body::before {
     justify-content: space-between;
     align-items: center;
     transition: all 0.2s ease;
-    cursor: pointer;
 }
 
 .transaction-item:first-child {
@@ -810,7 +808,6 @@ body::before {
     padding: 12px;
     font-size: 10px;
     letter-spacing: 1px;
-    cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
     display: flex;
@@ -899,7 +896,6 @@ body::before {
     border: 1px solid rgba(0, 217, 255, 0.3);
     color: #00d9ff;
     padding: 6px 15px;
-    cursor: pointer;
     font-family: 'Rajdhani', sans-serif;
     font-size: 11px;
     font-weight: 500;
@@ -977,7 +973,6 @@ body::before {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.5px;
-    cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
@@ -1031,7 +1026,6 @@ body::before {
     color: rgba(0, 217, 255, 0.6);
     font-family: 'Rajdhani', sans-serif;
     font-size: 14px;
-    cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
 }
@@ -1057,7 +1051,6 @@ body::before {
 
 .nav-btn:disabled {
     opacity: 0.2;
-    cursor: not-allowed;
 }
 
 .nav-btn:disabled:hover {
@@ -1964,7 +1957,6 @@ body::before {
         background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(0, 217, 255, 0.1));
         border: 2px solid rgba(0, 217, 255, 0.5);
         color: #00d9ff;
-        cursor: pointer;
         z-index: 999;
         display: flex;
         align-items: center;
@@ -2512,7 +2504,6 @@ body::before {
     gap: 4px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
-    cursor: pointer;
     position: relative;
     overflow: hidden;
     opacity: 0;
@@ -2635,7 +2626,6 @@ body::before {
     padding: 8px 10px;
     font-size: 16px;
     font-weight: 700;
-    cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     flex-shrink: 0;
@@ -2669,7 +2659,6 @@ body::before {
 
 .form-section .filter-input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(0.7) sepia(1) saturate(5) hue-rotate(160deg);
-    cursor: pointer;
     opacity: 0.8;
 }
 
@@ -2824,7 +2813,6 @@ body::before {
     letter-spacing: 0.5px;
     border: 2px solid rgba(0, 217, 255, 0.2);
     border-radius: 0;
-    cursor: pointer;
     width: 100%;
     text-align: left;
     transition: all 0.2s ease;
@@ -2997,7 +2985,6 @@ input[type="date"] {
     letter-spacing: 0.5px;
     outline: none;
     transition: all 0.2s ease;
-    cursor: pointer;
 }
 
 input[type="date"]:hover {
@@ -3015,7 +3002,6 @@ input[type="date"]:focus {
 
 /* Calendar icon styling */
 input[type="date"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
     filter: invert(64%) sepia(54%) saturate(4000%) hue-rotate(165deg) brightness(105%) contrast(101%);
     opacity: 0.7;
     transition: opacity 0.2s ease;
@@ -3085,7 +3071,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background-position: center;
     width: 20px;
     height: 20px;
-    cursor: pointer;
     opacity: 0.7;
     filter: none;
 }
@@ -3285,7 +3270,6 @@ input[type="date"]:invalid::-webkit-datetime-edit {
     color: #00d9ff;
     fill: #00d9ff;
     padding: 10px 14px;
-    cursor: pointer;
     transition: all 0.2s ease;
     background: rgba(0, 217, 255, 0.1);
     border: 2px solid #00d9ff;
@@ -3362,7 +3346,6 @@ input[type="date"]:invalid::-webkit-datetime-edit {
     font-size: 15px;
     letter-spacing: 1.5px;
     padding: 8px 28px 8px 12px;
-    cursor: pointer;
     transition: all 0.2s ease;
     text-shadow: none;
     box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
@@ -3499,7 +3482,6 @@ input[type="date"]:invalid::-webkit-datetime-edit {
     height: 38px;
     max-width: 38px;
     margin: 1px;
-    cursor: pointer;
     transition: all 0.15s ease;
     text-shadow: none;
     position: relative;
@@ -3601,7 +3583,6 @@ input[type="date"]:invalid::-webkit-datetime-edit {
 .flatpickr-day.disabled:hover {
     color: rgba(0, 217, 255, 0.2);
     background: rgba(0, 0, 0, 0.3);
-    cursor: not-allowed;
     border-color: rgba(0, 217, 255, 0.1);
     text-shadow: none;
     box-shadow: none;
@@ -3741,4 +3722,593 @@ input[type="date"]:invalid::-webkit-datetime-edit {
     .metrics-row {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* =============================================================================
+   TACTICAL DELETE CONFIRMATION MODAL
+   ============================================================================= */
+
+.tactical-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tactical-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+}
+
+.tactical-modal-content {
+    position: relative;
+    background: #0a0e1a;
+    border: 2px solid rgba(0, 217, 255, 0.3);
+    max-width: 500px;
+    width: 90%;
+    animation: modalSlideIn 0.3s ease;
+    box-shadow: 0 0 40px rgba(0, 217, 255, 0.2);
+}
+
+.tactical-modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    background: rgba(0, 217, 255, 0.03);
+}
+
+.tactical-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #00d9ff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.tactical-modal-body {
+    padding: 25px;
+}
+
+.tactical-modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid rgba(0, 217, 255, 0.2);
+    background: rgba(0, 217, 255, 0.03);
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+
+.tactical-btn {
+    padding: 10px 25px;
+    background: rgba(0, 217, 255, 0.1);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: #00d9ff;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.tactical-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+    border-color: rgba(0, 217, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.15);
+}
+
+.tactical-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.tactical-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.tactical-btn-danger {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.3);
+    color: #ff4444;
+}
+
+.tactical-btn-danger:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.5);
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.15);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ============================================
+   TACTICAL CURSOR SYSTEM
+   ============================================ */
+
+/* Create custom tactical cursor using SVG */
+body, 
+.tactical-container,
+.tactical-panel {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%2300d9ff" stroke-width="1.2" opacity="0.7"/><circle cx="12" cy="12" r="1.8" fill="%2300d9ff"/><line x1="12" y1="2" x2="12" y2="6" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><line x1="12" y1="18" x2="12" y2="22" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><line x1="2" y1="12" x2="6" y2="12" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><line x1="18" y1="12" x2="22" y2="12" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/></svg>') 12 12, crosshair;
+}
+
+/* Interactive elements - glowing cursor on hover */
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+.filter-btn,
+button,
+a,
+select,
+.form-add-btn,
+[onclick] {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%2300d9ff" stroke-width="1.2" opacity="0.7"/><circle cx="12" cy="12" r="1.8" fill="%2300d9ff"/><line x1="12" y1="2" x2="12" y2="6" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><line x1="12" y1="18" x2="12" y2="22" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><line x1="2" y1="12" x2="6" y2="12" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><line x1="18" y1="12" x2="22" y2="12" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/></svg>') 12 12, pointer;
+    position: relative;
+}
+
+/* Add glow effect on hover */
+.action-btn:hover,
+.transaction-item:hover,
+.view-tab:hover,
+.nav-btn:hover,
+.filter-btn:hover,
+button:hover,
+a:hover,
+.form-add-btn:hover,
+[onclick]:hover {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%2300d9ff" stroke-width="2" opacity="0.8"><animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="4.5" fill="none" stroke="%2300d9ff" stroke-width="1.3" opacity="0.5"><animate attributeName="r" values="4.5;5.5;4.5" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0.7;0.5" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="3" fill="none" stroke="%2300d9ff" stroke-width="1.1" opacity="0.4"><animate attributeName="r" values="3;4;3" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0.6;0.4" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="1.8" fill="%2300d9ff" opacity="1"/><line x1="12" y1="2" x2="12" y2="6" stroke="%2300d9ff" stroke-width="1.5" opacity="0.9"/><line x1="12" y1="18" x2="12" y2="22" stroke="%2300d9ff" stroke-width="1.5" opacity="0.9"/><line x1="2" y1="12" x2="6" y2="12" stroke="%2300d9ff" stroke-width="1.5" opacity="0.9"/><line x1="18" y1="12" x2="22" y2="12" stroke="%2300d9ff" stroke-width="1.5" opacity="0.9"/></svg>') 12 12, pointer;
+}
+
+/* Add active state for clicking */
+.action-btn:active,
+.transaction-item:active,
+.view-tab:active,
+.nav-btn:active,
+.filter-btn:active,
+button:active,
+a:active,
+.form-add-btn:active,
+[onclick]:active {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%2300d9ff" stroke-width="2.5" opacity="1"/><circle cx="12" cy="12" r="5" fill="none" stroke="%2300d9ff" stroke-width="1.5" opacity="0.7"/><circle cx="12" cy="12" r="2.2" fill="%2300d9ff" opacity="1"/><line x1="12" y1="2" x2="12" y2="6" stroke="%2300d9ff" stroke-width="2" opacity="1"/><line x1="12" y1="18" x2="12" y2="22" stroke="%2300d9ff" stroke-width="2" opacity="1"/><line x1="2" y1="12" x2="6" y2="12" stroke="%2300d9ff" stroke-width="2" opacity="1"/><line x1="18" y1="12" x2="22" y2="12" stroke="%2300d9ff" stroke-width="2" opacity="1"/></svg>') 12 12, pointer !important;
+}
+
+/* OLD OPTIONS BELOW - Keep commented for reference */
+
+/* OPTION 1: Corner Brackets */
+/*
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2 L2 8 L4 8 L4 4 L8 4 L8 2 Z" fill="%2300d9ff"/><path d="M18 2 L18 8 L16 8 L16 4 L12 4 L12 2 Z" fill="%2300d9ff"/><path d="M2 18 L2 12 L4 12 L4 16 L8 16 L8 18 Z" fill="%2300d9ff"/><path d="M18 18 L18 12 L16 12 L16 16 L12 16 L12 18 Z" fill="%2300d9ff"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 2: Diamond Reticle - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L18 10 L10 18 L2 10 Z" fill="none" stroke="%2300d9ff" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="%2300d9ff"/><line x1="10" y1="0" x2="10" y2="4" stroke="%2300d9ff" stroke-width="1"/><line x1="10" y1="16" x2="10" y2="20" stroke="%2300d9ff" stroke-width="1"/><line x1="0" y1="10" x2="4" y2="10" stroke="%2300d9ff" stroke-width="1"/><line x1="16" y1="10" x2="20" y2="10" stroke="%2300d9ff" stroke-width="1"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 3: Hexagon Tech - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L16 6 L16 14 L10 18 L4 14 L4 6 Z" fill="none" stroke="%2300d9ff" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" fill="%2300d9ff" opacity="0.6"/><circle cx="10" cy="10" r="1" fill="%2300d9ff"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 4: Arrow Pointer (modern sci-fi) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2 L2 16 L7 11 L11 15 L15 11 L11 7 L16 2 Z" fill="%2300d9ff" stroke="%23001a1f" stroke-width="0.5"/><path d="M3 3 L3 14 L7 10 L10 13 L13 10 L10 7 L14 3 Z" fill="%23001a1f"/></svg>') 2 2, pointer;
+}
+*/
+
+/* OPTION 5: Crosshair Plus - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="10" y1="2" x2="10" y2="8" stroke="%2300d9ff" stroke-width="2"/><line x1="10" y1="12" x2="10" y2="18" stroke="%2300d9ff" stroke-width="2"/><line x1="2" y1="10" x2="8" y2="10" stroke="%2300d9ff" stroke-width="2"/><line x1="12" y1="10" x2="18" y2="10" stroke="%2300d9ff" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="none" stroke="%2300d9ff" stroke-width="1.5"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 6: Target Lock - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.4"/><circle cx="11" cy="11" r="6" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="11" cy="11" r="2" fill="%2300d9ff"/><path d="M11 0 L11 4 M11 18 L11 22 M0 11 L4 11 M18 11 L22 11" stroke="%2300d9ff" stroke-width="1.5"/></svg>') 11 11, pointer;
+}
+*/
+
+/* OPTION 7: Sci-Fi Hand - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" viewBox="0 0 18 22"><path d="M6 8 L6 2 L8 2 L8 8 M10 6 L10 1 L12 1 L12 8 M2 10 L2 6 L4 6 L4 14 M14 8 L14 4 L16 4 L16 10 L16 18 Q16 20 14 20 L6 20 Q4 20 4 18 L4 14" fill="none" stroke="%2300d9ff" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="2" r="0.8" fill="%2300d9ff"/><circle cx="11" cy="1" r="0.8" fill="%2300d9ff"/><circle cx="15" cy="4" r="0.8" fill="%2300d9ff"/></svg>') 4 2, pointer;
+}
+*/
+
+/* OPTION 8: Minimal Dot with Rings - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.3"/><circle cx="10" cy="10" r="5" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.5"/><circle cx="10" cy="10" r="2" fill="%2300d9ff"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 9: Press Indicator (finger on button feel) - Uncomment to use 
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="%2300d9ff" opacity="0.15"/><circle cx="10" cy="10" r="5" fill="%2300d9ff" opacity="0.25"/><circle cx="10" cy="10" r="3" fill="%2300d9ff" opacity="0.4"/><circle cx="10" cy="10" r="1.5" fill="%2300d9ff"/><path d="M10 3 L10 6 M10 14 L10 17 M3 10 L6 10 M14 10 L17 10" stroke="%2300d9ff" stroke-width="1.5" opacity="0.8"/></svg>') 10 10, pointer;
+}
+
+/* OPTION 10: Power Button (click to activate) - Uncomment to use 
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="1.5"/><path d="M10 3 L10 10" stroke="%2300d9ff" stroke-width="2" stroke-linecap="round"/><path d="M6 6 Q4 8 4 11 Q4 15 7 17 Q10 19 13 17 Q16 15 16 11 Q16 8 14 6" fill="none" stroke="%2300d9ff" stroke-width="1.5" opacity="0.6"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 11: Click Pulse (ready to activate) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2" fill="%2300d9ff"/><circle cx="10" cy="10" r="4" fill="none" stroke="%2300d9ff" stroke-width="1.5" opacity="0.8"/><circle cx="10" cy="10" r="6" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.5"/><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.3"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 12: Tap Point (touch to activate) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3" fill="%2300d9ff"/><path d="M10 2 L10 7 M10 13 L10 18 M2 10 L7 10 M13 10 L18 10 M4.5 4.5 L7 7 M13 13 L15.5 15.5 M4.5 15.5 L7 13 M13 7 L15.5 4.5" stroke="%2300d9ff" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 13: Engage Button (military style) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><rect x="3" y="3" width="16" height="16" rx="2" fill="none" stroke="%2300d9ff" stroke-width="1.5"/><rect x="6" y="6" width="10" height="10" rx="1" fill="%2300d9ff" opacity="0.2"/><circle cx="11" cy="11" r="3" fill="%2300d9ff" opacity="0.6"/><circle cx="11" cy="11" r="1.5" fill="%2300d9ff"/></svg>') 11 11, pointer;
+}
+*/
+
+/* OPTION 14: Selection Beam (scan and select) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="10" y1="0" x2="10" y2="20" stroke="%2300d9ff" stroke-width="2" opacity="0.3"/><line x1="0" y1="10" x2="20" y2="10" stroke="%2300d9ff" stroke-width="2" opacity="0.3"/><circle cx="10" cy="10" r="4" fill="none" stroke="%2300d9ff" stroke-width="2" opacity="0.7"/><circle cx="10" cy="10" r="2" fill="%2300d9ff"/><path d="M2 2 L4 2 L4 4 M16 2 L18 2 L18 4 M2 16 L2 18 L4 18 M16 18 L18 18 L18 16" stroke="%2300d9ff" stroke-width="1.5"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 15: Execute Command (ready to fire) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2 L22 12 L12 22 L2 12 Z" fill="none" stroke="%2300d9ff" stroke-width="1.5"/><path d="M12 6 L18 12 L12 18 L6 12 Z" fill="%2300d9ff" opacity="0.2"/><circle cx="12" cy="12" r="3" fill="%2300d9ff" opacity="0.6"/><path d="M12 4 L12 8 M12 16 L12 20 M4 12 L8 12 M16 12 L20 12" stroke="%2300d9ff" stroke-width="1"/></svg>') 12 12, pointer;
+}
+*/
+
+/* OPTION 16: Activation Zone (enter to activate) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="%2300d9ff" opacity="0.1"/><circle cx="10" cy="10" r="6" fill="none" stroke="%2300d9ff" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/><circle cx="10" cy="10" r="3" fill="none" stroke="%2300d9ff" stroke-width="2"/><circle cx="10" cy="10" r="1" fill="%2300d9ff"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 17: Pulse Brackets (Option 1 + 11 + 16 combo) - Uncomment to use 
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="10" cy="10" r="6" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="10" cy="10" r="4" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="10" cy="10" r="1.5" fill="%2300d9ff"/><path d="M2 2 L2 6 L3 6 L3 3 L6 3 L6 2 Z" fill="%2300d9ff"/><path d="M18 2 L18 6 L17 6 L17 3 L14 3 L14 2 Z" fill="%2300d9ff"/><path d="M2 18 L2 14 L3 14 L3 17 L6 17 L6 18 Z" fill="%2300d9ff"/><path d="M18 18 L18 14 L17 14 L17 17 L14 17 L14 18 Z" fill="%2300d9ff"/></svg>') 10 10, pointer;
+}
+
+/* OPTION 18: Pulse Circles (corner circles version) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="10" cy="10" r="6" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="10" cy="10" r="4" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="10" cy="10" r="1.5" fill="%2300d9ff"/><circle cx="3" cy="3" r="1.5" fill="%2300d9ff"/><circle cx="17" cy="3" r="1.5" fill="%2300d9ff"/><circle cx="3" cy="17" r="1.5" fill="%2300d9ff"/><circle cx="17" cy="17" r="1.5" fill="%2300d9ff"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 19: Pulse Brackets Rounded (like Option 17 but with smooth corners) - Uncomment to use 
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="10" cy="10" r="6" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="10" cy="10" r="4" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="10" cy="10" r="1.5" fill="%2300d9ff"/><path d="M2 6 L2 3 Q2 2 3 2 L6 2" stroke="%2300d9ff" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M14 2 L17 2 Q18 2 18 3 L18 6" stroke="%2300d9ff" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M18 14 L18 17 Q18 18 17 18 L14 18" stroke="%2300d9ff" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M6 18 L3 18 Q2 18 2 17 L2 14" stroke="%2300d9ff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>') 10 10, pointer;
+}
+*/
+
+/* OPTION 20: Circular Arc Brackets (circular bracket segments forming a ring) - Uncomment to use 
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="11" cy="11" r="6" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="11" cy="11" r="4" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="11" cy="11" r="1.5" fill="%2300d9ff"/><path d="M11 2 A 9 9 0 0 1 19.4 6" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M20 11 A 9 9 0 0 1 16 19.4" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M11 20 A 9 9 0 0 1 2.6 16" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M2 11 A 9 9 0 0 1 6 2.6" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>') 11 11, pointer;
+}
+*/
+
+/* OPTION 21: Animated Rotating Circular Brackets (SVG animation, no JS needed!) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="11" cy="11" r="6" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="11" cy="11" r="4" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="11" cy="11" r="1.5" fill="%2300d9ff"/><g><animateTransform attributeName="transform" type="rotate" from="0 11 11" to="360 11 11" dur="3s" repeatCount="indefinite"/><path d="M11 2 A 9 9 0 0 1 19.4 6" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M20 11 A 9 9 0 0 1 16 19.4" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M11 20 A 9 9 0 0 1 2.6 16" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M2 11 A 9 9 0 0 1 6 2.6" stroke="%2300d9ff" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>') 11 11, pointer;
+}
+*/
+
+/* OPTION 22: Refined Circular Brackets with Animated Pulse (better arc alignment, bigger gaps, pulsing rings) - Uncomment to use */
+/*.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.15"><animate attributeName="r" values="9;10;9" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.15;0.25;0.15" dur="2s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="6.5" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.3"><animate attributeName="r" values="6.5;7.5;6.5" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.3;0.5;0.3" dur="2s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="4.5" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.5"><animate attributeName="r" values="4.5;5.5;4.5" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0.7;0.5" dur="2s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="1.5" fill="%2300d9ff"/><g><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="4s" repeatCount="indefinite"/><path d="M12 2.5 A 9.5 9.5 0 0 1 18 4.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M19.5 6 A 9.5 9.5 0 0 1 21.5 12" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M21.5 12 A 9.5 9.5 0 0 1 19.5 18" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M18 19.5 A 9.5 9.5 0 0 1 12 21.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M12 21.5 A 9.5 9.5 0 0 1 6 19.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M4.5 18 A 9.5 9.5 0 0 1 2.5 12" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M2.5 12 A 9.5 9.5 0 0 1 4.5 6" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M6 4.5 A 9.5 9.5 0 0 1 12 2.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/></g></svg>') 12 12, pointer;
+}
+
+/* OPTION 23: Static Refined Circular Brackets (no rotation, better for cursor) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="12" cy="12" r="1.8" fill="%2300d9ff"/><path d="M12 2.5 A 9.5 9.5 0 0 1 18 4.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M19.5 6 A 9.5 9.5 0 0 1 21.5 12" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M21.5 12 A 9.5 9.5 0 0 1 19.5 18" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M18 19.5 A 9.5 9.5 0 0 1 12 21.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M12 21.5 A 9.5 9.5 0 0 1 6 19.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M4.5 18 A 9.5 9.5 0 0 1 2.5 12" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M2.5 12 A 9.5 9.5 0 0 1 4.5 6" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M6 4.5 A 9.5 9.5 0 0 1 12 2.5" stroke="%2300d9ff" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>') 12 12, pointer;
+}
+*/
+
+/* OPTION 24: Four Corner Circular Brackets ONLY (smaller arcs, bigger gaps) - Uncomment to use
+.action-btn,
+.transaction-item,
+.view-tab,
+.nav-btn,
+.filter-select,
+.filter-input,
+button,
+a,
+select,
+.form-add-btn {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="%2300d9ff" stroke-width="0.5" opacity="0.2"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="%2300d9ff" stroke-width="0.8" opacity="0.4"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="%2300d9ff" stroke-width="1" opacity="0.6"/><circle cx="12" cy="12" r="1.8" fill="%2300d9ff"/><path d="M 17.73 5.64 A 9 9 0 0 1 20.36 8.27" stroke="%2300d9ff" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M 18.36 15.73 A 9 9 0 0 1 15.73 18.36" stroke="%2300d9ff" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M 6.27 18.36 A 9 9 0 0 1 3.64 15.73" stroke="%2300d9ff" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M 5.64 6.27 A 9 9 0 0 1 8.27 3.64" stroke="%2300d9ff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>') 12 12, pointer;
+}
+*/
+
+
+/* Text selection areas - Tactical I-beam cursor */
+input[type="text"],
+input[type="date"],
+input[type="number"],
+input[type="search"],
+textarea,
+.filter-input:focus {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="10" y1="2" x2="10" y2="18" stroke="%2300d9ff" stroke-width="1.5" opacity="0.8"/><line x1="7" y1="2" x2="13" y2="2" stroke="%2300d9ff" stroke-width="1.5" opacity="0.8"/><line x1="7" y1="18" x2="13" y2="18" stroke="%2300d9ff" stroke-width="1.5" opacity="0.8"/><circle cx="10" cy="10" r="1.5" fill="%2300d9ff" opacity="0.6"/></svg>') 10 10, text;
+}
+
+/* Disabled or non-interactive */
+.action-btn:disabled,
+button:disabled {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%23666" stroke-width="2"/><line x1="4" y1="4" x2="16" y2="16" stroke="%23666" stroke-width="2"/></svg>') 10 10, not-allowed;
+}
+
+/* Draggable items (future enhancement) */
+.draggable {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 18 M2 10 L18 10" stroke="%2300d9ff" stroke-width="2" fill="none"/><circle cx="10" cy="10" r="3" fill="%2300d9ff"/></svg>') 10 10, move;
+}
+
+/* Resizable elements */
+.resizable {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="2" y1="10" x2="18" y2="10" stroke="%2300d9ff" stroke-width="2"/><path d="M2 10 L6 6 L6 14 Z" fill="%2300d9ff"/><path d="M18 10 L14 6 L14 14 Z" fill="%2300d9ff"/></svg>') 10 10, col-resize;
+}
+
+/* Loading state */
+.loading,
+.loading * {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="%2300d9ff" stroke-width="2" stroke-dasharray="12 8" opacity="0.6"><animateTransform attributeName="transform" type="rotate" from="0 10 10" to="360 10 10" dur="1s" repeatCount="indefinite"/></circle></svg>') 10 10, wait;
+}
+
+/* Delete/Danger actions - red targeting reticle */
+.tactical-btn-danger:hover,
+.action-btn[onclick*="delete"]:hover {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%23ff4444" stroke-width="1" opacity="0.6"/><circle cx="12" cy="12" r="2" fill="%23ff4444" opacity="0.8"/><line x1="12" y1="2" x2="12" y2="6" stroke="%23ff4444" stroke-width="1" opacity="0.6"/><line x1="12" y1="18" x2="12" y2="22" stroke="%23ff4444" stroke-width="1" opacity="0.6"/><line x1="2" y1="12" x2="6" y2="12" stroke="%23ff4444" stroke-width="1" opacity="0.6"/><line x1="18" y1="12" x2="22" y2="12" stroke="%23ff4444" stroke-width="1" opacity="0.6"/></svg>') 12 12, pointer;
+}
+
+/* Income transactions - green tactical cursor */
+.transaction-item.income:hover,
+.action-btn[onclick*="income"]:hover {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%2300ff88" stroke-width="2" opacity="0.8"><animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="4.5" fill="none" stroke="%2300ff88" stroke-width="1.3" opacity="0.5"><animate attributeName="r" values="4.5;5.5;4.5" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0.7;0.5" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="3" fill="none" stroke="%2300ff88" stroke-width="1.1" opacity="0.4"><animate attributeName="r" values="3;4;3" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0.6;0.4" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="1.8" fill="%2300ff88" opacity="1"/><line x1="12" y1="2" x2="12" y2="6" stroke="%2300ff88" stroke-width="1.5" opacity="0.9"/><line x1="12" y1="18" x2="12" y2="22" stroke="%2300ff88" stroke-width="1.5" opacity="0.9"/><line x1="2" y1="12" x2="6" y2="12" stroke="%2300ff88" stroke-width="1.5" opacity="0.9"/><line x1="18" y1="12" x2="22" y2="12" stroke="%2300ff88" stroke-width="1.5" opacity="0.9"/></svg>') 12 12, pointer;
+}
+
+/* Expense transactions - red tactical cursor */
+.transaction-item.expense:hover,
+.action-btn[onclick*="expense"]:hover {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="%23ff4444" stroke-width="2" opacity="0.8"><animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="4.5" fill="none" stroke="%23ff4444" stroke-width="1.3" opacity="0.5"><animate attributeName="r" values="4.5;5.5;4.5" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0.7;0.5" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="3" fill="none" stroke="%23ff4444" stroke-width="1.1" opacity="0.4"><animate attributeName="r" values="3;4;3" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0.6;0.4" dur="1.5s" repeatCount="indefinite"/></circle><circle cx="12" cy="12" r="1.8" fill="%23ff4444" opacity="1"/><line x1="12" y1="2" x2="12" y2="6" stroke="%23ff4444" stroke-width="1.5" opacity="0.9"/><line x1="12" y1="18" x2="12" y2="22" stroke="%23ff4444" stroke-width="1.5" opacity="0.9"/><line x1="2" y1="12" x2="6" y2="12" stroke="%23ff4444" stroke-width="1.5" opacity="0.9"/><line x1="18" y1="12" x2="22" y2="12" stroke="%23ff4444" stroke-width="1.5" opacity="0.9"/></svg>') 12 12, pointer;
 }

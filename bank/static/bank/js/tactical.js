@@ -551,88 +551,79 @@ function clearTransactionFilters() {
  * @param {string} type - Transaction type ('income' or 'expense')
  */
 function selectTransaction(element, id, type) {
+    // Store the selected transaction ID and type for delete/edit functions
+    window.currentTransactionId = id;
+    window.currentTransactionType = type;
+    
     // Remove previous selection
     if (selectedTransaction) {
         selectedTransaction.classList.remove('selected');
     }
     element.classList.add('selected');
     selectedTransaction = element;
-
-    // Extract transaction data from the element
-    const payeeElement = element.querySelector('.transaction-payee');
-    const dateElement = element.querySelector('.transaction-date');
-    const categoryElement = element.querySelector('.transaction-category');
-    const amountElement = element.querySelector('.transaction-amount');
+    selectedTransactionId = id;
     
-    if (!payeeElement || !dateElement || !categoryElement || !amountElement) return;
+    // Get transaction data from element attributes
+    const payee = element.dataset.payee || 'Unknown';
+    const date = element.dataset.date || '';
+    const category = element.dataset.category || 'Uncategorized';
+    const amount = element.dataset.amount || '0';
+    const notes = element.dataset.notes || 'No additional notes';
     
-    const payee = payeeElement.textContent;
-    const date = dateElement.textContent;
-    const category = categoryElement.textContent;
-    const amount = amountElement.textContent;
-
-    // Update details panel
-    updateTransactionDetailsPanel(id, type, payee, date, category, amount);
+    // Populate detail panel
+    const detailType = document.getElementById('detailType');
+    const detailDate = document.getElementById('detailDate');
+    const detailPayee = document.getElementById('detailPayee');
+    const detailCategory = document.getElementById('detailCategory');
+    const detailAmount = document.getElementById('detailAmount');
+    const detailNotes = document.getElementById('detailNotes');
+    
+    if (detailType) {
+        detailType.textContent = type.toUpperCase();
+        detailType.className = `detail-value ${type}`;
+    }
+    if (detailDate) detailDate.textContent = formatDateFromISO(date);
+    if (detailPayee) detailPayee.textContent = payee;
+    if (detailCategory) detailCategory.textContent = category;
+    if (detailAmount) {
+        detailAmount.textContent = `$${parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        detailAmount.className = `detail-value large ${type}`;
+    }
+    if (detailNotes) detailNotes.textContent = notes;
+    
+    // Show details panel, hide empty state
+    const detailsView = document.getElementById('detailsView');
+    const transactionDetails = document.getElementById('transactionDetails');
+    if (detailsView) detailsView.style.display = 'none';
+    if (transactionDetails) transactionDetails.style.display = 'block';
 }
 
 /**
- * Updates the transaction details panel with selected transaction info
- * @param {number} id - Transaction ID
- * @param {string} type - Transaction type
- * @param {string} payee - Payee name
- * @param {string} date - Transaction date
- * @param {string} category - Transaction category
- * @param {string} amount - Transaction amount (formatted)
+ * Helper function to format date from YYYY-MM-DD to readable format
  */
-function updateTransactionDetailsPanel(id, type, payee, date, category, amount) {
-    const detailsPanel = document.getElementById('transactionDetailsPanel');
-    if (!detailsPanel) return;
-    
-    const panelContent = detailsPanel.querySelector('.panel-content');
-    if (!panelContent) return;
-    
-    panelContent.innerHTML = `
-        <div style="padding: 20px;">
-            <div style="margin-bottom: 20px;">
-                <div style="font-size: 10px; color: rgba(0, 217, 255, 0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Type</div>
-                <div style="font-size: 14px; color: #00d9ff; font-weight: 600; text-transform: uppercase;">${type}</div>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <div style="font-size: 10px; color: rgba(0, 217, 255, 0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Payee</div>
-                <div style="font-size: 14px; color: #00d9ff;">${payee}</div>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <div style="font-size: 10px; color: rgba(0, 217, 255, 0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Date</div>
-                <div style="font-size: 14px; color: #00d9ff;">${date}</div>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <div style="font-size: 10px; color: rgba(0, 217, 255, 0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Category</div>
-                <div style="font-size: 14px; color: #00d9ff;">${category}</div>
-            </div>
-            
-            <div style="margin-bottom: 25px;">
-                <div style="font-size: 10px; color: rgba(0, 217, 255, 0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Amount</div>
-                <div style="font-size: 24px; color: ${type === 'income' ? '#00ff88' : '#ff4444'}; font-weight: 600;">${amount}</div>
-            </div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 30px;">
-                <button class="action-btn primary" style="flex: 1;" onclick="editTransaction(${id}, '${type}')">EDIT</button>
-                <button class="action-btn" style="flex: 1; background: rgba(255, 68, 68, 0.1); border-color: rgba(255, 68, 68, 0.3); color: #ff4444;" onclick="deleteTransaction(${id}, '${type}')">DELETE</button>
-            </div>
-        </div>
-    `;
+function formatDateFromISO(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr + 'T00:00:00');
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 /**
  * Navigates to edit page for selected transaction
- * Reads URLs from data attributes set by Django template
- * @param {number} id - Transaction ID
- * @param {string} type - Transaction type ('income' or 'expense')
+ * @param {number} id - Transaction ID (optional, uses stored if not provided)
+ * @param {string} type - Transaction type (optional, uses stored if not provided)
  */
 function editTransaction(id, type) {
+    // Use stored values if parameters not provided
+    id = id || window.currentTransactionId;
+    type = type || window.currentTransactionType;
+    
+    if (!id || !type) {
+        console.error('No transaction selected');
+        return;
+    }
+    
     const urlData = document.getElementById('tacticalUrlData');
     if (!urlData) {
         console.error('URL data not found');
@@ -651,31 +642,167 @@ function editTransaction(id, type) {
 }
 
 /**
- * Navigates to delete confirmation page for selected transaction
- * Reads URLs from data attributes set by Django template
- * @param {number} id - Transaction ID
- * @param {string} type - Transaction type ('income' or 'expense')
+ * Shows delete confirmation in the detail panel for selected transaction
+ * @param {number} id - Transaction ID (optional, uses stored if not provided)
+ * @param {string} type - Transaction type (optional, uses stored if not provided)
  */
 function deleteTransaction(id, type) {
-    if (!confirm('Are you sure you want to delete this transaction?')) {
+    // Use stored values if parameters not provided
+    id = id || window.currentTransactionId;
+    type = type || window.currentTransactionType;
+    
+    if (!id || !type) {
+        console.error('No transaction selected');
         return;
     }
     
-    const urlData = document.getElementById('tacticalUrlData');
-    if (!urlData) {
-        console.error('URL data not found');
+    // Store transaction info for deletion
+    window.pendingDelete = { id, type };
+    
+    // Get transaction details from the selected transaction item
+    const transactionItem = document.querySelector(`.transaction-item[data-id="${id}"]`);
+    
+    if (!transactionItem) {
+        console.error('Transaction item not found for id:', id);
         return;
     }
     
-    const deleteIncomeUrl = urlData.dataset.deleteIncomeUrl;
-    const deleteExpenseUrl = urlData.dataset.deleteExpenseUrl;
+    // Get data from element attributes
+    const payee = transactionItem.dataset.payee || 'Unknown';
+    const category = transactionItem.dataset.category || 'Uncategorized';
+    const amount = transactionItem.dataset.amount || '0';
+    const date = transactionItem.dataset.date || '';
+    const notes = transactionItem.dataset.notes || 'No notes';
     
-    // Replace placeholder with actual ID
-    const url = type === 'income' ? 
-        deleteIncomeUrl.replace('0', id) : 
-        deleteExpenseUrl.replace('0', id);
+    // Format amount for display
+    const formattedAmount = `$${parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     
-    window.location.href = url;
+    // Format date for display
+    const formattedDate = formatDateFromISO(date);
+    
+    // Populate delete confirmation panel
+    const deleteConfirmType = document.getElementById('deleteConfirmType');
+    const deleteConfirmDate = document.getElementById('deleteConfirmDate');
+    const deleteConfirmPayee = document.getElementById('deleteConfirmPayee');
+    const deleteConfirmCategory = document.getElementById('deleteConfirmCategory');
+    const deleteConfirmAmount = document.getElementById('deleteConfirmAmount');
+    const deleteConfirmNotes = document.getElementById('deleteConfirmNotes');
+    
+    if (deleteConfirmType) {
+        deleteConfirmType.textContent = type.toUpperCase();
+        deleteConfirmType.className = `detail-value ${type}`;
+    }
+    if (deleteConfirmDate) deleteConfirmDate.textContent = formattedDate;
+    if (deleteConfirmPayee) deleteConfirmPayee.textContent = payee;
+    if (deleteConfirmCategory) deleteConfirmCategory.textContent = category;
+    if (deleteConfirmAmount) {
+        deleteConfirmAmount.textContent = formattedAmount;
+        deleteConfirmAmount.className = `detail-value large ${type}`;
+    }
+    if (deleteConfirmNotes) deleteConfirmNotes.textContent = notes;
+    
+    // Hide details and form, show delete confirmation
+    const detailsView = document.getElementById('detailsView');
+    const transactionDetails = document.getElementById('transactionDetails');
+    const transactionForm = document.getElementById('transactionForm');
+    const deleteConfirmView = document.getElementById('deleteConfirmView');
+    
+    if (detailsView) detailsView.style.display = 'none';
+    if (transactionDetails) transactionDetails.style.display = 'none';
+    if (transactionForm) transactionForm.style.display = 'none';
+    if (deleteConfirmView) deleteConfirmView.style.display = 'block';
+}
+
+/**
+ * Cancels delete and returns to detail view
+ */
+function cancelDelete() {
+    window.pendingDelete = null;
+    
+    // Hide delete confirmation, show details
+    const deleteConfirmView = document.getElementById('deleteConfirmView');
+    const transactionDetails = document.getElementById('transactionDetails');
+    
+    if (deleteConfirmView) deleteConfirmView.style.display = 'none';
+    if (transactionDetails) transactionDetails.style.display = 'block';
+}
+
+/**
+ * Confirms and executes the deletion via AJAX
+ */
+function confirmDelete() {
+    if (!window.pendingDelete) return;
+    
+    const { id, type } = window.pendingDelete;
+    
+    // Get CSRF token
+    let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (!csrfToken) {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        csrfToken = cookieValue;
+    }
+    
+    if (!csrfToken) {
+        alert('Security token not found. Please reload the page and try again.');
+        cancelDelete();
+        return;
+    }
+    
+    // Determine delete URL
+    const url = type === 'income' 
+        ? `/bank/income/${id}/delete/`
+        : `/bank/expense/${id}/delete/`;
+    
+    // Submit delete request via AJAX
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove transaction from DOM with animation
+            const transactionItem = document.querySelector(`.transaction-item[data-id="${id}"]`);
+            if (transactionItem) {
+                transactionItem.style.transition = 'all 0.3s ease';
+                transactionItem.style.opacity = '0';
+                transactionItem.style.transform = 'translateX(-20px)';
+                setTimeout(() => {
+                    transactionItem.remove();
+                    // Update summary counts
+                    updateSummaryCounts();
+                }, 300);
+            }
+            
+            // Hide delete confirmation and show empty state
+            const deleteConfirmView = document.getElementById('deleteConfirmView');
+            const detailsView = document.getElementById('detailsView');
+            
+            if (deleteConfirmView) deleteConfirmView.style.display = 'none';
+            if (detailsView) detailsView.style.display = 'block';
+            
+            // Clear selection
+            window.pendingDelete = null;
+            selectedTransactionId = null;
+            if (selectedTransaction) {
+                selectedTransaction.classList.remove('selected');
+                selectedTransaction = null;
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete transaction'));
+            cancelDelete();
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting transaction:', error);
+        alert('An error occurred while deleting the transaction');
+        cancelDelete();
+    });
 }
 
 /**
@@ -983,55 +1110,6 @@ function showAddTransaction(type) {
 }
 
 /**
- * Selects a transaction and shows its details
- * @param {HTMLElement} element - The clicked transaction element
- * @param {number} id - Transaction ID
- * @param {string} type - Transaction type
- */
-function selectTransaction(element, id, type) {
-    selectedTransactionId = id;
-    
-    // Update selected state
-    document.querySelectorAll('.transaction-item').forEach(item => {
-        item.classList.remove('selected');
-    });
-    element.classList.add('selected');
-    
-    // Get transaction data from data attributes
-    const payee = element.dataset.payee || '-';
-    const amount = element.dataset.amount || '0';
-    const date = element.dataset.date || '-';
-    const category = element.dataset.category || 'Uncategorized';
-    const notes = element.dataset.notes || 'No additional notes';
-    
-    // Populate details
-    document.getElementById('detailType').textContent = type.toUpperCase();
-    document.getElementById('detailPayee').textContent = payee;
-    document.getElementById('detailAmount').textContent = formatCurrency(amount, true);
-    
-    // Format date nicely
-    if (date && date !== '-') {
-        const dateObj = new Date(date);
-        document.getElementById('detailDate').textContent = dateObj.toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-        });
-    } else {
-        document.getElementById('detailDate').textContent = '-';
-    }
-    
-    document.getElementById('detailCategory').textContent = category;
-    document.getElementById('detailNotes').textContent = notes;
-    
-    // Show details, hide others
-    document.getElementById('detailsView').style.display = 'none';
-    document.getElementById('transactionForm').style.display = 'none';
-    document.getElementById('transactionDetails').style.display = 'block';
-}
-
-/**
  * Clears the transaction selection
  */
 function clearSelection() {
@@ -1041,10 +1119,13 @@ function clearSelection() {
         item.classList.remove('selected');
     });
     
-    // Show empty state
+    // Show empty state, hide all other views
     document.getElementById('detailsView').style.display = 'block';
     document.getElementById('transactionDetails').style.display = 'none';
     document.getElementById('transactionForm').style.display = 'none';
+    
+    const deleteConfirmView = document.getElementById('deleteConfirmView');
+    if (deleteConfirmView) deleteConfirmView.style.display = 'none';
 }
 
 /**
@@ -1080,25 +1161,6 @@ function editTransaction() {
 /**
  * Deletes the currently selected transaction
  */
-function deleteTransaction() {
-    if (!selectedTransactionId) return;
-    
-    if (confirm('Are you sure you want to delete this transaction?')) {
-        // TODO: Implement AJAX delete
-        console.log('Delete transaction:', selectedTransactionId);
-        
-        // For now, just clear selection
-        clearSelection();
-        
-        // Remove from list (temporary until AJAX implemented)
-        const selectedItem = document.querySelector('.transaction-item.selected');
-        if (selectedItem) {
-            selectedItem.remove();
-            updateSummaryCounts();
-        }
-    }
-}
-
 /**
  * Saves the transaction (add or edit)
  */
@@ -1106,7 +1168,7 @@ function saveTransaction() {
     // Get form values
     const type = document.getElementById('formType').value;
     const payee = document.getElementById('formPayee').value.trim();
-    const amount = document.getElementById('formAmount').value;
+    let amount = document.getElementById('formAmount').value;
     const date = document.getElementById('formDate').value;
     const category = document.getElementById('formCategory').value;
     const notes = document.getElementById('formNotes').value.trim();
@@ -1116,6 +1178,9 @@ function saveTransaction() {
         alert('Please enter a payee name');
         return;
     }
+    
+    // Remove commas and validate amount
+    amount = amount.replace(/,/g, '');
     if (!amount || parseFloat(amount) <= 0) {
         alert('Please enter a valid amount');
         return;
@@ -1155,7 +1220,8 @@ function saveTransaction() {
     
     // Determine URL based on type and whether we're editing
     let url;
-    if (selectedTransactionId) {
+    const isEditing = !!selectedTransactionId;
+    if (isEditing) {
         // Editing existing transaction
         url = type === 'income' 
             ? `/bank/income/${selectedTransactionId}/edit/`
@@ -1178,9 +1244,27 @@ function saveTransaction() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message || 'Transaction saved successfully!');
-            // Reload page to show updated data
-            window.location.reload();
+            if (isEditing) {
+                // If editing, reload to update the list
+                window.location.reload();
+            } else {
+                // If adding new, insert into list without reload
+                addTransactionToList({
+                    id: data.income_id || data.expense_id,
+                    type: type,
+                    payee: payee,
+                    amount: parseFloat(amount),
+                    date: date,
+                    category: category,
+                    notes: notes
+                });
+                
+                // Clear form and return to empty state
+                cancelForm();
+                
+                // Update summary counts
+                updateSummaryCounts();
+            }
         } else {
             alert('Error: ' + (data.error || 'Unknown error occurred'));
         }
@@ -1192,9 +1276,107 @@ function saveTransaction() {
 }
 
 /**
+ * Add a new transaction to the list without page reload
+ */
+function addTransactionToList(transaction) {
+    const transactionList = document.querySelector('.transaction-list');
+    if (!transactionList) return;
+    
+    // Format amount with commas and 2 decimals
+    const formattedAmount = formatAmountWithDecimals(transaction.amount);
+    
+    // Format date
+    const dateObj = new Date(transaction.date + 'T00:00:00'); // Ensure proper date parsing
+    const dateFull = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const dateShort = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    const dateCompact = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+    
+    // Escape strings for HTML
+    const escapedPayee = transaction.payee.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const escapedNotes = (transaction.notes || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const escapedCategory = (transaction.category || 'Uncategorized').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    
+    // Create transaction element matching the template structure exactly
+    const transactionHtml = `
+        <div class="transaction-item boot-animate" 
+             data-id="${transaction.id}"
+             data-type="${transaction.type}"
+             data-amount="${transaction.amount}"
+             data-payee="${transaction.payee.toLowerCase()}"
+             data-category="${transaction.category || 'none'}"
+             data-date-full="${dateFull}"
+             data-date-short="${dateShort}"
+             data-date-compact="${dateCompact}"
+             onclick="selectTransaction(this, ${transaction.id}, '${transaction.type}', '${escapedPayee}', '${dateFull}', '${escapedCategory}', '${transaction.amount}', '${escapedNotes}')">
+            <span class="transaction-icon ${transaction.type}">
+                ${transaction.type === 'income' ? '▲' : '▼'}
+            </span>
+            <div class="transaction-info">
+                <div class="transaction-date" data-full="${dateFull}" data-short="${dateShort}" data-compact="${dateCompact}">
+                    <span class="date-full">${dateFull}</span>
+                    <span class="date-short">${dateShort}</span>
+                    <span class="date-compact">${dateCompact}</span>
+                </div>
+                <div class="transaction-payee">${transaction.payee}</div>
+                <div class="transaction-category">${transaction.category || 'Uncategorized'}</div>
+            </div>
+            <div class="transaction-amount ${transaction.type}">
+                ${transaction.type === 'income' ? '+' : '-'}$${formattedAmount}
+            </div>
+        </div>
+    `;
+    
+    // Insert at the top of the list
+    transactionList.insertAdjacentHTML('afterbegin', transactionHtml);
+}
+
+/**
+ * Format amount with thousands separator and always 2 decimal places
+ */
+function formatAmountWithDecimals(amount) {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return '0.00';
+    
+    // Format with 2 decimal places and thousands separator
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
+ * Format amount input field as user types
+ */
+function setupAmountFormatting() {
+    const amountInput = document.getElementById('formAmount');
+    if (!amountInput) return;
+    
+    amountInput.addEventListener('blur', function() {
+        let value = this.value.replace(/,/g, '');
+        if (value && !isNaN(value)) {
+            this.value = formatAmountWithDecimals(value);
+        }
+    });
+    
+    amountInput.addEventListener('focus', function() {
+        // Remove formatting when focused for easier editing
+        let value = this.value.replace(/,/g, '');
+        if (value && !isNaN(value)) {
+            this.value = value;
+        }
+    });
+}
+
+/**
  * Cancels the form and returns to appropriate view
  */
 function cancelForm() {
+    // Hide the form first
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm) {
+        transactionForm.style.display = 'none';
+    }
+    
     // If we were editing a transaction, go back to details view
     if (selectedTransactionId) {
         const selectedElement = document.querySelector('.transaction-item.selected');
@@ -1483,6 +1665,17 @@ document.addEventListener('DOMContentLoaded', function() {
     initCustomDropdowns();
     convertFilterSelectsToCustomDropdowns();
     initTacticalDatePickers();
+    setupAmountFormatting();
+    
+    // Add escape key handler for delete confirmation panel
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const deleteConfirmView = document.getElementById('deleteConfirmView');
+            if (deleteConfirmView && deleteConfirmView.style.display === 'block') {
+                cancelDelete();
+            }
+        }
+    });
 });
 
 // =============================================================================

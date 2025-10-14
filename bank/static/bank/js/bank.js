@@ -161,7 +161,7 @@ function showSuccessModal(message) {
  */
 function showEditIncomeModal(incomeId) {
     // Fetch income data
-    fetch(`/budget-basic/income/${incomeId}/get/`)
+    fetch(`/bank/income/${incomeId}/get/`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -377,7 +377,7 @@ function handleAddTransactionForm() {
         submitBtn.textContent = 'Saving...';
         
         // Determine endpoint based on transaction type
-        const endpoint = transaction_type === 'income' ? '/budget-basic/income/add/' : '/budget-basic/expense/add/';
+        const endpoint = transaction_type === 'income' ? '/bank/income/add/' : '/bank/expense/add/';
         
         // Send data to server
         fetch(endpoint, {
@@ -521,7 +521,7 @@ function handleAddIncomeForm() {
         submitBtn.textContent = 'Saving...';
         
         // Send data to server
-        fetch('/budget-basic/income/add/', {
+        fetch('/bank/income/add/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -625,7 +625,7 @@ function handleEditIncomeForm() {
         submitBtn.textContent = 'Updating...';
         
         // Send data to server
-        fetch(`/budget-basic/income/${incomeId}/edit/`, {
+        fetch(`/bank/income/${incomeId}/edit/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -686,7 +686,7 @@ function handleDeleteIncomeForm() {
         confirmBtn.textContent = 'Deleting...';
         
         // Send delete request to server
-        fetch(`/budget-basic/income/${incomeId}/delete/`, {
+        fetch(`/bank/income/${incomeId}/delete/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCsrfToken()
@@ -779,7 +779,7 @@ function showAddExpenseModal() {
  */
 function showEditExpenseModal(expenseId) {
     // Fetch expense data
-    fetch(`/budget-basic/expense/${expenseId}/get/`)
+    fetch(`/bank/expense/${expenseId}/get/`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -872,7 +872,7 @@ function handleAddExpenseForm() {
         submitBtn.textContent = 'Saving...';
         
         // Send data to server
-        fetch('/budget-basic/expense/add/', {
+        fetch('/bank/expense/add/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -976,7 +976,7 @@ function handleEditExpenseForm() {
         submitBtn.textContent = 'Updating...';
         
         // Send data to server
-        fetch(`/budget-basic/expense/${expenseId}/edit/`, {
+        fetch(`/bank/expense/${expenseId}/edit/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -1050,7 +1050,7 @@ function handleDeleteExpenseForm() {
         confirmBtn.textContent = 'Deleting...';
         
         // Send delete request to server
-        fetch(`/budget-basic/expense/${expenseId}/delete/`, {
+        fetch(`/bank/expense/${expenseId}/delete/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCsrfToken()
@@ -1548,7 +1548,7 @@ async function loadPayees() {
     }
     
     try {
-        const response = await fetch('/budget-basic/payees/');
+        const response = await fetch('/bank/payees/');
         const data = await response.json();
         
         if (data.success) {
@@ -1563,7 +1563,7 @@ async function loadPayees() {
 // Load payees for a specific modal
 async function loadPayeesForModal(selectId, categoryId = null) {
     try {
-        let url = '/budget-basic/payees/';
+        let url = '/bank/payees/';
         if (categoryId) {
             url += `?category_id=${categoryId}`;
         }
@@ -1861,7 +1861,7 @@ async function loadCategoriesForLinking(payee) {
     
     try {
         // Fetch all categories
-        const response = await fetch('/budget-basic/categories-list/');
+        const response = await fetch('/bank/categories-list/');
         const data = await response.json();
         
         if (data.success) {
@@ -1977,7 +1977,7 @@ function handleLinkCategoryForm() {
             categoryIds.forEach(id => formData.append('category_ids', id));
             formData.append('csrfmiddlewaretoken', getCsrfToken());
             
-            const response = await fetch('/budget-basic/payee/link-categories/', {
+            const response = await fetch('/bank/payee/link-categories/', {
                 method: 'POST',
                 body: formData
             });
@@ -2052,7 +2052,7 @@ async function addNewPayee(payeeName) {
         formData.append('name', payeeName);
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
-        const response = await fetch('/budget-basic/payee/add/', {
+        const response = await fetch('/bank/payee/add/', {
             method: 'POST',
             body: formData
         });
@@ -2083,7 +2083,7 @@ async function addNewPayee(payeeName) {
 // Auto-date functionality
 async function getAutoDate(weekOffset = 0, transactionType = null) {
     try {
-        let url = `/budget-basic/auto-date/?week_offset=${weekOffset}`;
+        let url = `/bank/auto-date/?week_offset=${weekOffset}`;
         if (transactionType) {
             url += `&type=${transactionType}`;
         }
@@ -2529,7 +2529,7 @@ function showPayeeModalMessage(message, type = 'danger') {
 // Load categories for the payee modal
 async function loadCategoriesForPayeeModal() {
     try {
-        const response = await fetch('/budget-basic/categories-list/');
+        const response = await fetch('/bank/categories-list/');
         const data = await response.json();
         
         if (data.success) {
@@ -2606,7 +2606,7 @@ async function handleAddPayeeModalForm(e) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Adding...';
         
-        const response = await fetch('/budget-basic/payee/add/', {
+        const response = await fetch('/bank/payee/add/', {
             method: 'POST',
             body: formData
         });
@@ -2684,7 +2684,7 @@ function selectNewlyAddedPayee(payeeName) {
 // Load categories from server
 async function loadCategories() {
     try {
-        const response = await fetch('/budget-basic/categories-list/');
+        const response = await fetch('/bank/categories-list/');
         const data = await response.json();
         
         if (data.success) {
@@ -2699,7 +2699,7 @@ async function loadCategories() {
 // Load categories for a specific modal
 async function loadCategoriesForModal(selectId, transactionType = null) {
     try {
-        let url = '/budget-basic/categories-list/';
+        let url = '/bank/categories-list/';
         if (transactionType) {
             url += `?type=${transactionType}`;
         }
@@ -2862,7 +2862,7 @@ async function handleAddCategoryModalForm(e) {
     
     try {
         const formData = new FormData(form);
-        const response = await fetch('/budget-basic/category/create/', {
+        const response = await fetch('/bank/category/create/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -3711,7 +3711,7 @@ function handleAddIncomeForm() {
         
         const formData = new FormData(form);
         
-        fetch('/budget-basic/income/add/', {
+        fetch('/bank/income/add/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -3754,7 +3754,7 @@ function handleEditIncomeForm() {
         const incomeId = document.getElementById('editIncomeId').value;
         const formData = new FormData(form);
         
-        fetch(`/budget-basic/income/${incomeId}/edit/`, {
+        fetch(`/bank/income/${incomeId}/edit/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -3797,7 +3797,7 @@ function handleDeleteIncomeForm() {
         const incomeId = document.getElementById('deleteIncomeId').value;
         const formData = new FormData(form);
         
-        fetch(`/budget-basic/income/${incomeId}/delete/`, {
+        fetch(`/bank/income/${incomeId}/delete/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -3839,7 +3839,7 @@ function handleAddExpenseForm() {
         
         const formData = new FormData(form);
         
-        fetch('/budget-basic/expense/add/', {
+        fetch('/bank/expense/add/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -3882,7 +3882,7 @@ function handleEditExpenseForm() {
         const expenseId = document.getElementById('editExpenseId').value;
         const formData = new FormData(form);
         
-        fetch(`/budget-basic/expense/${expenseId}/edit/`, {
+        fetch(`/bank/expense/${expenseId}/edit/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -3925,7 +3925,7 @@ function handleDeleteExpenseForm() {
         const expenseId = document.getElementById('deleteExpenseId').value;
         const formData = new FormData(form);
         
-        fetch(`/budget-basic/expense/${expenseId}/delete/`, {
+        fetch(`/bank/expense/${expenseId}/delete/`, {
             method: 'POST',
             body: formData,
             headers: {

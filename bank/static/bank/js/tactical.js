@@ -1125,12 +1125,70 @@ function saveTransaction() {
         return;
     }
     
-    // TODO: Implement AJAX save
-    console.log('Save transaction:', { type, payee, amount, date, category, notes });
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('payee_choice', payee);
+    formData.append('amount', amount);
+    formData.append('date', date);
+    formData.append('notes', notes);
     
-    // For now, just show success and clear form
-    alert('Transaction saved successfully!');
-    cancelForm();
+    // Get CSRF token - try multiple methods
+    let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+    // If not found in form, try to get from cookie
+    if (!csrfToken) {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        csrfToken = cookieValue;
+    }
+    
+    // Add token to form data if found
+    if (csrfToken) {
+        formData.append('csrfmiddlewaretoken', csrfToken);
+    } else {
+        console.error('CSRF token not found!');
+        alert('Security token not found. Please reload the page and try again.');
+        return;
+    }
+    
+    // Determine URL based on type and whether we're editing
+    let url;
+    if (selectedTransactionId) {
+        // Editing existing transaction
+        url = type === 'income' 
+            ? `/bank/income/${selectedTransactionId}/edit/`
+            : `/bank/expense/${selectedTransactionId}/edit/`;
+    } else {
+        // Adding new transaction
+        url = type === 'income' 
+            ? '/bank/income/add/'
+            : '/bank/expense/add/';
+    }
+    
+    // Submit via AJAX
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Transaction saved successfully!');
+            // Reload page to show updated data
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error occurred'));
+        }
+    })
+    .catch(error => {
+        console.error('Error saving transaction:', error);
+        alert('An error occurred while saving the transaction');
+    });
 }
 
 /**

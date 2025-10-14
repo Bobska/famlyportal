@@ -608,6 +608,9 @@
 
 {% block content %}
 <div class="dashboard-container">
+    <!-- Hidden CSRF token for AJAX requests -->
+    {% csrf_token %}
+    
     <!-- Main Grid -->
     <div class="dashboard-grid">
 

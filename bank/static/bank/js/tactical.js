@@ -591,11 +591,23 @@ function selectTransaction(element, id, type) {
     }
     if (detailNotes) detailNotes.textContent = notes;
     
-    // Show details panel, hide empty state
-    const detailsView = document.getElementById('detailsView');
-    const transactionDetails = document.getElementById('transactionDetails');
-    if (detailsView) detailsView.style.display = 'none';
-    if (transactionDetails) transactionDetails.style.display = 'block';
+    // CRITICAL: Hide ALL other panels first
+    document.getElementById('detailsView').style.display = 'none';
+    const deleteConfirmView = document.getElementById('deleteConfirmView');
+    if (deleteConfirmView) deleteConfirmView.style.display = 'none';
+    
+    // Hide form and reset it (in that order)
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm && transactionForm.style.display !== 'none') {
+        transactionForm.style.display = 'none';
+        // Only reset if form was actually visible
+        resetTransactionForm();
+    } else if (transactionForm) {
+        transactionForm.style.display = 'none';
+    }
+    
+    // Show ONLY the transaction details panel
+    document.getElementById('transactionDetails').style.display = 'block';
 }
 
 /**
@@ -719,12 +731,14 @@ function deleteTransaction(id, type) {
 function cancelDelete() {
     window.pendingDelete = null;
     
-    // Hide delete confirmation, show details
+    // CRITICAL: Hide ALL panels first
+    document.getElementById('detailsView').style.display = 'none';
+    document.getElementById('transactionForm').style.display = 'none';
     const deleteConfirmView = document.getElementById('deleteConfirmView');
-    const transactionDetails = document.getElementById('transactionDetails');
-    
     if (deleteConfirmView) deleteConfirmView.style.display = 'none';
-    if (transactionDetails) transactionDetails.style.display = 'block';
+    
+    // Show ONLY the transaction details panel
+    document.getElementById('transactionDetails').style.display = 'block';
 }
 
 /**
@@ -1078,37 +1092,226 @@ function updateSummaryCounts() {
 }
 
 /**
- * Shows the add transaction form
- * @param {string} type - 'income' or 'expense'
+ * Resets all transaction form fields to their default empty state
+ * and scrolls the form to the top
  */
-function showAddTransaction(type) {
-    // Hide empty state and details
-    document.getElementById('detailsView').style.display = 'none';
-    document.getElementById('transactionDetails').style.display = 'none';
-    
-    // Show form
-    document.getElementById('transactionForm').style.display = 'block';
-    
-    // Set form type
-    document.getElementById('formType').value = type;
-    
-    // Set today's date
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('formDate').value = today;
-    
-    // Clear other fields
+function resetTransactionForm() {
+    // Reset all form fields (original select elements)
+    document.getElementById('formType').value = 'income'; // Default to income
+    document.getElementById('formDate').value = new Date().toISOString().split('T')[0]; // Today's date
     document.getElementById('formPayee').value = '';
     document.getElementById('formAmount').value = '';
     document.getElementById('formCategory').value = '';
     document.getElementById('formNotes').value = '';
     
-    // Clear selection
+    // Update custom dropdown buttons to show placeholder text
+    // formType
+    const formTypeButton = document.getElementById('formType_button');
+    if (formTypeButton) {
+        const formTypeSelect = document.getElementById('formType');
+        const selectedOption = formTypeSelect.options[formTypeSelect.selectedIndex];
+        formTypeButton.childNodes[0].textContent = selectedOption ? selectedOption.text : 'Select...';
+        
+        // Update selected state in dropdown
+        const formTypeDropdown = document.getElementById('formType_dropdown');
+        if (formTypeDropdown) {
+            formTypeDropdown.querySelectorAll('a').forEach(link => {
+                link.classList.toggle('selected', link.dataset.value === formTypeSelect.value);
+            });
+        }
+    }
+    
+    // formPayee
+    const formPayeeButton = document.getElementById('formPayee_button');
+    if (formPayeeButton) {
+        formPayeeButton.childNodes[0].textContent = 'Select payee or merchant...';
+        
+        // Update selected state in dropdown
+        const formPayeeDropdown = document.getElementById('formPayee_dropdown');
+        if (formPayeeDropdown) {
+            formPayeeDropdown.querySelectorAll('a').forEach(link => {
+                link.classList.remove('selected');
+            });
+        }
+    }
+    
+    // formCategory
+    const formCategoryButton = document.getElementById('formCategory_button');
+    if (formCategoryButton) {
+        formCategoryButton.childNodes[0].textContent = 'Select category...';
+        
+        // Update selected state in dropdown
+        const formCategoryDropdown = document.getElementById('formCategory_dropdown');
+        if (formCategoryDropdown) {
+            formCategoryDropdown.querySelectorAll('a').forEach(link => {
+                link.classList.remove('selected');
+            });
+        }
+    }
+    
+    // Scroll the form panel to the top
+    const formPanel = document.getElementById('transactionForm');
+    if (formPanel) {
+        formPanel.scrollTop = 0;
+    }
+    
+    // Also scroll the right panel container to top if it exists
+    const rightPanel = document.querySelector('.split-right');
+    if (rightPanel) {
+        rightPanel.scrollTop = 0;
+    }
+}
+
+/**
+ * Sync a custom dropdown's visible UI (button text and selected state)
+ * to match the current value of its underlying <select> element.
+ *
+ * @param {string} selectId - The id of the original select element
+ * @param {string} [placeholderText] - Optional placeholder to show when no option selected
+ */
+function syncCustomDropdown(selectId, placeholderText) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const button = document.getElementById(`${selectId}_button`);
+    const dropdown = document.getElementById(`${selectId}_dropdown`);
+
+    // Ensure we have a selected option (fallback to empty option if value not found)
+    let selectedOption = select.options[select.selectedIndex];
+    if (!selectedOption) {
+        const emptyIdx = Array.from(select.options).findIndex(o => o.value === '');
+        if (emptyIdx >= 0) {
+            select.selectedIndex = emptyIdx;
+            selectedOption = select.options[select.selectedIndex];
+        }
+    }
+
+    // Update button label
+    if (button) {
+        const text = (selectedOption && selectedOption.text) ? selectedOption.text : (placeholderText || 'Select...');
+        if (button.childNodes && button.childNodes[0]) {
+            button.childNodes[0].textContent = text;
+        } else {
+            button.textContent = text;
+        }
+    }
+
+    // Update selected state in dropdown list
+    if (dropdown) {
+        dropdown.querySelectorAll('a').forEach(link => {
+            const isSelected = link.dataset.value === select.value;
+            if (isSelected) link.classList.add('selected'); else link.classList.remove('selected');
+        });
+    }
+}
+
+/**
+ * Ensure the given value exists as an option on a select, adding it if missing.
+ * If the custom dropdown has been created, also add a corresponding link.
+ * Returns true if the option exists (either pre-existing or added), false otherwise.
+ *
+ * @param {string} selectId
+ * @param {string} value
+ * @param {string} text
+ */
+function ensureSelectOption(selectId, value, text) {
+    const select = document.getElementById(selectId);
+    if (!select) return false;
+
+    // Does an option with this value already exist?
+    let option = Array.from(select.options).find(o => o.value === value);
+    if (!option) {
+        // Add new option to the select
+        option = document.createElement('option');
+        option.value = value;
+        option.text = text || value || '';
+        select.appendChild(option);
+
+        // If custom dropdown exists, add a matching link item
+        const dropdown = document.getElementById(`${selectId}_dropdown`);
+        if (dropdown) {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.textContent = option.text;
+            link.dataset.value = option.value;
+
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                select.value = this.dataset.value;
+                const event = new Event('change', { bubbles: true });
+                select.dispatchEvent(event);
+
+                const button = document.getElementById(`${selectId}_button`);
+                if (button) {
+                    if (button.childNodes && button.childNodes[0]) {
+                        button.childNodes[0].textContent = this.textContent;
+                    } else {
+                        button.textContent = this.textContent;
+                    }
+                }
+
+                dropdown.querySelectorAll('a').forEach(a => a.classList.remove('selected'));
+                link.classList.add('selected');
+                dropdown.classList.remove('show');
+                const btnEl = document.getElementById(`${selectId}_button`);
+                if (btnEl) btnEl.classList.remove('active');
+            });
+
+            dropdown.appendChild(link);
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Shows the add transaction form
+ * @param {string} type - 'income' or 'expense'
+ */
+function showAddTransaction(type) {
+    // CRITICAL: Hide ALL other panels first
+    document.getElementById('detailsView').style.display = 'none';
+    document.getElementById('transactionDetails').style.display = 'none';
+    const deleteConfirmView = document.getElementById('deleteConfirmView');
+    if (deleteConfirmView) deleteConfirmView.style.display = 'none';
+    
+    // Show ONLY the form
+    document.getElementById('transactionForm').style.display = 'block';
+    
+    // Reset ALL form fields and scroll to top
+    resetTransactionForm();
+    
+    // Set form type to the requested type (overrides default 'income' from reset)
+    document.getElementById('formType').value = type;
+    
+    // Update the custom dropdown button for formType to match
+    const formTypeButton = document.getElementById('formType_button');
+    if (formTypeButton) {
+        const formTypeSelect = document.getElementById('formType');
+        const selectedOption = formTypeSelect.options[formTypeSelect.selectedIndex];
+        if (selectedOption) {
+            formTypeButton.childNodes[0].textContent = selectedOption.text;
+            
+            // Update selected state in dropdown
+            const formTypeDropdown = document.getElementById('formType_dropdown');
+            if (formTypeDropdown) {
+                formTypeDropdown.querySelectorAll('a').forEach(link => {
+                    link.classList.toggle('selected', link.dataset.value === type);
+                });
+            }
+        }
+    }
+    
+    // Clear selection state
     selectedTransactionId = null;
     document.querySelectorAll('.transaction-item').forEach(item => {
         item.classList.remove('selected');
     });
 }
 
+/**
+ * Resets all form fields to empty/default values
+ */
 /**
  * Clears the transaction selection
  */
@@ -1123,6 +1326,9 @@ function clearSelection() {
     document.getElementById('detailsView').style.display = 'block';
     document.getElementById('transactionDetails').style.display = 'none';
     document.getElementById('transactionForm').style.display = 'none';
+    
+    // CRITICAL: Reset form fields whenever form is hidden
+    resetTransactionForm();
     
     const deleteConfirmView = document.getElementById('deleteConfirmView');
     if (deleteConfirmView) deleteConfirmView.style.display = 'none';
@@ -1145,13 +1351,22 @@ function editTransaction() {
     const categoryId = selectedElement.dataset.categoryId;
     const notes = selectedElement.dataset.notes;
     
-    // Populate form with current values
+    // Populate form with current values (data layer)
     document.getElementById('formType').value = type;
-    document.getElementById('formPayee').value = payee;
+    // Ensure Payee exists in the list; if not, add it so selection succeeds
+    if (payee) ensureSelectOption('formPayee', payee, payee);
+    document.getElementById('formPayee').value = payee || '';
     document.getElementById('formAmount').value = amount;
     document.getElementById('formDate').value = date;
+    // Ensure Category option exists before selecting (usually it will)
+    if (categoryId) ensureSelectOption('formCategory', categoryId, selectedElement.dataset.category || '');
     document.getElementById('formCategory').value = categoryId || '';
     document.getElementById('formNotes').value = notes || '';
+
+    // Sync custom dropdown UI (visible layer)
+    syncCustomDropdown('formType');
+    syncCustomDropdown('formPayee', 'Select payee or merchant...');
+    syncCustomDropdown('formCategory', 'Select category...');
     
     // Transform: Hide details, show form
     document.getElementById('transactionDetails').style.display = 'none';
@@ -1258,6 +1473,9 @@ function saveTransaction() {
                     category: category,
                     notes: notes
                 });
+                
+                // Reset ALL form fields immediately after successful save
+                resetTransactionForm();
                 
                 // Clear form and return to empty state
                 cancelForm();
@@ -1371,7 +1589,10 @@ function setupAmountFormatting() {
  * Cancels the form and returns to appropriate view
  */
 function cancelForm() {
-    // Hide the form first
+    // Reset ALL form fields first (before hiding)
+    resetTransactionForm();
+    
+    // Hide the form
     const transactionForm = document.getElementById('transactionForm');
     if (transactionForm) {
         transactionForm.style.display = 'none';

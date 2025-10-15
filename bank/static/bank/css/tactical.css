@@ -852,7 +852,9 @@ body::before {
     bottom: 0;
     left: 0;
     right: 0;
-    margin-top: 0;
+    margin: 0;
+    padding: 12px 15px;
+    gap: 10px;
 }
 
 /* =============================================================================
@@ -1152,7 +1154,7 @@ body::before {
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-    padding-bottom: 80px; /* Space for action buttons */
+    padding-bottom: 68px; /* Space for action buttons (2 buttons * 12px padding + 2 * 12px button padding + 10px gap + 24px extra) */
 }
 
 /* Transaction List in Split View - Separated Items */
@@ -1348,13 +1350,14 @@ body::before {
 
 /* Empty State in Split View - Refined */
 .split-right .empty-state {
-    padding: 60px 30px;
+    padding: 60px 30px 0 30px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 200px;
+    flex: 1;
 }
 
 .split-right .empty-icon {

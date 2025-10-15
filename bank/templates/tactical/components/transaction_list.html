@@ -1,6 +1,6 @@
 {% comment %}
 Transaction List Component
-Displays a list of transactions with optional empty state
+Displays a list of transactions with optional empty state, grouped by date
 
 Usage:
     {% include 'tactical/components/transaction_list.html' with transactions=my_transactions show_category=True %}
@@ -17,32 +17,37 @@ Parameters:
 {% load bank_tags %}
 {% if transactions %}
     <div class="transaction-list{% if list_full %} transaction-list-full{% endif %}" {% if list_id %}id="{{ list_id }}"{% endif %}>
-        {% for transaction in transactions %}
-            <div class="transaction-item"
-                 {% if clickable %}
-                 data-id="{{ transaction.id }}"
-                 data-type="{{ transaction.type }}"
-                 data-payee="{{ transaction.payee }}"
-                 data-amount="{{ transaction.amount }}"
-                 data-date="{{ transaction.date|date:'Y-m-d' }}"
-                 data-category="{{ transaction.category.name|default:'Uncategorized' }}"
-                 data-category-id="{{ transaction.category.id|default:'' }}"
-                 data-notes="{{ transaction.notes|default:'' }}"
-                 onclick="selectTransaction(this, {{ transaction.id }}, '{{ transaction.type }}')"
-                 {% endif %}>
-                <span class="transaction-icon {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
-                    {% if transaction.type == 'income' %}▲{% else %}▼{% endif %}
-                </span>
-                <div class="transaction-info">
-                    <div class="transaction-payee">{{ transaction.payee|default:"Unnamed" }}</div>
-                    <div class="transaction-date">{{ transaction.date|date:"D, j M Y" }}</div>
-                    {% if show_category %}
-                    <div class="transaction-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
-                    {% endif %}
-                </div>
-                <div class="transaction-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
-                    {% if transaction.type == 'income' %}+{% else %}-{% endif %}{{ transaction.amount|currency }}
-                </div>
+        {% regroup transactions by date as transactions_by_date %}
+        {% for date_group in transactions_by_date %}
+            <div class="transaction-date-group">
+                <div class="transaction-date-header">{{ date_group.grouper|date:"D, j M Y" }}</div>
+                {% for transaction in date_group.list %}
+                    <div class="transaction-item"
+                         {% if clickable %}
+                         data-id="{{ transaction.id }}"
+                         data-type="{{ transaction.type }}"
+                         data-payee="{{ transaction.payee }}"
+                         data-amount="{{ transaction.amount }}"
+                         data-date="{{ transaction.date|date:'Y-m-d' }}"
+                         data-category="{{ transaction.category.name|default:'Uncategorized' }}"
+                         data-category-id="{{ transaction.category.id|default:'' }}"
+                         data-notes="{{ transaction.notes|default:'' }}"
+                         onclick="selectTransaction(this, {{ transaction.id }}, '{{ transaction.type }}')"
+                         {% endif %}>
+                        <span class="transaction-icon {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                            {% if transaction.type == 'income' %}▲{% else %}▼{% endif %}
+                        </span>
+                        <div class="transaction-info">
+                            <div class="transaction-payee">{{ transaction.payee|default:"Unnamed" }}</div>
+                            {% if show_category %}
+                            <div class="transaction-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="transaction-amount {% if transaction.type == 'income' %}income{% else %}expense{% endif %}">
+                            {% if transaction.type == 'income' %}+{% else %}-{% endif %}{{ transaction.amount|currency }}
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         {% endfor %}
     </div>

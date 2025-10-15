@@ -135,7 +135,7 @@
                         </div>
                     </div>
                     
-                    <div class="action-buttons" style="margin-top: 20px;">
+                    <div class="action-buttons">
                         <button class="action-btn" onclick="editTransaction()">EDIT TRANSACTION</button>
                         <button class="action-btn" onclick="deleteTransaction()">DELETE TRANSACTION</button>
                     </div>
@@ -143,17 +143,17 @@
                 
                 <!-- Delete Confirmation (Hidden by default, shown via JS) -->
                 <div class="panel-content" id="deleteConfirmView" style="display: none;">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
-                        <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; color: #ff4444; letter-spacing: 2px; margin-bottom: 10px;">
+                    <div style="text-align: center; padding: 20px 20px 16px; border-bottom: 1px solid rgba(255, 68, 68, 0.3);">
+                        <div style="font-size: 40px; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(255, 68, 68, 0.5));">⚠️</div>
+                        <div style="font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: #ff4444; letter-spacing: 2px; margin-bottom: 6px; text-shadow: 0 0 10px rgba(255, 68, 68, 0.3);">
                             CONFIRM DELETION
                         </div>
-                        <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #666; letter-spacing: 1px;">
+                        <div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: rgba(255, 68, 68, 0.7); letter-spacing: 1px;">
                             THIS ACTION CANNOT BE UNDONE
                         </div>
                     </div>
                     
-                    <div class="detail-grid" style="margin-bottom: 30px;">
+                    <div class="detail-grid">
                         <div class="detail-section">
                             <div class="detail-label">Transaction Type</div>
                             <div class="detail-value" id="deleteConfirmType">-</div>
@@ -186,10 +186,10 @@
                     </div>
                     
                     <div class="action-buttons">
-                        <button class="action-btn" onclick="cancelDelete()" style="background: rgba(255,255,255,0.1);">
+                        <button class="action-btn" onclick="cancelDelete()" style="background: rgba(0, 217, 255, 0.08); border-color: rgba(0, 217, 255, 0.3);">
                             CANCEL
                         </button>
-                        <button class="action-btn primary" onclick="confirmDelete()" style="background: #ff4444; border-color: #ff4444;">
+                        <button class="action-btn" onclick="confirmDelete()" style="background: rgba(255, 68, 68, 0.15); border-color: rgba(255, 68, 68, 0.5); color: #ff4444;">
                             CONFIRM DELETION
                         </button>
                     </div>

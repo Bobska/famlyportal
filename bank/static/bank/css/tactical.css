@@ -362,10 +362,13 @@ body::before {
     grid-template-columns: 1fr 1fr;
     gap: 0;
     background: rgba(0, 217, 255, 0.02);
+    flex: 1;
+    overflow-y: auto;
+    align-content: start;
 }
 
 .detail-section {
-    padding: 16px 20px;
+    padding: 12px 16px;
     position: relative;
     transition: all 0.2s ease;
     background: transparent;
@@ -442,10 +445,11 @@ body::before {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 0;
-    padding: 20px;
-    max-height: 600px;
+    padding: 12px;
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    align-content: start;
 }
 
 
@@ -488,7 +492,7 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 12px 16px;
+    padding: 8px 12px;
     position: relative;
 }
 
@@ -797,8 +801,14 @@ body::before {
 .action-buttons {
     display: grid;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 0;
     flex-shrink: 0;
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-top: 1px solid rgba(0, 217, 255, 0.3);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
 .action-btn {
@@ -1091,7 +1101,7 @@ body::before {
 }
 
 .split-left {
-    flex: 0 0 55%;
+    flex: 0 0 40%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1122,13 +1132,17 @@ body::before {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 0;
     background: rgba(0, 0, 0, 0.3);
 }
 
 .split-right .panel-content {
-    padding: 20px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
 }
 
 /* Transaction List in Split View - Separated Items */
@@ -1217,9 +1231,9 @@ body::before {
 
 /* DATE FIRST - More visible on left */
 .split-left .transaction-date {
-    font-size: 11px;
-    font-weight: 700;
-    color: #00d9ff;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(0, 217, 255, 0.7);
     letter-spacing: 0.5px;
     text-transform: uppercase;
     white-space: nowrap;
@@ -1227,6 +1241,15 @@ body::before {
     min-width: 90px;
     order: 1;
     position: relative;
+    padding-left: 8px;
+}
+
+.split-left .transaction-date::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: rgba(0, 217, 255, 0.4);
+    font-size: 8px;
 }
 
 /* Date format spans - show full by default */
@@ -1243,7 +1266,7 @@ body::before {
 .split-left .transaction-payee {
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(0, 217, 255, 0.9);
     white-space: nowrap;
     overflow: visible; /* Changed from hidden */
     text-overflow: clip; /* No ellipsis - we compress date instead */
@@ -1254,6 +1277,7 @@ body::before {
 
 /* CATEGORY THIRD - Secondary info (squeezes then hides) */
 .split-left .transaction-category {
+    display: none; /* Hidden in transaction list to save space */
     font-size: 9px;
     color: rgba(0, 217, 255, 0.5);
     text-transform: uppercase;

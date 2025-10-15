@@ -848,9 +848,11 @@ body::before {
 
 /* Detail Panel Specific - Sticky Action Buttons */
 .split-right .panel-content .action-buttons {
-    position: sticky;
+    position: absolute;
     bottom: 0;
-    margin-top: auto;
+    left: 0;
+    right: 0;
+    margin-top: 0;
 }
 
 /* =============================================================================
@@ -1141,6 +1143,7 @@ body::before {
     overflow: hidden;
     padding: 0;
     background: rgba(0, 0, 0, 0.3);
+    position: relative;
 }
 
 .split-right .panel-content {
@@ -1149,6 +1152,7 @@ body::before {
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+    padding-bottom: 80px; /* Space for action buttons */
 }
 
 /* Transaction List in Split View - Separated Items */
@@ -1179,13 +1183,6 @@ body::before {
     margin-bottom: 10px;
     background: transparent;
     border-bottom: 1px solid rgba(0, 217, 255, 0.2);
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    backdrop-filter: blur(10px);
-    background: linear-gradient(to bottom, 
-        rgba(10, 13, 21, 0.95) 0%, 
-        rgba(10, 13, 21, 0.85) 100%);
     display: flex;
     align-items: center;
     gap: 10px;

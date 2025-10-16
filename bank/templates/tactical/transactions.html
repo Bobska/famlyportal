@@ -103,38 +103,40 @@
                 
                 <!-- Transaction Details (Hidden by default, shown via JS) -->
                 <div class="panel-content" id="transactionDetails" style="display: none;">
-                    <div class="detail-grid">
-                        <div class="detail-section">
-                            <div class="detail-label">Transaction Type</div>
-                            <div class="detail-value" id="detailType">-</div>
-                        </div>
-                        
-                        <div class="detail-section">
-                            <div class="detail-label">Transaction Date</div>
-                            <div class="detail-value" id="detailDate">-</div>
-                        </div>
-                        
-                        <div class="detail-section">
-                            <div class="detail-label">Payee / Merchant</div>
-                            <div class="detail-value" id="detailPayee">-</div>
-                        </div>
-                        
-                        <div class="detail-section">
-                            <div class="detail-label">Category</div>
-                            <div class="detail-value" id="detailCategory">-</div>
-                        </div>
-                        
-                        <div class="detail-section detail-full">
-                            <div class="detail-label">Amount</div>
-                            <div class="detail-value large" id="detailAmount">-</div>
-                        </div>
-                        
-                        <div class="detail-section detail-full">
-                            <div class="detail-label">Additional Notes</div>
-                            <div class="detail-value" id="detailNotes">-</div>
+                    <div class="panel-scroll">
+                        <div class="detail-grid">
+                            <div class="detail-section">
+                                <div class="detail-label">Transaction Type</div>
+                                <div class="detail-value" id="detailType">-</div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Transaction Date</div>
+                                <div class="detail-value" id="detailDate">-</div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Payee / Merchant</div>
+                                <div class="detail-value" id="detailPayee">-</div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Category</div>
+                                <div class="detail-value" id="detailCategory">-</div>
+                            </div>
+                            
+                            <div class="detail-section detail-full">
+                                <div class="detail-label">Amount</div>
+                                <div class="detail-value large" id="detailAmount">-</div>
+                            </div>
+                            
+                            <div class="detail-section detail-full">
+                                <div class="detail-label">Additional Notes</div>
+                                <div class="detail-value" id="detailNotes">-</div>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <div class="action-buttons">
                         <button class="action-btn" onclick="editTransaction()">EDIT TRANSACTION</button>
                         <button class="action-btn" onclick="deleteTransaction()">DELETE TRANSACTION</button>
@@ -143,48 +145,50 @@
                 
                 <!-- Delete Confirmation (Hidden by default, shown via JS) -->
                 <div class="panel-content" id="deleteConfirmView" style="display: none;">
-                    <div style="text-align: center; padding: 20px 15px 16px; border-bottom: 1px solid rgba(255, 136, 0, 0.3);">
-                        <div style="font-size: 40px; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(255, 136, 0, 0.6));">⚠️</div>
-                        <div style="font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: #ff8800; letter-spacing: 2px; margin-bottom: 6px; text-shadow: 0 0 10px rgba(255, 136, 0, 0.4);">
-                            CONFIRM DELETION
+                    <div class="panel-scroll">
+                        <div style="text-align: center; padding: 20px 15px 16px; border-bottom: 1px solid rgba(255, 136, 0, 0.3);">
+                            <div style="font-size: 40px; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(255, 136, 0, 0.6));">⚠️</div>
+                            <div style="font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: #ff8800; letter-spacing: 2px; margin-bottom: 6px; text-shadow: 0 0 10px rgba(255, 136, 0, 0.4);">
+                                CONFIRM DELETION
+                            </div>
+                            <div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: rgba(255, 136, 0, 0.7); letter-spacing: 1px;">
+                                THIS ACTION CANNOT BE UNDONE
+                            </div>
                         </div>
-                        <div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: rgba(255, 136, 0, 0.7); letter-spacing: 1px;">
-                            THIS ACTION CANNOT BE UNDONE
+                        
+                        <div class="detail-grid">
+                            <div class="detail-section">
+                                <div class="detail-label">Transaction Type</div>
+                                <div class="detail-value" id="deleteConfirmType">-</div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Transaction Date</div>
+                                <div class="detail-value" id="deleteConfirmDate">-</div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Payee / Merchant</div>
+                                <div class="detail-value" id="deleteConfirmPayee">-</div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <div class="detail-label">Category</div>
+                                <div class="detail-value" id="deleteConfirmCategory">-</div>
+                            </div>
+                            
+                            <div class="detail-section detail-full">
+                                <div class="detail-label">Amount</div>
+                                <div class="detail-value large" id="deleteConfirmAmount">-</div>
+                            </div>
+                            
+                            <div class="detail-section detail-full">
+                                <div class="detail-label">Additional Notes</div>
+                                <div class="detail-value" id="deleteConfirmNotes">-</div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="detail-grid">
-                        <div class="detail-section">
-                            <div class="detail-label">Transaction Type</div>
-                            <div class="detail-value" id="deleteConfirmType">-</div>
-                        </div>
-                        
-                        <div class="detail-section">
-                            <div class="detail-label">Transaction Date</div>
-                            <div class="detail-value" id="deleteConfirmDate">-</div>
-                        </div>
-                        
-                        <div class="detail-section">
-                            <div class="detail-label">Payee / Merchant</div>
-                            <div class="detail-value" id="deleteConfirmPayee">-</div>
-                        </div>
-                        
-                        <div class="detail-section">
-                            <div class="detail-label">Category</div>
-                            <div class="detail-value" id="deleteConfirmCategory">-</div>
-                        </div>
-                        
-                        <div class="detail-section detail-full">
-                            <div class="detail-label">Amount</div>
-                            <div class="detail-value large" id="deleteConfirmAmount">-</div>
-                        </div>
-                        
-                        <div class="detail-section detail-full">
-                            <div class="detail-label">Additional Notes</div>
-                            <div class="detail-value" id="deleteConfirmNotes">-</div>
-                        </div>
-                    </div>
-                    
+
                     <div class="action-buttons">
                         <button class="action-btn" onclick="cancelDelete()" style="background: rgba(0, 217, 255, 0.08); border-color: rgba(0, 217, 255, 0.3);">
                             CANCEL
@@ -197,62 +201,64 @@
                 
                 <!-- Add/Edit Form (Hidden by default, shown via JS) -->
                 <div class="panel-content" id="transactionForm" style="display: none;">
-                    <div class="form-grid">
-                        <div class="form-section">
-                            <label class="form-label">Transaction Type</label>
-                            <select class="filter-select" id="formType">
-                                <option value="income">Income</option>
-                                <option value="expense">Expense</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-section">
-                            <label class="form-label">Transaction Date</label>
-                            <input type="date" class="filter-input" id="formDate" />
-                        </div>
-                        
-                        <div class="form-section form-full">
-                            <label class="form-label">Payee / Merchant Name</label>
-                            <div style="display: flex; gap: 8px; align-items: stretch;">
-                                <select class="filter-select" id="formPayee" style="flex: 1;">
-                                    <option value="">Select payee or merchant...</option>
-                                    {% for payee in payees %}
-                                    <option value="{{ payee.name }}">{{ payee.name }}</option>
-                                    {% endfor %}
+                    <div class="panel-scroll">
+                        <div class="form-grid">
+                            <div class="form-section">
+                                <label class="form-label">Transaction Type</label>
+                                <select class="filter-select" id="formType">
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
                                 </select>
-                                <button class="form-add-btn" onclick="showPayeeQuickAdd()" title="Add new payee">
-                                    <span style="font-size: 16px;">➕</span>
-                                </button>
                             </div>
-                        </div>
-                        
-                        <div class="form-section">
-                            <label class="form-label">Transaction Amount</label>
-                            <input type="number" class="filter-input" id="formAmount" placeholder="0.00" step="0.01" />
-                        </div>
-                        
-                        <div class="form-section">
-                            <label class="form-label">Category</label>
-                            <div style="display: flex; gap: 8px; align-items: stretch;">
-                                <select class="filter-select" id="formCategory" style="flex: 1;">
-                                    <option value="">Select category...</option>
-                                    {% for category in categories %}
-                                    <option value="{{ category.id }}">{{ category.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button class="form-add-btn" onclick="showCategoryQuickAdd()" title="Add new category">
-                                    <span style="font-size: 16px;">➕</span>
-                                </button>
+                            
+                            <div class="form-section">
+                                <label class="form-label">Transaction Date</label>
+                                <input type="date" class="filter-input" id="formDate" />
                             </div>
-                        </div>
-                        
-                        <div class="form-section form-full">
-                            <label class="form-label">Additional Notes (Optional)</label>
-                            <textarea class="filter-input" id="formNotes" rows="2" placeholder="Enter additional transaction details..."></textarea>
+                            
+                            <div class="form-section form-full">
+                                <label class="form-label">Payee / Merchant Name</label>
+                                <div style="display: flex; gap: 8px; align-items: stretch;">
+                                    <select class="filter-select" id="formPayee" style="flex: 1;">
+                                        <option value="">Select payee or merchant...</option>
+                                        {% for payee in payees %}
+                                        <option value="{{ payee.name }}">{{ payee.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="form-add-btn" onclick="showPayeeQuickAdd()" title="Add new payee">
+                                        <span style="font-size: 16px;">➕</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <label class="form-label">Transaction Amount</label>
+                                <input type="number" class="filter-input" id="formAmount" placeholder="0.00" step="0.01" />
+                            </div>
+                            
+                            <div class="form-section">
+                                <label class="form-label">Category</label>
+                                <div style="display: flex; gap: 8px; align-items: stretch;">
+                                    <select class="filter-select" id="formCategory" style="flex: 1;">
+                                        <option value="">Select category...</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="form-add-btn" onclick="showCategoryQuickAdd()" title="Add new category">
+                                        <span style="font-size: 16px;">➕</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section form-full">
+                                <label class="form-label">Additional Notes (Optional)</label>
+                                <textarea class="filter-input" id="formNotes" rows="2" placeholder="Enter additional transaction details..."></textarea>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="action-buttons" style="margin-top: 20px;">
+
+                    <div class="action-buttons">
                         <button class="action-btn primary" onclick="saveTransaction()">SAVE TRANSACTION</button>
                         <button class="action-btn" onclick="cancelForm()">CANCEL</button>
                     </div>

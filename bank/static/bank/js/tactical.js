@@ -995,28 +995,34 @@ function updateViewPeriodText() {
 function filterTransactionsByView() {
     const transactions = document.querySelectorAll('.transaction-item');
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // Normalize to start of day for comparisons
     
     // Track visible items for animation
     let visibleIndex = 0;
     
     transactions.forEach(item => {
-        const dateStr = item.dataset.date; // Assumes transaction items have data-date attribute
+        const dateStr = item.dataset.date; // Assumes transaction items have data-date attribute (YYYY-MM-DD)
         if (!dateStr) {
             item.style.display = ''; // Show if no date
             animateTransactionItem(item, visibleIndex++);
             return;
         }
         
-        const txDate = new Date(dateStr);
+        // Parse date string (YYYY-MM-DD) and normalize to start of day
+        const txDate = new Date(dateStr + 'T00:00:00');
         let show = false;
         
         if (transactionView === 'all') {
             show = true;
         } else if (transactionView === 'week') {
+            // Calculate week start (Sunday) and end (Saturday)
             const weekStart = new Date(now);
             weekStart.setDate(now.getDate() - now.getDay() + (viewOffset * 7));
+            weekStart.setHours(0, 0, 0, 0);
+            
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
             
             show = txDate >= weekStart && txDate <= weekEnd;
         } else if (transactionView === 'month') {
@@ -1041,6 +1047,13 @@ function filterTransactionsByView() {
             item.style.transform = 'translateX(-15px)';
             item.style.visibility = 'hidden';
         }
+    });
+    
+    // Hide date group containers if all items within are hidden
+    document.querySelectorAll('.transaction-date-group').forEach(group => {
+        const items = group.querySelectorAll('.transaction-item');
+        const hasVisible = Array.from(items).some(item => item.style.display !== 'none');
+        group.style.display = hasVisible ? '' : 'none';
     });
     
     // Update summary counts

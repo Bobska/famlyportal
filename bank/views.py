@@ -798,6 +798,29 @@ def weekly_expanse(request):
 
 
 @login_required
+def maintenance(request):
+    """Maintenance page for managing payees, categories, and their relationships."""
+    # Get all categories and payees for the user
+    categories = Category.objects.filter(user=request.user).prefetch_related('payees').order_by('name')
+    payees = Payee.objects.filter(user=request.user).prefetch_related('categories').order_by('name')
+    
+    # Calculate statistics
+    total_links = sum(category.payees.count() for category in categories)
+    unlinked_categories = sum(1 for category in categories if category.payees.count() == 0)
+    unlinked_payees = sum(1 for payee in payees if payee.categories.count() == 0)
+    unlinked_count = unlinked_categories + unlinked_payees
+    
+    context = {
+        'categories': categories,
+        'payees': payees,
+        'total_links': total_links,
+        'unlinked_count': unlinked_count,
+    }
+    
+    return render(request, 'tactical/maintenance.html', context)
+
+
+@login_required
 def transactions(request):
     """Tactical transactions management view with full CRUD operations."""
     # Get all income and expense transactions

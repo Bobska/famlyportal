@@ -1,0 +1,660 @@
+{% extends 'tactical/tactical_base.html' %}
+
+{% block title %}System Maintenance{% endblock %}
+
+{% block content %}
+    <!-- LEFT PANEL: Quick Actions -->
+    <div class="tactical-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="panel-header">
+            <div class="panel-title">Quick Actions</div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn primary" onclick="showAddCategory()">
+                + ADD CATEGORY
+            </button>
+            <button class="action-btn primary" onclick="showAddPayee()">
+                + ADD PAYEE
+            </button>
+        </div>
+        
+        <div class="panel-header" style="margin-top: 30px;">
+            <div class="panel-title">Statistics</div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item neutral">
+                <span class="stat-label">CATEGORIES</span>
+                <span class="stat-value" id="totalCategories">{{ categories|length }}</span>
+            </div>
+            
+            <div class="stat-item neutral">
+                <span class="stat-label">PAYEES</span>
+                <span class="stat-value" id="totalPayees">{{ payees|length }}</span>
+            </div>
+            
+            <div class="stat-item income">
+                <span class="stat-label">LINKS</span>
+                <span class="stat-value" id="totalLinks">{{ total_links }}</span>
+            </div>
+            
+            <div class="stat-item expense">
+                <span class="stat-label">UNLINKED</span>
+                <span class="stat-value" id="totalUnlinked">{{ unlinked_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CENTER PANEL: Two-Column Management Interface -->
+    <div class="tactical-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="panel-header">
+            <div class="panel-title">Link Management</div>
+            <div class="panel-subtitle">Select category or payee to view relationships</div>
+        </div>
+        
+        <!-- Two-column split -->
+        <div class="maintenance-split">
+            <!-- Left Column: Categories -->
+            <div class="maintenance-column">
+                <div class="column-header">
+                    <div class="column-title">CATEGORIES</div>
+                    <div class="column-meta" id="categoryCount">{{ categories|length }} items</div>
+                </div>
+                
+                <div class="maintenance-list" id="categoryList">
+                    {% for category in categories %}
+                    <div class="maintenance-item" 
+                         data-id="{{ category.id }}" 
+                         data-type="category"
+                         data-name="{{ category.name }}"
+                         onclick="selectCategory({{ category.id }}, '{{ category.name|escapejs }}')">
+                        <div class="item-icon">📁</div>
+                        <div class="item-info">
+                            <div class="item-name">{{ category.name }}</div>
+                            <div class="item-meta">{{ category.payees.count }} linked payee{{ category.payees.count|pluralize }}</div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="item-action-btn" onclick="editCategory({{ category.id }}, '{{ category.name|escapejs }}'); event.stopPropagation();" title="Edit">
+                                ✎
+                            </button>
+                            <button class="item-action-btn delete" onclick="deleteCategory({{ category.id }}, '{{ category.name|escapejs }}'); event.stopPropagation();" title="Delete">
+                                🗑
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-list">
+                        <div class="empty-icon">📂</div>
+                        <div class="empty-text">No categories yet</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Right Column: Payees -->
+            <div class="maintenance-column">
+                <div class="column-header">
+                    <div class="column-title">PAYEES / MERCHANTS</div>
+                    <div class="column-meta" id="payeeCount">{{ payees|length }} items</div>
+                </div>
+                
+                <div class="maintenance-list" id="payeeList">
+                    {% for payee in payees %}
+                    <div class="maintenance-item" 
+                         data-id="{{ payee.id }}" 
+                         data-type="payee"
+                         data-name="{{ payee.name }}"
+                         onclick="selectPayee({{ payee.id }}, '{{ payee.name|escapejs }}')">
+                        <div class="item-icon">🏪</div>
+                        <div class="item-info">
+                            <div class="item-name">{{ payee.name }}</div>
+                            <div class="item-meta">{{ payee.categories.count }} linked categor{{ payee.categories.count|pluralize:"y,ies" }}</div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="item-action-btn" onclick="editPayee({{ payee.id }}, '{{ payee.name|escapejs }}'); event.stopPropagation();" title="Edit">
+                                ✎
+                            </button>
+                            <button class="item-action-btn delete" onclick="deletePayee({{ payee.id }}, '{{ payee.name|escapejs }}'); event.stopPropagation();" title="Delete">
+                                🗑
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-list">
+                        <div class="empty-icon">🏬</div>
+                        <div class="empty-text">No payees yet</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Detail View / Actions -->
+    <div class="tactical-panel">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        
+        <div class="panel-header">
+            <div class="panel-title">Details</div>
+        </div>
+        
+        <!-- Default empty state -->
+        <div class="panel-content" id="detailsEmptyState">
+            <div class="empty-state">
+                <div class="empty-state-icon">👈</div>
+                <div class="empty-state-title">SELECT ITEM</div>
+                <div class="empty-state-text">Click a category or payee to view details and manage links</div>
+            </div>
+        </div>
+        
+        <!-- Category Details View -->
+        <div class="panel-content" id="categoryDetailsView" style="display: none;">
+            <div class="panel-scroll">
+                <div class="detail-grid">
+                    <div class="detail-section detail-full">
+                        <div class="detail-label">Category Name</div>
+                        <div class="detail-value large" id="selectedCategoryName">-</div>
+                    </div>
+                    
+                    <div class="detail-section detail-full">
+                        <div class="detail-label">Linked Payees</div>
+                        <div id="linkedPayeesList" class="linked-items-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section detail-full">
+                        <div class="detail-label">Add New Link</div>
+                        <select class="filter-select" id="addPayeeToCategory">
+                            <option value="">Select payee to link...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="action-btn primary" onclick="addPayeeToCategoryLink()">ADD LINK</button>
+                <button class="action-btn" onclick="clearSelection()">CLOSE</button>
+            </div>
+        </div>
+        
+        <!-- Payee Details View -->
+        <div class="panel-content" id="payeeDetailsView" style="display: none;">
+            <div class="panel-scroll">
+                <div class="detail-grid">
+                    <div class="detail-section detail-full">
+                        <div class="detail-label">Payee Name</div>
+                        <div class="detail-value large" id="selectedPayeeName">-</div>
+                    </div>
+                    
+                    <div class="detail-section detail-full">
+                        <div class="detail-label">Linked Categories</div>
+                        <div id="linkedCategoriesList" class="linked-items-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section detail-full">
+                        <div class="detail-label">Add New Link</div>
+                        <select class="filter-select" id="addCategoryToPayee">
+                            <option value="">Select category to link...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="action-btn primary" onclick="addCategoryToPayeeLink()">ADD LINK</button>
+                <button class="action-btn" onclick="clearSelection()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Maintenance page specific styles */
+.maintenance-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    height: 100%;
+    min-height: 500px;
+    background: rgba(0, 217, 255, 0.1);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.maintenance-column {
+    background: rgba(0, 15, 25, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.column-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.3);
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.column-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    color: rgba(0, 217, 255, 0.9);
+    margin-bottom: 4px;
+}
+
+.column-meta {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.maintenance-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.maintenance-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 6px;
+    background: rgba(0, 217, 255, 0.03);
+    border: 1px solid rgba(0, 217, 255, 0.15);
+    border-left: 3px solid rgba(0, 217, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.maintenance-item:hover {
+    background: rgba(0, 217, 255, 0.08);
+    border-left-color: rgba(0, 217, 255, 0.6);
+    transform: translateX(2px);
+}
+
+.maintenance-item.selected {
+    background: rgba(0, 217, 255, 0.15);
+    border-left-color: rgba(0, 217, 255, 1);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+}
+
+.maintenance-item.highlighted {
+    background: rgba(0, 255, 136, 0.1);
+    border-left-color: rgba(0, 255, 136, 0.6);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.item-icon {
+    font-size: 20px;
+    opacity: 0.8;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2px;
+}
+
+.item-meta {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.item-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.maintenance-item:hover .item-actions {
+    opacity: 1;
+}
+
+.item-action-btn {
+    background: rgba(0, 217, 255, 0.1);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: rgba(0, 217, 255, 0.9);
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.item-action-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+    border-color: rgba(0, 217, 255, 0.6);
+    color: rgba(0, 217, 255, 1);
+}
+
+.item-action-btn.delete {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.3);
+    color: rgba(255, 68, 68, 0.9);
+}
+
+.item-action-btn.delete:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.6);
+    color: rgba(255, 68, 68, 1);
+}
+
+.empty-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.3;
+}
+
+.empty-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.linked-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.linked-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-left: 3px solid rgba(0, 255, 136, 0.5);
+}
+
+.linked-item-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.unlink-btn {
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    color: rgba(255, 68, 68, 0.8);
+    padding: 4px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+}
+
+.unlink-btn:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.6);
+    color: rgba(255, 68, 68, 1);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedCategoryId = null;
+let selectedPayeeId = null;
+
+function selectCategory(categoryId, categoryName) {
+    // Clear payee selection
+    selectedPayeeId = null;
+    selectedCategoryId = categoryId;
+    
+    // Update UI
+    clearAllSelections();
+    document.querySelector(`.maintenance-item[data-type="category"][data-id="${categoryId}"]`).classList.add('selected');
+    
+    // Hide empty state, show category details
+    document.getElementById('detailsEmptyState').style.display = 'none';
+    document.getElementById('payeeDetailsView').style.display = 'none';
+    document.getElementById('categoryDetailsView').style.display = 'block';
+    
+    // Update category name
+    document.getElementById('selectedCategoryName').textContent = categoryName;
+    
+    // Fetch and display linked payees
+    fetchCategoryPayees(categoryId);
+}
+
+function selectPayee(payeeId, payeeName) {
+    // Clear category selection
+    selectedCategoryId = null;
+    selectedPayeeId = payeeId;
+    
+    // Update UI
+    clearAllSelections();
+    document.querySelector(`.maintenance-item[data-type="payee"][data-id="${payeeId}"]`).classList.add('selected');
+    
+    // Hide empty state, show payee details
+    document.getElementById('detailsEmptyState').style.display = 'none';
+    document.getElementById('categoryDetailsView').style.display = 'none';
+    document.getElementById('payeeDetailsView').style.display = 'block';
+    
+    // Update payee name
+    document.getElementById('selectedPayeeName').textContent = payeeName;
+    
+    // Fetch and display linked categories
+    fetchPayeeCategories(payeeName);
+}
+
+function clearAllSelections() {
+    document.querySelectorAll('.maintenance-item.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+    document.querySelectorAll('.maintenance-item.highlighted').forEach(item => {
+        item.classList.remove('highlighted');
+    });
+}
+
+function clearSelection() {
+    selectedCategoryId = null;
+    selectedPayeeId = null;
+    clearAllSelections();
+    
+    document.getElementById('categoryDetailsView').style.display = 'none';
+    document.getElementById('payeeDetailsView').style.display = 'none';
+    document.getElementById('detailsEmptyState').style.display = 'block';
+}
+
+function fetchCategoryPayees(categoryId) {
+    // Get URL from data attribute
+    const urlData = document.getElementById('tacticalUrlData');
+    const url = urlData.dataset.getCategoryPayeesUrl.replace('0', categoryId);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const linkedList = document.getElementById('linkedPayeesList');
+            const addSelect = document.getElementById('addPayeeToCategory');
+            
+            if (data.success && data.payees.length > 0) {
+                // Display linked payees
+                linkedList.innerHTML = data.payees.map(payee => `
+                    <div class="linked-item">
+                        <span class="linked-item-name">🏪 ${payee.name}</span>
+                        <button class="unlink-btn" onclick="unlinkPayeeFromCategory(${categoryId}, '${payee.name}')">UNLINK</button>
+                    </div>
+                `).join('');
+                
+                // Highlight linked payees in the list
+                data.payees.forEach(payee => {
+                    const payeeItem = document.querySelector(`.maintenance-item[data-type="payee"][data-name="${payee.name}"]`);
+                    if (payeeItem) {
+                        payeeItem.classList.add('highlighted');
+                    }
+                });
+                
+                // Populate unlinked payees in dropdown
+                const allPayees = Array.from(document.querySelectorAll('.maintenance-item[data-type="payee"]'));
+                const linkedNames = data.payees.map(p => p.name);
+                const unlinkedPayees = allPayees.filter(item => !linkedNames.includes(item.dataset.name));
+                
+                addSelect.innerHTML = '<option value="">Select payee to link...</option>' +
+                    unlinkedPayees.map(item => `<option value="${item.dataset.name}">${item.dataset.name}</option>`).join('');
+            } else {
+                linkedList.innerHTML = '<div class="empty-text">No linked payees</div>';
+                
+                // All payees available for linking
+                const allPayees = Array.from(document.querySelectorAll('.maintenance-item[data-type="payee"]'));
+                addSelect.innerHTML = '<option value="">Select payee to link...</option>' +
+                    allPayees.map(item => `<option value="${item.dataset.name}">${item.dataset.name}</option>`).join('');
+            }
+        })
+        .catch(error => console.error('Error fetching category payees:', error));
+}
+
+function fetchPayeeCategories(payeeName) {
+    // Get URL from data attribute
+    const urlData = document.getElementById('tacticalUrlData');
+    const url = urlData.dataset.getPayeeCategoriesUrl.replace('PAYEE_NAME', encodeURIComponent(payeeName));
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const linkedList = document.getElementById('linkedCategoriesList');
+            const addSelect = document.getElementById('addCategoryToPayee');
+            
+            if (data.success && data.categories.length > 0) {
+                // Display linked categories
+                linkedList.innerHTML = data.categories.map(cat => `
+                    <div class="linked-item">
+                        <span class="linked-item-name">📁 ${cat.name}</span>
+                        <button class="unlink-btn" onclick="unlinkCategoryFromPayee('${payeeName}', ${cat.id})">UNLINK</button>
+                    </div>
+                `).join('');
+                
+                // Highlight linked categories in the list
+                data.categories.forEach(cat => {
+                    const catItem = document.querySelector(`.maintenance-item[data-type="category"][data-id="${cat.id}"]`);
+                    if (catItem) {
+                        catItem.classList.add('highlighted');
+                    }
+                });
+                
+                // Populate unlinked categories in dropdown
+                const allCategories = Array.from(document.querySelectorAll('.maintenance-item[data-type="category"]'));
+                const linkedIds = data.categories.map(c => c.id.toString());
+                const unlinkedCategories = allCategories.filter(item => !linkedIds.includes(item.dataset.id));
+                
+                addSelect.innerHTML = '<option value="">Select category to link...</option>' +
+                    unlinkedCategories.map(item => `<option value="${item.dataset.id}">${item.dataset.name}</option>`).join('');
+            } else {
+                linkedList.innerHTML = '<div class="empty-text">No linked categories</div>';
+                
+                // All categories available for linking
+                const allCategories = Array.from(document.querySelectorAll('.maintenance-item[data-type="category"]'));
+                addSelect.innerHTML = '<option value="">Select category to link...</option>' +
+                    allCategories.map(item => `<option value="${item.dataset.id}">${item.dataset.name}</option>`).join('');
+            }
+        })
+        .catch(error => console.error('Error fetching payee categories:', error));
+}
+
+// Placeholder functions - to be implemented
+function showAddCategory() {
+    alert('Add Category functionality - to be implemented');
+}
+
+function showAddPayee() {
+    alert('Add Payee functionality - to be implemented');
+}
+
+function editCategory(id, name) {
+    alert(`Edit Category: ${name} (ID: ${id}) - to be implemented`);
+}
+
+function deleteCategory(id, name) {
+    if (confirm(`Delete category "${name}"? This will remove all links.`)) {
+        alert(`Delete Category: ${name} (ID: ${id}) - to be implemented`);
+    }
+}
+
+function editPayee(id, name) {
+    alert(`Edit Payee: ${name} (ID: ${id}) - to be implemented`);
+}
+
+function deletePayee(id, name) {
+    if (confirm(`Delete payee "${name}"? This will remove all links.`)) {
+        alert(`Delete Payee: ${name} (ID: ${id}) - to be implemented`);
+    }
+}
+
+function addPayeeToCategoryLink() {
+    const select = document.getElementById('addPayeeToCategory');
+    const payeeName = select.value;
+    
+    if (!payeeName) {
+        alert('Please select a payee to link');
+        return;
+    }
+    
+    alert(`Link ${payeeName} to category ${selectedCategoryId} - to be implemented`);
+}
+
+function addCategoryToPayeeLink() {
+    const select = document.getElementById('addCategoryToPayee');
+    const categoryId = select.value;
+    
+    if (!categoryId) {
+        alert('Please select a category to link');
+        return;
+    }
+    
+    alert(`Link category ${categoryId} to payee ${selectedPayeeId} - to be implemented`);
+}
+
+function unlinkPayeeFromCategory(categoryId, payeeName) {
+    if (confirm(`Unlink ${payeeName} from this category?`)) {
+        alert(`Unlink ${payeeName} from category ${categoryId} - to be implemented`);
+    }
+}
+
+function unlinkCategoryFromPayee(payeeName, categoryId) {
+    if (confirm(`Unlink this category from ${payeeName}?`)) {
+        alert(`Unlink category ${categoryId} from payee ${payeeName} - to be implemented`);
+    }
+}
+</script>
+{% endblock %}

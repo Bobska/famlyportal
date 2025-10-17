@@ -250,6 +250,120 @@ window.addEventListener('DOMContentLoaded', function() {
     initializeTransactionData();
     initializeRealTimeFiltering();
     initResponsivePanels(); // Initialize responsive panel system
+    
+    // Store full category and payee lists on page load
+    storeFullCategoryList();
+    storeFullPayeeList();
+    
+    // Track selection states (user vs auto)
+    window.payeeSelectionState = 'none'; // 'none', 'user', 'auto'
+    window.categorySelectionState = 'none'; // 'none', 'user', 'auto'
+    
+    // Setup payee add button toggle and category filtering
+    const payeeSelect = document.getElementById('formPayee');
+    if (payeeSelect) {
+        // Initial state
+        togglePayeeAddButton();
+        
+        let previousPayeeValue = '';
+        
+        // Listen for changes
+        payeeSelect.addEventListener('change', function() {
+            // Skip if we're in the middle of resetting the form
+            if (window.isResettingForm) return;
+            
+            // Check if this is auto-selection from category filtering
+            const isAutoSelect = window.isFilteringFromCategory;
+            
+            // Skip if this change was triggered by category filtering payees
+            // But still update the tracking value
+            if (isAutoSelect) {
+                previousPayeeValue = payeeSelect.value;
+                return;
+            }
+            
+            togglePayeeAddButton();
+            
+            // If payee is unselected, clear state and restore full category list
+            if (!payeeSelect.value) {
+                clearPayeeSelectionState();
+                hidePayeeError();
+                hideCategoryError();
+                restoreFullCategoryListKeepSelection();
+                previousPayeeValue = '';
+                return;
+            }
+            
+            // Check if value actually changed
+            const valueChanged = payeeSelect.value !== previousPayeeValue;
+            
+            // Check if state is changing from auto to user (clicking same value to turn green)
+            const wasAutoSelected = window.payeeSelectionState === 'auto';
+            
+            previousPayeeValue = payeeSelect.value;
+            
+            // Mark as user-selected (not auto-selected)
+            markPayeeUserSelected();
+            
+            // Filter if value changed OR if transitioning from auto to user selection
+            if (valueChanged || wasAutoSelected) {
+                // Payee is selected - filter categories based on payee
+                filterCategoriesByPayee();
+            }
+        });
+    }
+    
+    // Setup payee filtering when category changes
+    const categorySelect = document.getElementById('formCategory');
+    if (categorySelect) {
+        let previousCategoryValue = '';
+        
+        categorySelect.addEventListener('change', function() {
+            // Skip if we're in the middle of resetting the form
+            if (window.isResettingForm) return;
+            
+            // Check if this is auto-selection from payee filtering
+            const isAutoSelect = window.isFilteringFromPayee;
+            
+            // Skip if this change was triggered by payee filtering categories (auto-select)
+            // But still update the tracking value
+            if (isAutoSelect) {
+                previousCategoryValue = categorySelect.value;
+                return;
+            }
+            
+            const categoryValue = categorySelect.value;
+            const payeeSelect = document.getElementById('formPayee');
+            const payeeValue = payeeSelect?.value;
+            
+            if (!categoryValue) {
+                // User unselected category - clear state and restore full payee list
+                clearCategorySelectionState();
+                hideCategoryError();
+                hidePayeeError();
+                restoreFullPayeeListKeepSelection();
+                previousCategoryValue = '';
+                return;
+            }
+            
+            // Check if value actually changed
+            const valueChanged = categoryValue !== previousCategoryValue;
+            
+            // Check if state is changing from auto to user (clicking same value to turn green)
+            const wasAutoSelected = window.categorySelectionState === 'auto';
+            
+            previousCategoryValue = categoryValue;
+            
+            // Mark as user-selected (not auto-selected)
+            markCategoryUserSelected();
+            
+            // Filter if value changed OR if transitioning from auto to user selection
+            if (valueChanged || wasAutoSelected) {
+                // Category is selected - filter payees
+                filterPayeesByCategory();
+            }
+        });
+    }
 });
 
 /**
@@ -542,6 +656,28 @@ function clearTransactionFilters() {
     });
     
     applyTransactionFilters(); // Update stats
+}
+
+/**
+ * Hides all panel views in the right panel
+ */
+function hideAllViews() {
+    const views = [
+        'detailsView',
+        'transactionDetails',
+        'transactionForm',
+        'deleteConfirmView',
+        'addPayeeView',
+        'addCategoryView',
+        'linkPayeeCategoryView'
+    ];
+    
+    views.forEach(viewId => {
+        const view = document.getElementById(viewId);
+        if (view) {
+            view.style.display = 'none';
+        }
+    });
 }
 
 /**
@@ -1109,6 +1245,9 @@ function updateSummaryCounts() {
  * and scrolls the form to the top
  */
 function resetTransactionForm() {
+    // Set flag to prevent change event handlers from running during reset
+    window.isResettingForm = true;
+    
     // Reset all form fields (original select elements)
     document.getElementById('formType').value = 'income'; // Default to income
     document.getElementById('formDate').value = new Date().toISOString().split('T')[0]; // Today's date
@@ -1173,6 +1312,16 @@ function resetTransactionForm() {
     if (rightPanel) {
         rightPanel.scrollTop = 0;
     }
+    
+    // Update payee add button visibility (show it since payee is now empty)
+    togglePayeeAddButton();
+    
+    // Restore full category and payee lists since nothing is selected
+    restoreFullCategoryList();
+    restoreFullPayeeList();
+    
+    // Clear flag to allow change event handlers to run normally
+    window.isResettingForm = false;
 }
 
 /**
@@ -1277,6 +1426,1279 @@ function ensureSelectOption(selectId, value, text) {
     return true;
 }
 
+// Quick-add inline handlers for transaction form
+function showPayeeQuickAdd() {
+    // Hide all other views
+    hideAllViews();
+    
+    // Show the add payee view
+    var view = document.getElementById('addPayeeView');
+    if (view) {
+        view.style.display = 'flex';
+        var input = document.getElementById('quickPayeeName');
+        if (input) {
+            input.value = '';
+            setTimeout(function() {
+                input.focus();
+            }, 100);
+        }
+    }
+}
+
+function cancelPayeeQuickAdd() {
+    var view = document.getElementById('addPayeeView');
+    if (view) {
+        view.style.display = 'none';
+    }
+    
+    var input = document.getElementById('quickPayeeName');
+    if (input) input.value = '';
+    
+    // Return to form view
+    var formView = document.getElementById('transactionForm');
+    if (formView) {
+        formView.style.display = 'flex';
+    }
+}
+
+/**
+ * Toggle the visibility of the payee add/link buttons based on selection
+ */
+function togglePayeeAddButton() {
+    const payeeSelect = document.getElementById('formPayee');
+    const addBtn = document.getElementById('payeeAddBtn');
+    const linkBtn = document.getElementById('payeeLinkBtn');
+    
+    if (payeeSelect && addBtn && linkBtn) {
+        // Show add button only when no payee is selected
+        // Show link button only when a payee is selected
+        if (payeeSelect.value === '') {
+            addBtn.style.display = 'block';
+            linkBtn.style.display = 'none';
+        } else {
+            addBtn.style.display = 'none';
+            linkBtn.style.display = 'block';
+        }
+    }
+}
+
+// =============================================================================
+// CATEGORY FILTERING BY PAYEE
+// =============================================================================
+
+// Global storage for full category list
+let fullCategoryList = [];
+
+/**
+ * Store the full category list on page load
+ */
+function storeFullCategoryList() {
+    const categorySelect = document.getElementById('formCategory');
+    if (!categorySelect) return;
+    
+    fullCategoryList = [];
+    Array.from(categorySelect.options).forEach(option => {
+        if (option.value) { // Skip empty placeholder option
+            fullCategoryList.push({
+                value: option.value,
+                text: option.textContent
+            });
+        }
+    });
+}
+
+/**
+ * Filter category dropdown based on selected payee's linked categories
+ * If payee has linked categories, show only those
+ * If no linked categories, show full list
+ */
+function filterCategoriesByPayee() {
+    const payeeSelect = document.getElementById('formPayee');
+    const categorySelect = document.getElementById('formCategory');
+    
+    if (!payeeSelect || !categorySelect) return;
+    
+    const payeeId = payeeSelect.value.trim();
+    
+    // If no payee selected, restore full category list
+    if (!payeeId) {
+        restoreFullCategoryList();
+        return;
+    }
+    
+    // Get the payee name from the selected option
+    const selectedOption = payeeSelect.options[payeeSelect.selectedIndex];
+    if (!selectedOption || !selectedOption.textContent) {
+        restoreFullCategoryList();
+        return;
+    }
+    
+    const payeeName = selectedOption.textContent.trim();
+    
+    // Get URL template and replace placeholder
+    const urlData = document.getElementById('tacticalUrlData');
+    if (!urlData) {
+        console.error('URL data not found');
+        restoreFullCategoryList();
+        return;
+    }
+    
+    const urlTemplate = urlData.dataset.getPayeeCategoriesUrl;
+    if (!urlTemplate) {
+        console.error('Get payee categories URL not found');
+        restoreFullCategoryList();
+        return;
+    }
+    
+    const url = urlTemplate.replace('PAYEE_NAME', encodeURIComponent(payeeName));
+    
+    // Fetch linked categories for this payee
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.has_linked_categories && data.categories.length > 0) {
+                    // Payee has linked categories - show only those
+                    hideCategoryError();
+                    updateCategoryList(data.categories, true);
+                } else {
+                    // No linked categories - show error and keep dropdown empty
+                    showCategoryError('This payee has no linked categories. Please create a link.');
+                    clearCategoryDropdown();
+                }
+            } else {
+                console.error('Error fetching payee categories:', data.error);
+                showCategoryError('Error loading categories. Please try again.');
+                clearCategoryDropdown();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching payee categories:', error);
+            showCategoryError('Error loading categories. Please try again.');
+            clearCategoryDropdown();
+        });
+}
+
+/**
+ * Update the category dropdown with specific categories
+ * @param {Array} categories - Array of category objects {id, name} or {value, text}
+ * @param {boolean} isFiltered - Whether this is a filtered list
+ */
+function updateCategoryList(categories, isFiltered = false) {
+    const categorySelect = document.getElementById('formCategory');
+    if (!categorySelect) return;
+    
+    // Always hide pills, always show dropdown
+    const quickSelectContainer = document.getElementById('categoryQuickSelect');
+    const dropdownContainer = document.getElementById('categoryDropdownContainer');
+    if (quickSelectContainer) quickSelectContainer.style.display = 'none';
+    if (dropdownContainer) dropdownContainer.style.display = 'flex';
+    
+    // Store current value
+    const currentValue = categorySelect.value;
+    
+    // Clear and rebuild options
+    categorySelect.innerHTML = '<option value="">Select category...</option>';
+    
+    // Add categories to select
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id || cat.value;
+        option.textContent = cat.name || cat.text;
+        categorySelect.appendChild(option);
+    });
+    
+    // Auto-select if only one category and this is a filtered list
+    // BUT only if category is not already selected (respect existing user selection)
+    if (isFiltered && categories.length === 1 && !currentValue) {
+        // Set flag to prevent category change from triggering payee filtering
+        window.isFilteringFromPayee = true;
+        
+        categorySelect.value = categories[0].id || categories[0].value;
+        
+        // Trigger change event to update any dependent logic (but prevent circular filtering)
+        const event = new Event('change', { bubbles: true });
+        categorySelect.dispatchEvent(event);
+        
+        // Mark as auto-selected
+        markCategoryAutoSelected();
+        
+        // Clear flag after a short delay
+        setTimeout(function() {
+            window.isFilteringFromPayee = false;
+        }, 10);
+    } else if (isFiltered && currentValue) {
+        // Category already selected - keep it if it's in the filtered list
+        const categoryValue = (cat) => (cat.id || cat.value).toString();
+        const categoryExists = categories.some(c => categoryValue(c) === currentValue);
+        if (categoryExists) {
+            categorySelect.value = currentValue;
+            // Preserve the current selection state (don't change user to auto)
+            if (window.categorySelectionState === 'user') {
+                markCategoryUserSelected();
+            } else if (window.categorySelectionState === 'auto') {
+                markCategoryAutoSelected();
+            }
+        } else {
+            // Current selection not in filtered list - reset
+            categorySelect.value = '';
+            clearCategorySelectionState();
+        }
+    } else if (isFiltered) {
+        // Multiple categories in filtered list - reset to empty to force user selection
+        categorySelect.value = '';
+        clearCategorySelectionState();
+    } else {
+        // Restoring full list (payee has no linked categories) - always reset to empty
+        categorySelect.value = '';
+        clearCategorySelectionState();
+    }
+    
+    // Rebuild custom dropdown to reflect changes
+    rebuildCustomDropdown('formCategory');
+    
+    // Update the button text to match the current selection
+    const categoryButton = document.getElementById('formCategory_button');
+    if (categoryButton && categoryButton.childNodes && categoryButton.childNodes[0]) {
+        if (categorySelect.value) {
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            if (selectedOption) {
+                categoryButton.childNodes[0].textContent = selectedOption.text;
+            }
+        } else {
+            categoryButton.childNodes[0].textContent = 'Select category...';
+        }
+    }
+}
+
+/**
+ * Restore the full category list
+ */
+function restoreFullCategoryList() {
+    if (fullCategoryList.length > 0) {
+        hideCategoryError();
+        updateCategoryList(fullCategoryList, false);
+    }
+}
+
+/**
+ * Restore the full category list while preserving current selection
+ */
+function restoreFullCategoryListKeepSelection() {
+    const categorySelect = document.getElementById('formCategory');
+    if (!categorySelect || fullCategoryList.length === 0) return;
+    
+    const currentValue = categorySelect.value;
+    
+    hideCategoryError();
+    
+    // Rebuild the dropdown with full list
+    categorySelect.innerHTML = '<option value="">Select category...</option>';
+    fullCategoryList.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id || cat.value;
+        option.textContent = cat.name || cat.text;
+        categorySelect.appendChild(option);
+    });
+    
+    // Restore previous selection if it exists in the full list
+    if (currentValue) {
+        categorySelect.value = currentValue;
+    }
+    
+    // Rebuild custom dropdown
+    rebuildCustomDropdown('formCategory');
+    
+    // Preserve the selection state color (AFTER rebuild)
+    if (currentValue && window.categorySelectionState === 'user') {
+        markCategoryUserSelected();
+    } else if (currentValue && window.categorySelectionState === 'auto') {
+        markCategoryAutoSelected();
+    }
+    
+    // Update button text
+    const categoryButton = document.getElementById('formCategory_button');
+    if (categoryButton && categoryButton.childNodes && categoryButton.childNodes[0]) {
+        if (categorySelect.value) {
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            if (selectedOption) {
+                categoryButton.childNodes[0].textContent = selectedOption.text;
+            }
+        } else {
+            categoryButton.childNodes[0].textContent = 'Select category...';
+        }
+    }
+}
+
+/**
+ * Show category error message
+ */
+function showCategoryError(message) {
+    const errorDiv = document.getElementById('categoryErrorMsg');
+    if (errorDiv) {
+        if (message) {
+            errorDiv.querySelector('strong').nextSibling.textContent = ' - ' + message + ' ';
+        }
+        errorDiv.style.display = 'block';
+    }
+}
+
+/**
+ * Hide category error message
+ */
+function hideCategoryError() {
+    const errorDiv = document.getElementById('categoryErrorMsg');
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+    }
+}
+
+/**
+ * Clear category dropdown (keep only placeholder)
+ */
+function clearCategoryDropdown() {
+    const categorySelect = document.getElementById('formCategory');
+    if (categorySelect) {
+        categorySelect.innerHTML = '<option value="">Select category...</option>';
+        categorySelect.value = '';
+        rebuildCustomDropdown('formCategory');
+        
+        // Update button text
+        const categoryButton = document.getElementById('formCategory_button');
+        if (categoryButton && categoryButton.childNodes && categoryButton.childNodes[0]) {
+            categoryButton.childNodes[0].textContent = 'Select category...';
+        }
+    }
+}
+
+/**
+ * Set selection state styling for a field
+ * @param {string} fieldId - 'formPayee' or 'formCategory'
+ * @param {string} state - 'auto', 'user', 'error', or 'none'
+ */
+function setSelectionState(fieldId, state) {
+    const select = document.getElementById(fieldId);
+    const button = document.getElementById(`${fieldId}_button`);
+    
+    if (!select || !button) return;
+    
+    // Track state globally
+    if (fieldId === 'formPayee') {
+        window.payeeSelectionState = state;
+    } else if (fieldId === 'formCategory') {
+        window.categorySelectionState = state;
+    }
+    
+    // Remove all state classes
+    select.classList.remove('auto-selected', 'user-selected', 'has-error');
+    button.classList.remove('auto-selected', 'user-selected', 'has-error');
+    
+    // Add appropriate class
+    if (state === 'auto') {
+        select.classList.add('auto-selected');
+        button.classList.add('auto-selected');
+    } else if (state === 'user') {
+        select.classList.add('user-selected');
+        button.classList.add('user-selected');
+    } else if (state === 'error') {
+        select.classList.add('has-error');
+        button.classList.add('has-error');
+    }
+}
+
+/**
+ * Mark payee as auto-selected
+ */
+function markPayeeAutoSelected() {
+    setSelectionState('formPayee', 'auto');
+}
+
+/**
+ * Mark payee as user-selected
+ */
+function markPayeeUserSelected() {
+    setSelectionState('formPayee', 'user');
+}
+
+/**
+ * Mark category as auto-selected
+ */
+function markCategoryAutoSelected() {
+    setSelectionState('formCategory', 'auto');
+}
+
+/**
+ * Mark category as user-selected
+ */
+function markCategoryUserSelected() {
+    setSelectionState('formCategory', 'user');
+}
+
+/**
+ * Clear selection state styling
+ */
+function clearPayeeSelectionState() {
+    setSelectionState('formPayee', 'none');
+}
+
+function clearCategorySelectionState() {
+    setSelectionState('formCategory', 'none');
+}
+
+/**
+ * Show payee error message
+ */
+function showPayeeError(message) {
+    const errorDiv = document.getElementById('payeeErrorMsg');
+    if (errorDiv) {
+        if (message) {
+            errorDiv.querySelector('strong').nextSibling.textContent = ' - ' + message + ' ';
+        }
+        errorDiv.style.display = 'block';
+    }
+}
+
+/**
+ * Hide payee error message
+ */
+function hidePayeeError() {
+    const errorDiv = document.getElementById('payeeErrorMsg');
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+    }
+}
+
+/**
+ * Clear payee dropdown (keep only placeholder)
+ */
+function clearPayeeDropdown() {
+    const payeeSelect = document.getElementById('formPayee');
+    if (payeeSelect) {
+        payeeSelect.innerHTML = '<option value="">Select payee or merchant...</option>';
+        payeeSelect.value = '';
+        rebuildCustomDropdown('formPayee');
+        
+        // Update button text
+        const payeeButton = document.getElementById('formPayee_button');
+        if (payeeButton && payeeButton.childNodes && payeeButton.childNodes[0]) {
+            payeeButton.childNodes[0].textContent = 'Select payee or merchant...';
+        }
+    }
+}
+
+/**
+ * Rebuild custom dropdown after options change
+ * @param {string} selectId - The ID of the select element
+ */
+function rebuildCustomDropdown(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const dropdown = document.getElementById(`${selectId}_dropdown`);
+    if (!dropdown) return;
+    
+    // Clear existing dropdown links
+    dropdown.innerHTML = '';
+    
+    // Rebuild from current select options
+    Array.from(select.options).forEach(option => {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = option.text;
+        link.dataset.value = option.value;
+        
+        if (option.selected) {
+            link.classList.add('selected');
+        }
+        
+        if (option.disabled) {
+            link.style.opacity = '0.5';
+            link.style.pointerEvents = 'none';
+        }
+        
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            select.value = this.dataset.value;
+            const event = new Event('change', { bubbles: true });
+            select.dispatchEvent(event);
+            
+            const button = document.getElementById(`${selectId}_button`);
+            if (button) {
+                if (button.childNodes && button.childNodes[0]) {
+                    button.childNodes[0].textContent = this.textContent;
+                } else {
+                    button.textContent = this.textContent;
+                }
+            }
+            
+            dropdown.querySelectorAll('a').forEach(a => a.classList.remove('selected'));
+            link.classList.add('selected');
+            dropdown.classList.remove('show');
+            const btnEl = document.getElementById(`${selectId}_button`);
+            if (btnEl) btnEl.classList.remove('active');
+        });
+        
+        dropdown.appendChild(link);
+    });
+}
+
+/**
+ * Store full payee list for later restoration
+ */
+let fullPayeeList = [];
+
+function storeFullPayeeList() {
+    const payeeSelect = document.getElementById('formPayee');
+    if (!payeeSelect) return;
+    
+    fullPayeeList = [];
+    Array.from(payeeSelect.options).forEach(option => {
+        if (option.value) { // Skip empty placeholder option
+            fullPayeeList.push({
+                value: option.value,
+                text: option.textContent
+            });
+        }
+    });
+}
+
+/**
+ * Filter payee dropdown based on selected category's linked payees
+ * If category has linked payees, show only those
+ * If no linked payees, show full list
+ */
+function filterPayeesByCategory() {
+    const categorySelect = document.getElementById('formCategory');
+    const payeeSelect = document.getElementById('formPayee');
+    
+    if (!categorySelect || !payeeSelect) return;
+    
+    const categoryId = categorySelect.value;
+    
+    if (!categoryId) {
+        restoreFullPayeeList();
+        return;
+    }
+    
+    // Get URL from data attribute
+    const urlData = document.getElementById('tacticalUrlData');
+    if (!urlData) {
+        console.error('URL data not found');
+        restoreFullPayeeList();
+        return;
+    }
+    
+    const getCategoryPayeesUrl = urlData.dataset.getCategoryPayeesUrl;
+    if (!getCategoryPayeesUrl) {
+        console.error('Category payees URL not found');
+        restoreFullPayeeList();
+        return;
+    }
+    
+    // Replace placeholder with actual category ID
+    const url = getCategoryPayeesUrl.replace('0', categoryId);
+    
+    // Fetch linked payees
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.has_linked_payees && data.payees.length > 0) {
+                // Filter to show only linked payees
+                hidePayeeError();
+                updatePayeeList(data.payees, true);
+            } else {
+                // No linked payees - show error and keep dropdown empty
+                showPayeeError('This category has no linked payees. Please create a link.');
+                clearPayeeDropdown();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching category payees:', error);
+            showPayeeError('Error loading payees. Please try again.');
+            clearPayeeDropdown();
+        });
+}
+
+/**
+ * Update payee dropdown with new list
+ * @param {Array} payees - Array of payee objects {id, name} or {value, text}
+ * @param {boolean} isFiltered - Whether this is a filtered list
+ */
+function updatePayeeList(payees, isFiltered) {
+    const payeeSelect = document.getElementById('formPayee');
+    if (!payeeSelect) return;
+    
+    // Store current value
+    const currentValue = payeeSelect.value;
+    
+    // Clear and rebuild options
+    payeeSelect.innerHTML = '<option value="">Select Payee...</option>';
+    
+    payees.forEach(payee => {
+        const option = document.createElement('option');
+        // Use NAME as value to match the original template format
+        option.value = payee.name || payee.text;
+        option.textContent = payee.name || payee.text;
+        payeeSelect.appendChild(option);
+    });
+    
+    // Auto-select if only one payee and this is a filtered list
+    // BUT only if payee is not already selected (respect existing user selection)
+    if (isFiltered && payees.length === 1 && !currentValue) {
+        // Set flag to prevent payee change from triggering category filtering
+        window.isFilteringFromCategory = true;
+        
+        payeeSelect.value = payees[0].name || payees[0].text;
+        
+        // Trigger change event to update any dependent logic
+        const event = new Event('change', { bubbles: true });
+        payeeSelect.dispatchEvent(event);
+        
+        // Mark as auto-selected
+        markPayeeAutoSelected();
+        
+        // Clear flag after a short delay to allow event to complete
+        setTimeout(function() {
+            window.isFilteringFromCategory = false;
+        }, 10);
+    } else if (isFiltered && currentValue) {
+        // Payee already selected - keep it if it's in the filtered list
+        const payeeValue = (p) => (p.name || p.text);
+        const payeeExists = payees.some(p => payeeValue(p) === currentValue);
+        if (payeeExists) {
+            payeeSelect.value = currentValue;
+            // Preserve the current selection state (don't change user to auto)
+            if (window.payeeSelectionState === 'user') {
+                markPayeeUserSelected();
+            } else if (window.payeeSelectionState === 'auto') {
+                markPayeeAutoSelected();
+            }
+        } else {
+            // Current selection not in filtered list - reset and check for auto-select
+            payeeSelect.value = '';
+            clearPayeeSelectionState();
+            
+            // If only one payee in new filtered list, auto-select it
+            if (payees.length === 1) {
+                window.isFilteringFromCategory = true;
+                
+                payeeSelect.value = payees[0].name || payees[0].text;
+                
+                const event = new Event('change', { bubbles: true });
+                payeeSelect.dispatchEvent(event);
+                
+                markPayeeAutoSelected();
+                
+                setTimeout(function() {
+                    window.isFilteringFromCategory = false;
+                }, 10);
+            }
+        }
+    } else if (isFiltered) {
+        // Multiple payees in filtered list - reset to empty to force user selection
+        payeeSelect.value = '';
+        clearPayeeSelectionState();
+    } else {
+        // Restoring full list (category has no linked payees) - always reset to empty
+        payeeSelect.value = '';
+        clearPayeeSelectionState();
+    }
+    
+    // Rebuild custom dropdown to reflect changes
+    rebuildCustomDropdown('formPayee');
+    
+    // Update the button text to match the current selection
+    const payeeButton = document.getElementById('formPayee_button');
+    if (payeeButton && payeeButton.childNodes && payeeButton.childNodes[0]) {
+        if (payeeSelect.value) {
+            const selectedOption = payeeSelect.options[payeeSelect.selectedIndex];
+            if (selectedOption) {
+                payeeButton.childNodes[0].textContent = selectedOption.text;
+            }
+        } else {
+            payeeButton.childNodes[0].textContent = 'Select payee or merchant...';
+        }
+    }
+}
+
+/**
+ * Restore full payee list (remove filtering)
+ */
+function restoreFullPayeeList() {
+    if (fullPayeeList.length > 0) {
+        hidePayeeError();
+        updatePayeeList(fullPayeeList, false);
+    }
+}
+
+/**
+ * Restore the full payee list while preserving current selection
+ */
+function restoreFullPayeeListKeepSelection() {
+    const payeeSelect = document.getElementById('formPayee');
+    if (!payeeSelect || fullPayeeList.length === 0) return;
+    
+    const currentValue = payeeSelect.value;
+    const currentState = window.payeeSelectionState;
+    
+    hidePayeeError();
+    
+    // Rebuild the dropdown with full list
+    payeeSelect.innerHTML = '<option value="">Select payee or merchant...</option>';
+    fullPayeeList.forEach(payee => {
+        const option = document.createElement('option');
+        // Use NAME as value to match template format (value and text are the same)
+        option.value = payee.value || payee.text;
+        option.textContent = payee.value || payee.text;
+        payeeSelect.appendChild(option);
+    });
+    
+    // Restore previous selection if it exists in the full list
+    if (currentValue) {
+        payeeSelect.value = currentValue;
+    }
+    
+    // Rebuild custom dropdown
+    rebuildCustomDropdown('formPayee');
+    
+    // Preserve the selection state color (AFTER rebuild)
+    if (currentValue && currentState === 'user') {
+        markPayeeUserSelected();
+    } else if (currentValue && currentState === 'auto') {
+        markPayeeAutoSelected();
+    }
+    
+    // Update button text
+    const payeeButton = document.getElementById('formPayee_button');
+    if (payeeButton && payeeButton.childNodes && payeeButton.childNodes[0]) {
+        if (payeeSelect.value) {
+            const selectedOption = payeeSelect.options[payeeSelect.selectedIndex];
+            if (selectedOption) {
+                payeeButton.childNodes[0].textContent = selectedOption.text;
+            }
+        } else {
+            payeeButton.childNodes[0].textContent = 'Select payee or merchant...';
+        }
+    }
+}
+
+function submitPayeeQuickAdd() {
+    var input = document.getElementById('quickPayeeName');
+    if (!input) return;
+    var name = input.value.trim();
+    if (!name) {
+        input.focus();
+        return;
+    }
+
+    // Get URLs from data attributes
+    var urlData = document.getElementById('tacticalUrlData');
+    if (!urlData) {
+        console.error('URL data not found');
+        return;
+    }
+    var addPayeeUrl = urlData.dataset.addPayeeUrl;
+
+    // Get CSRF token
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (!csrfToken) {
+        var cookieValue = document.cookie.split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        csrfToken = cookieValue;
+    }
+
+    // Determine transaction type from the form
+    var formType = document.getElementById('formType');
+    var transactionType = formType ? formType.value : 'expense';
+    
+    // Get optional category
+    var categorySelect = document.getElementById('quickPayeeCategory');
+    var categoryId = categorySelect ? categorySelect.value : '';
+
+    // Create form data
+    var formData = new FormData();
+    formData.append('name', name);
+    formData.append('transaction_type', transactionType);
+    if (categoryId) {
+        formData.append('category_id', categoryId);
+    }
+
+    // Call API
+    fetch(addPayeeUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Use ensureSelectOption to add the option to both select and custom dropdown
+            ensureSelectOption('formPayee', data.payee.name, data.payee.name);
+            
+            // Set the select value
+            var select = document.getElementById('formPayee');
+            if (select) {
+                select.value = data.payee.name;
+            }
+            
+            // Sync the custom dropdown UI to update the button text
+            syncCustomDropdown('formPayee', 'Select payee or merchant...');
+
+            // Hide quick-add and return to form
+            cancelPayeeQuickAdd();
+        } else {
+            // Show error message
+            alert(data.error || 'Failed to add payee');
+            input.focus();
+        }
+    })
+    .catch(error => {
+        console.error('Error adding payee:', error);
+        alert('An error occurred while adding payee');
+        input.focus();
+    });
+}
+
+function showCategoryQuickAdd() {
+    // Hide all other views
+    hideAllViews();
+    
+    // Show the add category view
+    var view = document.getElementById('addCategoryView');
+    if (view) {
+        view.style.display = 'flex';
+        var input = document.getElementById('quickCategoryName');
+        if (input) {
+            input.value = '';
+            setTimeout(function() {
+                input.focus();
+            }, 100);
+        }
+    }
+}
+
+/**
+ * Show category quick-add from within payee quick-add (navigation)
+ * Stores the payee name temporarily so we can return
+ */
+function showCategoryQuickAddFromPayee() {
+    // Store the payee name temporarily
+    var payeeInput = document.getElementById('quickPayeeName');
+    var payeeCategorySelect = document.getElementById('quickPayeeCategory');
+    if (payeeInput) {
+        // Store in sessionStorage so we can restore it
+        sessionStorage.setItem('tempPayeeName', payeeInput.value);
+        if (payeeCategorySelect) {
+            sessionStorage.setItem('tempPayeeCategoryValue', payeeCategorySelect.value);
+        }
+    }
+    
+    // Hide payee view and show category view
+    var payeeView = document.getElementById('addPayeeView');
+    var categoryView = document.getElementById('addCategoryView');
+    
+    if (payeeView) payeeView.style.display = 'none';
+    if (categoryView) {
+        categoryView.style.display = 'flex';
+        var input = document.getElementById('quickCategoryName');
+        if (input) {
+            input.value = '';
+            setTimeout(function() {
+                input.focus();
+            }, 100);
+        }
+    }
+    
+    // Set a flag so we know to return to payee view after adding category
+    sessionStorage.setItem('returnToPayeeAdd', 'true');
+}
+
+function cancelCategoryQuickAdd() {
+    var view = document.getElementById('addCategoryView');
+    if (view) {
+        view.style.display = 'none';
+    }
+    
+    var input = document.getElementById('quickCategoryName');
+    if (input) input.value = '';
+    
+    // Check if we should return to payee add view
+    var returnToPayeeAdd = sessionStorage.getItem('returnToPayeeAdd');
+    
+    if (returnToPayeeAdd === 'true') {
+        // Return to payee add view
+        var payeeView = document.getElementById('addPayeeView');
+        if (payeeView) {
+            payeeView.style.display = 'flex';
+            
+            // Restore the payee data
+            var payeeInput = document.getElementById('quickPayeeName');
+            var payeeCategorySelect = document.getElementById('quickPayeeCategory');
+            
+            if (payeeInput) {
+                payeeInput.value = sessionStorage.getItem('tempPayeeName') || '';
+            }
+            if (payeeCategorySelect) {
+                payeeCategorySelect.value = sessionStorage.getItem('tempPayeeCategoryValue') || '';
+                syncCustomDropdown('quickPayeeCategory', 'No default category');
+            }
+            
+            // Focus the payee input
+            setTimeout(function() {
+                if (payeeInput) payeeInput.focus();
+            }, 100);
+        }
+        
+        // Clear session storage
+        sessionStorage.removeItem('returnToPayeeAdd');
+        sessionStorage.removeItem('tempPayeeName');
+        sessionStorage.removeItem('tempPayeeCategoryValue');
+    } else {
+        // Check if we should return to payee-category link view
+        var returnToLink = sessionStorage.getItem('returnToPayeeCategoryLink');
+        
+        if (returnToLink === 'true') {
+            // Return to link view
+            var linkView = document.getElementById('linkPayeeCategoryView');
+            if (linkView) {
+                linkView.style.display = 'flex';
+                
+                // Restore category selection
+                var linkCategorySelect = document.getElementById('linkCategorySelect');
+                if (linkCategorySelect) {
+                    linkCategorySelect.value = sessionStorage.getItem('tempLinkCategoryValue') || '';
+                    syncCustomDropdown('linkCategorySelect', 'Select category to link...');
+                }
+            }
+            
+            // Clear session storage
+            sessionStorage.removeItem('returnToPayeeCategoryLink');
+            sessionStorage.removeItem('tempLinkCategoryValue');
+        } else {
+            // Return to form view
+            var formView = document.getElementById('transactionForm');
+            if (formView) {
+                formView.style.display = 'flex';
+            }
+        }
+    }
+}
+
+function submitCategoryQuickAdd() {
+    var input = document.getElementById('quickCategoryName');
+    if (!input) return;
+    var name = input.value.trim();
+    if (!name) {
+        input.focus();
+        return;
+    }
+
+    // Get URLs from data attributes
+    var urlData = document.getElementById('tacticalUrlData');
+    if (!urlData) {
+        console.error('URL data not found');
+        return;
+    }
+    var addCategoryUrl = urlData.dataset.addCategoryUrl;
+
+    // Get CSRF token
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (!csrfToken) {
+        var cookieValue = document.cookie.split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        csrfToken = cookieValue;
+    }
+
+    // Determine category type from the form
+    var formType = document.getElementById('formType');
+    var categoryType = formType ? formType.value : 'expense';
+
+    // Create form data
+    var formData = new FormData();
+    formData.append('name', name);
+    formData.append('category_type', categoryType);
+
+    // Call API
+    fetch(addCategoryUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add to form category dropdown
+            ensureSelectOption('formCategory', String(data.category.id), data.category.name);
+            
+            // Check if we should return to payee add view
+            var returnToPayeeAdd = sessionStorage.getItem('returnToPayeeAdd');
+            
+            if (returnToPayeeAdd === 'true') {
+                // Add category to the payee quick-add dropdown
+                ensureSelectOption('quickPayeeCategory', String(data.category.id), data.category.name);
+                
+                // Hide category view and show payee view
+                var categoryView = document.getElementById('addCategoryView');
+                var payeeView = document.getElementById('addPayeeView');
+                
+                if (categoryView) categoryView.style.display = 'none';
+                if (payeeView) {
+                    payeeView.style.display = 'flex';
+                    
+                    // Restore the payee name and select the new category
+                    var payeeInput = document.getElementById('quickPayeeName');
+                    var payeeCategorySelect = document.getElementById('quickPayeeCategory');
+                    
+                    if (payeeInput) {
+                        payeeInput.value = sessionStorage.getItem('tempPayeeName') || '';
+                    }
+                    if (payeeCategorySelect) {
+                        payeeCategorySelect.value = data.category.id;
+                        // Sync custom dropdown if it exists
+                        syncCustomDropdown('quickPayeeCategory', 'No default category');
+                    }
+                    
+                    // Focus the payee input
+                    setTimeout(function() {
+                        if (payeeInput) payeeInput.focus();
+                    }, 100);
+                }
+                
+                // Clear the session storage
+                sessionStorage.removeItem('returnToPayeeAdd');
+                sessionStorage.removeItem('tempPayeeName');
+                sessionStorage.removeItem('tempPayeeCategoryValue');
+            } else {
+                // Check if we should return to payee-category link view
+                var returnToLink = sessionStorage.getItem('returnToPayeeCategoryLink');
+                
+                if (returnToLink === 'true') {
+                    // Add category to link dropdown
+                    ensureSelectOption('linkCategorySelect', String(data.category.id), data.category.name);
+                    
+                    // Hide category view and show link view
+                    var categoryView = document.getElementById('addCategoryView');
+                    var linkView = document.getElementById('linkPayeeCategoryView');
+                    
+                    if (categoryView) categoryView.style.display = 'none';
+                    if (linkView) {
+                        linkView.style.display = 'flex';
+                        
+                        // Select the new category
+                        var linkCategorySelect = document.getElementById('linkCategorySelect');
+                        if (linkCategorySelect) {
+                            linkCategorySelect.value = data.category.id;
+                            syncCustomDropdown('linkCategorySelect', 'Select category to link...');
+                        }
+                    }
+                    
+                    // Clear session storage
+                    sessionStorage.removeItem('returnToPayeeCategoryLink');
+                    sessionStorage.removeItem('tempLinkCategoryValue');
+                } else {
+                    // Normal flow: set in form and return to form view
+                    var select = document.getElementById('formCategory');
+                    if (select) {
+                        select.value = data.category.id;
+                    }
+                    
+                    // Sync the custom dropdown UI to update the button text
+                    syncCustomDropdown('formCategory', 'Select category...');
+
+                    // Hide quick-add and return to form
+                    cancelCategoryQuickAdd();
+                }
+            }
+        } else {
+            // Show error message
+            alert(data.error || 'Failed to add category');
+            input.focus();
+        }
+    })
+    .catch(error => {
+        console.error('Error adding category:', error);
+        alert('An error occurred while adding category');
+        input.focus();
+    });
+}
+
+// =============================================================================
+// PAYEE-CATEGORY LINKING
+// =============================================================================
+
+/**
+ * Show the link category to payee modal
+ */
+function showPayeeCategoryLink() {
+    const payeeSelect = document.getElementById('formPayee');
+    const payeeName = payeeSelect ? payeeSelect.value : '';
+    
+    if (!payeeName) {
+        alert('Please select a payee first');
+        return;
+    }
+    
+    // Hide all views and show link view
+    hideAllViews();
+    
+    const linkView = document.getElementById('linkPayeeCategoryView');
+    const linkPayeeNameDisplay = document.getElementById('linkPayeeName');
+    const linkCategorySelect = document.getElementById('linkCategorySelect');
+    
+    if (linkView) {
+        linkView.style.display = 'flex';
+        
+        // Display the payee name
+        if (linkPayeeNameDisplay) {
+            linkPayeeNameDisplay.textContent = payeeName;
+        }
+        
+        // Reset category selection
+        if (linkCategorySelect) {
+            linkCategorySelect.value = '';
+            syncCustomDropdown('linkCategorySelect', 'Select category to link...');
+        }
+        
+        // Focus on category select
+        setTimeout(function() {
+            const linkCategoryButton = document.getElementById('linkCategorySelect_button');
+            if (linkCategoryButton) linkCategoryButton.focus();
+        }, 100);
+    }
+}
+
+/**
+ * Cancel payee-category linking and return to form
+ */
+function cancelPayeeCategoryLink() {
+    const linkView = document.getElementById('linkPayeeCategoryView');
+    if (linkView) {
+        linkView.style.display = 'none';
+    }
+    
+    // Reset the select
+    const linkCategorySelect = document.getElementById('linkCategorySelect');
+    if (linkCategorySelect) {
+        linkCategorySelect.value = '';
+    }
+    
+    // Return to transaction form
+    const formView = document.getElementById('transactionForm');
+    if (formView) {
+        formView.style.display = 'flex';
+    }
+}
+
+/**
+ * Submit the payee-category link
+ */
+function submitPayeeCategoryLink() {
+    const payeeSelect = document.getElementById('formPayee');
+    const linkCategorySelect = document.getElementById('linkCategorySelect');
+    
+    const payeeName = payeeSelect ? payeeSelect.value.trim() : '';
+    const categoryId = linkCategorySelect ? linkCategorySelect.value : '';
+    
+    if (!payeeName) {
+        alert('No payee selected');
+        return;
+    }
+    
+    if (!categoryId) {
+        alert('Please select a category to link');
+        const linkCategoryButton = document.getElementById('linkCategorySelect_button');
+        if (linkCategoryButton) linkCategoryButton.focus();
+        return;
+    }
+    
+    // Get URLs from data attributes
+    const urlData = document.getElementById('tacticalUrlData');
+    if (!urlData) {
+        console.error('URL data not found');
+        return;
+    }
+    const linkUrl = urlData.dataset.linkPayeeCategoryUrl;
+    
+    if (!linkUrl) {
+        console.error('Link URL not found');
+        return;
+    }
+    
+    // Get CSRF token
+    let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (!csrfToken) {
+        const cookieValue = document.cookie.split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        csrfToken = cookieValue;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('payee_name', payeeName);
+    formData.append('category_id', categoryId);
+    
+    // Call API
+    fetch(linkUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message (you could add a toast notification here)
+            console.log(`Successfully linked ${payeeName} to category`);
+            
+            // Return to form
+            cancelPayeeCategoryLink();
+        } else {
+            alert(data.error || 'Failed to link category to payee');
+        }
+    })
+    .catch(error => {
+        console.error('Error linking category:', error);
+        alert('An error occurred while linking category');
+    });
+}
+
+/**
+ * Show category quick-add from link view (to create new category and link it)
+ */
+function showCategoryQuickAddFromLink() {
+    const linkCategorySelect = document.getElementById('linkCategorySelect');
+    
+    // Store the current state
+    sessionStorage.setItem('returnToPayeeCategoryLink', 'true');
+    if (linkCategorySelect) {
+        sessionStorage.setItem('tempLinkCategoryValue', linkCategorySelect.value);
+    }
+    
+    // Hide link view and show category add view
+    const linkView = document.getElementById('linkPayeeCategoryView');
+    const categoryView = document.getElementById('addCategoryView');
+    
+    if (linkView) linkView.style.display = 'none';
+    if (categoryView) {
+        categoryView.style.display = 'flex';
+        const input = document.getElementById('quickCategoryName');
+        if (input) {
+            input.value = '';
+            setTimeout(function() {
+                input.focus();
+            }, 100);
+        }
+    }
+}
+
 /**
  * Shows the add transaction form
  * @param {string} type - 'income' or 'expense'
@@ -1294,16 +2716,22 @@ function showAddTransaction(type) {
     // Reset ALL form fields and scroll to top
     resetTransactionForm();
     
-    // Set form type to the requested type (overrides default 'income' from reset)
-    document.getElementById('formType').value = type;
-    
-    // Update the custom dropdown button for formType to match
-    const formTypeButton = document.getElementById('formType_button');
-    if (formTypeButton) {
+    // IMPORTANT: Set form type AFTER reset completes
+    // Use setTimeout to ensure reset has fully completed before updating
+    setTimeout(function() {
+        // Set form type to the requested type
         const formTypeSelect = document.getElementById('formType');
-        const selectedOption = formTypeSelect.options[formTypeSelect.selectedIndex];
-        if (selectedOption) {
-            formTypeButton.childNodes[0].textContent = selectedOption.text;
+        if (formTypeSelect) {
+            formTypeSelect.value = type;
+            
+            // Update the custom dropdown button for formType to match
+            const formTypeButton = document.getElementById('formType_button');
+            if (formTypeButton && formTypeButton.childNodes && formTypeButton.childNodes[0]) {
+                const selectedOption = formTypeSelect.options[formTypeSelect.selectedIndex];
+                if (selectedOption) {
+                    formTypeButton.childNodes[0].textContent = selectedOption.text;
+                }
+            }
             
             // Update selected state in dropdown
             const formTypeDropdown = document.getElementById('formType_dropdown');
@@ -1313,7 +2741,7 @@ function showAddTransaction(type) {
                 });
             }
         }
-    }
+    }, 0);
     
     // Clear selection state
     selectedTransactionId = null;
@@ -1380,6 +2808,9 @@ function editTransaction() {
     syncCustomDropdown('formType');
     syncCustomDropdown('formPayee', 'Select payee or merchant...');
     syncCustomDropdown('formCategory', 'Select category...');
+    
+    // Update payee add button visibility (hide it since a payee is selected)
+    togglePayeeAddButton();
     
     // Transform: Hide details, show form
     document.getElementById('transactionDetails').style.display = 'none';
@@ -1714,106 +3145,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================================================
-// PAYEE QUICK-ADD FUNCTIONALITY
+// PAYEE & CATEGORY QUICK-ADD - Using inline forms (old prompt-based removed)
 // =============================================================================
-
-/**
- * Shows a simple prompt to add a new payee via AJAX
- */
-function showPayeeQuickAdd() {
-    const payeeName = prompt('Enter new payee/merchant name:');
-    
-    if (!payeeName || payeeName.trim() === '') {
-        return; // User cancelled or entered nothing
-    }
-    
-    const trimmedName = payeeName.trim();
-    
-    // Get CSRF token
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-    
-    // Send AJAX request to create payee
-    fetch('/bank/payees/create/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: `name=${encodeURIComponent(trimmedName)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Add to dropdown
-            const payeeDropdown = document.getElementById('formPayee');
-            if (payeeDropdown) {
-                const option = document.createElement('option');
-                option.value = trimmedName;
-                option.textContent = trimmedName;
-                option.selected = true;
-                payeeDropdown.appendChild(option);
-            }
-            
-            alert(`Payee "${trimmedName}" created successfully!`);
-        } else {
-            alert(`Error: ${data.error || 'Failed to create payee'}`);
-        }
-    })
-    .catch(error => {
-        console.error('Error creating payee:', error);
-        alert('Failed to create payee. Please try again.');
-    });
-}
-
-/**
- * Shows a simple prompt to add a new category via AJAX
- */
-function showCategoryQuickAdd() {
-    const categoryName = prompt('Enter new category name:');
-    
-    if (!categoryName || categoryName.trim() === '') {
-        return; // User cancelled or entered nothing
-    }
-    
-    const trimmedName = categoryName.trim();
-    
-    // Get CSRF token
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-    
-    // Send AJAX request to create category
-    fetch('/bank/category/create/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: `name=${encodeURIComponent(trimmedName)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Add to dropdown
-            const categoryDropdown = document.getElementById('formCategory');
-            if (categoryDropdown) {
-                const option = document.createElement('option');
-                option.value = data.category.id;
-                option.textContent = trimmedName;
-                option.selected = true;
-                categoryDropdown.appendChild(option);
-            }
-            
-            alert(`Category "${trimmedName}" created successfully!`);
-        } else {
-            alert(`Error: ${data.error || 'Failed to create category'}`);
-        }
-    })
-    .catch(error => {
-        console.error('Error creating category:', error);
-        alert('Failed to create category. Please try again.');
-    });
-}
+// Quick-add functions are now defined earlier in this file (around line 1281)
+// and show inline forms instead of prompt dialogs.
 
 // =============================================================================
 // CUSTOM DROPDOWN FUNCTIONALITY
@@ -2107,4 +3442,3 @@ function initTacticalDatePickers() {
         }
     });
 }
-

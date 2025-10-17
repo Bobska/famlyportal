@@ -28,6 +28,13 @@ urlpatterns = [
     path('ajax/payees/', views.ajax_payees_content, name='ajax_payees'),
     path('ajax/categories/', views.ajax_categories_content, name='ajax_categories'),
     
+    # API Endpoints for Quick Add
+    path('api/add-payee/', views.api_add_payee, name='api_add_payee'),
+    path('api/add-category/', views.api_add_category, name='api_add_category'),
+    path('api/link-payee-category/', views.api_link_payee_category, name='api_link_payee_category'),
+    path('api/payee-categories/<str:payee_name>/', views.api_get_payee_categories, name='api_get_payee_categories'),
+    path('api/category-payees/<int:category_id>/', views.api_get_category_payees, name='api_get_category_payees'),
+    
     # Payee URLs (existing)
     path('payees/', views.get_payees, name='get_payees'),
     path('payee/add/', views.add_payee, name='add_payee'),

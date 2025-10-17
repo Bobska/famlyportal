@@ -47,7 +47,12 @@
          data-edit-expense-url="{% url 'bank:edit_expense' 0 %}"
          data-delete-income-url="{% url 'bank:delete_income' 0 %}"
          data-delete-expense-url="{% url 'bank:delete_expense' 0 %}"
-         data-transactions-url="{% url 'bank:transactions' %}">
+         data-transactions-url="{% url 'bank:transactions' %}"
+         data-add-payee-url="{% url 'bank:api_add_payee' %}"
+         data-add-category-url="{% url 'bank:api_add_category' %}"
+         data-link-payee-category-url="{% url 'bank:api_link_payee_category' %}"
+         data-get-payee-categories-url="{% url 'bank:api_get_payee_categories' 'PAYEE_NAME' %}"
+         data-get-category-payees-url="{% url 'bank:api_get_category_payees' 0 %}">
     </div>
     {% endblock %}
     

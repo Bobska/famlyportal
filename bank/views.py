@@ -829,7 +829,7 @@ def transactions(request):
         })
     
     # Sort by date descending
-    all_transactions.sort(key=lambda x: x['date'], reverse=True)
+    all_transactions.sort(key=lambda x: (x['date'], x['id']), reverse=True)
     
     # Calculate totals
     total_income = sum(income.amount for income in income_entries)
@@ -2143,4 +2143,264 @@ def ajax_categories_content(request):
             'status': 'error',
             'error': str(e),
             'html': '<div class="shell-error-panel"><h2>ERROR</h2><p>Failed to load categories view</p></div>'
+        })
+
+
+@login_required
+@require_POST
+def api_add_payee(request):
+    """API endpoint to add a new payee/merchant via AJAX."""
+    try:
+        name = request.POST.get('name', '').strip()
+        transaction_type = request.POST.get('transaction_type', 'expense')
+        category_id = request.POST.get('category_id', '').strip()
+        
+        # Validate required fields
+        if not name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Payee name is required'
+            })
+        
+        # Check for duplicate
+        if Payee.objects.filter(user=request.user, name=name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Payee "{name}" already exists'
+            })
+        
+        # Create payee
+        payee = Payee.objects.create(
+            user=request.user,
+            name=name,
+            transaction_type=transaction_type
+        )
+        
+        # Add category if provided
+        if category_id:
+            try:
+                category = Category.objects.get(id=category_id, user=request.user)
+                payee.categories.add(category)
+            except Category.DoesNotExist:
+                pass  # Ignore invalid category
+        
+        logger.info(f"User {request.user.username} added payee: {name}")
+        
+        return JsonResponse({
+            'success': True,
+            'payee': {
+                'id': payee.id,
+                'name': payee.name,
+                'transaction_type': payee.transaction_type
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error adding payee: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        })
+
+
+@login_required
+@require_POST
+def api_add_category(request):
+    """API endpoint to add a new category via AJAX."""
+    try:
+        name = request.POST.get('name', '').strip()
+        category_type = request.POST.get('category_type', 'expense')
+        description = request.POST.get('description', '').strip()
+        
+        # Validate required fields
+        if not name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category name is required'
+            })
+        
+        # Check for duplicate
+        if Category.objects.filter(user=request.user, name=name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Category "{name}" already exists'
+            })
+        
+        # Create category
+        category = Category.objects.create(
+            user=request.user,
+            name=name,
+            category_type=category_type,
+            description=description if description else None
+        )
+        
+        logger.info(f"User {request.user.username} added category: {name}")
+        
+        return JsonResponse({
+            'success': True,
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'category_type': category.category_type
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error adding category: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        })
+
+
+@login_required
+@require_POST
+def api_link_payee_category(request):
+    """API endpoint to link a category to an existing payee via AJAX."""
+    try:
+        payee_name = request.POST.get('payee_name', '').strip()
+        category_id = request.POST.get('category_id', '').strip()
+        
+        # Validate required fields
+        if not payee_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Payee name is required'
+            })
+        
+        if not category_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category is required'
+            })
+        
+        # Get the payee
+        try:
+            payee = Payee.objects.get(user=request.user, name=payee_name)
+        except Payee.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'Payee "{payee_name}" not found'
+            })
+        
+        # Get the category
+        try:
+            category = Category.objects.get(id=category_id, user=request.user)
+        except Category.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category not found'
+            })
+        
+        # Check if already linked
+        if payee.categories.filter(id=category.id).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'"{payee_name}" is already linked to "{category.name}"'
+            })
+        
+        # Link the category to the payee
+        payee.categories.add(category)
+        
+        logger.info(f"User {request.user.username} linked payee '{payee_name}' to category '{category.name}'")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully linked "{payee_name}" to "{category.name}"',
+            'payee': {
+                'id': payee.id,
+                'name': payee.name
+            },
+            'category': {
+                'id': category.id,
+                'name': category.name
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error linking payee to category: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        })
+
+
+@login_required
+def api_get_payee_categories(request, payee_name):
+    """API endpoint to get linked categories for a specific payee."""
+    try:
+        # Get the payee
+        try:
+            payee = Payee.objects.get(user=request.user, name=payee_name)
+        except Payee.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'Payee "{payee_name}" not found'
+            })
+        
+        # Get linked categories
+        linked_categories = payee.categories.all()
+        
+        # Format response
+        categories_data = [
+            {
+                'id': cat.id,
+                'name': cat.name,
+                'category_type': cat.category_type
+            }
+            for cat in linked_categories
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'payee_name': payee_name,
+            'has_linked_categories': len(categories_data) > 0,
+            'categories': categories_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting payee categories: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        })
+
+@login_required
+def api_get_category_payees(request, category_id):
+    """API endpoint to get payees linked to a specific category."""
+    try:
+        # Get the category
+        try:
+            category = Category.objects.get(user=request.user, id=category_id)
+        except Category.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'Category not found'
+            })
+        
+        # Get payees linked to this category
+        linked_payees = category.payees.all()
+        
+        # Format response
+        payees_data = [
+            {
+                'id': payee.id,
+                'name': payee.name,
+            }
+            for payee in linked_payees
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'category_id': category_id,
+            'category_name': category.name,
+            'has_linked_payees': len(payees_data) > 0,
+            'payees': payees_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting category payees: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
         })

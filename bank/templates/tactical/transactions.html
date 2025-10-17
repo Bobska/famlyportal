@@ -216,7 +216,7 @@
                                 <input type="date" class="filter-input" id="formDate" />
                             </div>
                             
-                            <div class="form-section form-full">
+                            <div class="form-section">
                                 <label class="form-label">Payee / Merchant Name</label>
                                 <div style="display: flex; gap: 8px; align-items: stretch;">
                                     <select class="filter-select" id="formPayee" style="flex: 1;">
@@ -225,30 +225,48 @@
                                         <option value="{{ payee.name }}">{{ payee.name }}</option>
                                         {% endfor %}
                                     </select>
-                                    <button class="form-add-btn" onclick="showPayeeQuickAdd()" title="Add new payee">
+                                    <button class="form-add-btn" id="payeeAddBtn" onclick="showPayeeQuickAdd()" title="Add new payee" type="button">
                                         <span style="font-size: 16px;">➕</span>
                                     </button>
+                                    <button class="form-add-btn" id="payeeLinkBtn" onclick="showPayeeCategoryLink()" title="Link category to this payee" type="button" style="display: none;">
+                                        <span style="font-size: 16px;">🔗</span>
+                                    </button>
+                                </div>
+                                <div id="payeeErrorMsg" style="display: none; margin-top: 8px; padding: 8px; background: #fee; border-left: 3px solid #c00; font-size: 13px; color: #c00;">
+                                    <strong>⚠ No linked categories</strong> - This payee must be linked to at least one category. 
+                                    <a href="#" onclick="showPayeeCategoryLink(); return false;" style="color: #c00; text-decoration: underline; font-weight: bold;">Click here to create a link</a>
                                 </div>
                             </div>
                             
                             <div class="form-section">
-                                <label class="form-label">Transaction Amount</label>
-                                <input type="number" class="filter-input" id="formAmount" placeholder="0.00" step="0.01" />
-                            </div>
-                            
-                            <div class="form-section">
                                 <label class="form-label">Category</label>
-                                <div style="display: flex; gap: 8px; align-items: stretch;">
+                                
+                                <!-- Quick select buttons for linked categories (shown when payee has 1-3 linked categories) -->
+                                <div id="categoryQuickSelect" style="display: none; margin-bottom: 8px;">
+                                    <div id="categoryButtons" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                                </div>
+                                
+                                <!-- Standard dropdown (shown when no payee or payee has no links or >3 categories) -->
+                                <div id="categoryDropdownContainer" style="display: flex; gap: 8px; align-items: stretch;">
                                     <select class="filter-select" id="formCategory" style="flex: 1;">
                                         <option value="">Select category...</option>
                                         {% for category in categories %}
                                         <option value="{{ category.id }}">{{ category.name }}</option>
                                         {% endfor %}
                                     </select>
-                                    <button class="form-add-btn" onclick="showCategoryQuickAdd()" title="Add new category">
+                                    <button class="form-add-btn" onclick="showCategoryQuickAdd()" title="Add new category" type="button">
                                         <span style="font-size: 16px;">➕</span>
                                     </button>
                                 </div>
+                                <div id="categoryErrorMsg" style="display: none; margin-top: 8px; padding: 8px; background: #fee; border-left: 3px solid #c00; font-size: 13px; color: #c00;">
+                                    <strong>⚠ No linked payees</strong> - This category must be linked to at least one payee. 
+                                    <a href="#" onclick="showPayeeCategoryLink(); return false;" style="color: #c00; text-decoration: underline; font-weight: bold;">Click here to create a link</a>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section form-full">
+                                <label class="form-label">Transaction Amount</label>
+                                <input type="number" class="filter-input" id="formAmount" placeholder="0.00" step="0.01" />
                             </div>
                             
                             <div class="form-section form-full">
@@ -261,6 +279,115 @@
                     <div class="action-buttons">
                         <button class="action-btn primary" onclick="saveTransaction()">SAVE TRANSACTION</button>
                         <button class="action-btn" onclick="cancelForm()">CANCEL</button>
+                    </div>
+                </div>
+
+                <!-- Add Payee/Merchant Modal View -->
+                <div id="addPayeeView" class="panel-content" style="display: none;">
+                    <div class="panel-scroll">
+                        <div class="panel-header" style="margin-bottom: 20px;">
+                            <div class="panel-title">Add New Payee/Merchant</div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-section form-full">
+                                <label class="form-label">Payee/Merchant Name</label>
+                                <input type="text" class="filter-input" id="quickPayeeName" placeholder="Enter payee or merchant name" />
+                            </div>
+                            
+                            <div class="form-section form-full">
+                                <label class="form-label">Default Category (Optional)</label>
+                                <div style="display: flex; gap: 8px; align-items: stretch;">
+                                    <select class="filter-select" id="quickPayeeCategory" style="flex: 1;">
+                                        <option value="">No default category</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="form-add-btn" onclick="showCategoryQuickAddFromPayee()" title="Add new category" type="button">
+                                        <span style="font-size: 16px;">➕</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="cancelPayeeQuickAdd()" style="background: rgba(0, 217, 255, 0.08); border-color: rgba(0, 217, 255, 0.3);">
+                            CANCEL
+                        </button>
+                        <button class="action-btn primary" onclick="submitPayeeQuickAdd()" type="button">
+                            ADD PAYEE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add Category Modal View -->
+                <div id="addCategoryView" class="panel-content" style="display: none;">
+                    <div class="panel-scroll">
+                        <div class="panel-header" style="margin-bottom: 20px;">
+                            <div class="panel-title">Add New Category</div>
+                        </div>
+
+                        <div class="alert-icon" style="text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 48px; color: rgba(0, 217, 255, 0.8);">📁</div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-section form-full">
+                                <label class="form-label">Category Name</label>
+                                <input type="text" class="filter-input" id="quickCategoryName" placeholder="Enter category name" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="cancelCategoryQuickAdd()" style="background: rgba(0, 217, 255, 0.08); border-color: rgba(0, 217, 255, 0.3);">
+                            CANCEL
+                        </button>
+                        <button class="action-btn primary" onclick="submitCategoryQuickAdd()" type="button">
+                            ADD CATEGORY
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Link Payee to Category Modal View -->
+                <div id="linkPayeeCategoryView" class="panel-content" style="display: none;">
+                    <div class="panel-scroll">
+                        <div class="panel-header" style="margin-bottom: 20px;">
+                            <div class="panel-title">Link Category to Payee</div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-section form-full">
+                                <label class="form-label">Payee</label>
+                                <div class="detail-value" id="linkPayeeName" style="padding: 8px; background: rgba(0, 217, 255, 0.05); border: 1px solid rgba(0, 217, 255, 0.2); border-radius: 4px;">-</div>
+                            </div>
+                            
+                            <div class="form-section form-full">
+                                <label class="form-label">Select Category to Link</label>
+                                <div style="display: flex; gap: 8px; align-items: stretch;">
+                                    <select class="filter-select" id="linkCategorySelect" style="flex: 1;">
+                                        <option value="">Select category to link...</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="form-add-btn" onclick="showCategoryQuickAddFromLink()" title="Create new category" type="button">
+                                        <span style="font-size: 16px;">➕</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="cancelPayeeCategoryLink()" style="background: rgba(0, 217, 255, 0.08); border-color: rgba(0, 217, 255, 0.3);">
+                            CANCEL
+                        </button>
+                        <button class="action-btn primary" onclick="submitPayeeCategoryLink()" type="button">
+                            LINK CATEGORY
+                        </button>
                     </div>
                 </div>
             </div>

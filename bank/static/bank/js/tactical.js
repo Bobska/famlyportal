@@ -364,7 +364,58 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Setup transaction type change listener to update payee/merchant label
+    const formTypeSelect = document.getElementById('formType');
+    if (formTypeSelect) {
+        formTypeSelect.addEventListener('change', function() {
+            updatePayeeMerchantLabel();
+        });
+    }
 });
+
+/**
+ * Update the Payee/Merchant label based on transaction type
+ */
+function updatePayeeMerchantLabel() {
+    const formTypeSelect = document.getElementById('formType');
+    const label = document.getElementById('payeeMerchantLabel');
+    const payeeSelect = document.getElementById('formPayee');
+    const payeeButton = document.getElementById('formPayee_button');
+    
+    if (!formTypeSelect) return;
+    
+    const transactionType = formTypeSelect.value;
+    let labelText, placeholderText;
+    
+    if (transactionType === 'income') {
+        labelText = 'Payee Name';
+        placeholderText = 'Select payee...';
+    } else if (transactionType === 'expense') {
+        labelText = 'Merchant Name';
+        placeholderText = 'Select merchant...';
+    } else {
+        labelText = 'Payee / Merchant Name';
+        placeholderText = 'Select payee or merchant...';
+    }
+    
+    // Update label
+    if (label) {
+        label.textContent = labelText;
+    }
+    
+    // Update placeholder option in select
+    if (payeeSelect && payeeSelect.options && payeeSelect.options[0]) {
+        payeeSelect.options[0].textContent = placeholderText;
+    }
+    
+    // Update button text if nothing selected
+    if (payeeButton && payeeButton.childNodes && payeeButton.childNodes[0]) {
+        if (!payeeSelect || !payeeSelect.value) {
+            payeeButton.childNodes[0].textContent = placeholderText;
+        }
+    }
+}
 
 /**
  * Orchestrates the tactical boot animation sequence
@@ -2723,6 +2774,9 @@ function showAddTransaction(type) {
         const formTypeSelect = document.getElementById('formType');
         if (formTypeSelect) {
             formTypeSelect.value = type;
+            
+            // Update the payee/merchant label based on type
+            updatePayeeMerchantLabel();
             
             // Update the custom dropdown button for formType to match
             const formTypeButton = document.getElementById('formType_button');
